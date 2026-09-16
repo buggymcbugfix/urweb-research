@@ -34,7 +34,7 @@
      };
   
   static uw_unit
-   __uwn_$pageC_1671(uw_context ctx, uw_Basis_string __uwr_forename_0, 
+   __uwn_$pageC_1677(uw_context ctx, uw_Basis_string __uwr_forename_0, 
                       uw_Basis_string __uwr_surname_1, uw_unit __uwr___2)
    {
    return(((uw_write(ctx, "\n<head>\n<title>C</title>\n</head>\n<body"), 0),
@@ -140,19 +140,19 @@
    }
   
   static uw_unit
-   __uwn_wrap_$pageCPRIME_1668(uw_context ctx, uw_Basis_string __uwr_x1_0, 
+   __uwn_wrap_$pageCPRIME_1674(uw_context ctx, uw_Basis_string __uwr_x1_0, 
                                 struct __uws_1 __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            uw_Basis_string arg0 = __uwr_x1_0;
             uw_Basis_string arg1 = __uwr_x0_1.__uwf_Surname;
             uw_unit arg2 = 0;
-           __uwn_$pageC_1671(ctx, arg0, arg1, arg2);
+           __uwn_$pageC_1677(ctx, arg0, arg1, arg2);
            }));
    }
   
   static uw_unit
-   __uwn_$pageB_1672(uw_context ctx, uw_Basis_string __uwr_forename_0, 
+   __uwn_$pageB_1678(uw_context ctx, uw_Basis_string __uwr_forename_0, 
                       uw_unit __uwr_$x_1, uw_unit __uwr___2)
    {
    return(((uw_write(ctx, "\n<head>\n<title>B</title>\n</head>\n<body"), 0),
@@ -169,19 +169,19 @@
    }
   
   static uw_unit
-   __uwn_wrap_$pageB_1670(uw_context ctx, uw_Basis_string __uwr_x1_0, 
+   __uwn_wrap_$pageB_1676(uw_context ctx, uw_Basis_string __uwr_x1_0, 
                            uw_unit __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            uw_Basis_string arg0 = __uwr_x1_0;
             uw_unit arg1 = __uwr_x0_1;
             uw_unit arg2 = 0;
-           __uwn_$pageB_1672(ctx, arg0, arg1, arg2);
+           __uwn_$pageB_1678(ctx, arg0, arg1, arg2);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_fromA_1667(uw_context ctx, struct __uws_2 __uwr_x0_0, 
+   __uwn_wrap_fromA_1673(uw_context ctx, struct __uws_2 __uwr_x0_0, 
                           uw_unit __uwr___1)
    {
    return(({
@@ -193,7 +193,7 @@
              uw_Basis_string arg0 = __uwr_x0_0.__uwf_Forename;
               uw_unit arg1 = 0;
               uw_unit arg2 = 0;
-             __uwn_$pageB_1672(ctx, arg0, arg1, arg2);
+             __uwn_$pageB_1678(ctx, arg0, arg1, arg2);
              })
              :
             disc == uw_Basis_False ?
@@ -201,7 +201,7 @@
               uw_Basis_string arg0 = __uwr_x0_0.__uwf_Forename;
                uw_Basis_string arg1 = NULL;
                uw_unit arg2 = 0;
-              __uwn_$pageC_1671(ctx, arg0, arg1, arg2);
+              __uwn_$pageC_1677(ctx, arg0, arg1, arg2);
               })
               :
              ({
@@ -214,7 +214,7 @@
    }
   
   static uw_unit
-   __uwn_pageA_1673(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_pageA_1679(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "\n<head>\n<title>A</title>\n</head>\n<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -225,22 +225,22 @@
    }
   
   static uw_unit
-   __uwn_wrap_pageA_1669(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_pageA_1675(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_pageA_1673(ctx, arg0, arg1);
+           __uwn_pageA_1679(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1666(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1672(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit arg0 = 0;
             uw_unit arg1 = 0;
-           __uwn_pageA_1673(ctx, arg0, arg1);
+           __uwn_pageA_1679(ctx, arg0, arg1);
            }));
    }
  
@@ -316,7 +316,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1666(ctx, arg0, 0);
+    __uwn_wrap_main_1672(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -350,7 +350,7 @@
         uw_input_EnterSurname,
          uw_input_Forename,
           };
-     __uwn_wrap_fromA_1667(ctx, uw_inputs, 0);
+     __uwn_wrap_fromA_1673(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -379,7 +379,7 @@
        struct __uws_1 uw_inputs = {
         uw_input_Surname,
          };
-      __uwn_wrap_$pageCPRIME_1668(ctx, arg0, uw_inputs, 0);
+      __uwn_wrap_$pageCPRIME_1674(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -399,7 +399,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     __uwn_wrap_pageA_1669(ctx, arg0, 0);
+     __uwn_wrap_pageA_1675(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -420,7 +420,7 @@
    {
     uw_Basis_string arg0 = uw_Basis_unurlifyString(ctx, &request);
      uw_unit arg1 = uw_Basis_unurlifyUnit(ctx, &request);
-      __uwn_wrap_$pageB_1670(ctx, arg0, arg1, 0);
+      __uwn_wrap_$pageB_1676(ctx, arg0, arg1, 0);
     uw_write(ctx, "</html>");
      return;
     }

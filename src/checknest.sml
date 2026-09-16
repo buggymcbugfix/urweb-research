@@ -89,6 +89,7 @@ fun expUses globals =
                       | _ => s
                 end
               | ESetval {seq, count} => IS.union (eu seq, eu count)
+              | EStrFold {str, initial, body, ...} => IS.union (eu str, IS.union (eu initial, eu body))
 
               | EUnurlify (e, _, _) => eu e
     in
@@ -151,6 +152,8 @@ fun annotateExp globals =
               | ESetval {seq, count} =>
                 (ESetval {seq = ae seq,
                           count = ae count}, loc)
+              | EStrFold {state, pair, str, initial, body} =>
+                (EStrFold {state = state, pair = pair, str = ae str, initial = ae initial, body = ae body}, loc)
 
               | EUnurlify (e, t, b) => (EUnurlify (ae e, t, b), loc)
     in

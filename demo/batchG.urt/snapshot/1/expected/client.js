@@ -10,11 +10,11 @@ urfuncs[3] = {c:"c",v:_c3};
 function _u2(v_0,v_1,v_2){return sb(ss(v_1),function(v_3){return sr(cat("\074table>\n\074tr>\n\074th>Id\074/th>\n\074th>A\074/th>\074th>B\074/th>\n\074/tr>\n",cat(_u3(v_0,v_3),"\n\074/table>")));});}
 function _c2(v_0){return function(v_1){return function(v_2){return _u2(v_0,v_1,v_2);}}}
 urfuncs[2] = {c:"c",v:_c2};
-function _n1773(t,i){var x=t[i++];var r=x=="Cons"?{_1:{_A:uu(t[i++]),_B:parseFloat(t[i++]),_Id:parseInt(t[i++])},_2:(tmp=_n1773(t,i),i=tmp._1,tmp._2)}:x=="Nil"?null:pf("demo/batchFun.ur:135:54-135:88");return {_1:i,_2:r}}
+function _n1779(t,i){var x=t[i++];var r=x=="Cons"?{_1:{_A:uu(t[i++]),_B:parseFloat(t[i++]),_Id:parseInt(t[i++])},_2:(tmp=_n1779(t,i),i=tmp._1,tmp._2)}:x=="Nil"?null:pf("demo/batchFun.ur:135:54-135:88");return {_1:i,_2:r}}
 
 // demo/batchFun.ur:135:18-135:95
-urfuncs[4] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:rc,a:cons({c:"c",v:"/"},cons({c:"c",v:"BatchG/allRows/_"},cons({c:"c",v:function(s){var t=s.split("/");var i=0;return (tmp=_n1773(t,i),i=tmp._1,tmp._2)}},cons({c:"K"},cons({c:"c",v:false},null)))))},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"v",n:0},null))}}}}}'};
-// $/top.ur:161:35-161:40
+urfuncs[4] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:rc,a:cons({c:"c",v:"/"},cons({c:"c",v:"BatchG/allRows/_"},cons({c:"c",v:function(s){var t=s.split("/");var i=0;return (tmp=_n1779(t,i),i=tmp._1,tmp._2)}},cons({c:"K"},cons({c:"c",v:false},null)))))},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"v",n:0},null))}}}}}'};
+// $/top.ur:164:35-164:40
 function _u5(v_0,v_1){return v_0._A;}
 function _c5(v_0){return function(v_1){return _u5(v_0,v_1);}}
 urfuncs[5] = {c:"c",v:_c5};

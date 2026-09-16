@@ -111,6 +111,12 @@ datatype exp' =
        | ENextval of exp
        | ESetval of exp * exp
 
+       | EStrFold of { state : typ,
+                       str : exp,
+                       initial : exp,
+                       body : exp (* under two binders, the character and the accumulator;
+                                   * of type state * bool, False stopping the fold *) }
+
        | EUnurlify of exp * typ * bool
 
        | EJavaScript of javascript_mode * exp

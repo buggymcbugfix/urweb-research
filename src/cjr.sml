@@ -98,6 +98,12 @@ datatype exp' =
        | ENextval of { seq : exp,
                        prepared : {id : int, query : string} option }
        | ESetval of { seq : exp, count : exp }
+
+       | EStrFold of { state : typ,
+                       pair : typ, (* the record state * bool the body returns *)
+                       str : exp,
+                       initial : exp,
+                       body : exp (* under two binders, the character and the accumulator *) }
        | EUnurlify of exp * typ * bool
 
 withtype exp = exp' located

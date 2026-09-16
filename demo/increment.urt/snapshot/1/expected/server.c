@@ -144,13 +144,13 @@
   static char jslib[] = "*runtime elided*";
    static char jsapp[] = "*script elided*";
   
-  static uw_unit __uwn_initializer_1665(uw_context ctx, uw_unit __uwr___0)
+  static uw_unit __uwn_initializer_1671(uw_context ctx, uw_unit __uwr___0)
    {
    return(0);
    }
   
   static uw_unit
-   __uwn_expunger_1664(uw_context ctx, uw_Basis_client __uwr_cli_0)
+   __uwn_expunger_1670(uw_context ctx, uw_Basis_client __uwr_cli_0)
    {
    return(0);
    }
@@ -159,7 +159,7 @@
    
   
   static uw_Basis_int
-   __uwn_increment_1661(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_increment_1667(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int n;
@@ -175,14 +175,14 @@
              
              if (PQresultStatus(res) != PGRES_TUPLES_OK) {
              PQclear(res);
-              uw_error(ctx, FATAL, "$/basis.urs:744:0-744:45: Query failed:\n%s\n%s", 
+              uw_error(ctx, FATAL, "$/basis.urs:752:0-752:45: Query failed:\n%s\n%s", 
               "SELECT NEXTVAL('uw_Increment_seq')", PQerrorMessage(conn));
               }
              
              n = PQntuples(res);
              if (n != 1) {
              PQclear(res);
-              uw_error(ctx, FATAL, "$/basis.urs:744:0-744:45: Wrong number of result rows:\n%s\n%s", 
+              uw_error(ctx, FATAL, "$/basis.urs:752:0-752:45: Wrong number of result rows:\n%s\n%s", 
               "SELECT NEXTVAL('uw_Increment_seq')", PQerrorMessage(conn));
               }
              
@@ -195,7 +195,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1663(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1669(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_source __uwr_src_2 =
@@ -286,7 +286,7 @@
   return;
   }
  
- if (!strcmp(request, "/runtime.C4686B799F7EDBC89BEA6A0726BF1E2E1E9F2890.js")) {
+ if (!strcmp(request, "/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js")) {
   uw_write_header(ctx, "Content-Type: text/javascript\r\n");
    uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
    uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -311,7 +311,7 @@
    uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
     uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.C4686B799F7EDBC89BEA6A0726BF1E2E1E9F2890.js\"></script>\n<script type=\"text/javascript\" src=\"/app.17D9F7FB4B18467833F8EDD5E723EE83368DCD61.js\"></script>\n");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js\"></script>\n<script type=\"text/javascript\" src=\"/app.17D9F7FB4B18467833F8EDD5E723EE83368DCD61.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 0);
   uw_set_needs_push(ctx, 0);
@@ -319,7 +319,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1663(ctx, arg0, 0);
+    __uwn_wrap_main_1669(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -341,7 +341,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     uw_Basis_int it0 = __uwn_increment_1661(ctx, arg0, 0);
+     uw_Basis_int it0 = __uwn_increment_1667(ctx, arg0, 0);
     uw_write(ctx, uw_get_real_script(ctx));
      uw_write(ctx, "\n");
      uw_Basis_urlifyInt_w(ctx, it0);
@@ -355,12 +355,12 @@
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {
-  __uwn_expunger_1664(ctx, cli);
+  __uwn_expunger_1670(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
-  __uwn_initializer_1665(ctx, 0);
+  __uwn_initializer_1671(ctx, 0);
    }
  uw_app uw_application = {1,
                             60,

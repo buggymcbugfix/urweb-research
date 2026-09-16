@@ -10,10 +10,10 @@ urfuncs[3] = {c:"c",v:_c3};
 function _u2(v_0,v_1,v_2){return sb(ss(v_1),function(v_3){return sr(cat("\074table>\n\074tr> \074th>Id\074/th> \074th>A\074/th> \074/tr>\n",cat(_u3(v_0,v_3),"\n\074/table>")));});}
 function _c2(v_0){return function(v_1){return function(v_2){return _u2(v_0,v_1,v_2);}}}
 urfuncs[2] = {c:"c",v:_c2};
-function _n1691(t,i){var x=t[i++];var r=x=="Cons"?{_1:{_1:parseInt(t[i++]),_2:uu(t[i++])},_2:(tmp=_n1691(t,i),i=tmp._1,tmp._2)}:x=="Nil"?null:pf("demo/batch.ur:67:50-67:84");return {_1:i,_2:r}}
+function _n1697(t,i){var x=t[i++];var r=x=="Cons"?{_1:{_1:parseInt(t[i++]),_2:uu(t[i++])},_2:(tmp=_n1697(t,i),i=tmp._1,tmp._2)}:x=="Nil"?null:pf("demo/batch.ur:67:50-67:84");return {_1:i,_2:r}}
 
 // demo/batch.ur:67:14-67:91
-urfuncs[4] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:rc,a:cons({c:"c",v:"/"},cons({c:"c",v:"Batch/allRows/_"},cons({c:"c",v:function(s){var t=s.split("/");var i=0;return (tmp=_n1691(t,i),i=tmp._1,tmp._2)}},cons({c:"K"},cons({c:"c",v:false},null)))))},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"v",n:0},null))}}}}}'};
+urfuncs[4] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:rc,a:cons({c:"c",v:"/"},cons({c:"c",v:"Batch/allRows/_"},cons({c:"c",v:function(s){var t=s.split("/");var i=0;return (tmp=_n1697(t,i),i=tmp._1,tmp._2)}},cons({c:"K"},cons({c:"c",v:false},null)))))},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"v",n:0},null))}}}}}'};
 // demo/batch.ur:75:31-75:82
 function _u5(v_0,v_1,v_2,v_3){let v_4 = uw_mouseEvent(); let v_5 = sg(v_1); let v_6 = sg(v_2); let v_7 = sg(v_0); return sv(v_0,{_1:{_1:pi(v_5),_2:v_6},_2:v_7});}
 function _c5(v_0){return function(v_1){return function(v_2){return function(v_3){return _u5(v_0,v_1,v_2,v_3);}}}}

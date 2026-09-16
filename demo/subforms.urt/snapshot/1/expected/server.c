@@ -35,9 +35,9 @@
    struct __uws_2* __uwf_Lines;
     };
   
-  static uw_unit __uwn_$subPRIME_1669(uw_context, struct __uws_2*);
+  static uw_unit __uwn_$subPRIME_1675(uw_context, struct __uws_2*);
    static uw_unit
-    __uwn_$subPRIME_1669(uw_context ctx, struct __uws_2* __uwr_ls_0)
+    __uwn_$subPRIME_1675(uw_context ctx, struct __uws_2* __uwr_ls_0)
     {restart:
       
     return(({
@@ -58,7 +58,7 @@
                                                                  ),
                                           uw_end_region(ctx), ((uw_write(ctx, "</p>\n"), 0),
                                                                (uw_begin_region(ctx),
-                                                                 __uwn_$subPRIME_1669(ctx,
+                                                                 __uwn_$subPRIME_1675(ctx,
                                                                   __uwr_ls_2),
                                                                 uw_end_region(ctx),
                                                                  (uw_write(ctx, 
@@ -75,8 +75,8 @@
     }
    
   
-  static uw_unit __uwn_subfrms_1670(uw_context, uw_Basis_int);
-   static uw_unit __uwn_subfrms_1670(uw_context ctx, uw_Basis_int __uwr_n_0)
+  static uw_unit __uwn_subfrms_1676(uw_context, uw_Basis_int);
+   static uw_unit __uwn_subfrms_1676(uw_context ctx, uw_Basis_int __uwr_n_0)
     {restart:
       
     return(({
@@ -94,7 +94,7 @@
                                                              __uwr_n_0),
                                       uw_end_region(ctx), ((uw_write(ctx, ": <input type=\"text\" name=\"Text\" /></p>\n<input type=\"hidden\" name=\".e\" value=\"1\" />\n"), 0),
                                                            (uw_begin_region(ctx),
-                                                             __uwn_subfrms_1670(ctx,
+                                                             __uwn_subfrms_1676(ctx,
                                                               __uwr_n_0 - 1LL),
                                                             uw_end_region(ctx), 
                                                             (uw_write(ctx, "\n"), 0)))))))
@@ -110,7 +110,7 @@
    
   
   static uw_unit
-   __uwn_wrap_sub_1667(uw_context ctx, struct __uws_3 __uwr_x0_0, 
+   __uwn_wrap_sub_1673(uw_context ctx, struct __uws_3 __uwr_x0_0, 
                         uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
@@ -119,14 +119,14 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">\n"), 0),
-                                                      (uw_begin_region(ctx), __uwn_$subPRIME_1669(ctx,
+                                                      (uw_begin_region(ctx), __uwn_$subPRIME_1675(ctx,
                                                                               __uwr_x0_0.__uwf_Lines),
                                                        uw_end_region(ctx), (uw_write(ctx, 
                                                                             "\n</body>"), 0)))))));
    }
   
   static uw_unit
-   __uwn_form_1671(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr___1)
+   __uwn_form_1677(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -134,7 +134,7 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">\n<form method=\"post\" action=\"/Subforms/sub\">\n<input type=\"hidden\" name=\".s\" value=\"Lines\" />\n"), 0),
-                                                      (uw_begin_region(ctx), __uwn_subfrms_1670(ctx,
+                                                      (uw_begin_region(ctx), __uwn_subfrms_1676(ctx,
                                                                               __uwr_n_0),
                                                        uw_end_region(ctx), ((uw_write(ctx, 
                                                                              "\n<input type=\"hidden\" name=\".e\" value=\"1\" />\n<input type=\"submit\" />\n</form>\n<a href=\"/Subforms/form/"), 0),
@@ -198,23 +198,23 @@
    }
   
   static uw_unit
-   __uwn_wrap_form_1668(uw_context ctx, uw_Basis_int __uwr_x0_0, 
+   __uwn_wrap_form_1674(uw_context ctx, uw_Basis_int __uwr_x0_0, 
                          uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_form_1671(ctx, arg0, arg1);
+           __uwn_form_1677(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1666(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1672(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int arg0 = 1LL;
             uw_unit arg1 = 0;
-           __uwn_form_1671(ctx, arg0, arg1);
+           __uwn_form_1677(ctx, arg0, arg1);
            }));
    }
  
@@ -290,7 +290,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1666(ctx, arg0, 0);
+    __uwn_wrap_main_1672(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -340,7 +340,7 @@
       struct __uws_3 uw_inputs = {
        uw_input_Lines,
         };
-     __uwn_wrap_sub_1667(ctx, uw_inputs, 0);
+     __uwn_wrap_sub_1673(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -360,7 +360,7 @@
    uw_login(ctx);
    {
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
-     __uwn_wrap_form_1668(ctx, arg0, 0);
+     __uwn_wrap_form_1674(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }

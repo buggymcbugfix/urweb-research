@@ -574,6 +574,9 @@ fun process (file : file) =
                       | EError (e, _) => ok env e
                       | ESeq (e1, e2) => ok env e1 andalso ok env e2
                       | ELet (_, t, e1, e2) => ok env e1 andalso ok (SOME t :: env) e2
+                      | EStrFold {state, str, initial, body} =>
+                        ok env str andalso ok env initial
+                        andalso ok (SOME state :: SOME (TFfi ("Basis", "char"), #2 e) :: env) body
                       | EJavaScript (Source _, e) => ok env e
                       | EJavaScript (_, e) => astOk e
                       | ERedirect (e, _) => ok env e
@@ -1178,6 +1181,21 @@ fun process (file : file) =
                           | EWrite _ => unsupported "EWrite"
                           | EClosure _ => unsupported "EClosure"
                           | EQuery _ => unsupported "Query"
+                          | EStrFold {str = s, initial, body, ...} =>
+                            let
+                                val (s, st) = jsE inner (s, st)
+                                val (initial, st) = jsE inner (initial, st)
+                                val (body, st) = jsE (inner + 2) (body, st)
+                            in
+                                (strcat [str "{c:\"f\",f:strFoldWhile,a:cons({c:\"l\",b:{c:\"l\",b:",
+                                         body,
+                                         str "}},cons(",
+                                         initial,
+                                         str ",cons(",
+                                         s,
+                                         str ",null)))}"],
+                                 st)
+                            end
                           | EDml _ => unsupported "DML"
                           | ENextval _ => unsupported "Nextval"
                           | ESetval _ => unsupported "Nextval"
@@ -1638,6 +1656,39 @@ fun process (file : file) =
                             (("let " ^ r ^ ";") :: ss, r, st)
                         end
 
+                      | EStrFold {str, initial, body, ...} =>
+                        (* One loop over the code points of the string, the
+                         * step's body compiled in place with the character and
+                         * the accumulator as its two innermost variables; the
+                         * pair it answers is assigned to the accumulator and
+                         * tested.  The same loop as the C printer emits.  The
+                         * body sees the accumulator through a binding local to
+                         * the iteration, so that a closure it builds keeps the
+                         * value of that step rather than the variable. *)
+                        let
+                            val (s0, xs, st) = cEs env ([str, initial], st)
+                            val (xstr, xinit) = case xs of [a, b] => (a, b) | _ => raise Fail "Jscomp: strFold"
+                            val s = fresh ()
+                            val acc = fresh ()
+                            val i = fresh ()
+                            val go = fresh ()
+                            val cp = fresh ()
+                            val c = fresh ()
+                            val a = fresh ()
+                            val r = fresh ()
+                            val (sb, st) = cS (a :: c :: env) (Assign r) (body, st)
+                        in
+                            (s0 @ ["let " ^ s ^ " = " ^ xstr ^ ", " ^ acc ^ " = " ^ xinit ^ ", " ^ i ^ " = 0, " ^ go ^ " = true;",
+                                   "while (" ^ i ^ " < " ^ s ^ ".length) {"
+                                   ^ "let " ^ cp ^ " = " ^ s ^ ".codePointAt(" ^ i ^ "); "
+                                   ^ i ^ " += " ^ cp ^ " > 0xFFFF ? 2 : 1; "
+                                   ^ "let " ^ c ^ " = String.fromCodePoint(" ^ cp ^ "), " ^ a ^ " = " ^ acc ^ "; "
+                                   ^ "let " ^ r ^ "; " ^ String.concatWith " " sb ^ " "
+                                   ^ acc ^ " = " ^ r ^ "._1; "
+                                   ^ "if (!" ^ r ^ "._2) {" ^ go ^ " = false; break;}}"],
+                             "{_1:" ^ acc ^ ",_2:" ^ go ^ "}", st)
+                        end
+
                       | EJavaScript (Source _, e') => cE env (e', st)
                       | EJavaScript (_, e') =>
                         (* An embedded closure (e.g. an event handler inside XML):
@@ -2095,6 +2146,15 @@ fun process (file : file) =
                      val (es, st) = ListUtil.foldlMap (exp outer) st es
                  in
                      ((EClosure (n, es), loc), st)
+                 end
+
+               | EStrFold {state, str, initial, body} =>
+                 let
+                     val (str, st) = exp outer (str, st)
+                     val (initial, st) = exp outer (initial, st)
+                     val (body, st) = exp (state :: (TFfi ("Basis", "char"), loc) :: outer) (body, st)
+                 in
+                     ((EStrFold {state = state, str = str, initial = initial, body = body}, loc), st)
                  end
 
                | EQuery {exps, tables, state, query, body, initial} =>

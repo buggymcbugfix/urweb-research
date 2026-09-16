@@ -65,6 +65,7 @@ fun simpleImpure isGlobal (tsyms, syms) =
                               | EDml _ => true
                               | ENextval _ => true
                               | ESetval _ => true
+                              | EStrFold _ => false
                               | EFfiApp (m, x, _) => Settings.isEffectful (m, x) orelse Settings.isBenignEffectful (m, x)
                               | EServerCall _ => true
                               | ERecv _ => true
@@ -90,6 +91,7 @@ fun impure (e, _) =
       | EDml _ => true
       | ENextval _ => true
       | ESetval _ => true
+      | EStrFold {str, initial, body, ...} => impure str orelse impure initial orelse impure body
       | EUnurlify (e, _, _) => impure e
       | EAbs _ => false
 
@@ -540,6 +542,10 @@ fun reduce' (file : file) =
                       | EDml (e, _) => summarize d e @ [WriteDb]
                       | ENextval e => summarize d e @ [WriteDb]
                       | ESetval (e1, e2) => summarize d e1 @ summarize d e2 @ [WriteDb]
+                      | EStrFold {str, initial, body, ...} =>
+                        List.concat [summarize d str,
+                                     summarize d initial,
+                                     summarize (if d = ~1 then ~1 else d + 2) body]
                       | EUnurlify (e, _, _) => summarize d e
                       | EJavaScript (_, e) => summarize d e
                       | ESignalReturn e => summarize d e
@@ -654,6 +660,8 @@ fun reduce' (file : file) =
                               | EDml (e1, _) => whichProj i e1
                               | ENextval e1 => whichProj i e1
                               | ESetval (e1, e2) => whichProjs i [e1, e2]
+                              | EStrFold {str = e1, initial = e2, body = e3, ...} =>
+                                whichProjs' i [(0, e1), (0, e2), (2, e3)]
                               | EUnurlify (e1, _, _) => whichProj i e1
                               | EJavaScript (_, e1) => whichProj i e1
                               | ESignalReturn e1 => whichProj i e1

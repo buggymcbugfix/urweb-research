@@ -21,6 +21,10 @@ end
 
 val not : bool -> bool
 
+(* The fold over the characters of a string that never stops early:
+ * strFoldWhile with a step that always goes on, so the same one loop. *)
+val strFold : a ::: Type -> (char -> a -> a) -> a -> string -> a
+
 (* Type-level identity function *)
 con ident = K ==> fn t :: K => t
 

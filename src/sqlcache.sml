@@ -447,6 +447,8 @@ fun freePaths' bound exp =
       | EDml (e, _) => freePaths' bound e
       | ENextval e => freePaths' bound e
       | ESetval (e1, e2) => freePaths' bound e1 o freePaths' bound e2
+      | EStrFold {str = e1, initial = e2, body = e3, ...} =>
+        freePaths' bound e1 o freePaths' bound e2 o freePaths' (bound + 2) e3
       | EUnurlify (e, _, _) => freePaths' bound e
       | EJavaScript (_, e) => freePaths' bound e
       | ESignalReturn e => freePaths' bound e

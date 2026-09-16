@@ -374,6 +374,18 @@ fun p_exp' par env (e, _) =
       | ERecv (n, _) => box [string "Recv(",
                              p_exp env n,
                              string ")"]
+      | EStrFold {str, initial, body, ...} =>
+        box [string "StrFoldWhile(",
+             p_exp env str,
+             string ",",
+             space,
+             p_exp env initial,
+             string ",",
+             space,
+             string "fn c acc =>",
+             space,
+             p_exp (E.pushERel (E.pushERel env "c" dummyt NONE) "acc" dummyt NONE) body,
+             string ")"]
       | ESleep n => box [string "Sleep(",
                          p_exp env n,
                          string ")"]

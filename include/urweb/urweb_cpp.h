@@ -4,6 +4,7 @@
 #include <sys/types.h>
 
 #include "types_cpp.h"
+#include <unicode/utf8.h>
 
 int uw_really_send(int sock, const void *buf, ssize_t len);
 int uw_really_write(int fd, const void *buf, size_t len);

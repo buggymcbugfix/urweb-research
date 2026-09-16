@@ -488,6 +488,17 @@ fun cifyExp (eAll as (e, loc), sm) =
             in
                 ((L'.ENextval {seq = e, prepared = NONE}, loc), sm)
             end
+          | L.EStrFold {state, str, initial, body} =>
+            let
+                val (pair, sm) = cifyTyp ((L.TRecord [("1", state), ("2", (L.TFfi ("Basis", "bool"), loc))], loc), sm)
+                val (state, sm) = cifyTyp (state, sm)
+                val (str, sm) = cifyExp (str, sm)
+                val (initial, sm) = cifyExp (initial, sm)
+                val (body, sm) = cifyExp (body, sm)
+            in
+                ((L'.EStrFold {state = state, pair = pair, str = str, initial = initial, body = body}, loc), sm)
+            end
+
           | L.ESetval (e1, e2) =>
             let
                 val (e1, sm) = cifyExp (e1, sm)
