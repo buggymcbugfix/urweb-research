@@ -1653,8 +1653,6 @@ uw_Basis_string uw_Basis_jsifyString(uw_context ctx, uw_Basis_string s) {
   return r;
 }
 
-uw_Basis_int uw_Basis_ord(uw_context ctx, uw_Basis_char c);
-
 uw_Basis_string uw_Basis_jsifyChar(uw_context ctx, uw_Basis_char c1) {
   char *r, *s2;
 
@@ -4610,17 +4608,17 @@ void uw_set_global(uw_context ctx, char *name, void *data, void (*free)(void*)) 
   ctx->globals[ctx->n_globals-1].free = free;
 }
 
-uw_Basis_bool uw_Basis_isalnum(uw_context ctx, uw_Basis_char c) {
+uw_Basis_bool uw_Basis_isalnum_unicode(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return !!u_hasBinaryProperty(c, UCHAR_POSIX_ALNUM);
 }
 
-uw_Basis_bool uw_Basis_isalpha(uw_context ctx, uw_Basis_char c) {
+uw_Basis_bool uw_Basis_isalpha_unicode(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return !!u_hasBinaryProperty(c, UCHAR_ALPHABETIC);
 }
 
-uw_Basis_bool uw_Basis_isblank(uw_context ctx, uw_Basis_char c) {
+uw_Basis_bool uw_Basis_isblank_unicode(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return !!u_hasBinaryProperty(c, UCHAR_POSIX_BLANK);
 }
@@ -4630,7 +4628,7 @@ uw_Basis_bool uw_Basis_iscntrl(uw_context ctx, uw_Basis_char c) {
   return !!(u_charType(c)==U_CONTROL_CHAR);
 }
 
-uw_Basis_bool uw_Basis_isdigit(uw_context ctx, uw_Basis_char c) {
+uw_Basis_bool uw_Basis_isdigit_unicode(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return !!u_isdigit(c);
 }
@@ -4640,7 +4638,7 @@ uw_Basis_bool uw_Basis_isgraph(uw_context ctx, uw_Basis_char c) {
   return !!u_hasBinaryProperty(c, UCHAR_POSIX_GRAPH);
 }
 
-uw_Basis_bool uw_Basis_islower(uw_context ctx, uw_Basis_char c) {
+uw_Basis_bool uw_Basis_islower_unicode(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return !!u_hasBinaryProperty(c, UCHAR_LOWERCASE);
 }
@@ -4655,19 +4653,14 @@ uw_Basis_bool uw_Basis_ispunct(uw_context ctx, uw_Basis_char c) {
   return !!u_ispunct(c);
 }
 
-uw_Basis_bool uw_Basis_isspace(uw_context ctx, uw_Basis_char c) {
+uw_Basis_bool uw_Basis_isspace_unicode(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return !!u_hasBinaryProperty(c, UCHAR_WHITE_SPACE);
 }
 
-uw_Basis_bool uw_Basis_isupper(uw_context ctx, uw_Basis_char c) {
+uw_Basis_bool uw_Basis_isupper_unicode(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return !!u_hasBinaryProperty(c, UCHAR_UPPERCASE);
-}
-
-uw_Basis_bool uw_Basis_isxdigit(uw_context ctx, uw_Basis_char c) {
-  (void)ctx;
-  return !!(c <= 0x7f && u_isxdigit(c));
 }
 
 uw_Basis_char uw_Basis_tolower(uw_context ctx, uw_Basis_char c) {
@@ -4678,11 +4671,6 @@ uw_Basis_char uw_Basis_tolower(uw_context ctx, uw_Basis_char c) {
 uw_Basis_char uw_Basis_toupper(uw_context ctx, uw_Basis_char c) {
   (void)ctx;
   return u_toupper(c);
-}
-
-uw_Basis_int uw_Basis_ord(uw_context ctx, uw_Basis_char c) {
-  (void)ctx;
-  return (uw_Basis_int)c;
 }
 
 uw_Basis_bool uw_Basis_iscodepoint(uw_context ctx, uw_Basis_int n) {

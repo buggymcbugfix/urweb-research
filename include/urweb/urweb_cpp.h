@@ -320,24 +320,66 @@ extern char *uw_sqlfmtUint4;
 void *uw_get_global(struct uw_context *, char *name);
 void uw_set_global(struct uw_context *, char *name, void *data, uw_callback free);
 
-uw_Basis_bool uw_Basis_isalnum(struct uw_context *, uw_Basis_char);
-uw_Basis_bool uw_Basis_isalpha(struct uw_context *, uw_Basis_char);
-uw_Basis_bool uw_Basis_isblank(struct uw_context *, uw_Basis_char);
 uw_Basis_bool uw_Basis_iscntrl(struct uw_context *, uw_Basis_char);
-uw_Basis_bool uw_Basis_isdigit(struct uw_context *, uw_Basis_char);
 uw_Basis_bool uw_Basis_isgraph(struct uw_context *, uw_Basis_char);
-uw_Basis_bool uw_Basis_islower(struct uw_context *, uw_Basis_char);
 uw_Basis_bool uw_Basis_isprint(struct uw_context *, uw_Basis_char);
 uw_Basis_bool uw_Basis_ispunct(struct uw_context *, uw_Basis_char);
-uw_Basis_bool uw_Basis_isspace(struct uw_context *, uw_Basis_char);
-uw_Basis_bool uw_Basis_isupper(struct uw_context *, uw_Basis_char);
-uw_Basis_bool uw_Basis_isxdigit(struct uw_context *, uw_Basis_char);
 uw_Basis_char uw_Basis_tolower(struct uw_context *, uw_Basis_char);
 uw_Basis_char uw_Basis_toupper(struct uw_context *, uw_Basis_char);
 
 uw_Basis_bool uw_Basis_iscodepoint(struct uw_context *, uw_Basis_int);
-uw_Basis_int uw_Basis_ord(struct uw_context *, uw_Basis_char);
 uw_Basis_char uw_Basis_chr(struct uw_context *, uw_Basis_int);
+
+/* The character classifiers a program is likely to call per character are
+ * defined here, so that the C compiler folds them into the generated code
+ * instead of calling into the runtime: ASCII is decided inline, and only a
+ * character beyond it goes to the ICU-backed function in urweb.c.  The
+ * classes are the ones ICU gives for ASCII, so the answers do not change. */
+uw_Basis_bool uw_Basis_isalnum_unicode(struct uw_context *, uw_Basis_char);
+uw_Basis_bool uw_Basis_isalpha_unicode(struct uw_context *, uw_Basis_char);
+uw_Basis_bool uw_Basis_isblank_unicode(struct uw_context *, uw_Basis_char);
+uw_Basis_bool uw_Basis_isdigit_unicode(struct uw_context *, uw_Basis_char);
+uw_Basis_bool uw_Basis_islower_unicode(struct uw_context *, uw_Basis_char);
+uw_Basis_bool uw_Basis_isspace_unicode(struct uw_context *, uw_Basis_char);
+uw_Basis_bool uw_Basis_isupper_unicode(struct uw_context *, uw_Basis_char);
+
+static inline uw_Basis_int uw_Basis_ord(struct uw_context *ctx, uw_Basis_char c) {
+  (void)ctx;
+  return (uw_Basis_int)c;
+}
+
+static inline uw_Basis_bool uw_Basis_isdigit(struct uw_context *ctx, uw_Basis_char c) {
+  return c < 0x80 ? (c >= '0' && c <= '9') : uw_Basis_isdigit_unicode(ctx, c);
+}
+
+static inline uw_Basis_bool uw_Basis_isxdigit(struct uw_context *ctx, uw_Basis_char c) {
+  (void)ctx;
+  return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+}
+
+static inline uw_Basis_bool uw_Basis_isupper(struct uw_context *ctx, uw_Basis_char c) {
+  return c < 0x80 ? (c >= 'A' && c <= 'Z') : uw_Basis_isupper_unicode(ctx, c);
+}
+
+static inline uw_Basis_bool uw_Basis_islower(struct uw_context *ctx, uw_Basis_char c) {
+  return c < 0x80 ? (c >= 'a' && c <= 'z') : uw_Basis_islower_unicode(ctx, c);
+}
+
+static inline uw_Basis_bool uw_Basis_isalpha(struct uw_context *ctx, uw_Basis_char c) {
+  return c < 0x80 ? ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) : uw_Basis_isalpha_unicode(ctx, c);
+}
+
+static inline uw_Basis_bool uw_Basis_isalnum(struct uw_context *ctx, uw_Basis_char c) {
+  return c < 0x80 ? ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')) : uw_Basis_isalnum_unicode(ctx, c);
+}
+
+static inline uw_Basis_bool uw_Basis_isspace(struct uw_context *ctx, uw_Basis_char c) {
+  return c < 0x80 ? (c == ' ' || (c >= '\t' && c <= '\r')) : uw_Basis_isspace_unicode(ctx, c);
+}
+
+static inline uw_Basis_bool uw_Basis_isblank(struct uw_context *ctx, uw_Basis_char c) {
+  return c < 0x80 ? (c == ' ' || c == '\t') : uw_Basis_isblank_unicode(ctx, c);
+}
 
 uw_Basis_string uw_Basis_currentUrl(struct uw_context *);
 void uw_set_currentUrl(struct uw_context *, char *);
