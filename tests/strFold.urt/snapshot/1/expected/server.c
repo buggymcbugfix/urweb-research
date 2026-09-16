@@ -66,34 +66,32 @@
             uw_Basis_char __uwr_c_1;
             U8_NEXT(__uwfold_s_1, __uwfold_i_1, -1, __uwr_c_1);
             struct __uws_1 __uwr_acc_2 = __uwfold_acc_1;
-            uw_begin_region(ctx);
-             struct __uws_2 __uwfold_r_1 = ({
-                                            uw_Basis_bool disc =
-                                            uw_Basis_isdigit(ctx, __uwr_c_1);
-                                            
-                                            disc == uw_Basis_True ?
+            struct __uws_2 __uwfold_r_1 = ({
+                                           uw_Basis_bool disc =
+                                           uw_Basis_isdigit(ctx, __uwr_c_1);
+                                           
+                                           disc == uw_Basis_True ?
+                                            ({ struct __uws_2 tmp =
+                                             {({ struct __uws_1 tmp =
+                                               {__uwr_acc_2.__uwf_At + 1LL, 
+                                                 (__uwr_acc_2.__uwf_Sum +
+                                                   uw_Basis_ord(ctx, __uwr_c_1))
+                                                  - 48LL}; tmp; }), 
+                                               uw_Basis_True}; tmp; })
+                                             :
+                                            disc == uw_Basis_False ?
                                              ({ struct __uws_2 tmp =
-                                              {({ struct __uws_1 tmp =
-                                                {__uwr_acc_2.__uwf_At + 1LL, 
-                                                  (__uwr_acc_2.__uwf_Sum +
-                                                    uw_Basis_ord(ctx,
-                                                     __uwr_c_1)) - 48LL}; tmp;
-                                                }), uw_Basis_True}; tmp; })
+                                              {__uwr_acc_2, uw_Basis_False};
+                                              tmp; })
                                               :
-                                             disc == uw_Basis_False ?
-                                              ({ struct __uws_2 tmp =
-                                               {__uwr_acc_2, uw_Basis_False};
-                                               tmp; })
-                                               :
-                                              ({
-                                               struct __uws_2
-                                               tmp;
-                                               uw_error(ctx, FATAL, "tests/strFold.ur:14:22-14:34: pattern match failure");
-                                               tmp;
-                                               });
-                                            });
-            uw_end_region(ctx);
-             __uwfold_acc_1 = __uwfold_r_1.__uwf_1;
+                                             ({
+                                              struct __uws_2
+                                              tmp;
+                                              uw_error(ctx, FATAL, "tests/strFold.ur:14:22-14:34: pattern match failure");
+                                              tmp;
+                                              });
+                                           });
+            __uwfold_acc_1 = __uwfold_r_1.__uwf_1;
             if (__uwfold_r_1.__uwf_2 == uw_Basis_False) {
             __uwfold_go_1 = uw_Basis_False;
             break;
@@ -207,7 +205,6 @@
                                                                                uw_Basis_char __uwr_c_3;
                                                                                U8_NEXT(__uwfold_s_3, __uwfold_i_3, -1, __uwr_c_3);
                                                                                uw_Basis_int __uwr_acc_4 = __uwfold_acc_3;
-                                                                               uw_begin_region(ctx);
                                                                                struct
                                                                                __uws_3 __uwfold_r_3 = 
                                                                                ({
@@ -254,7 +251,6 @@
                                                                                uw_Basis_True};
                                                                                tmp;
                                                                                });
-                                                                               uw_end_region(ctx);
                                                                                __uwfold_acc_3 = __uwfold_r_3.__uwf_1;
                                                                                if (__uwfold_r_3.__uwf_2 == uw_Basis_False) {
                                                                                __uwfold_go_3 = uw_Basis_False;
@@ -381,7 +377,6 @@
                                                                                U8_NEXT(__uwfold_s_3, __uwfold_i_3, -1, __uwr_c_3);
                                                                                struct
                                                                                __uws_4 __uwr_acc_4 = __uwfold_acc_3;
-                                                                               uw_begin_region(ctx);
                                                                                struct
                                                                                __uws_5 __uwfold_r_3 = 
                                                                                ({
@@ -451,7 +446,6 @@
                                                                                uw_Basis_True};
                                                                                tmp;
                                                                                });
-                                                                               uw_end_region(ctx);
                                                                                __uwfold_acc_3 = __uwfold_r_3.__uwf_1;
                                                                                if (__uwfold_r_3.__uwf_2 == uw_Basis_False) {
                                                                                __uwfold_go_3 = uw_Basis_False;
@@ -478,7 +472,6 @@
                                                                                uw_Basis_char __uwr_c_3;
                                                                                U8_NEXT(__uwfold_s_3, __uwfold_i_3, -1, __uwr_c_3);
                                                                                uw_Basis_int __uwr_acc_4 = __uwfold_acc_3;
-                                                                               uw_begin_region(ctx);
                                                                                struct
                                                                                __uws_3 __uwfold_r_3 = 
                                                                                ({
@@ -506,7 +499,6 @@
                                                                                uw_Basis_True};
                                                                                tmp;
                                                                                });
-                                                                               uw_end_region(ctx);
                                                                                __uwfold_acc_3 = __uwfold_r_3.__uwf_1;
                                                                                if (__uwfold_r_3.__uwf_2 == uw_Basis_False) {
                                                                                __uwfold_go_3 = uw_Basis_False;

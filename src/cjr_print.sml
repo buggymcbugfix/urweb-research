@@ -1410,6 +1410,10 @@ fun sql_type_in env (tAll as (t, loc)) =
               Print.eprefaces' [("Type", p_htyp env tAll)];
               Int)
 
+(* The functions of the program whose bodies allocate nothing on the heap,
+ * found by nonAllocatingFuns below before the program is printed. *)
+val nonAllocatingFuns = ref IS.empty
+
 fun potentiallyFancy (e, _) =
     case e of
         EPrim _ => false
@@ -1420,7 +1424,10 @@ fun potentiallyFancy (e, _) =
       | ENone _ => false
       | ESome (_, e) => potentiallyFancy e
       | EFfi _ => false
-      | EFfiApp _ => true
+      | EFfiApp (m, x, args) =>
+        not (Settings.allocatesNothing (m, x)) orelse List.exists (potentiallyFancy o #1) args
+      | EApp ((ENamed n, _), es) =>
+        not (IS.member (!nonAllocatingFuns, n)) orelse List.exists potentiallyFancy es
       | EApp _ => true
       | EUnop (_, e) => potentiallyFancy e
       | EBinop (_, e1, e2) => potentiallyFancy e1 orelse potentiallyFancy e2
@@ -1440,6 +1447,68 @@ fun potentiallyFancy (e, _) =
       | EStrFold {str, initial, body, ...} =>
         potentiallyFancy str orelse potentiallyFancy initial orelse potentiallyFancy body
       | EUnurlify _ => true
+
+(* Whether an expression can allocate on the heap at all.  Stricter than
+ * potentiallyFancy, which lets a constructor or a Some through (their cells
+ * are reclaimed with the enclosing region), because a function's body must
+ * be free of allocation for a call to it to need no region. *)
+fun allocates (e, _) =
+    case e of
+        EPrim _ => false
+      | ERel _ => false
+      | ENamed _ => false
+      | ECon (_, _, NONE) => false
+      | ECon (_, _, SOME _) => true
+      | ENone _ => false
+      | ESome (t, e) => not (isUnboxable t) orelse allocates e
+      | EFfi _ => false
+      | EFfiApp (m, x, args) =>
+        not (Settings.allocatesNothing (m, x)) orelse List.exists (allocates o #1) args
+      | EApp ((ENamed n, _), es) =>
+        not (IS.member (!nonAllocatingFuns, n)) orelse List.exists allocates es
+      | EApp _ => true
+      | EUnop (_, e) => allocates e
+      | EBinop (_, e1, e2) => allocates e1 orelse allocates e2
+      | ERecord (_, xes) => List.exists (allocates o #2) xes
+      | EField (e, _) => allocates e
+      | ECase (e, pes, _) => allocates e orelse List.exists (allocates o #2) pes
+      | EError _ => false
+      | EReturnBlob _ => true
+      | ERedirect _ => true
+      | EWrite _ => true
+      | ESeq (e1, e2) => allocates e1 orelse allocates e2
+      | ELet (_, _, e1, e2) => allocates e1 orelse allocates e2
+      | EQuery _ => true
+      | EDml _ => true
+      | ENextval _ => true
+      | ESetval _ => true
+      | EStrFold {str, initial, body, ...} =>
+        allocates str orelse allocates initial orelse allocates body
+      | EUnurlify _ => true
+
+(* The functions whose bodies allocate nothing, in declaration order; a
+ * recursive group counts only if every member does under the assumption
+ * that they all do. *)
+fun findNonAllocatingFuns ds =
+    (nonAllocatingFuns := IS.empty;
+     app (fn (d, _) =>
+             case d of
+                 DFun (_, n, _, _, e) =>
+                 if allocates e then
+                     ()
+                 else
+                     nonAllocatingFuns := IS.add (!nonAllocatingFuns, n)
+               | DFunRec vis =>
+                 let
+                     val known = !nonAllocatingFuns
+                 in
+                     nonAllocatingFuns := IS.addList (known, map #2 vis);
+                     if List.exists (fn (_, _, _, _, e) => allocates e) vis then
+                         nonAllocatingFuns := known
+                     else
+                         ()
+                 end
+               | _ => ()) ds)
 
 val self = ref (NONE : int option)
 
@@ -2703,6 +2772,7 @@ fun sigName fields =
 
 fun p_file env (ds, ps) =
     let
+        val () = findNonAllocatingFuns ds
         val () = (clearUrlHandlers ();
                   unurlifies := IS.empty;
                   urlifies := IS.empty;

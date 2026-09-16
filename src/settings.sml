@@ -205,6 +205,24 @@ fun setBenignEffectful ls = benign := S.addList (benignBase, ls)
 fun addBenignEffectful x = benign := S.add (!benign, x)
 fun isBenignEffectful x = S.member (!benign, x)
 
+(* Basis functions whose C implementations allocate nothing on the context
+ * heap: the result is a scalar or a pointer into an argument.  Binding the
+ * result of a call to one of these needs no region around the call. *)
+val nonAllocating = basis ["ord", "chr",
+                           "isalnum", "isalpha", "isblank", "iscntrl", "isdigit", "isgraph",
+                           "islower", "isprint", "ispunct", "isspace", "isupper", "isxdigit",
+                           "tolower", "toupper", "iscodepoint", "issingle",
+                           "strlen", "strlenUtf8", "strlenGe",
+                           "strsub", "strsubUtf8", "strsuffix", "strsuffixUtf8",
+                           "strchr", "strcspn",
+                           "floatFromInt", "ceil", "trunc", "round", "floor",
+                           "pow", "sqrt", "sin", "cos", "log", "exp", "asin", "acos", "atan", "atan2", "abs",
+                           "toSeconds", "toMilliseconds", "diffInSeconds", "diffInMilliseconds",
+                           "datetimeYear", "datetimeMonth", "datetimeDay", "datetimeHour",
+                           "datetimeMinute", "datetimeSecond", "datetimeDayOfWeek",
+                           "eq_time", "lt_time", "le_time", "blobSize"]
+fun allocatesNothing x = S.member (nonAllocating, x)
+
 val clientBase = basis ["get_client_source",
                         "current",
                         "alert",

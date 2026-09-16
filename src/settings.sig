@@ -90,6 +90,9 @@ signature SETTINGS = sig
     val addBenignEffectful : ffi -> unit
     val isBenignEffectful : ffi -> bool
 
+    (* Basis functions that allocate nothing on the context heap *)
+    val allocatesNothing : ffi -> bool
+
     (* Which FFI functions may only be run in clients? *)
     val setClientOnly : ffi list -> unit
     val addClientOnly : ffi -> unit
