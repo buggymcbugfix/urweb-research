@@ -44,11 +44,11 @@ the formatter, the compiler) an error.
     snapshot   `urt snapshot` held to the transcripts under tests/snapshot,
                on a fixture tree with a stand-in compiler
     pty        the same on a pseudo-terminal (tests/pty; needs python3)
-    format     `urt format`: tests/format/NAME.in.ur must format to
+    fmt        `urt format`: tests/format/NAME.in.ur must format to
                NAME.out.ur, and that to itself
-    demo       the same for every program under demo/, linked into
+    fmt-demo   the same for every program under demo/, linked into
                tests/format/demo
-    oracle     every format and demo input against the compiler, the one
+    fmt-oracle every format and demo input against the compiler, the one
                URWEB names or else bin/urweb (tests/format/oracle.sh):
                the same parse before and after, all comments kept,
                idempotent
