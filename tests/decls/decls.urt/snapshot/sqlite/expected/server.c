@@ -380,6 +380,11 @@
                
                if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
                                       "DELETE FROM uw_Decls_chans", sqlite3_errmsg(conn->conn));
+                                      else if (uw_dml_log_enabled()) {
+               char *expanded = sqlite3_expanded_sql(stmt);
+                uw_log_dml(ctx, ":0:0-0:0", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                sqlite3_free(expanded);
+                }
                uw_pop_cleanup(ctx);
               uw_pop_cleanup(ctx);
               
@@ -418,6 +423,11 @@
                                      
                                      if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
                                                             "DELETE FROM uw_Decls_chans WHERE (((uw_Channel >> 32) = \?) OR ((uw_Client) = \?))", sqlite3_errmsg(conn->conn));
+                                                            else if (uw_dml_log_enabled()) {
+                                     char *expanded = sqlite3_expanded_sql(stmt);
+                                      uw_log_dml(ctx, ":0:0-0:0", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                      sqlite3_free(expanded);
+                                      }
                                      uw_pop_cleanup(ctx);
                                     uw_pop_cleanup(ctx);
                                     
@@ -641,6 +651,11 @@
                                             
                                             if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:40:4-53:17: DML step failed: %s<br />%s", 
                                                                    "INSERT INTO uw_Decls_chans (uw_Channel, uw_Client) VALUES (\?, \?)", sqlite3_errmsg(conn->conn));
+                                                                   else if (uw_dml_log_enabled()) {
+                                            char *expanded = sqlite3_expanded_sql(stmt);
+                                             uw_log_dml(ctx, "tests/decls/decls.ur:40:4-53:17", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                             sqlite3_free(expanded);
+                                             }
                                             uw_pop_cleanup(ctx);
                                            uw_pop_cleanup(ctx);
                                            
@@ -1026,6 +1041,11 @@
        
        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:26:0-26:76: DML step failed: %s<br />%s", 
                               "DELETE FROM uw_Decls_chans WHERE (uw_Client = \?)", sqlite3_errmsg(conn->conn));
+                              else if (uw_dml_log_enabled()) {
+       char *expanded = sqlite3_expanded_sql(stmt);
+        uw_log_dml(ctx, "tests/decls/decls.ur:26:0-26:76", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+        sqlite3_free(expanded);
+        }
        uw_pop_cleanup(ctx);
       uw_pop_cleanup(ctx);
       
@@ -1065,6 +1085,11 @@
         
         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:21:4-22:53: DML step failed: %s<br />%s", 
                                "DELETE FROM uw_Decls_t WHERE (uw_Id = 1)", sqlite3_errmsg(conn->conn));
+                               else if (uw_dml_log_enabled()) {
+        char *expanded = sqlite3_expanded_sql(stmt);
+         uw_log_dml(ctx, "tests/decls/decls.ur:21:4-22:53", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+         sqlite3_free(expanded);
+         }
         uw_pop_cleanup(ctx);
        uw_pop_cleanup(ctx);
        
@@ -1094,6 +1119,11 @@
         
         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:21:4-22:53: DML step failed: %s<br />%s", 
                                "INSERT INTO uw_Decls_t (uw_Id, uw_Name) VALUES (1, 'init')", sqlite3_errmsg(conn->conn));
+                               else if (uw_dml_log_enabled()) {
+        char *expanded = sqlite3_expanded_sql(stmt);
+         uw_log_dml(ctx, "tests/decls/decls.ur:21:4-22:53", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+         sqlite3_free(expanded);
+         }
         uw_pop_cleanup(ctx);
        uw_pop_cleanup(ctx);
        

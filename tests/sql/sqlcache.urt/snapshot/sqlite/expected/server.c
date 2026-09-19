@@ -398,6 +398,11 @@
                                                                                if (r != SQLITE_DONE) 
                                                                                uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
                                                                                "INSERT INTO uw_Sqlcache_t (uw_Id, uw_Name, uw_Val) VALUES (\?, \?, 3)", sqlite3_errmsg(conn->conn));
+                                                                               else if (uw_dml_log_enabled()) {
+                                                                               char *expanded = sqlite3_expanded_sql(stmt);
+                                                                               uw_log_dml(ctx, ":0:0-0:0", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                                                               sqlite3_free(expanded);
+                                                                               }
                                                                                uw_pop_cleanup(ctx);
                                                                                uw_pop_cleanup(ctx);
                                                                                
