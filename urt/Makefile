@@ -54,5 +54,5 @@ clean:
 	$(MAKE) -C src/format clean
 	rm -f urt urt-format
 
-.PHONY: all check check-snapshot check-pty check-fmt check-fmt-demo check-fmt-oracle \
-        update update-snapshot update-pty update-fmt update-fmt-demo clean src/format/urt-format
+.PHONY: all check check-snapshot check-pty check-format check-demo check-oracle \
+        update update-snapshot update-pty update-format update-demo clean src/format/urt-format
