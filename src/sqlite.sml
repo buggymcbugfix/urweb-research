@@ -330,7 +330,7 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              string (Prim.toCString (!db)),
              string "\" : env_db_str;",
              newline,
-             string "if (sqlite3_open(sqlite_db_path, &sqlite) != SQLITE_OK) uw_error(ctx, FATAL, ",
+             string "if (sqlite3_open_v2(sqlite_db_path, &sqlite, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK) uw_error(ctx, FATAL, ",
              string "\"Can't open SQLite database: %s\", sqlite_db_path);",
              newline,
              newline,
