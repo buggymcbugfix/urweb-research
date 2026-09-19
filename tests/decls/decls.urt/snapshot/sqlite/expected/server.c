@@ -25,8 +25,33 @@
             sqlite3_stmt *p7;
              } uw_conn;
     
+    static sqlite3_vfs uw_pinned_vfs;
+    
+    static int uw_pinned_clock_int64(sqlite3_vfs *vfs, sqlite3_int64 *out) {
+    int64_t t = 0;
+     (void)vfs;
+     uw_reproducible_epoch(&t);
+     *out = t * 1000 + 210866760000000LL;
+     return SQLITE_OK;
+     }
+    
+    static int uw_pinned_clock(sqlite3_vfs *vfs, double *out) {
+    sqlite3_int64 t;
+     uw_pinned_clock_int64(vfs, &t);
+     *out = t / 86400000.0;
+     return SQLITE_OK;
+     }
+    
     static void uw_client_init(void) {
-    uw_sqlfmtInt = "%lld%n";
+    int64_t t;
+     if (uw_reproducible_epoch(&t)) {
+     uw_pinned_vfs = *sqlite3_vfs_find(NULL);
+      uw_pinned_vfs.zName = "urweb-pinned-clock";
+      uw_pinned_vfs.xCurrentTime = uw_pinned_clock;
+      if (uw_pinned_vfs.iVersion >= 2) { uw_pinned_vfs.xCurrentTimeInt64 = uw_pinned_clock_int64; }
+      sqlite3_vfs_register(&uw_pinned_vfs, 1);
+      }
+     uw_sqlfmtInt = "%lld%n";
      uw_sqlfmtFloat = "%.16g%n";
      uw_Estrings = 0;
      uw_sql_type_annotations = 0;

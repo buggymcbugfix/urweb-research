@@ -447,4 +447,12 @@ uw_Basis_bool uw_Basis_filecache_missed(struct uw_context *);
 void uw_transaction_arrives();
 void uw_transaction_departs();
 
+// A clock and a random number generator pinned from the environment
+// (reproducible.c).  The last two return 0 when theirs is not pinned.
+void uw_reproducible_init(void);
+void uw_reproducible_request(void);
+void uw_reproducible_attempt(void);
+int uw_reproducible_epoch(int64_t *);
+int uw_reproducible_rand(uint64_t *);
+
 #endif

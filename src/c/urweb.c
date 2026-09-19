@@ -175,8 +175,16 @@ void *uw_init_client_data();
 void uw_free_client_data(void *);
 void uw_copy_client_data(void *dst, void *src);
 
+// reproducible.c
+extern void uw_reproducible_init(void);
+extern int uw_reproducible_epoch(int64_t *);
+extern int uw_reproducible_rand(uint64_t *);
+
 static int my_rand(uw_context ctx) {
   unsigned int ret;
+  uint64_t pinned;
+  if (uw_reproducible_rand(&pinned))
+    return pinned >> 33; // as below: 31 bits
   if (RAND_bytes((unsigned char *)&ret, sizeof ret)) {
     ret >>= 1; // clear top bit
     return ret;
@@ -372,6 +380,7 @@ void uw_global_init() {
 
   uw_global_custom();
   uw_init_crypto();
+  uw_reproducible_init();
 
   // Fast non-cryptographic strength randomness for Sqlcache.
   srandom(clock());
@@ -4470,7 +4479,8 @@ const uw_Basis_time uw_Basis_minTime = {};
 
 uw_Basis_time uw_Basis_now(uw_context ctx) {
   (void)ctx;
-  uw_Basis_time r = { time(NULL) };
+  int64_t pinned;
+  uw_Basis_time r = { uw_reproducible_epoch(&pinned) ? pinned : time(NULL) };
   return r;
 }
 
