@@ -34,6 +34,12 @@ static void random_password() {
 }
 
 void uw_init_crypto() {
+  // The key file named when the application was compiled can be replaced
+  // when it is started, as the database can.
+  char *env_sig_file = getenv("URWEB_SIGFILE_PATH");
+  if (env_sig_file)
+    uw_sig_file = env_sig_file;
+
   // Prepare signatures.
   if (uw_sig_file) {
     int fd;
