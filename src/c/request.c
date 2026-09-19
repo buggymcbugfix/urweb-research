@@ -266,6 +266,7 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
   char errmsg[ERROR_BUF_LEN];
 
   uw_reset(ctx);
+  uw_reproducible_request();
 
   rc->queryString[0] = 0;
 
@@ -491,6 +492,7 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
   }
 
   while (1) {
+    uw_reproducible_attempt();
     uw_setQueryString(ctx, rc->queryString);
 
     if (!had_error) {
