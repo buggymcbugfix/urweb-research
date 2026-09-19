@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #
 # The checks of the toolbox, in groups:
 #
@@ -309,7 +309,7 @@ group_fmt() {
 # Every program under demo/ and demo/more/ must have its case, a link to
 # it as tests/format/demo/[more/]NAME.in.ur; demo.ur and demo.urs there
 # are what `urweb -demo` writes, not programs.
-group_fmt-demo() {
+group_fmt_demo() {
     format_group "$here/tests/format/demo"
     for f in "$here"/../demo/*.ur "$here"/../demo/*.urs "$here"/../demo/more/*.ur "$here"/../demo/more/*.urs; do
         [ -f "$f" ] || continue
@@ -324,7 +324,7 @@ group_fmt-demo() {
 
 # The compiler is oracle.sh's business, URWEB or the in-tree build; only
 # its absence is caught here, so that it is an error and not a failure.
-group_fmt-oracle() {
+group_fmt_oracle() {
     need_formatter
     compiler=${URWEB:-$here/../bin/urweb}
     [ -x "$compiler" ] || { echo "$me: the oracle needs a compiler at $compiler (make builds one; URWEB names another)" >&2; exit 2; }
@@ -341,8 +341,10 @@ group_fmt-oracle() {
 
 # </format>
 
+# A group's function is named as the group is, with _ for -, which the
+# name of a function cannot hold.
 for g in $groups; do
-    "group_$g"
+    "group_$(echo "$g" | tr - _)"
 done
 
 [ "$n" -gt 0 ] || { echo "$me: no cases" >&2; exit 2; }
