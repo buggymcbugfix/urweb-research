@@ -139,7 +139,7 @@
     
     char *env_db_str = getenv("URWEB_SQLITE_DB_PATH");
     const char *sqlite_db_path = env_db_str == NULL ? "sqlcache" : env_db_str;
-    if (sqlite3_open(sqlite_db_path, &sqlite) != SQLITE_OK) uw_error(ctx, FATAL, "Can't open SQLite database: %s", sqlite_db_path);
+    if (sqlite3_open_v2(sqlite_db_path, &sqlite, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Can't open SQLite database: %s", sqlite_db_path);
     
     if (sqlite3_exec(sqlite, "PRAGMA foreign_keys = ON", NULL, NULL, NULL) != SQLITE_OK)
     uw_error(ctx, FATAL, "Can't enable foreign_keys for SQLite database");
