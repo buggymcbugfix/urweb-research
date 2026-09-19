@@ -180,6 +180,9 @@ extern void uw_reproducible_init(void);
 extern int uw_reproducible_epoch(int64_t *);
 extern int uw_reproducible_rand(uint64_t *);
 
+// dmllog.c
+extern void uw_dml_log_init(void);
+
 static int my_rand(uw_context ctx) {
   unsigned int ret;
   uint64_t pinned;
@@ -381,6 +384,7 @@ void uw_global_init() {
   uw_global_custom();
   uw_init_crypto();
   uw_reproducible_init();
+  uw_dml_log_init();
 
   // Fast non-cryptographic strength randomness for Sqlcache.
   srandom(clock());

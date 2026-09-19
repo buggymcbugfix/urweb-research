@@ -794,13 +794,27 @@ fun dmlCommon {loc, dml, mode} =
          newline,
 
          string "if (r != SQLITE_DONE) ",
-         case mode of
-             Settings.Error => box [string "uw_error(ctx, FATAL, \"",
-                                    string (ErrorMsg.spanToString loc),
-                                    string ": DML step failed: %s<br />%s\", ",
-                                    dml,
-                                    string ", sqlite3_errmsg(conn->conn));"]
-           | Settings.None => string "uw_set_error_message(ctx, sqlite3_errmsg(conn->conn));",
+         box [
+             case mode of
+                 Settings.Error => box [string "uw_error(ctx, FATAL, \"",
+                                        string (ErrorMsg.spanToString loc),
+                                        string ": DML step failed: %s<br />%s\", ",
+                                        dml,
+                                        string ", sqlite3_errmsg(conn->conn));"]
+               | Settings.None => string "uw_set_error_message(ctx, sqlite3_errmsg(conn->conn));", (* tryDml *)
+             newline
+         ],
+         string "else if (uw_dml_log_enabled()) {",
+         newline,
+         box [string "char *expanded = sqlite3_expanded_sql(stmt);",
+              newline,
+              string "uw_log_dml(ctx, \"",
+              string (ErrorMsg.spanToString loc),
+              string "\", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));",
+              newline,
+              string "sqlite3_free(expanded);",
+              newline],
+         string "}",
          newline]
 
 fun dml (loc, mode) =
@@ -889,6 +903,16 @@ fun nextval {loc, seqE, seqName} =
          string "n = sqlite3_last_insert_rowid(conn->conn);",
          newline,
          string "if (sqlite3_exec(conn->conn, delete, NULL, NULL, NULL) != SQLITE_OK) uw_error(ctx, FATAL, \"'nextval' DELETE failed: %s\", sqlite3_errmsg(conn->conn));",
+         newline,
+         (* A sequence is a table here, and a number is drawn by adding a
+          * row and deleting it again: both go to the log, as issued. *)
+         string "if (uw_dml_log_enabled()) {",
+         newline,
+         box [string "uw_log_dml(ctx, \"nextval 1/2\", insert, -1);",
+              newline,
+              string "uw_log_dml(ctx, \"nextval 2/2\", delete, -1);",
+              newline],
+         string "}",
          newline]
 
 fun nextvalPrepared _ = raise Fail "SQLite.nextvalPrepared called"

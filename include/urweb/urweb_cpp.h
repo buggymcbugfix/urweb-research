@@ -455,4 +455,12 @@ void uw_reproducible_attempt(void);
 int uw_reproducible_epoch(int64_t *);
 int uw_reproducible_rand(uint64_t *);
 
+// The log of database changes that URWEB_DML_LOG asks for (dmllog.c).  A
+// database backend reports every statement that has run: where in the
+// source it comes from, its SQL with the values filled in, and the number
+// of rows changed, or -1.
+void uw_dml_log_init(void);
+int uw_dml_log_enabled(void);
+void uw_log_dml(struct uw_context *, const char *loc, const char *sql, long rows);
+
 #endif
