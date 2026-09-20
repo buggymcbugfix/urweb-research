@@ -284,7 +284,7 @@
                                                                                uw_error(ctx, FATAL, "tests/sql/seqchoice.ur:9:17-9:47: pattern match failure");
                                                                                tmp;
                                                                                });
-                                                                               }), " VALUES ()"));
+                                                                               }), " VALUES (NULL)"));
                                                                                char *delete = 
                                                                                uw_Basis_strcat(ctx, "DELETE FROM ", 
                                                                                ({
