@@ -55,6 +55,14 @@ Not there yet:
   the pinned clock, and `URWEB_DML_LOG` is not implemented for them.
 - `--list` names cases, not their runs, and `--create-run` has no
   checklist.
+- Every case is compiled and every run is run, every time.  Much of that
+  could be skipped: a case whose inputs have not changed since its
+  `app.exe` was built (the compiler, the project's sources and what they
+  include, the case's `args`) need not be compiled again, and a run whose
+  `app.exe`, `args`, `secret`, `db.sql` and requests have not changed
+  would record what it recorded before.  Modification times would do for
+  a start, hashes kept in the case for more; `--whine` in CI should
+  probably go on doing all of it.
 
 `urt format`, `urt fmt`
 -----------------------
