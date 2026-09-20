@@ -4404,8 +4404,11 @@ __attribute__((noreturn)) void uw_redirect(uw_context ctx, uw_Basis_string url) 
     uw_write_header(ctx, on_redirect);
   else
     uw_write_header(ctx, "Status: 303 See Other\r\n");
+  // The headers set so far are the redirect's, too.  oldh has all of them,
+  // cookies included; failing that, the cookies are picked out of the copy
+  // made above.
   s = on_success[0] ? strchr(ctx->page.start, '\n') : ctx->page.start;
-  if (s) {
+  if (s && !oldh) {
     char *s2;
     if (s[0] == '\n') ++s;
     for (; (s2 = strchr(s, '\n')); s = s2+1) {
@@ -4417,9 +4420,11 @@ __attribute__((noreturn)) void uw_redirect(uw_context ctx, uw_Basis_string url) 
     }
   }
 
+  // No blank line here: whoever sends the response ends the headers, after
+  // adding its own.
   uw_write_header(ctx, "Location: ");
   uw_write_header(ctx, url);
-  uw_write_header(ctx, "\r\n\r\n");
+  uw_write_header(ctx, "\r\n");
   if (oldh) uw_write_header(ctx, oldh);
 
   for (cl = ctx->cleanup; cl < ctx->cleanup_front; ++cl)
