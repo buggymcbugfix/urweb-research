@@ -40,3 +40,15 @@ and add r =
 and clear () =
     dml (DELETE FROM note WHERE TRUE);
     error <xml>changed my mind</xml>
+
+(* The runtime reruns a handler from the start whenever the context's heap
+ * has to grow, so what a handler prints is printed once per attempt.  This
+ * one grows the heap a good many times: the string it builds is thrown away
+ * a piece at a time, but nothing is freed within a request. *)
+fun grow () =
+    let
+        fun loop n acc = if n = 0 then acc else loop (n - 1) (acc ^ "0123456789abcdef")
+    in
+        debug "grow: running";
+        return <xml><body>{[strlen (loop 100 "")]}</body></xml>
+    end
