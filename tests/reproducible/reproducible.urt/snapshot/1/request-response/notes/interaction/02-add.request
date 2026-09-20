@@ -1,0 +1,4 @@
+POST /add \
+    -b 'visitor=somebody' \
+    -d 'Sig=38AF614D06A6F91DDE0915A0DF83C9E07DB22AF1217C00FC98F0C9EA704DEB14' \
+    -d 'Text=1st'
