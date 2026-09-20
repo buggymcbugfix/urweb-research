@@ -23,8 +23,12 @@
 
 #include "urweb.h"
 
-static char global_name[] = "uw_dml_log";
 static char *log_path = NULL;
+
+// The statements of the transaction under way.  Of the thread rather than of
+// the context: a context stays on the thread that made it, and a thread has
+// one at a time, so they come to the same, and this needs no looking up.
+static _Thread_local uw_buffer statements;
 
 void uw_dml_log_init(void) {
   char *s = getenv("URWEB_DML_LOG");
@@ -56,27 +60,18 @@ static void forget(void *data, int will_retry) {
   uw_buffer_reset(data);
 }
 
-static void free_buffer(void *data) {
-  uw_buffer_free(data);
-  free(data);
-}
-
 // @param sql: a statement that has run in full
 // @param loc: its source location and/or function name
 // @pparam rows: how many rows it changed, or -1 if the backend cannot tell
 void uw_log_dml(uw_context ctx, const char *loc, const char *sql, long rows) {
-  uw_buffer *buf;
+  uw_buffer *buf = &statements;
   char line[64];
   int failed = 0;
 
   if (!log_path) { return; }
 
-  buf = uw_get_global(ctx, global_name);
-  if (!buf) {
-    buf = malloc(sizeof *buf);
-    uw_buffer_init(SIZE_MAX, buf, 0);
-    uw_set_global(ctx, global_name, buf, free_buffer);
-  }
+  // A thread's first statement: until now the buffer is all zeroes.
+  if (!buf->max) { uw_buffer_init(SIZE_MAX, buf, 0); }
 
   if (uw_buffer_used(buf) == 0) {
     // The first statement of this transaction.
