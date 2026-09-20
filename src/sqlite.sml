@@ -885,7 +885,7 @@ fun nextval {loc, seqE, seqName} =
              SOME s => string ("\"INSERT INTO " ^ s ^ " VALUES (NULL)\"")
            | NONE => box [string "uw_Basis_strcat(ctx, \"INSERT INTO \", uw_Basis_strcat(ctx, ",
                           seqE,
-                          string ", \" VALUES ()\"))"],
+                          string ", \" VALUES (NULL)\"))"],
          string ";",
          newline,
          string "char *delete = ",
