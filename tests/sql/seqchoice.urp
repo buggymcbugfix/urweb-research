@@ -1,0 +1,5 @@
+database dbname=seqchoice
+rewrite all Seqchoice/*
+safeGet draw
+
+seqchoice
