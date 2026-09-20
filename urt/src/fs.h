@@ -62,6 +62,7 @@ int write_text(const char *p, const char *s);
 int mkdir_p(const char *p);
 int rm_rf(const char *p);      /* p may not exist; 0 when gone */
 int copy_file(const char *from, const char *to);
+int move_file(const char *from, const char *to);   /* replacing to; permissions kept */
 int same_contents(const char *a, const char *b);   /* byte for byte */
 
 /* ---------------------------------------------------------- directories */
@@ -88,10 +89,22 @@ void find_dirs(const char *dir, const char *suffix, struct strlist *out);
  * was killed, 127 when it could not be run. */
 int run(char *const argv[], const char *out_path, const char *err_path);
 
+/* The same, with its stdin from the file named (NULL: inherited). */
+int run_in(char *const argv[], const char *in_path, const char *out_path, const char *err_path);
+
+/* The same as run(), for a program that reports on descriptor 3, as a
+ * server started with -d3 does: what it and its offspring wrote there,
+ * malloc'd, once all of them have closed it and the program itself has
+ * exited, with its status in *status; NULL if it could not be started. */
+char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int *status);
+
+/* Whether the PATH has a program of that name. */
+int on_path(const char *name);
+
 /* Remembers argv[0], for program_dir. */
 void fs_set_argv0(const char *argv0);
 
-/* Set when SIGINT or SIGTERM arrived; run() returns and the caller
+/* Set when SIGINT, SIGTERM, SIGHUP or SIGQUIT arrived; run() returns and the caller
  * decides. */
 extern volatile int fs_interrupted;
 void fs_catch_signals(void);
@@ -107,7 +120,7 @@ int make_tmpdir(char *dst);
 /* Wall-clock time in tenths of a second, from some fixed point. */
 long tenths_now(void);
 
-/* s split at spaces, tabs and newlines, empties dropped: the shell's word
+/* s split at spaces, tabs, CRs and newlines, empties dropped: the shell's word
  * splitting of an unquoted variable. */
 void split_words(const char *s, struct strlist *out);
 

@@ -34,6 +34,30 @@ broken/twins.urt/snapshot/one
 broken/twins.urt/snapshot/three
 broken/twins.urt/snapshot/two
 hello.urt/snapshot/1
+runs/builds.urt/snapshot/1
+runs/good.urt/snapshot/1
+runs/stopped.urt/snapshot/1
+ERROR runs/stray.urt/snapshot/1/request-response/a/cookies.txt does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/02.response answers no request
+there is no runs/stray.urt/snapshot/1/request-response/a/interaction/02.request; delete the one, or write the other
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql answers no request
+there is no runs/stray.urt/snapshot/1/request-response/a/interaction/03.request; delete the one, or write the other
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/notes does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/out/log does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/out/more does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run
+the name of a run is letters, digits, _ and -, and nothing else
+ERROR runs/stray.urt/snapshot/1/request-response/notes.txt does not belong among the runs
+beside the run directories there can be a README.md, nothing else
+runs/unready.urt/snapshot/1
 shop.urt/snapshot/mysql
 shop.urt/snapshot/postgres
 shop.urt/snapshot/sqlite

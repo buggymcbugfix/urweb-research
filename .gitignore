@@ -39,6 +39,9 @@ doc/*.out
 # A snapshot's files are named after what they hold, so some of them look
 # like build output.  They are the tests, under the projects' urt directories.
 !**/*.urt/**
+# ... bar the application that `urt snapshot` builds for a case with runs
+# and keeps in the case.
+**/*.urt/snapshot/*/app.exe
 
 # TeX
 *.aux

@@ -1,0 +1,4 @@
+printf -- '-stop parse\n' > runs/builds.urt/snapshot/1/args
+rm -r runs/builds.urt/snapshot/1/request-response
+urt snapshot runs/builds
+ls runs/builds.*
