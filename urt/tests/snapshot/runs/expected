@@ -1,0 +1,130 @@
+$ urt snapshot -w runs/stray
+ERROR runs/stray.urt/snapshot/1/request-response/a/cookies.txt does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/02.response answers no request
+there is no runs/stray.urt/snapshot/1/request-response/a/interaction/02.request; delete the one, or write the other
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql answers no request
+there is no runs/stray.urt/snapshot/1/request-response/a/interaction/03.request; delete the one, or write the other
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/notes does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/out/log does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/out/more does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
+under interaction/; stdout, stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run
+the name of a run is letters, digits, _ and -, and nothing else
+ERROR runs/stray.urt/snapshot/1/request-response/notes.txt does not belong among the runs
+beside the run directories there can be a README.md, nothing else
+0 cases, in T
+exit 1
+$ urt snapshot runs/stopped
+ERROR runs/stopped.urt/snapshot/1 has runs, and -tc in its args
+the runs need the application, so the compiler has to run to the end and write it where it is looked for
+take -tc out of runs/stopped.urt/snapshot/1/args, or the runs out of the case
+0 cases, in T
+exit 1
+$ urt snapshot runs/unready
+ERROR runs/unready.urt/snapshot/1/request-response/a has no secret
+the key the application signs with: any 16 bytes or more, such as the line 'secret signature'
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/01.request: 'get' is not a method; a request starts with one, as in: GET /Shop/main
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/02.request: expected a method and a path, as in: GET /Shop/main
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/03.request: 'main' is not a path; the method is followed by one, starting with /
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/04.request: '-H' is not taken here; the options are -d (--data) and -b (--cookie)
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/05.request: -d lacks its value
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/06.request: -d '@body' would send a file; write out what is to be sent
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/07.request: -b 'cookies.txt' would read a file; a cookie is NAME=VALUE
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/08.request: a ' is never closed
+ERROR runs/unready.urt/snapshot/1/request-response/threads/args asks for threads, with -t
+a run's requests are sent one after the other, so one thread serves them all;
+with more, which one answers is a matter of chance, and the server's output with it
+take -t out
+ERROR runs/unready.urt/snapshot/1/request-response/threads-too/args asks for threads, with -t4
+a run's requests are sent one after the other, so one thread serves them all;
+with more, which one answers is a matter of chance, and the server's output with it
+take -t out
+0 cases, in T
+exit 1
+$ urt snapshot runs/good
+
+FAIL runs/good.urt/snapshot/1 (no application for its 1 run)
+    (it said nothing)
+
+1 case: 1 failed, in T
+exit 1
+$ urt snapshot -w runs/good
+
+FAIL runs/good.urt/snapshot/1 (no application for its 1 run)
+    (it said nothing)
+
+1 case: 1 failed, in T
+exit 1
+$ urt snapshot runs/builds
+UPDATED runs/builds.urt/snapshot/1 (exitcode)
+ERROR the application does not start for runs/builds.urt/snapshot/1/request-response/1
+not a server
+1 case and 1 run: 1 updated, in T
+exit 1
+$ ls runs/builds.*
+runs/builds.ur
+runs/builds.urp
+
+runs/builds.urt:
+snapshot
+exit 0
+$ urt snapshot --create-run runs/good
+CREATED runs/good.urt/snapshot/1/request-response/1 (args, secret, db.sql, interaction/01.request)
+write the requests under interaction/, then run urt snapshot runs/good.urt/snapshot/1 to fill in the rest
+exit 0
+$ urt snapshot --create-run runs/good first
+ERROR runs/good.urt/snapshot/1/request-response/first is in the way
+delete it first if you meant to start again
+exit 2
+$ urt snapshot --create-run runs/good.urt/snapshot/1 second a.b
+ERROR 'a.b' cannot name a run
+the name of a run is letters, digits, _ and -, and nothing else
+exit 2
+$ urt snapshot --create-run shop
+ERROR shop holds 3 cases; name the one the run is for
+as in urt snapshot --create-run PROJECT.urt/snapshot/CASE
+exit 2
+$ urt snapshot --create-run shop.urt/snapshot/sqlite
+CREATED shop.urt/snapshot/sqlite/request-response/1 (args, secret, db.sql, interaction/01.request)
+write the requests under interaction/, then run urt snapshot shop.urt/snapshot/sqlite to fill in the rest
+exit 0
+$ cat shop.urt/snapshot/sqlite/request-response/1/db.sql shop.urt/snapshot/sqlite/request-response/1/secret
+CREATE TABLE t (id INTEGER); -- sqlite
+secret signature
+exit 0
+$ urt snapshot --create-run hello nodb
+CREATED hello.urt/snapshot/1/request-response/nodb (args, secret, db.sql, interaction/01.request)
+write the requests under interaction/, then run urt snapshot hello.urt/snapshot/1 to fill in the rest
+exit 0
+$ urt snapshot --create-run -w
+ERROR nothing to test at -w
+expected a project (-w.urp), its snapshots (-w.urt/snapshot),
+one case (-w.urt/snapshot/CASE), or a directory to search for snapshots
+exit 2
+$ urt snapshot -w --create-run hello
+ERROR --create-run goes with neither --whine nor --list
+exit 2
+$ changes
+added (0 bytes): ./hello.urt/snapshot/1/request-response/nodb/args
+added (40 bytes): ./hello.urt/snapshot/1/request-response/nodb/db.sql
+added (6 bytes): ./hello.urt/snapshot/1/request-response/nodb/interaction/01.request
+added (17 bytes): ./hello.urt/snapshot/1/request-response/nodb/secret
+added (41 bytes): ./runs/builds.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/builds.urt/snapshot/1/expected/exitcode
+removed: ./runs/good.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/good.urt/snapshot/1/expected/exitcode
+added (0 bytes): ./runs/good.urt/snapshot/1/request-response/1/args
+added (40 bytes): ./runs/good.urt/snapshot/1/request-response/1/db.sql
+added (6 bytes): ./runs/good.urt/snapshot/1/request-response/1/interaction/01.request
+added (17 bytes): ./runs/good.urt/snapshot/1/request-response/1/secret
+added (0 bytes): ./shop.urt/snapshot/sqlite/request-response/1/args
+added (39 bytes): ./shop.urt/snapshot/sqlite/request-response/1/db.sql
+added (6 bytes): ./shop.urt/snapshot/sqlite/request-response/1/interaction/01.request
+added (17 bytes): ./shop.urt/snapshot/sqlite/request-response/1/secret

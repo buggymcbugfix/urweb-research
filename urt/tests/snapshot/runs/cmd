@@ -1,0 +1,16 @@
+urt snapshot -w runs/stray
+urt snapshot runs/stopped
+urt snapshot runs/unready
+urt snapshot runs/good
+urt snapshot -w runs/good
+urt snapshot runs/builds
+ls runs/builds.*
+urt snapshot --create-run runs/good
+urt snapshot --create-run runs/good first
+urt snapshot --create-run runs/good.urt/snapshot/1 second a.b
+urt snapshot --create-run shop
+urt snapshot --create-run shop.urt/snapshot/sqlite
+cat shop.urt/snapshot/sqlite/request-response/1/db.sql shop.urt/snapshot/sqlite/request-response/1/secret
+urt snapshot --create-run hello nodb
+urt snapshot --create-run -w
+urt snapshot -w --create-run hello

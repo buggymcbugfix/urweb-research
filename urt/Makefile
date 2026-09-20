@@ -1,8 +1,8 @@
 CC = cc
 CFLAGS = -std=c99 -Wall -Wextra -O2
 
-SRC = src/urt.c src/snapshot.c src/format.c src/report.c src/fs.c src/tui.c
-HDR = src/commands.h src/report.h src/fs.h src/tui.h
+SRC = src/urt.c src/snapshot.c src/runs.c src/format.c src/report.c src/fs.c src/tui.c
+HDR = src/commands.h src/report.h src/fs.h src/runs.h src/tui.h
 
 all: urt urt-format
 

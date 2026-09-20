@@ -5,6 +5,9 @@
 #
 #   -dbms bogus            complain on stderr and exit 1 before writing
 #   a project *noexit*     exit 0 without writing parsetree.ur
+#   a project *builds*     when not stopped early, build PROJECT.exe, which
+#                          is no server and exits 3, and name it in the
+#                          settings dump, as the compiler does
 #
 # The settings dump names the files it was asked for, canonicalised as
 # the compiler's OS.Path.mkCanonical would (a doubled slash becomes one),
@@ -15,13 +18,14 @@
 echo "urweb $*"
 echo "epoch=${SOURCE_DATE_EPOCH-unset}"
 
-files='' dbms='' project=''
+files='' dbms='' project='' stopped=''
 while [ $# -gt 0 ]; do
     case $1 in
         -saveSettings|-saveParsetree|-saveTypecheck|-sql|-saveJs|-endpoints|-saveC)
             files="$files $1=$2"; shift 2 ;;
         -dbms) dbms=$2; shift 2 ;;
-        -stop|-stopQuiet|-demo|-prefix|-db|-output|-sigfile) shift 2 ;;
+        -stop|-stopQuiet) stopped=1; shift 2 ;;
+        -demo|-prefix|-db|-output|-sigfile) shift 2 ;;
         -*) shift ;;
         *) project=$1; shift ;;
     esac
@@ -39,6 +43,9 @@ for f in $files; do
     case $flag in
         -saveSettings)
             printf 'Project: %s\nDatabase: %s\n' "$project" "${dbms:-(none)}" > "$out"
+            case $project in
+                *builds*) printf 'Exe: %s.exe\n' "$project" >> "$out" ;;
+            esac
             for g in $files; do
                 printf '%s: %s\n' "${g%%=*}" "${g#*=}" | tr -s / >> "$out"
             done ;;
@@ -65,4 +72,10 @@ END
         ;;
     esac
 done
+
+case $stopped$project in
+    *builds*)
+        printf '#!/bin/sh\necho "not a server" >&2\nexit 3\n' > "$project.exe"
+        chmod +x "$project.exe" ;;
+esac
 exit 0
