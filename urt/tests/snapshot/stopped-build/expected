@@ -1,0 +1,21 @@
+$ printf -- '-stop parse\n' > runs/builds.urt/snapshot/1/args
+exit 0
+$ rm -r runs/builds.urt/snapshot/1/request-response
+exit 0
+$ urt snapshot runs/builds
+UPDATED runs/builds.urt/snapshot/1 (exitcode)
+1 case: 1 updated, in T
+exit 0
+$ ls runs/builds.*
+runs/builds.ur
+runs/builds.urp
+
+runs/builds.urt:
+snapshot
+exit 0
+$ changes
+changed (12 bytes): ./runs/builds.urt/snapshot/1/args
+changed (2 bytes): ./runs/builds.urt/snapshot/1/expected/exitcode
+removed: ./runs/builds.urt/snapshot/1/request-response/1/args
+removed: ./runs/builds.urt/snapshot/1/request-response/1/interaction/01.request
+removed: ./runs/builds.urt/snapshot/1/request-response/1/secret

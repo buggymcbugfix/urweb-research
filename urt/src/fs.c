@@ -246,6 +246,19 @@ int copy_file(const char *from, const char *to) {
     return fclose(out) == 0 ? 0 : -1;
 }
 
+int move_file(const char *from, const char *to) {
+    struct stat st;
+    if (rename(from, to) == 0) {
+        return 0;
+    }
+    /* Across file systems: a copy with the same permissions, then the
+     * original goes. */
+    if (errno != EXDEV || stat(from, &st) < 0 || copy_file(from, to) < 0 || chmod(to, st.st_mode & 07777) < 0) {
+        return -1;
+    }
+    return unlink(from);
+}
+
 int same_contents(const char *a, const char *b) {
     FILE *fa = fopen(a, "rb"), *fb = fopen(b, "rb");
     char ba[65536], bb[65536];
@@ -366,6 +379,8 @@ void fs_catch_signals(void) {
     sigemptyset(&sa.sa_mask);
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
+    sigaction(SIGHUP, &sa, NULL);
+    sigaction(SIGQUIT, &sa, NULL);
 }
 
 /* In the child: stdout or stderr onto a file. */
@@ -382,6 +397,10 @@ static void redirect(int fd, const char *path) {
 }
 
 int run(char *const argv[], const char *out_path, const char *err_path) {
+    return run_in(argv, NULL, out_path, err_path);
+}
+
+int run_in(char *const argv[], const char *in_path, const char *out_path, const char *err_path) {
     pid_t pid;
     int st;
     fflush(stdout);
@@ -391,6 +410,13 @@ int run(char *const argv[], const char *out_path, const char *err_path) {
         return 127;
     }
     if (pid == 0) {
+        if (in_path) {
+            int f = open(in_path, O_RDONLY);
+            if (f < 0 || dup2(f, STDIN_FILENO) < 0) {
+                _exit(127);
+            }
+            close(f);
+        }
         redirect(STDOUT_FILENO, out_path);
         redirect(STDERR_FILENO, err_path);
         execvp(argv[0], argv);
@@ -408,6 +434,67 @@ int run(char *const argv[], const char *out_path, const char *err_path) {
         return 128 + WTERMSIG(st);
     }
     return 127;
+}
+
+char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int *status) {
+    int fds[2], st;
+    pid_t pid;
+    char *text;
+    size_t len = 0, cap = 256;
+    ssize_t n;
+
+    fflush(stdout);
+    fflush(stderr);
+    if (pipe(fds) < 0) {
+        return NULL;
+    }
+    pid = fork();
+    if (pid < 0) {
+        close(fds[0]);
+        close(fds[1]);
+        return NULL;
+    }
+    if (pid == 0) {
+        close(fds[0]);
+        redirect(STDOUT_FILENO, out_path);
+        redirect(STDERR_FILENO, err_path);
+        if (fds[1] != 3) {
+            if (dup2(fds[1], 3) < 0) {
+                _exit(127);
+            }
+            close(fds[1]);
+        }
+        execvp(argv[0], argv);
+        _exit(127);
+    }
+    close(fds[1]);
+    text = xmalloc(cap);
+    for (;;) {
+        if (len + 1 >= cap) {
+            char *bigger = xmalloc(cap *= 2);
+            memcpy(bigger, text, len);
+            free(text);
+            text = bigger;
+        }
+        n = read(fds[0], text + len, cap - len - 1);
+        if (n < 0 && errno == EINTR && !fs_interrupted) {
+            continue;
+        }
+        if (n <= 0) {
+            break;
+        }
+        len += (size_t) n;
+    }
+    text[len] = 0;
+    close(fds[0]);
+    while (waitpid(pid, &st, 0) < 0) {
+        if (errno != EINTR) {
+            st = 127 << 8;
+            break;
+        }
+    }
+    *status = WIFEXITED(st) ? WEXITSTATUS(st) : WIFSIGNALED(st) ? 128 + WTERMSIG(st) : 127;
+    return text;
 }
 
 /* The path comes back canonical -- no doubled or trailing slashes, no
@@ -438,6 +525,11 @@ static int find_on_path(const char *name, char *dst) {
         }
         p = colon + 1;
     }
+}
+
+int on_path(const char *name) {
+    char found[PATHLEN];
+    return find_on_path(name, found);
 }
 
 int program_dir(char *dst) {
@@ -486,7 +578,7 @@ long tenths_now(void) {
 
 void split_words(const char *s, struct strlist *out) {
     char *copy = xstrdup(s), *tok, *save = NULL;
-    for (tok = strtok_r(copy, " \t\n", &save); tok; tok = strtok_r(NULL, " \t\n", &save)) {
+    for (tok = strtok_r(copy, " \t\r\n", &save); tok; tok = strtok_r(NULL, " \t\r\n", &save)) {
         sl_push(out, tok);
     }
     free(copy);
