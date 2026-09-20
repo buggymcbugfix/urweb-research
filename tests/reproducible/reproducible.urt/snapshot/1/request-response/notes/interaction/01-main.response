@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Set-Cookie: visitor=somebody; path=/; expires=Sat, 01-Jan-2000 00:01:00 GMT
+Connection: close
+Content-length: 415
+
+<!DOCTYPE html><html><head></head><body>
+<p>rand: 1401122455</p>
+<p>now: Sat Jan  1 00:00:00 2000</p>
+<ul></ul>
+<form method="post" action="/add"><input type="hidden" name="Sig" value="38AF614D06A6F91DDE0915A0DF83C9E07DB22AF1217C00FC98F0C9EA704DEB14" />
+<input type="text" name="Text" />
+<input type="submit" />
+</form>
+<form method="post" action="/clear"><input type="submit" value="Clear" /></form>
+</body></html>

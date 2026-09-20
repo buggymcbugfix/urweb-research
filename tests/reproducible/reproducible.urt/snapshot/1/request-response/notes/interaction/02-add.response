@@ -1,0 +1,9 @@
+HTTP/1.1 303 See Other
+Set-Cookie: visitor=somebody+else; path=/
+Location: /main
+
+X-Note: 1
+Set-Cookie: visitor=somebody+else; path=/
+Connection: close
+Content-length: 0
+
