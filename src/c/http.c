@@ -343,7 +343,7 @@ static void help(char *cmd) {
       "The '-k' option turns on HTTP keepalive.\n"
       "The '-q' option turns off some chatter on stdout.\n"
       "The '-T' option sets socket recv timeout (0 disables timeout, default is 5 sec).\n"
-      "The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)\n"
+      "The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)\n" // XXX: I don't think this is correct
       "The '-d' option daemonizes the server by forking once it is listening; when the optional <fd>\n"
       "         arg is provided, the parent first writes shell assignments for 'pid' and either     \n"
       "         'port' or 'socket' to file descriptor <fd>. Typical shell usage:                    \n"
