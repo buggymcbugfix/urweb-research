@@ -9,6 +9,7 @@
 typedef struct uw_rc *uw_request_context;
 
 void uw_request_init(uw_app *app, uw_loggers* ls);
+void uw_request_start_threads(uw_app *app, uw_loggers *ls);
 void uw_sign(const char *in, char *out);
 
 uw_request_context uw_new_request_context(void);

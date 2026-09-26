@@ -580,9 +580,11 @@ int main(int argc, char *argv[]) {
 
   // -d: daemonize. The fork MUST happen before any pthread_create call: fork()
   // only carries the calling thread, so any mutexes held by the others would
-  // remain locked forever in the child. Doing it here (after listen() succeeds)
-  // also means the parent's successful exit is a synchronous "ready to accept"
-  // signal for the caller.
+  // remain locked forever in the child, and the threads themselves would be
+  // gone (which is why the ticker and the periodic tasks are started below,
+  // after this, and not in uw_request_init). Doing it here (after listen()
+  // succeeds) also means the parent's successful exit is a synchronous "ready
+  // to accept" signal for the caller.
   //
   // -d <fd>: in addition, the parent writes `eval`-friendly shell assignments
   // for `pid` and either `port` or `socket` to file descriptor <fd> before
@@ -632,6 +634,8 @@ int main(int argc, char *argv[]) {
     if (meta_fd >= 0) close(meta_fd);
     setvbuf(stdout, NULL, _IOLBF, 0);
   }
+
+  uw_request_start_threads(&uw_application, &ls);
 
   qprintf("Listening on port %d....\n", uw_port);
 

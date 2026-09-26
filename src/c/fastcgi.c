@@ -611,6 +611,7 @@ int main(int argc, char *argv[]) {
 
   uw_set_on_success("");
   uw_request_init(&uw_application, &ls);
+  uw_request_start_threads(&uw_application, &ls);
 
   names = calloc(nthreads, sizeof(int));
 
