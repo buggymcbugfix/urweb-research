@@ -174,10 +174,10 @@ check-urt: urt
 # Runtime tests (see tests/run/run.sh): applications compiled, started,
 # driven, and their logs compared with golden transcripts.
 check-run: bin/urweb
-	@tests/run/run.sh
+	@bash tests/run/run.sh
 
 update-run: bin/urweb
-	@tests/run/run.sh -u
+	@bash tests/run/run.sh -u
 
 check-local: bin/urweb check-run
 	@$(TEST_PRELUDE); \
