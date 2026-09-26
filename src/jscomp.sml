@@ -365,14 +365,17 @@ fun process (file : file) =
                      SOME n' => ("(tmp=_n" ^ Int.toString n' ^ "(t,i),i=tmp._1,tmp._2)", st)
                    | NONE =>
                      let
-                         val n' = #maxName st
+                         (* A decoder is a function of the script only, so it
+                          * is numbered within the script, from one, in the
+                          * order the decoders are first needed. *)
+                         val n' = IM.numItems (#decoders st) + 1
                          val st = {decls = #decls st,
                                    script = #script st,
                                    included = #included st,
                                    injectors = #injectors st,
                                    listInjectors = #listInjectors st,
                                    decoders = IM.insert (#decoders st, n, n'),
-                                   maxName = n' + 1}
+                                   maxName = #maxName st}
 
                          val (e, st) = foldl (fn ((x, cn, NONE), (e, st)) =>
                                                  ("x==\"" ^ x ^ "\"?"
