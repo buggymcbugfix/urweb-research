@@ -34,29 +34,30 @@ fun all [a] [b] f =
         all'
     end
 
+(* The list-building functions accumulate and reverse instead of recursing
+ * under a cons, to keep recursion depth constant (see List.take). *)
 fun mp [a] [b] [c] (f : a -> b -> c) =
     let
-        fun map' ls1 ls2 =
+        fun map' acc ls1 ls2 =
             case (ls1, ls2) of
-                ([], []) => []
-              | (x1 :: ls1, x2 :: ls2) => f x1 x2 :: map' ls1 ls2
+                ([], []) => List.rev acc
+              | (x1 :: ls1, x2 :: ls2) => map' (f x1 x2 :: acc) ls1 ls2
               | _ => error <xml>ListPair.mp: Unequal list lengths</xml>
     in
-        map'
+        map' []
     end
 
 fun mapM [m] (_ : monad m) [a] [b] [c] (f : a -> b -> m c) =
     let
-        fun mapM' ls1 ls2 =
+        fun mapM' acc ls1 ls2 =
             case (ls1, ls2) of
-                ([], []) => return []
+                ([], []) => return (List.rev acc)
               | (x1 :: ls1, x2 :: ls2) =>
                 y <- f x1 x2;
-                ls <- mapM' ls1 ls2;
-                return (y :: ls)
+                mapM' (y :: acc) ls1 ls2
               | _ => error <xml>ListPair.mapM: Unequal list lengths</xml>
     in
-        mapM'
+        mapM' []
     end
 
 fun app [m] (_ : monad m) [a] [b] (f : a -> b -> m unit) =

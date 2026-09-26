@@ -57,26 +57,28 @@ fun ssplit r =
       | Some i => Some (substring r.Haystack {Start = 0, Len = i},
                         suffix r.Haystack (i + length r.Needle))
 
+(* Indexing a string by code point costs time proportional to the index, on
+ * both the server (UTF-8) and the client (UTF-16).  Loops over a string
+ * therefore walk it with [suffix], looking only at position 0, rather than
+ * indexing from the front on every step, which would be quadratic. *)
 fun all f s =
     let
-        val len = length s
-
-        fun al i =
-            i >= len
-            || (f (sub s i) && al (i + 1))
+        fun al s =
+            s = ""
+            || (f (sub s 0) && al (suffix s 1))
     in
-        al 0
+        al s
     end
 
 fun mp f s =
     let
-        fun mp' i acc =
-            if i < 0 then
+        fun mp' s acc =
+            if s = "" then
                 acc
             else
-                mp' (i - 1) (str (f (sub s i)) ^ acc)
+                mp' (suffix s 1) (acc ^ str (f (sub s 0)))
     in
-        mp' (length s - 1) ""
+        mp' s ""
     end
 
 fun newlines [ctx] [[Body] ~ ctx] (s : string) : xml ([Body] ++ ctx) [] [] =
@@ -85,7 +87,12 @@ fun newlines [ctx] [[Body] ~ ctx] (s : string) : xml ([Body] ++ ctx) [] [] =
       | Some (s1, s2) => <xml>{[s1]}<br/>{newlines s2}</xml>
 
 fun isPrefix {Full = f, Prefix = p} =
-    length f >= length p && substring f {Start = 0, Len = length p} = p
+    let
+        val plen = length p
+    in
+        (* lengthGe avoids measuring all of f when it is much longer than p. *)
+        lengthGe f plen && substring f {Start = 0, Len = plen} = p
+    end
 
 fun trim s =
     let

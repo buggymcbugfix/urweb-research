@@ -29,7 +29,7 @@
      };
   
   static uw_unit
-   __uwn_wrap_handler_1690(uw_context ctx, struct __uws_1 __uwr_x0_0, 
+   __uwn_wrap_handler_1696(uw_context ctx, struct __uws_1 __uwr_x0_0, 
                             uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
@@ -53,7 +53,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1692(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1698(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -64,7 +64,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_diversion_1691(uw_context ctx, uw_unit __uwr_x0_0, 
+   __uwn_wrap_diversion_1697(uw_context ctx, uw_unit __uwr_x0_0, 
                               uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
@@ -76,7 +76,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1689(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1695(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -155,7 +155,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1689(ctx, arg0, 0);
+    __uwn_wrap_main_1695(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -175,7 +175,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     __uwn_wrap_diversion_1691(ctx, arg0, 0);
+     __uwn_wrap_diversion_1697(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -195,7 +195,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     __uwn_wrap_main_1692(ctx, arg0, 0);
+     __uwn_wrap_main_1698(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -229,7 +229,7 @@
         uw_input_X,
          uw_input_Y,
           };
-     __uwn_wrap_handler_1690(ctx, uw_inputs, 0);
+     __uwn_wrap_handler_1696(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }

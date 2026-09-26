@@ -235,13 +235,13 @@
   static char jslib[] = "*runtime elided*";
    static char jsapp[] = "*script elided*";
   
-  static uw_unit __uwn_initializer_1763(uw_context ctx, uw_unit __uwr___0)
+  static uw_unit __uwn_initializer_1769(uw_context ctx, uw_unit __uwr___0)
    {
    return(0);
    }
   
   static uw_unit
-   __uwn_expunger_1762(uw_context ctx, uw_Basis_client __uwr_cli_0)
+   __uwn_expunger_1768(uw_context ctx, uw_Basis_client __uwr_cli_0)
    {
    return(0);
    }
@@ -250,7 +250,7 @@
    
   
   static struct __uws_2*
-   __uwn_allRows_1740(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_allRows_1746(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(({
            struct __uws_2* acc =
@@ -346,9 +346,9 @@
            }));
    }
   
-  static uw_unit __uwn_doBatch_1743(uw_context, struct __uws_2*, uw_unit);
+  static uw_unit __uwn_doBatch_1749(uw_context, struct __uws_2*, uw_unit);
    static uw_unit
-    __uwn_doBatch_1743(uw_context ctx, struct __uws_2* __uwr_ls_0, 
+    __uwn_doBatch_1749(uw_context ctx, struct __uws_2* __uwr_ls_0, 
                         uw_unit __uwr___1)
     {restart:
       
@@ -445,18 +445,18 @@
    
   
   static uw_unit
-   __uwn_doBatch_1744(uw_context ctx, struct __uws_2* __uwr_x_0, 
+   __uwn_doBatch_1750(uw_context ctx, struct __uws_2* __uwr_x_0, 
                        uw_unit __uwr_x_1)
    {
    return(({
            struct __uws_2* arg0 = __uwr_x_0;
             uw_unit arg1 = __uwr_x_1;
-           __uwn_doBatch_1743(ctx, arg0, arg1);
+           __uwn_doBatch_1749(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_del_1746(uw_context ctx, uw_Basis_int __uwr_id_0, uw_unit __uwr___1)
+   __uwn_del_1752(uw_context ctx, uw_Basis_int __uwr_id_0, uw_unit __uwr___1)
    {
    return((uw_begin_region(ctx), ({
            uw_Basis_int arg1 = __uwr_id_0;
@@ -491,7 +491,7 @@
                 uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                 }
                PQclear(res);
-                uw_error(ctx, FATAL, "$/basis.urs:720:0-720:33: DML failed:\n%s\n%s", 
+                uw_error(ctx, FATAL, "$/basis.urs:728:0-728:33: DML failed:\n%s\n%s", 
                 "DELETE FROM uw_BatchG_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                }
                  
@@ -504,7 +504,7 @@
    }
   
   static uw_unit
-   __uwn_show_1776(uw_context ctx, uw_Basis_bool __uwr_withDel_0, 
+   __uwn_show_1782(uw_context ctx, uw_Basis_bool __uwr_withDel_0, 
                     uw_Basis_source __uwr_lss_1)
    {
    return(((uw_write(ctx, "<script type=\"text/javascript\">dyn(\"span\", execD({c:\"a\",f:{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:2},x:{c:\"c\",v:"), 0),
@@ -528,9 +528,9 @@
               uw_end_region(ctx), (uw_write(ctx, "}},x:{c:\"c\",v:null}}))</script>"), 0))))));
    }
   
-  static uw_Basis_string __uwn_jsify_1772(uw_context, struct __uws_2*);
+  static uw_Basis_string __uwn_jsify_1778(uw_context, struct __uws_2*);
    static uw_Basis_string
-    __uwn_jsify_1772(uw_context ctx, struct __uws_2* __uwr_x_0)
+    __uwn_jsify_1778(uw_context ctx, struct __uws_2* __uwr_x_0)
     {restart:
       
     return(({
@@ -557,7 +557,7 @@
                     uw_Basis_string arg6 = "},_2:";
                      
                    uw_Basis_string arg7 =
-                    __uwn_jsify_1772(ctx, __uwr_x_1.__uwf_2);
+                    __uwn_jsify_1778(ctx, __uwr_x_1.__uwf_2);
                     uw_Basis_string arg8 = "}";
                      uw_Basis_mstrcat(ctx, arg0, arg1, arg2, arg3, arg4, arg5, 
                                             arg6, arg7, arg8, NULL);
@@ -575,14 +575,14 @@
    
   
   static uw_unit
-   __uwn_wrap_main_1758(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1764(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_source __uwr_lss_2 =
            uw_Basis_new_client_source(ctx,
             ({
              uw_Basis_string arg0 = "{c:\"c\",v:";
-              uw_Basis_string arg1 = __uwn_jsify_1772(ctx, NULL);
+              uw_Basis_string arg1 = __uwn_jsify_1778(ctx, NULL);
                uw_Basis_string arg2 = "}";
                 uw_Basis_mstrcat(ctx, arg0, arg1, arg2, NULL);
              }));
@@ -591,7 +591,7 @@
             uw_Basis_new_client_source(ctx,
              ({
               uw_Basis_string arg0 = "{c:\"c\",v:";
-               uw_Basis_string arg1 = __uwn_jsify_1772(ctx, NULL);
+               uw_Basis_string arg1 = __uwn_jsify_1778(ctx, NULL);
                 uw_Basis_string arg2 = "}";
                  uw_Basis_mstrcat(ctx, arg0, arg1, arg2, NULL);
               }));
@@ -636,7 +636,7 @@
                                                               uw_Basis_source
                                                                arg1 =
                                                                __uwr_lss_2;
-                                                             __uwn_show_1776(ctx,
+                                                             __uwn_show_1782(ctx,
                                                              arg0, arg1);
                                                              }),
                                                            uw_end_region(ctx), ((uw_write(ctx, 
@@ -752,7 +752,7 @@
                                                                                arg1
                                                                                =
                                                                                __uwr_batched_3;
-                                                                               __uwn_show_1776(ctx,
+                                                                               __uwn_show_1782(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -818,9 +818,9 @@
   return uw_Basis_makeSigString(ctx, r);
   }
  
- static void urlify_1759(uw_context, struct __uws_2 *);
-  static struct __uws_2 *unurlify_1759(uw_context, char **);
-   static void urlify_1759(uw_context ctx, struct __uws_2
+ static void urlify_1765(uw_context, struct __uws_2 *);
+  static struct __uws_2 *unurlify_1765(uw_context, char **);
+   static void urlify_1765(uw_context ctx, struct __uws_2
     *it0) {
     if (it0) {
      struct __uws_2 it1 =
@@ -850,7 +850,7 @@
         struct __uws_2* it2 =
         it1.__uwf_2;
         uw_write(ctx, "/");
-         urlify_1759(ctx, it2);
+         urlify_1765(ctx, it2);
           }
         ;
       } else {
@@ -859,7 +859,7 @@
      }
     
     static struct __uws_2
-     *unurlify_1759(uw_context ctx, char **request) {
+     *unurlify_1765(uw_context ctx, char **request) {
      return ((*request)[0] == '/' ? ++*request : *request,
       ((!strncmp(*request, "Nil", 3) && ((*request)[3] == 0 || (*request)[3] == '/')) ? (*request
       +=
@@ -878,7 +878,7 @@
              struct __uws_1 tmp = { uwr_A, uwr_B, uwr_Id };
           tmp;
           });
-         struct __uws_2* uwr_2 = unurlify_1759(ctx, request);
+         struct __uws_2* uwr_2 = unurlify_1765(ctx, request);
           struct __uws_2 tmp = { uwr_1, uwr_2 };
         tmp;
         });
@@ -895,7 +895,7 @@
   return;
   }
  
- if (!strcmp(request, "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js")) {
+ if (!strcmp(request, "/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js")) {
   uw_write_header(ctx, "Content-Type: text/javascript\r\n");
    uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
    uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -904,7 +904,7 @@
    }
   
   
-  if (!strcmp(request, "/app.D288F5C69DCEE0E500A4698EC3D65FB1F79A54FF.js")) {
+  if (!strcmp(request, "/app.3E5C6C4593E3F0DD8CCB8F62C316E3A82B4F42A2.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -920,7 +920,7 @@
    uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
     uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.D288F5C69DCEE0E500A4698EC3D65FB1F79A54FF.js\"></script>\n");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js\"></script>\n<script type=\"text/javascript\" src=\"/app.3E5C6C4593E3F0DD8CCB8F62C316E3A82B4F42A2.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 0);
   uw_set_needs_push(ctx, 0);
@@ -928,7 +928,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1758(ctx, arg0, 0);
+    __uwn_wrap_main_1764(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -950,10 +950,10 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     struct __uws_2* it0 = __uwn_allRows_1740(ctx, arg0, 0);
+     struct __uws_2* it0 = __uwn_allRows_1746(ctx, arg0, 0);
     uw_write(ctx, uw_get_real_script(ctx));
      uw_write(ctx, "\n");
-     urlify_1759(ctx, it0);
+     urlify_1765(ctx, it0);
       return;
     }
     }
@@ -973,8 +973,8 @@
    uw_set_needs_sig(ctx, 0);
    uw_login(ctx);
    {
-    struct __uws_2* arg0 = unurlify_1759(ctx, &request);
-     uw_unit it0 = __uwn_doBatch_1744(ctx, arg0, 0);
+    struct __uws_2* arg0 = unurlify_1765(ctx, &request);
+     uw_unit it0 = __uwn_doBatch_1750(ctx, arg0, 0);
     uw_write(ctx, uw_get_real_script(ctx));
      uw_write(ctx, "\n");
      uw_Basis_urlifyString_w(ctx, "");
@@ -998,7 +998,7 @@
    uw_login(ctx);
    {
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
-     uw_unit it0 = __uwn_del_1746(ctx, arg0, 0);
+     uw_unit it0 = __uwn_del_1752(ctx, arg0, 0);
     uw_write(ctx, uw_get_real_script(ctx));
      uw_write(ctx, "\n");
      uw_Basis_urlifyString_w(ctx, "");
@@ -1012,12 +1012,12 @@
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {
-  __uwn_expunger_1762(ctx, cli);
+  __uwn_expunger_1768(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
-  __uwn_initializer_1763(ctx, 0);
+  __uwn_initializer_1769(ctx, 0);
    }
  uw_app uw_application = {1,
                             60,

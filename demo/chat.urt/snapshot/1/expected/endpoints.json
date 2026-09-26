@@ -1,8 +1,8 @@
 {"endpoints":
- [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+ [{"method": "GET", "url": "/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js", "content-type": 
    "text/javascript"},
                       
-   {"method": "GET", "url": "/app.BDF8CEA4B7C84D05AEF6BC6F61FBFEE183CB1E21.js", "content-type": 
+   {"method": "GET", "url": "/app.D2DD3C69341A912E90692B56DDB3A95F6A939AB5.js", "content-type": 
     "text/javascript"},
                        
    {"method": "GET", "url": "Chat/main", "content-type": null},

@@ -1,8 +1,12 @@
 urlRules = cons({allow:true,prefix:true,pattern:"#"},null);
 
 // demo/react.ur:4:8-4:81
-urfuncs[1] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"f",f:sv,a:cons({c:"v",n:2},cons({c:"c",v:"Now you clicked it."},null))}}}}'};
+function _u1(v_0,v_1){let v_2 = uw_mouseEvent(); return sv(v_0,"Now you clicked it.");}
+function _c1(v_0){return function(v_1){return _u1(v_0,v_1);}}
+urfuncs[1] = {c:"c",v:_c1};
 // demo/react.ur:5:17-5:59
-urfuncs[2] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"f",f:sb,a:cons({c:"f",f:ss,a:cons({c:"v",n:1},null)},cons({c:"l",b:{c:"f",f:sr,a:cons({c:"f",f:eh,a:cons({c:"v",n:0},null)},null)}},null))}}}'};
+function _u2(v_0,v_1){return sb(ss(v_0),function(v_2){return sr(eh(v_2));});}
+function _c2(v_0){return function(v_1){return _u2(v_0,v_1);}}
+urfuncs[2] = {c:"c",v:_c2};
 
 time_format = "%c";

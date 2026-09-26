@@ -543,13 +543,21 @@ fun recToList [a ::: Type] [r ::: {Unit}] (fl : folder r)
   = @foldUR [a] [fn _ => list a] (fn [nm ::_] [rest ::_] [[nm] ~ rest] x xs =>
 				      x :: xs) [] fl
 
-fun take [a] (n : int) (xs : list a) : list a = 
-    if n <= 0 then
-        []
-    else
-        case xs of
-            [] => []
-          | x :: xs => x :: take (n-1) xs
+(* Accumulate and reverse rather than recurse under a cons: on the client,
+ * code compiled to JavaScript uses the JavaScript stack, so recursion depth
+ * is bounded by the browser (a few thousand frames). *)
+fun take [a] (n : int) (xs : list a) : list a =
+    let
+        fun take' n xs acc =
+            if n <= 0 then
+                rev acc
+            else
+                case xs of
+                    [] => rev acc
+                  | x :: xs => take' (n-1) xs (x :: acc)
+    in
+        take' n xs []
+    end
 
 fun drop [a] (n : int) (xs : list a) : list a =
     if n <= 0 then

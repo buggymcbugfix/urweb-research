@@ -244,7 +244,7 @@
   static char jslib[] = "*runtime elided*";
    static char jsapp[] = "*script elided*";
   
-  static uw_unit __uwn_initializer_1694(uw_context ctx, uw_unit __uwr___0)
+  static uw_unit __uwn_initializer_1700(uw_context ctx, uw_unit __uwr___0)
    {
    return(((uw_begin_region(ctx), ({
             
@@ -290,7 +290,7 @@
    }
   
   static uw_unit
-   __uwn_expunger_1693(uw_context ctx, uw_Basis_client __uwr_cli_0)
+   __uwn_expunger_1699(uw_context ctx, uw_Basis_client __uwr_cli_0)
    {
    return((uw_begin_region(ctx), (uw_begin_region(ctx), ({
                                   uw_Basis_client arg1 = __uwr_cli_0;
@@ -346,7 +346,7 @@
    
   
   static uw_unit
-   __uwn_writeBack_1685(uw_context ctx, struct __uws_1 __uwr_v_0, 
+   __uwn_writeBack_1691(uw_context ctx, struct __uws_1 __uwr_v_0, 
                          uw_unit __uwr___1)
    {
    return(({
@@ -389,14 +389,14 @@
                                          uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                                          }
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:395:17-395:18: Query failed:\n%s\n%s", 
+                                        uw_error(ctx, FATAL, "$/top.ur:398:17-398:18: Query failed:\n%s\n%s", 
                                         "SELECT T_Channels.uw_Channel FROM uw_RoundTrip_channels AS T_Channels WHERE (T_Channels.uw_Client = $1::int4)", PQerrorMessage(conn));
                                         }
                                        
                                        if (PQnfields(res) != 1) {
                                        int nf = PQnfields(res);
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:395:17-395:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
+                                        uw_error(ctx, FATAL, "$/top.ur:398:17-398:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
                                         "SELECT T_Channels.uw_Channel FROM uw_RoundTrip_channels AS T_Channels WHERE (T_Channels.uw_Client = $1::int4)", PQerrorMessage(conn));
                                         }
                                        
@@ -412,7 +412,7 @@
                                          =
                                          (PQgetisnull(res, i, 0) ? ({uw_Basis_channel
                                                                     tmp;
-                                                                    uw_error(ctx, FATAL, "$/top.ur:395:17-395:18: Unexpectedly NULL field #0");
+                                                                    uw_error(ctx, FATAL, "$/top.ur:398:17-398:18: Unexpectedly NULL field #0");
                                                                     tmp;
                                                                     }) : uw_Basis_stringToChannel_error(ctx, 
                                                                           PQgetvalue(res, i, 0)));
@@ -436,7 +436,7 @@
                                     ({
                                      struct __uws_3
                                      tmp;
-                                     uw_error(ctx, FATAL, "$/top.ur:396:24-397:3: %s", 
+                                     uw_error(ctx, FATAL, "$/top.ur:399:24-400:3: %s", 
                                      "Query returned no rows");
                                      tmp;
                                      })
@@ -477,7 +477,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_action_1692(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_action_1698(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_client __uwr_me_2 =
@@ -630,7 +630,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1690(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1696(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -686,7 +686,7 @@
   return;
   }
  
- if (!strcmp(request, "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js")) {
+ if (!strcmp(request, "/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js")) {
   uw_write_header(ctx, "Content-Type: text/javascript\r\n");
    uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
    uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -695,7 +695,7 @@
    }
   
   
-  if (!strcmp(request, "/app.7B8AF21EB5F74E41607DB6479F09E9C972EE6E36.js")) {
+  if (!strcmp(request, "/app.620EC3973E0C08FD2101F2B5AA5A23E776ADD317.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -718,7 +718,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1690(ctx, arg0, 0);
+    __uwn_wrap_main_1696(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -731,7 +731,7 @@
     uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
      uw_write(ctx, uw_begin_html5);
     uw_mayReturnIndirectly(ctx);
-    uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.7B8AF21EB5F74E41607DB6479F09E9C972EE6E36.js\"></script>\n");
+    uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js\"></script>\n<script type=\"text/javascript\" src=\"/app.620EC3973E0C08FD2101F2B5AA5A23E776ADD317.js\"></script>\n");
     uw_set_could_write_db(ctx, 1);
    uw_set_at_most_one_query(ctx, 0);
    uw_set_needs_push(ctx, 1);
@@ -740,7 +740,7 @@
    {
     
      uw_unit uw_inputs;
-     __uwn_wrap_action_1692(ctx, uw_inputs, 0);
+     __uwn_wrap_action_1698(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -769,7 +769,7 @@
          struct __uws_1 tmp = { uwr_1, uwr_2, uwr_3 };
       tmp;
       });
-     uw_unit it0 = __uwn_writeBack_1685(ctx, arg0, 0);
+     uw_unit it0 = __uwn_writeBack_1691(ctx, arg0, 0);
     uw_write(ctx, uw_get_real_script(ctx));
      uw_write(ctx, "\n");
      uw_Basis_urlifyString_w(ctx, "");
@@ -783,12 +783,12 @@
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {
-  __uwn_expunger_1693(ctx, cli);
+  __uwn_expunger_1699(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
-  __uwn_initializer_1694(ctx, 0);
+  __uwn_initializer_1700(ctx, 0);
    }
  uw_app uw_application = {1,
                             60,

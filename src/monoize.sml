@@ -546,6 +546,28 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
              Print.eprefaces' [("Expression", CorePrint.p_exp env all)];
              (dummyExp, fm))
 
+        (* strFoldWhile f z s: fn f => fn z => fn s => EStrFold, whose body
+         * applies f to the two variables the fold binds.  Once the step
+         * function is known, MonoReduce inlines it there. *)
+        fun strFoldWhile state =
+            let
+                val state = monoType env state
+                val s = (L'.TFfi ("Basis", "string"), loc)
+                val c = (L'.TFfi ("Basis", "char"), loc)
+                val result = (L'.TRecord [("1", state), ("2", (L'.TFfi ("Basis", "bool"), loc))], loc)
+                val ft = (L'.TFun (c, (L'.TFun (state, result), loc)), loc)
+                val body = (L'.EApp ((L'.EApp ((L'.ERel 4, loc), (L'.ERel 1, loc)), loc),
+                                     (L'.ERel 0, loc)), loc)
+                val fold = (L'.EStrFold {state = state,
+                                         str = (L'.ERel 0, loc),
+                                         initial = (L'.ERel 1, loc),
+                                         body = body}, loc)
+            in
+                ((L'.EAbs ("f", ft, (L'.TFun (state, (L'.TFun (s, result), loc)), loc),
+                           (L'.EAbs ("z", state, (L'.TFun (s, result), loc),
+                                     (L'.EAbs ("s", s, result, fold), loc)), loc)), loc), fm)
+            end
+
         fun numTy t =
             (L'.TRecord [("Zero", t),
                          ("Neg", (L'.TFun (t, t), loc)),
@@ -1704,6 +1726,9 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                                  (L'.EFfiApp ("Basis", "unAs", [((L'.ERel 0, loc), s)]), loc)]), loc)), loc),
                  fm)
             end
+
+          | L.ECApp ((L.EFfi ("Basis", "strFoldWhile"), _), state) =>
+            strFoldWhile state
 
           | L.ECApp (
             (L.ECApp (

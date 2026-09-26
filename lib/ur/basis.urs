@@ -96,6 +96,14 @@ val strcspn : string -> string -> int
 val substring : string -> int -> int -> string
 val str1 : char -> string
 
+(* A left-to-right fold over the characters of a string, compiled to one
+ * loop over the UTF-8 encoding: the only linear-time way to walk a string,
+ * since [strsub] is linear in its index.  The step answers the new
+ * accumulator and whether to go on; the fold stops after the first [False],
+ * and the flag it returns is [True] iff no step said stop.  [Top.strFold]
+ * is the fold that never stops. *)
+val strFoldWhile : a ::: Type -> (char -> a -> a * bool) -> a -> string -> a * bool
+
 (* These last three reveal the Unicode encoding,
  * into sequences of 8-bit bytes. *)
 val strlenUtf8 : string -> int

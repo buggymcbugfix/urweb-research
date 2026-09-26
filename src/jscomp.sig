@@ -32,5 +32,8 @@ signature JSCOMP = sig
     val explainEmbed : bool ref
     (* Output verbose error messages about inability to embed server-side
      * values in client-side code? *)
+    val jsDirect : bool ref
+    (* Compile named client-side functions to JavaScript functions directly,
+     * instead of shipping them as ASTs for the runtime interpreter? *)
 
 end

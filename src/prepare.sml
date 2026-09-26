@@ -294,6 +294,15 @@ fun prepExp (e as (_, loc), st) =
             ((ESetval {seq = e1, count = e2}, loc), st)
         end
 
+      | EStrFold {state, pair, str, initial, body} =>
+        let
+            val (str, st) = prepExp (str, st)
+            val (initial, st) = prepExp (initial, st)
+            val (body, st) = prepExp (body, st)
+        in
+            ((EStrFold {state = state, pair = pair, str = str, initial = initial, body = body}, loc), st)
+        end
+
       | EUnurlify (e, t, b) =>
         let
             val (e, st) = prepExp (e, st)

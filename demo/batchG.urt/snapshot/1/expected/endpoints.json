@@ -1,8 +1,8 @@
 {"endpoints":
- [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+ [{"method": "GET", "url": "/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js", "content-type": 
    "text/javascript"},
                       
-   {"method": "GET", "url": "/app.D288F5C69DCEE0E500A4698EC3D65FB1F79A54FF.js", "content-type": 
+   {"method": "GET", "url": "/app.3E5C6C4593E3F0DD8CCB8F62C316E3A82B4F42A2.js", "content-type": 
     "text/javascript"},
                        
    {"method": "GET", "url": "BatchG/main", "content-type": null},

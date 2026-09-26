@@ -40,7 +40,7 @@
   /* cookie Cookie/c */
   
   static uw_unit
-   __uwn_wrap_setExp_1670(uw_context ctx, struct __uws_1 __uwr_x0_0, 
+   __uwn_wrap_setExp_1676(uw_context ctx, struct __uws_1 __uwr_x0_0, 
                            uw_unit __uwr___1)
    {
    return(({
@@ -91,7 +91,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_set_1669(uw_context ctx, struct __uws_1 __uwr_x0_0, 
+   __uwn_wrap_set_1675(uw_context ctx, struct __uws_1 __uwr_x0_0, 
                         uw_unit __uwr___1)
    {
    return(({
@@ -133,7 +133,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_delete_1668(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_delete_1674(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -148,7 +148,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1667(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_1673(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -335,7 +335,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1667(ctx, arg0, 0);
+    __uwn_wrap_main_1673(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -356,7 +356,7 @@
    {
     
      uw_unit uw_inputs;
-     __uwn_wrap_delete_1668(ctx, uw_inputs, 0);
+     __uwn_wrap_delete_1674(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -396,7 +396,7 @@
           uw_input_B,
            uw_input_C,
             };
-     __uwn_wrap_set_1669(ctx, uw_inputs, 0);
+     __uwn_wrap_set_1675(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -436,7 +436,7 @@
           uw_input_B,
            uw_input_C,
             };
-     __uwn_wrap_setExp_1670(ctx, uw_inputs, 0);
+     __uwn_wrap_setExp_1676(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }

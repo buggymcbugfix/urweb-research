@@ -1775,6 +1775,7 @@ fun evalExp env (e as (_, loc)) k =
             end
           | ENextval _ => default ()
           | ESetval _ => default ()
+          | EStrFold _ => default ()
 
           | EUnurlify ((EFfiApp ("Basis", "get_cookie", [((EPrim (Prim.String (_, cname)), _), _)]), _), _, _) =>
             let
@@ -2088,6 +2089,9 @@ fun check (file : file) =
                              (EDml (doExp env e1, mode), loc))
                           | ENextval e1 => (ENextval (doExp env e1), loc)
                           | ESetval (e1, e2) => (ESetval (doExp env e1, doExp env e2), loc)
+                          | EStrFold {state, str, initial, body} =>
+                            (EStrFold {state = state, str = doExp env str, initial = doExp env initial,
+                                       body = doExp (Unknown :: Unknown :: env) body}, loc)
                           | EUnurlify (e1, t, b) => (EUnurlify (doExp env e1, t, b), loc)
                           | EJavaScript (m, e) => (EJavaScript (m, doExp env e), loc)
                           | ESignalReturn _ => e

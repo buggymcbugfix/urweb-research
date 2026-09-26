@@ -23,6 +23,26 @@ fun skipRealSpaces s =
     else
         s
 
+fun foldl [a] [b] (f : a -> b -> b) =
+    let
+        fun foldl' acc ls =
+            case ls of
+                [] => acc
+              | x :: ls => foldl' (f x acc) ls
+    in
+        foldl'
+    end
+
+val rev = fn [a] =>
+             let
+                 fun rev' acc (ls : list a) =
+                     case ls of
+                         [] => acc
+                       | x :: ls => rev' (x :: acc) ls
+             in
+                 rev' []
+             end
+
 fun toJson [a] (j : json a) : a -> string = j.ToJson
 fun fromJson' [a] (j : json a) : string -> a * string = j.FromJson
 
@@ -443,9 +463,13 @@ fun json_list [a] (j : json a) : json (list a) =
               | x :: [] => "[" ^ toJson j x ^ "]"
               | x :: ls => "[" ^ toJson j x ^ toJ' ls ^ "]"
 
+        (* The parsers accumulate elements in reverse and finish with [rev],
+         * so that parsing a long list does not recurse once per element
+         * (recursion depth matters for client-side code compiled to
+         * JavaScript, which runs on the browser's stack). *)
         fun fromJ (s : string) : list a * string =
             let
-                fun fromJ' (s : string) : list a * string =
+                fun fromJ' (s : string) (acc : list a) : list a * string =
                     if s = "" then
                         error <xml>JSON list doesn't end with ']'</xml>
                     else
@@ -453,7 +477,7 @@ fun json_list [a] (j : json a) : json (list a) =
                             val ch = String.sub s 0
                         in
                             case ch of
-                                #"]" => ([], String.suffix s 1)
+                                #"]" => (rev acc, String.suffix s 1)
                               | _ =>
                                 let
                                     val (x, s') = j.FromJson s
@@ -464,17 +488,15 @@ fun json_list [a] (j : json a) : json (list a) =
                                                  skipSpaces (String.suffix s' 1)
                                              else
                                                  s'
-
-                                    val (ls, s'') = fromJ' s'
                                 in
-                                    (x :: ls, s'')
+                                    fromJ' s' (x :: acc)
                                 end
                         end
             in
                 if String.length s = 0 || String.sub s 0 <> #"[" then
                     error <xml>JSON list doesn't start with '[': {[s]}</xml>
                 else
-                    fromJ' (skipSpaces (String.suffix s 1))
+                    fromJ' (skipSpaces (String.suffix s 1)) []
             end
 
         fun toY (i : int) (ls : list a) : string =
@@ -484,24 +506,28 @@ fun json_list [a] (j : json a) : json (list a) =
 
         fun fromY (b : bool) (i : int) (s : string) : list a * string =
             let
-                val (i', s') = readYamlLine (if b then Some i else None) s
-            in
-                if i' < i || s' = "" then
-                    ([], s)
-                else if String.sub s' 0 = #"-" then
+                fun fromY' (b : bool) (s : string) (acc : list a) : list a * string =
                     let
-                        val s' = String.suffix s' 1
-                        val (s', i') = if s' <> "" && String.sub s' 0 = #" " then
-                                           (String.suffix s' 1, i' + 2)
-                                       else
-                                           (s', i' + 1)
-                        val (v, s) = j.FromYaml True i' s'
-                        val (ls, s) = fromY False i s
+                        val (i', s') = readYamlLine (if b then Some i else None) s
                     in
-                        (v :: ls, s)
+                        if i' < i || s' = "" then
+                            (rev acc, s)
+                        else if String.sub s' 0 = #"-" then
+                            let
+                                val s' = String.suffix s' 1
+                                val (s', i') = if s' <> "" && String.sub s' 0 = #" " then
+                                                   (String.suffix s' 1, i' + 2)
+                                               else
+                                                   (s', i' + 1)
+                                val (v, s) = j.FromYaml True i' s'
+                            in
+                                fromY' False s (v :: acc)
+                            end
+                        else
+                            error <xml>YAML list contains weird delimiter.</xml>
                     end
-                else
-                    error <xml>YAML list contains weird delimiter.</xml>
+            in
+                fromY' b s []
             end
     in
         {ToJson = toJ,
@@ -944,26 +970,6 @@ fun json_variant [ts ::: {Type}] (fl : folder ts) (jss : $(map json ts)) (names 
      FromYaml = fn _ _ _ => error <xml>No YAML variants yet, please</xml>}
 
 val json_unit : json unit = json_record {} {}
-
-fun foldl [a] [b] (f : a -> b -> b) =
-    let
-        fun foldl' acc ls =
-            case ls of
-                [] => acc
-              | x :: ls => foldl' (f x acc) ls
-    in
-        foldl'
-    end
-
-val rev = fn [a] =>
-             let
-                 fun rev' acc (ls : list a) =
-                     case ls of
-                         [] => acc
-                       | x :: ls => rev' (x :: acc) ls
-             in
-                 rev' []
-             end
 
 fun json_dict [a] (j : json a) : json (list (string * a)) =
     {ToJson = fn ls =>

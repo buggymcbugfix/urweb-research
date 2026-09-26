@@ -1,8 +1,8 @@
 {"endpoints":
- [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+ [{"method": "GET", "url": "/runtime.5176DF5A2DB34FEB6231025A1D7D8D4A059FC48D.js", "content-type": 
    "text/javascript"},
                       
-   {"method": "GET", "url": "/app.7B8AF21EB5F74E41607DB6479F09E9C972EE6E36.js", "content-type": 
+   {"method": "GET", "url": "/app.620EC3973E0C08FD2101F2B5AA5A23E776ADD317.js", "content-type": 
     "text/javascript"},
                        
    {"method": "GET", "url": "RoundTrip/main", "content-type": null},

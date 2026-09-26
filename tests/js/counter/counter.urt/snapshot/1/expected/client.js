@@ -1,8 +1,12 @@
 urlRules = cons({allow:true,prefix:true,pattern:"#"},null);
 
 // tests/js/counter/counter.ur:4:6-4:77
-urfuncs[1] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:sg,a:cons({c:"v",n:2},null)},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"f",f:plus,a:cons({c:"v",n:0},cons({c:"c",v:1},null))},null))}}}}}'};
+function _u1(v_0,v_1){let v_2 = uw_mouseEvent(); let v_3 = sg(v_0); return sv(v_0,(v_3 + (1)));}
+function _c1(v_0){return function(v_1){return _u1(v_0,v_1);}}
+urfuncs[1] = {c:"c",v:_c1};
 // tests/js/counter/counter.ur:5:19-5:64
-urfuncs[2] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"f",f:sb,a:cons({c:"f",f:ss,a:cons({c:"v",n:1},null)},cons({c:"l",b:{c:"f",f:sr,a:cons({c:"f",f:cat,a:cons({c:"c",v:"Count: "},cons({c:"f",f:ts,a:cons({c:"v",n:0},null)},null))},null)}},null))}}}'};
+function _u2(v_0,v_1){return sb(ss(v_0),function(v_2){return sr(cat("Count: ",ts(v_2)));});}
+function _c2(v_0){return function(v_1){return _u2(v_0,v_1);}}
+urfuncs[2] = {c:"c",v:_c2};
 
 time_format = "%c";

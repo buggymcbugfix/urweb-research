@@ -358,6 +358,19 @@ fun mapfoldB {typ = fc, exp = fe, bind} =
                         S.map2 (mfe ctx e2,
                              fn e2' =>
                                 (ESetval (e1', e2'), loc)))
+              | EStrFold {state, str, initial, body} =>
+                S.bind2 (mft state,
+                      fn state' =>
+                         S.bind2 (mfe ctx str,
+                               fn str' =>
+                                  S.bind2 (mfe ctx initial,
+                                        fn initial' =>
+                                           S.map2 (mfe (bind (bind (ctx, RelE ("c", dummyt)),
+                                                              RelE ("acc", dummyt)))
+                                                       body,
+                                                fn body' =>
+                                                   (EStrFold {state = state', str = str', initial = initial',
+                                                              body = body'}, loc)))))
               | EUnurlify (e, t, b) =>
                 S.bind2 (mfe ctx e,
                      fn e' =>
@@ -512,6 +525,7 @@ fun appLoc f =
                | EDml (e1, _) => appl e1
                | ENextval e1 => appl e1
                | ESetval (e1, e2) => (appl e1; appl e2)
+               | EStrFold {str = e1, initial = e2, body = e3, ...} => (appl e1; appl e2; appl e3)
                | EUnurlify (e1, _, _) => appl e1
                | EJavaScript (_, e1) => appl e1
                | ESignalReturn e1 => appl e1

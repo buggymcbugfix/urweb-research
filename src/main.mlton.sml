@@ -270,7 +270,10 @@ fun oneRun args =
                     SOME "set resource usage limit for <class> to <num>"),
               ("explainEmbed", set_true JsComp.explainEmbed,
                     SOME ("explain errors about embedding of server-side "^
-                          "values in client code"))
+                          "values in client code")),
+              ("noJsDirect", ZERO (fn () => JsComp.jsDirect := false),
+                    SOME ("ship all client-side functions as interpreted ASTs "^
+                          "instead of compiling them to JavaScript"))
         ]
 
         val () = case args of

@@ -51,6 +51,9 @@ end
 
 fun not b = if b then False else True
 
+fun strFold [a] (f : char -> a -> a) (z : a) (s : string) : a =
+    (strFoldWhile (fn ch acc => (f ch acc, True)) z s).1
+
 con ident = K ==> fn t :: K => t
 con record (t :: {Type}) = $t
 con fst = K1 ==> K2 ==> fn t :: (K1 * K2) => t.1

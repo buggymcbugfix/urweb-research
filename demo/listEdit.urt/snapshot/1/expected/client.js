@@ -1,14 +1,22 @@
 urlRules = cons({allow:true,prefix:true,pattern:"#"},null);
 
 // demo/listEdit.ur:6:4-9:2
-urfuncs[1] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"f",f:sb,a:cons({c:"f",f:ss,a:cons({c:"v",n:1},null)},cons({c:"l",b:{c:"f",f:sr,a:cons({c:"f",f:eh,a:cons({c:"v",n:0},null)},null)}},null))}}}'};
+function _u1(v_0,v_1){return sb(ss(v_0),function(v_2){return sr(eh(v_2));});}
+function _c1(v_0){return function(v_1){return _u1(v_0,v_1);}}
+urfuncs[1] = {c:"c",v:_c1};
 // demo/listEdit.ur:18:12-19:3
-urfuncs[2] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:sg,a:cons({c:"v",n:2},null)},e2:{c:"f",f:sv,a:cons({c:"v",n:4},cons({c:"v",n:0},null))}}}}}}'};
+function _u2(v_0,v_1,v_2){let v_3 = uw_mouseEvent(); let v_4 = sg(v_1); return sv(v_0,v_4);}
+function _c2(v_0){return function(v_1){return function(v_2){return _u2(v_0,v_1,v_2);}}}
+urfuncs[2] = {c:"c",v:_c2};
 // demo/listEdit.ur:13:10-13:12
-urfuncs[4] = {c:"t",f:'{c:"l",b:{c:"m",e:{c:"v",n:0},p:cons({p:{c:"c",v:null},b:{c:"f",f:sr,a:cons({c:"c",v:""},null)}},cons({p:{c:"s",n:false,p:{c:"r",l:cons({n:"Data",p:{/*hoho*/c:"v"}},cons({n:"NewData",p:{/*hoho*/c:"v"}},cons({n:"Tail",p:{/*hoho*/c:"v"}},null)))}},b:{c:"f",f:sr,a:cons({c:"f",f:cat,a:cons({c:"c",v:"\\n\\074script type=\\"text/javascript\\">dyn(\\"span\\", execD("},cons({c:"f",f:cat,a:cons({c:"e",e:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"v",n:2}},x:{c:"c",v:null}}},cons({c:"f",f:cat,a:cons({c:"c",v:"))\\074/script>\\n\\074button onclick=\'uw_event=event;exec("},cons({c:"f",f:cat,a:cons({c:"e",e:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:2},x:{c:"v",n:2}},x:{c:"v",n:1}},x:{c:"c",v:null}}},cons({c:"f",f:cat,a:cons({c:"c",v:")\'>Change to:\\074/button>\\n \\074script type=\\"text/javascript\\">var d=inp(exec("},cons({c:"f",f:cat,a:cons({c:"e",e:{c:"v",n:1}},cons({c:"f",f:cat,a:cons({c:"c",v:"));\\074/script>\\074br />\\n\\074script type=\\"text/javascript\\">dyn(\\"span\\", execD("},cons({c:"f",f:cat,a:cons({c:"e",e:{c:"a",f:{c:"n",n:3},x:{c:"v",n:0}}},cons({c:"c",v:"))\\074/script>\\n"},null))},null))},null))},null))},null))},null))},null))},null))},null)}},null))}}'};
+function _u4(v_0){if (v_0 == null) {return sr("");} else if (v_0 != null) {let v_1 = v_0._Data; let v_2 = v_0._NewData; let v_3 = v_0._Tail; return sr(cat("\n\074script type=\"text/javascript\">dyn(\"span\", execD(",cat(cs({c:"wc",env:cons(v_3,cons(v_2,cons(v_1,cons(v_0,null)))),body:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"v",n:2}},x:{c:"c",v:null}}}),cat("))\074/script>\n\074button onclick='uw_event=event;exec(",cat(cs({c:"wc",env:cons(v_3,cons(v_2,cons(v_1,cons(v_0,null)))),body:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:2},x:{c:"v",n:2}},x:{c:"v",n:1}},x:{c:"c",v:null}}}),cat(")'>Change to:\074/button>\n \074script type=\"text/javascript\">var d=inp(exec(",cat(cs({c:"wc",env:cons(v_3,cons(v_2,cons(v_1,cons(v_0,null)))),body:{c:"v",n:1}}),cat("));\074/script>\074br />\n\074script type=\"text/javascript\">dyn(\"span\", execD(",cat(cs({c:"wc",env:cons(v_3,cons(v_2,cons(v_1,cons(v_0,null)))),body:{c:"a",f:{c:"n",n:3},x:{c:"v",n:0}}}),"))\074/script>\n")))))))));} else { er("Match failure in compiled Ur code"); }}
+urfuncs[4] = {c:"c",v:_u4};
 // demo/listEdit.ur:9:9-9:12
-urfuncs[3] = {c:"t",f:'{c:"l",b:{c:"f",f:sb,a:cons({c:"f",f:ss,a:cons({c:"v",n:0},null)},cons({c:"l",b:{c:"a",f:{c:"n",n:4},x:{c:"v",n:0}}},null))}}'};
+function _u3(v_0){return sb(ss(v_0),function(v_1){return _u4(v_1);});}
+urfuncs[3] = {c:"c",v:_u3};
 // demo/listEdit.ur:44:40-44:86
-urfuncs[5] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:sg,a:cons({c:"v",n:2},null)},e2:{c:"=",e1:{c:"f",f:sc,a:cons({c:"v",n:0},null)},e2:{c:"=",e1:{c:"f",f:sc,a:cons({c:"c",v:""},null)},e2:{c:"=",e1:{c:"f",f:sg,a:cons({c:"v",n:6},null)},e2:{c:"=",e1:{c:"f",f:sc,a:cons({c:"c",v:null},null)},e2:{c:"=",e1:{c:"f",f:sv,a:cons({c:"v",n:1},cons({c:"r",l:cons({n:"Data",v:{c:"v",n:3}},cons({n:"NewData",v:{c:"v",n:2}},cons({n:"Tail",v:{c:"v",n:0}},null)))},null))},e2:{c:"f",f:sv,a:cons({c:"v",n:9},cons({c:"v",n:1},null))}}}}}}}}}}}'};
+function _u5(v_0,v_1,v_2){let v_3 = uw_mouseEvent(); let v_4 = sg(v_1); let v_5 = sc(v_4); let v_6 = sc(""); let v_7 = sg(v_0); let v_8 = sc(null); let v_9 = sv(v_7,{_Data:v_5,_NewData:v_6,_Tail:v_8}); return sv(v_0,v_8);}
+function _c5(v_0){return function(v_1){return function(v_2){return _u5(v_0,v_1,v_2);}}}
+urfuncs[5] = {c:"c",v:_c5};
 
 time_format = "%c";
