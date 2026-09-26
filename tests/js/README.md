@@ -24,3 +24,11 @@ exercised where it is easiest to get wrong: a function needs its number
 before its body is compiled.  `serverOnly` has no client-side code at all,
 and its empty snapshot says so; the day it stops being empty, something
 started needing a script that did not before.
+
+The `datatype` case constructs, matches and decodes a datatype on the
+client.  What the script carries for a constructor is its number
+(`{c:"1",n:1936,v:...}`), and the decoder for the RPC's answer is named
+from the same counter (`_n1946`): these are the compiler's global name
+indices still, and move with every addition to the standard library, as
+the names in the C do.  This case also tracks `server.c`, so that the same
+program shows both.
