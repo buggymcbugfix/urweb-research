@@ -60,7 +60,7 @@ update=''
 [ "${1-}" != -u ] || { update=1; shift; }
 [ -x "$here/urt" ] || { echo "$me: no urt at $here (make builds it)" >&2; exit 2; }
 
-groups=${*:-snapshot pty format demo oracle}
+groups=${*:-snapshot pty fmt fmt-demo fmt-oracle}
 for g in $groups; do
     case $g in
         snapshot | pty | fmt | fmt-demo | fmt-oracle) ;;
