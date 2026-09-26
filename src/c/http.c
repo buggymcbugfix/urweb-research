@@ -579,10 +579,14 @@ int main(int argc, char *argv[]) {
           "behind a production-quality HTTP server, for a real deployment.\n\n");
 
   // -d: daemonize. The fork MUST happen before any pthread_create call: fork()
-  // only carries the calling thread, so any mutexes held by the others would
-  // remain locked forever in the child. Doing it here (after listen() succeeds)
-  // also means the parent's successful exit is a synchronous "ready to accept"
-  // signal for the caller.
+  // only carries the calling thread, so threads started earlier are absent
+  // from the child, and any mutexes they held would remain locked forever.
+  // That is why the background threads are started below rather than by
+  // uw_request_init: they used to be created there, before this fork, which
+  // left a daemonized server with no ticker (so running-time limits never
+  // fired) and no periodic threads (so `task periodic` never ran at all).
+  // Doing the fork here, after listen() succeeds, also means the parent's
+  // successful exit is a synchronous "ready to accept" signal for the caller.
   //
   // -d <fd>: in addition, the parent writes `eval`-friendly shell assignments
   // for `pid` and either `port` or `socket` to file descriptor <fd> before
@@ -634,6 +638,8 @@ int main(int argc, char *argv[]) {
   }
 
   qprintf("Listening on port %d....\n", uw_port);
+
+  uw_request_start_threads(&uw_application, &ls);
 
   {
     pthread_t thread;

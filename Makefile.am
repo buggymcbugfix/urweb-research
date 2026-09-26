@@ -15,7 +15,7 @@ all-local: smlnj mlton
 
 SUBDIRS = src/c
 
-.PHONY: smlnj mlton mlton-tc test check-local urt check-snapshot update-snapshot check-urt
+.PHONY: smlnj mlton mlton-tc test check-local check-threads urt check-snapshot update-snapshot check-urt
 
 smlnj: src/urweb.cm src/version.sml xml/entities.sml
 mlton: bin/urweb
@@ -25,6 +25,7 @@ clean-local:
 	rm -f bin/urweb bin/urwebtc compiler.du src/urweb.mlton.* \
 		src/urweb.cm src/urweb.mlb src/version.sml xml/parse xml/entities.sml
 	rm -f demo/demo.exe
+	rm -f tests/forkthreads.exe tests/forkthreads.sql
 	rm -rf .cm src/.cm
 	if test -d urt; then $(MAKE) -C urt clean; fi
 
@@ -169,7 +170,42 @@ update-snapshot: urt
 check-urt: urt
 	$(MAKE) -C urt check CC="$(CC)"
 
-check-local: bin/urweb
+TEST_THREADS_PRELUDE = set -e; \
+	pid=""; \
+	dbfile=$$(mktemp); \
+	cleanup() { \
+		kill $$pid 2>/dev/null || true; \
+		pid=""; \
+		rm -f $$dbfile $$dbfile-shm $$dbfile-wal \
+			tests/forkthreads.exe tests/forkthreads.sql; \
+	}; \
+	trap cleanup EXIT INT TERM; \
+	\
+	echo "Compiling forkthreads.exe."; \
+	bin/urweb -boot -noEmacs -dbms sqlite -db $$dbfile tests/forkthreads; \
+	sqlite3 $$dbfile < tests/forkthreads.sql
+
+# The threads these two features need are started only after a backend has
+# daemonized, so the server MUST be run with -d here: without it the test
+# passes even when the threads are lost to fork().
+check-threads: bin/urweb
+	@$(TEST_THREADS_PRELUDE); \
+	\
+	echo "Running background-thread tests."; \
+	eval "$$(tests/forkthreads.exe -a 127.0.0.1 -p 8010 -P 9010 -d3 3>&1 1>/dev/null 2>/dev/null)"; \
+	[ "$$status" = 'OK' ] || { echo "forkthreads.exe failed to start" >&2; exit 1; }; \
+	\
+	curl -s "http://localhost:$$port/Forkthreads/burn/12" \
+		| grep -q 'Maximum running time exceeded' \
+		|| { echo "Test 'deadline' failed: 'limit time' did not stop a long request" >&2; exit 1; }; \
+	\
+	sleep 4; \
+	curl -s "http://localhost:$$port/Forkthreads/rows" | grep -q x \
+		|| { echo "Test 'periodic' failed: 'task periodic' never ran" >&2; exit 1; }; \
+	\
+	echo "Tests succeeded."
+
+check-local: bin/urweb check-threads
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \

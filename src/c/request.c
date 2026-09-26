@@ -161,8 +161,6 @@ int pthread_create_big(pthread_t *outThread, void *foo, void *threadFunc, void *
 void uw_request_init(uw_app *app, uw_loggers* ls) {
   uw_context ctx;
   failure_kind fk;
-  uw_periodic *ps;
-  int id;
   char *stackSize_s;
 
   uw_logger log_debug = ls->log_debug;
@@ -180,15 +178,6 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
 
   uw_global_init();
   uw_app_init(app);
-
-  {
-    pthread_t thread;
-    
-    if (uw_time_max && pthread_create_big(&thread, NULL, ticker, NULL)) {
-      fprintf(stderr, "Error creating ticker thread\n");
-      exit(1);
-    }
-  }
 
   ctx = uw_request_new_context(0, app, ls);
 
@@ -208,6 +197,30 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
   }
 
   uw_free(ctx);
+}
+
+/* Spawning the background threads is deliberately NOT part of
+ * uw_request_init.  fork() carries only the calling thread, so any thread
+ * started before a backend daemonizes is simply absent from the process that
+ * goes on to serve requests -- silently, since nothing fails.  The http
+ * backend forks after listen() succeeds, so it calls this afterwards; the
+ * backends that never fork call it straight after uw_request_init.
+ *
+ * Database initialisation stays in uw_request_init, before any fork, so that
+ * a bad database still makes the parent exit nonzero rather than reporting
+ * the failure from a child whose parent has already claimed success. */
+void uw_request_start_threads(uw_app *app, uw_loggers *ls) {
+  uw_periodic *ps;
+  int id;
+
+  {
+    pthread_t thread;
+
+    if (uw_time_max && pthread_create_big(&thread, NULL, ticker, NULL)) {
+      fprintf(stderr, "Error creating ticker thread\n");
+      exit(1);
+    }
+  }
 
   id = 1;
   for (ps = app->periodics; ps->callback; ++ps) {
@@ -217,12 +230,12 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
     arg->ls = ls;
     arg->pdic = *ps;
     arg->app = app;
-    
+
     if (pthread_create_big(&thread, NULL, periodic_loop, arg)) {
       fprintf(stderr, "Error creating periodic thread\n");
       exit(1);
     }
-  }  
+  }
 }
 
 

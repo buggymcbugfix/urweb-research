@@ -1,0 +1,5 @@
+database /tmp/test
+sql forkthreads.sql
+limit time 5
+
+forkthreads
