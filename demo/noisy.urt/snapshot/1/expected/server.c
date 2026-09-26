@@ -431,7 +431,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_13(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_6(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_source __uwr_idAdd_2 =
@@ -617,7 +617,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_13(ctx, arg0, 0);
+    __uwn_wrap_main_6(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }

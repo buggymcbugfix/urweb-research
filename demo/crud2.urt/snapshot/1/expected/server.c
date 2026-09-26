@@ -535,7 +535,7 @@
    }
   
   static uw_unit
-   __uwn_list_10(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_list_5(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "\n<table border=\"1\">\n<tr>\n<th>ID</th>\n<th>Name</th>\n<th>Ready</th>\n</tr>\n"), 0),
            (uw_begin_region(ctx), (uw_begin_region(ctx), ({
@@ -782,7 +782,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                               __uwn_list_10(ctx,
+                                                                               __uwn_list_5(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -861,7 +861,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                               __uwn_list_10(ctx,
+                                                                               __uwn_list_5(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -1015,7 +1015,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                               __uwn_list_10(ctx,
+                                                                               __uwn_list_5(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -1047,7 +1047,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                              __uwn_list_10(ctx,
+                                                                              __uwn_list_5(ctx,
                                                                               arg0
                                                                                ,
                                                                                

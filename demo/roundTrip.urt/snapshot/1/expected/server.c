@@ -345,7 +345,7 @@
    
   
   static uw_unit
-   __uwn_writeBack_8(uw_context ctx, struct __uws_1 __uwr_v_0, 
+   __uwn_writeBack_3(uw_context ctx, struct __uws_1 __uwr_v_0, 
                       uw_unit __uwr___1)
    {
    return(({
@@ -476,7 +476,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_action_13(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_action_4(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_client __uwr_me_2 =
@@ -629,7 +629,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_14(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_5(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -717,7 +717,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_14(ctx, arg0, 0);
+    __uwn_wrap_main_5(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -739,7 +739,7 @@
    {
     
      uw_unit uw_inputs;
-     __uwn_wrap_action_13(ctx, uw_inputs, 0);
+     __uwn_wrap_action_4(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -768,7 +768,7 @@
          struct __uws_1 tmp = { uwr_1, uwr_2, uwr_3 };
       tmp;
       });
-     uw_unit it0 = __uwn_writeBack_8(ctx, arg0, 0);
+     uw_unit it0 = __uwn_writeBack_3(ctx, arg0, 0);
     uw_write(ctx, uw_get_real_script(ctx));
      uw_write(ctx, "\n");
      uw_Basis_urlifyString_w(ctx, "");

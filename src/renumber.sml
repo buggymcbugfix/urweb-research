@@ -106,7 +106,13 @@ fun renumber ((decls, exports) : file) =
 
         val decls = map (U.Decl.map {typ = typ', exp = exp, decl = decl}) decls
     in
-        (decls, map (fn (n, s, m) => (new n, s, m)) exports)
+        (* The sidedness list names every function that had client-side
+         * code when it was drawn up, and shaking has since removed the
+         * ones the script absorbed: those entries have nothing left to
+         * describe. *)
+        (decls, List.mapPartial (fn (n, s, m) =>
+                                    Option.map (fn n' => (n', s, m)) (IM.find (table, n)))
+                                exports)
     end
 
 end

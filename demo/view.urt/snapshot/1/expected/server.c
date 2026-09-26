@@ -309,7 +309,7 @@
    
   
   static uw_unit
-   __uwn_main_6(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_main_3(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -559,7 +559,7 @@
             ({
              uw_unit arg0 = 0;
               uw_unit arg1 = 0;
-             __uwn_main_6(ctx, arg0, arg1);
+             __uwn_main_3(ctx, arg0, arg1);
              });
            }));
    }
@@ -570,7 +570,7 @@
    return(({
            uw_unit arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_main_6(ctx, arg0, arg1);
+           __uwn_main_3(ctx, arg0, arg1);
            }));
    }
  

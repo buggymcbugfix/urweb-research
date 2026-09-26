@@ -39,8 +39,8 @@
      };
   
   
-  static uw_unit __uwn_toXml_22(uw_context, struct __uws_1*);
-   static uw_unit __uwn_toXml_22(uw_context ctx, struct __uws_1* __uwr_ls_0)
+  static uw_unit __uwn_toXml_4(uw_context, struct __uws_1*);
+   static uw_unit __uwn_toXml_4(uw_context ctx, struct __uws_1* __uwr_ls_0)
     {restart:
       
     return(({
@@ -159,9 +159,9 @@
     }
    
   
-  static uw_unit __uwn_urlify_list_s_23(uw_context, struct __uws_1*);
+  static uw_unit __uwn_urlify_list_s_7(uw_context, struct __uws_1*);
    static uw_unit
-    __uwn_urlify_list_s_23(uw_context ctx, struct __uws_1* __uwr_x_0)
+    __uwn_urlify_list_s_7(uw_context ctx, struct __uws_1* __uwr_x_0)
     {restart:
       
     return(({
@@ -198,8 +198,8 @@
    
   
   static uw_unit
-   __uwn_console_24(uw_context ctx, struct __uws_1* __uwr_ls_0, 
-                     uw_unit __uwr___1)
+   __uwn_console_8(uw_context ctx, struct __uws_1* __uwr_ls_0, 
+                    uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -207,12 +207,12 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">\nCurrent list: "), 0),
-                                                      (uw_begin_region(ctx), __uwn_toXml_22(ctx,
+                                                      (uw_begin_region(ctx), __uwn_toXml_4(ctx,
                                                                               __uwr_ls_0),
                                                        uw_end_region(ctx), ((uw_write(ctx, 
                                                                              "<br />\nReversed list: "), 0),
                                                                             (uw_begin_region(ctx),
-                                                                              __uwn_toXml_22(ctx,
+                                                                              __uwn_toXml_4(ctx,
                                                                                ({
                                                                                struct
                                                                                __uws_1*
@@ -258,7 +258,7 @@
                                                                                ((uw_write(ctx, 
                                                                                "<br />\n<br />\n<form method=\"post\" action=\"/ListShop/IL/cons/"), 0),
                                                                                (uw_begin_region(ctx),
-                                                                               __uwn_urlify_list_s_23(ctx,
+                                                                               __uwn_urlify_list_s_7(ctx,
                                                                                __uwr_ls_0),
                                                                                uw_end_region(ctx),
                                                                                (uw_write(ctx, 
@@ -294,7 +294,7 @@
                    tmp;
                    });
                   uw_unit arg1 = 0;
-                 __uwn_console_24(ctx, arg0, arg1);
+                 __uwn_console_8(ctx, arg0, arg1);
                  });
               })
               :
@@ -307,8 +307,8 @@
            }));
    }
   
-  static uw_unit __uwn_toXml_25(uw_context, struct __uws_3*);
-   static uw_unit __uwn_toXml_25(uw_context ctx, struct __uws_3* __uwr_ls_0)
+  static uw_unit __uwn_toXml_13(uw_context, struct __uws_3*);
+   static uw_unit __uwn_toXml_13(uw_context ctx, struct __uws_3* __uwr_ls_0)
     {restart:
       
     return(({
@@ -428,9 +428,9 @@
     }
    
   
-  static uw_unit __uwn_urlify_list_s_26(uw_context, struct __uws_3*);
+  static uw_unit __uwn_urlify_list_s_16(uw_context, struct __uws_3*);
    static uw_unit
-    __uwn_urlify_list_s_26(uw_context ctx, struct __uws_3* __uwr_x_0)
+    __uwn_urlify_list_s_16(uw_context ctx, struct __uws_3* __uwr_x_0)
     {restart:
       
     return(({
@@ -467,7 +467,7 @@
    
   
   static uw_unit
-   __uwn_console_27(uw_context ctx, struct __uws_3* __uwr_ls_0, 
+   __uwn_console_17(uw_context ctx, struct __uws_3* __uwr_ls_0, 
                      uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
@@ -476,12 +476,12 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">\nCurrent list: "), 0),
-                                                      (uw_begin_region(ctx), __uwn_toXml_25(ctx,
+                                                      (uw_begin_region(ctx), __uwn_toXml_13(ctx,
                                                                               __uwr_ls_0),
                                                        uw_end_region(ctx), ((uw_write(ctx, 
                                                                              "<br />\nReversed list: "), 0),
                                                                             (uw_begin_region(ctx),
-                                                                              __uwn_toXml_25(ctx,
+                                                                              __uwn_toXml_13(ctx,
                                                                                ({
                                                                                struct
                                                                                __uws_3*
@@ -527,7 +527,7 @@
                                                                                ((uw_write(ctx, 
                                                                                "<br />\n<br />\n<form method=\"post\" action=\"/ListShop/SL/cons/"), 0),
                                                                                (uw_begin_region(ctx),
-                                                                               __uwn_urlify_list_s_26(ctx,
+                                                                               __uwn_urlify_list_s_16(ctx,
                                                                                __uwr_ls_0),
                                                                                uw_end_region(ctx),
                                                                                (uw_write(ctx, 
@@ -547,7 +547,7 @@
              tmp;
              });
             uw_unit arg1 = 0;
-           __uwn_console_27(ctx, arg0, arg1);
+           __uwn_console_17(ctx, arg0, arg1);
            }));
    }
   
@@ -557,7 +557,7 @@
    return(({
            struct __uws_3* arg0 = NULL;
             uw_unit arg1 = 0;
-           __uwn_console_27(ctx, arg0, arg1);
+           __uwn_console_17(ctx, arg0, arg1);
            }));
    }
   
@@ -567,7 +567,7 @@
    return(({
            struct __uws_1* arg0 = NULL;
             uw_unit arg1 = 0;
-           __uwn_console_24(ctx, arg0, arg1);
+           __uwn_console_8(ctx, arg0, arg1);
            }));
    }
   

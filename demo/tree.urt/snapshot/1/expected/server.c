@@ -242,9 +242,9 @@
     */
    
   
-  static uw_unit __uwn_$recurse_8(uw_context, uw_Basis_int*, uw_unit);
+  static uw_unit __uwn_$recurse_3(uw_context, uw_Basis_int*, uw_unit);
    static uw_unit
-    __uwn_$recurse_8(uw_context ctx, uw_Basis_int* __uwr_root_0, 
+    __uwn_$recurse_3(uw_context ctx, uw_Basis_int* __uwr_root_0, 
                       uw_unit __uwr___1)
     {restart:
       
@@ -434,7 +434,7 @@
                                                                        uw_unit
                                                                         arg1 =
                                                                         0;
-                                                                      __uwn_$recurse_8(ctx,
+                                                                      __uwn_$recurse_3(ctx,
                                                                       arg0, 
                                                                        arg1);
                                                                       }),
@@ -452,7 +452,7 @@
    
   
   static uw_unit
-   __uwn_main_9(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_main_4(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -470,7 +470,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                              __uwn_$recurse_8(ctx,
+                                                                              __uwn_$recurse_3(ctx,
                                                                               arg0
                                                                                ,
                                                                                
@@ -534,7 +534,7 @@
             ({
              uw_unit arg0 = 0;
               uw_unit arg1 = 0;
-             __uwn_main_9(ctx, arg0, arg1);
+             __uwn_main_4(ctx, arg0, arg1);
              });
            }));
    }
@@ -655,7 +655,7 @@
             ({
              uw_unit arg0 = 0;
               uw_unit arg1 = 0;
-             __uwn_main_9(ctx, arg0, arg1);
+             __uwn_main_4(ctx, arg0, arg1);
              });
            }));
    }
@@ -666,7 +666,7 @@
    return(({
            uw_unit arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_main_9(ctx, arg0, arg1);
+           __uwn_main_4(ctx, arg0, arg1);
            }));
    }
  

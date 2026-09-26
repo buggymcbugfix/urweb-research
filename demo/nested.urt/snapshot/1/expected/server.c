@@ -34,7 +34,7 @@
      };
   
   static uw_unit
-   __uwn_$pageC_9(uw_context ctx, uw_Basis_string __uwr_forename_0, 
+   __uwn_$pageC_1(uw_context ctx, uw_Basis_string __uwr_forename_0, 
                    uw_Basis_string __uwr_surname_1, uw_unit __uwr___2)
    {
    return(((uw_write(ctx, "\n<head>\n<title>C</title>\n</head>\n<body"), 0),
@@ -147,13 +147,13 @@
            uw_Basis_string arg0 = __uwr_x1_0;
             uw_Basis_string arg1 = __uwr_x0_1.__uwf_Surname;
             uw_unit arg2 = 0;
-           __uwn_$pageC_9(ctx, arg0, arg1, arg2);
+           __uwn_$pageC_1(ctx, arg0, arg1, arg2);
            }));
    }
   
   static uw_unit
-   __uwn_$pageB_10(uw_context ctx, uw_Basis_string __uwr_forename_0, 
-                    uw_unit __uwr_$x_1, uw_unit __uwr___2)
+   __uwn_$pageB_3(uw_context ctx, uw_Basis_string __uwr_forename_0, 
+                   uw_unit __uwr_$x_1, uw_unit __uwr___2)
    {
    return(((uw_write(ctx, "\n<head>\n<title>B</title>\n</head>\n<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -176,7 +176,7 @@
            uw_Basis_string arg0 = __uwr_x1_0;
             uw_unit arg1 = __uwr_x0_1;
             uw_unit arg2 = 0;
-           __uwn_$pageB_10(ctx, arg0, arg1, arg2);
+           __uwn_$pageB_3(ctx, arg0, arg1, arg2);
            }));
    }
   
@@ -193,7 +193,7 @@
              uw_Basis_string arg0 = __uwr_x0_0.__uwf_Forename;
               uw_unit arg1 = 0;
               uw_unit arg2 = 0;
-             __uwn_$pageB_10(ctx, arg0, arg1, arg2);
+             __uwn_$pageB_3(ctx, arg0, arg1, arg2);
              })
              :
             disc == uw_Basis_False ?
@@ -201,7 +201,7 @@
               uw_Basis_string arg0 = __uwr_x0_0.__uwf_Forename;
                uw_Basis_string arg1 = NULL;
                uw_unit arg2 = 0;
-              __uwn_$pageC_9(ctx, arg0, arg1, arg2);
+              __uwn_$pageC_1(ctx, arg0, arg1, arg2);
               })
               :
              ({
@@ -214,7 +214,7 @@
    }
   
   static uw_unit
-   __uwn_pageA_11(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_pageA_6(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "\n<head>\n<title>A</title>\n</head>\n<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -230,7 +230,7 @@
    return(({
            uw_unit arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_pageA_11(ctx, arg0, arg1);
+           __uwn_pageA_6(ctx, arg0, arg1);
            }));
    }
   
@@ -240,7 +240,7 @@
    return(({
            uw_unit arg0 = 0;
             uw_unit arg1 = 0;
-           __uwn_pageA_11(ctx, arg0, arg1);
+           __uwn_pageA_6(ctx, arg0, arg1);
            }));
    }
  

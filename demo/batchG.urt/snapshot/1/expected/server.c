@@ -502,7 +502,7 @@
    }
   
   static uw_unit
-   __uwn_show_25(uw_context ctx, uw_Basis_bool __uwr_withDel_0, 
+   __uwn_show_10(uw_context ctx, uw_Basis_bool __uwr_withDel_0, 
                   uw_Basis_source __uwr_lss_1)
    {
    return(((uw_write(ctx, "<script type=\"text/javascript\">dyn(\"span\", execD({c:\"a\",f:{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:2},x:{c:\"c\",v:"), 0),
@@ -526,9 +526,9 @@
               uw_end_region(ctx), (uw_write(ctx, "}},x:{c:\"c\",v:null}}))</script>"), 0))))));
    }
   
-  static uw_Basis_string __uwn_jsify_21(uw_context, struct __uws_2*);
+  static uw_Basis_string __uwn_jsify_11(uw_context, struct __uws_2*);
    static uw_Basis_string
-    __uwn_jsify_21(uw_context ctx, struct __uws_2* __uwr_x_0)
+    __uwn_jsify_11(uw_context ctx, struct __uws_2* __uwr_x_0)
     {restart:
       
     return(({
@@ -555,7 +555,7 @@
                     uw_Basis_string arg6 = "},_2:";
                      
                    uw_Basis_string arg7 =
-                    __uwn_jsify_21(ctx, __uwr_x_1.__uwf_2);
+                    __uwn_jsify_11(ctx, __uwr_x_1.__uwf_2);
                     uw_Basis_string arg8 = "}";
                      uw_Basis_mstrcat(ctx, arg0, arg1, arg2, arg3, arg4, arg5, 
                                             arg6, arg7, arg8, NULL);
@@ -573,14 +573,14 @@
    
   
   static uw_unit
-   __uwn_wrap_main_20(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_12(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_source __uwr_lss_2 =
            uw_Basis_new_client_source(ctx,
             ({
              uw_Basis_string arg0 = "{c:\"c\",v:";
-              uw_Basis_string arg1 = __uwn_jsify_21(ctx, NULL);
+              uw_Basis_string arg1 = __uwn_jsify_11(ctx, NULL);
                uw_Basis_string arg2 = "}";
                 uw_Basis_mstrcat(ctx, arg0, arg1, arg2, NULL);
              }));
@@ -589,7 +589,7 @@
             uw_Basis_new_client_source(ctx,
              ({
               uw_Basis_string arg0 = "{c:\"c\",v:";
-               uw_Basis_string arg1 = __uwn_jsify_21(ctx, NULL);
+               uw_Basis_string arg1 = __uwn_jsify_11(ctx, NULL);
                 uw_Basis_string arg2 = "}";
                  uw_Basis_mstrcat(ctx, arg0, arg1, arg2, NULL);
               }));
@@ -634,7 +634,7 @@
                                                               uw_Basis_source
                                                                arg1 =
                                                                __uwr_lss_2;
-                                                             __uwn_show_25(ctx,
+                                                             __uwn_show_10(ctx,
                                                              arg0, arg1);
                                                              }),
                                                            uw_end_region(ctx), ((uw_write(ctx, 
@@ -750,7 +750,7 @@
                                                                                arg1
                                                                                =
                                                                                __uwr_batched_3;
-                                                                               __uwn_show_25(ctx,
+                                                                               __uwn_show_10(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -902,7 +902,7 @@
    }
   
   
-  if (!strcmp(request, "/app.E9DA433D1897C2277082921B4632A131FBC0BC3F.js")) {
+  if (!strcmp(request, "/app.670C1C741D7B2FC9417F0FA02C9EF2F594BB05B8.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -918,7 +918,7 @@
    uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
     uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.E9DA433D1897C2277082921B4632A131FBC0BC3F.js\"></script>\n");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.670C1C741D7B2FC9417F0FA02C9EF2F594BB05B8.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 0);
   uw_set_needs_push(ctx, 0);
@@ -926,7 +926,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_20(ctx, arg0, 0);
+    __uwn_wrap_main_12(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }

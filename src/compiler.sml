@@ -1754,12 +1754,16 @@ val sqlcache = {
 
 val toSqlcache = transform sqlcache "sqlcache" o toFilecache
 
+(* Once more, after the last shake and the last pass that adds declarations,
+   so that the C is dense as well. *)
+val toRenumber2 = transform renumber "renumber2" o toSqlcache
+
 val cjrize = {
     func = Cjrize.cjrize,
     print = CjrPrint.p_file CjrEnv.empty
 }
 
-val toCjrize = transform cjrize "cjrize" o toSqlcache
+val toCjrize = transform cjrize "cjrize" o toRenumber2
 
 val prepare = {
     func = Prepare.prepare,

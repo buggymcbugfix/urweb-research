@@ -203,6 +203,7 @@ signature COMPILER = sig
     val toSigcheck : (string, Mono.file) transform
     val toFilecache : (string, Mono.file) transform
     val toSqlcache : (string, Mono.file) transform
+    val toRenumber2 : (string, Mono.file) transform
     val toCjrize : (string, Cjr.file) transform
     val toPrepare : (string, Cjr.file) transform
     val toChecknest : (string, Cjr.file) transform
