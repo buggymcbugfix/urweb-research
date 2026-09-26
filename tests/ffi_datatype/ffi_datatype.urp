@@ -1,0 +1,8 @@
+ffi outc
+include outc.h
+link outc.o
+effectful Outc.send
+allow url /Ffi_datatype/main
+safeGet Ffi_datatype/main
+
+ffi_datatype
