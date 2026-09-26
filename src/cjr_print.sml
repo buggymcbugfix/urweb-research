@@ -222,6 +222,8 @@ fun p_patMatch (env, disc) (p, loc) =
                     NONE => box []
                   | SOME p =>
                     let
+                        (* The union member holding the constructor's argument:
+                         * uw_<Con>, as patConInfo names it for a construction. *)
                         val (x, to) = case pc of
                                           PConVar n =>
                                           let
@@ -229,22 +231,12 @@ fun p_patMatch (env, disc) (p, loc) =
                                           in
                                               ("uw_" ^ ident x, to)
                                           end
-                                        | PConFfi {mod = m, con, arg, ...} =>
-                                          ("uw_" ^ ident m ^ "_" ^ ident con, arg)
+                                        | PConFfi {con, arg, ...} =>
+                                          ("uw_" ^ ident con, arg)
 
                         val t = case to of
                                     NONE => raise Fail "CjrPrint: Constructor mismatch"
                                   | SOME t => t
-
-                        val x = case pc of
-                                    PConVar n =>
-                                    let
-                                        val (x, _, _) = E.lookupConstructor env n
-                                    in
-                                        "uw_" ^ ident x
-                                    end
-                                  | PConFfi {mod = m, con, ...} =>
-                                    "uw_" ^ ident m ^ "_" ^ ident con
 
                         val disc' = case dk of
                                         Enum => raise Fail "CjrPrint: Looking at argument of no-argument constructor"
@@ -345,8 +337,8 @@ fun p_patBind (env, disc) (p, loc) =
                               in
                                   ("uw_" ^ ident x, to)
                               end
-                            | PConFfi {mod = m, con, arg, ...} =>
-                              ("uw_" ^ ident m ^ "_" ^ ident con, arg)
+                            | PConFfi {con, arg, ...} =>
+                              ("uw_" ^ ident con, arg)
 
             val t = case to of
                         NONE => raise Fail "CjrPrint: Constructor mismatch"
