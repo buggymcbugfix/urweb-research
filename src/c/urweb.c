@@ -3761,6 +3761,11 @@ int uw_commit(uw_context ctx) {
           if (ctx->transactionals[i].free)
             ctx->transactionals[i].free(ctx->transactionals[i].data, 1);
 
+        // The database rolled the transaction back, and the transactionals
+        // are freed: a later uw_rollback must touch neither.
+        ctx->used_transactionals = 0;
+        ctx->transaction_started = 0;
+
         return 1;
       }
 

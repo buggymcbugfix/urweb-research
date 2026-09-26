@@ -1,5 +1,12 @@
 <!DOCTYPE html><html><head></head><body>up</body></html>
 --- log
+Error triggers bounded retry in periodic: flaky
+Error triggers bounded retry in periodic: flaky
+Error triggers bounded retry in periodic: flaky
+Error triggers bounded retry in periodic: flaky
+Error triggers bounded retry in periodic: flaky
+Fatal error in periodic task (out of retries): flaky
+Error triggers bounded retry in periodic: flaky
 still running
 Accepted connection.
 Handling connection with thread #0.

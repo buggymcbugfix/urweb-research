@@ -1,7 +1,9 @@
 <!DOCTYPE html><html><head></head><body>up</body></html>
 --- log
-Fatal error: boom without a transaction
+Fatal error in periodic task: boom without a transaction
 Rollback error: cannot rollback - no transaction is active<br />Error running SQL ROLLBACK
+Periodic task continues after the failed rollback
+still running
 Accepted connection.
 Handling connection with thread #0.
 Serving URI /Periodic/main....
