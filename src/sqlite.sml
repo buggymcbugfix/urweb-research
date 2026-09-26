@@ -389,12 +389,34 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              string "uw_conn *conn = uw_get_db(ctx);",
              newline,
+             string "int r;",
              newline,
-             string "if (sqlite3_exec(conn->conn, \"BEGIN\", NULL, NULL, NULL) == SQLITE_OK)",
+             newline,
+             string "r = sqlite3_exec(conn->conn, could_write ? \"BEGIN IMMEDIATE\" : \"BEGIN\", NULL, NULL, NULL);",
+             newline,
+             newline,
+             string "if (r == SQLITE_OK)",
              newline,
              box [string "return 0;",
                   newline],
-             string "else {",
+             (* A busy BEGIN must not be reported through the return value.
+              * uw_ensure_transaction reads any nonzero result as "the database
+              * server died", closes the connection, reopens it and retries
+              * once, then gives up with FATAL.  That is the right guess for a
+              * network backend, but for SQLite under write contention it would
+              * throw away a perfectly good handle and turn ordinary contention
+              * into a hard 500.  Raising UNLIMITED_RETRY instead lands in the
+              * same request-level retry loop that a busy step already uses.
+              *
+              * This is safe to do here: we have not set transaction_started,
+              * and uw_rollback only issues a ROLLBACK when that flag is set,
+              * so unwinding cannot leave a stray ROLLBACK against a connection
+              * with no open transaction. *)
+             string "else if (r == SQLITE_BUSY) {",
+             newline,
+             box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+                  newline],
+             string "} else {",
              newline,
              box [string "fprintf(stderr, \"Begin error: %s<br />\", sqlite3_errmsg(conn->conn));",
                   newline,
