@@ -514,19 +514,39 @@ static char *after_indent(char *line, const char *what) {
     return has_prefix(line, what) ? line + strlen(what) : NULL;
 }
 
-/* #include "…/include/urweb/x.h" keeps only the part from include/ on. */
+/* The tree the compiler ran in, resolved, with a trailing slash; for the
+ * headers a project's own `include` directive names, which the compiler
+ * writes by absolute path. */
+static const char *tree_prefix(void) {
+    static char prefix[PATHLEN] = "";
+    if (!*prefix) {
+        if (!realpath(".", prefix)) {
+            strcpy(prefix, ".");
+        }
+        strcat(prefix, "/");
+    }
+    return prefix;
+}
+
+/* #include "…/include/urweb/x.h" keeps only the part from include/ on; an
+ * include of a header under the tree keeps its path from the tree's root. */
 static void fix_include_quoted(char *line) {
     char *q = after_indent(line, "#include \""), *end, *hit = NULL, *s;
+    const char *tree;
     if (!q || !(end = strchr(q, '"'))) {
         return;
     }
     for (s = q; (s = strstr(s, "/include/urweb/")) && s < end; s++) {
         hit = s;
     }
-    if (!hit) {
+    if (hit) {
+        memmove(q, hit + 1, strlen(hit + 1) + 1);
         return;
     }
-    memmove(q, hit + 1, strlen(hit + 1) + 1);
+    tree = tree_prefix();
+    if (has_prefix(q, tree) && q + strlen(tree) < end) {
+        memmove(q, q + strlen(tree), strlen(q + strlen(tree)) + 1);
+    }
 }
 
 /* #include </…/x.h> keeps only the file's name. */
