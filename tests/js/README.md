@@ -15,9 +15,12 @@ the script, from one, in the order the compiler emits them:
 
 Both matter for reading a diff.  The numbers used to be the compiler's
 global name indices, so anything added to the standard library shifted
-every one of them and the whole snapshot moved; the names in the C are worse
-still, since name_js invents them from the same counter.  A span survives
-both, and says where to look.
+every one of them and the whole snapshot moved.  The other numbers in a
+script, constructor tags and decoder names, and all the names in the C
+came from the same counter; since the `renumber` pass they are numbered
+per program, from one, in declaration order, so a program's output only
+changes when the program does.  A span survives everything, and says where
+to look.
 
 The `recursion` case has a function that calls itself, so the numbering is
 exercised where it is easiest to get wrong: a function needs its number
@@ -27,8 +30,6 @@ started needing a script that did not before.
 
 The `datatype` case constructs, matches and decodes a datatype on the
 client.  What the script carries for a constructor is its number
-(`{c:"1",n:1936,v:...}`), and the decoder for the RPC's answer is named
-from the same counter (`_n1946`): these are the compiler's global name
-indices still, and move with every addition to the standard library, as
-the names in the C do.  This case also tracks `server.c`, so that the same
-program shows both.
+(`{c:"1",n:3,v:...}`), and the decoder for the RPC's answer is named from
+the same counter (`_n11`); the case also tracks `server.c`, so that the
+same program shows the numbering in both outputs.

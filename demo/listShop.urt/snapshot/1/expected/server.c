@@ -39,8 +39,8 @@
      };
   
   
-  static uw_unit __uwn_toXml_1776(uw_context, struct __uws_1*);
-   static uw_unit __uwn_toXml_1776(uw_context ctx, struct __uws_1* __uwr_ls_0)
+  static uw_unit __uwn_toXml_22(uw_context, struct __uws_1*);
+   static uw_unit __uwn_toXml_22(uw_context ctx, struct __uws_1* __uwr_ls_0)
     {restart:
       
     return(({
@@ -75,11 +75,11 @@
     }
    
   
-  static struct __uws_1* __uwn_$revPRIME_unpoly_1764(uw_context,
+  static struct __uws_1* __uwn_$revPRIME_unpoly_5(uw_context,
    struct __uws_1*, struct __uws_1*);
    static struct __uws_1*
-    __uwn_$revPRIME_unpoly_1764(uw_context ctx, struct __uws_1* __uwr_ls_0, 
-                                 struct __uws_1* __uwr_acc_1)
+    __uwn_$revPRIME_unpoly_5(uw_context ctx, struct __uws_1* __uwr_ls_0, 
+                              struct __uws_1* __uwr_acc_1)
     {restart:
       
     return(({
@@ -121,11 +121,11 @@
     }
    
   
-  static uw_Basis_int __uwn_$lengthPRIME_unpoly_1765(uw_context,
+  static uw_Basis_int __uwn_$lengthPRIME_unpoly_6(uw_context,
    struct __uws_1*, uw_Basis_int);
    static uw_Basis_int
-    __uwn_$lengthPRIME_unpoly_1765(uw_context ctx, struct __uws_1* __uwr_ls_0, 
-                                    uw_Basis_int __uwr_acc_1)
+    __uwn_$lengthPRIME_unpoly_6(uw_context ctx, struct __uws_1* __uwr_ls_0, 
+                                 uw_Basis_int __uwr_acc_1)
     {restart:
       
     return(({
@@ -159,9 +159,9 @@
     }
    
   
-  static uw_unit __uwn_urlify_list_s_1777(uw_context, struct __uws_1*);
+  static uw_unit __uwn_urlify_list_s_23(uw_context, struct __uws_1*);
    static uw_unit
-    __uwn_urlify_list_s_1777(uw_context ctx, struct __uws_1* __uwr_x_0)
+    __uwn_urlify_list_s_23(uw_context ctx, struct __uws_1* __uwr_x_0)
     {restart:
       
     return(({
@@ -198,8 +198,8 @@
    
   
   static uw_unit
-   __uwn_console_1778(uw_context ctx, struct __uws_1* __uwr_ls_0, 
-                       uw_unit __uwr___1)
+   __uwn_console_24(uw_context ctx, struct __uws_1* __uwr_ls_0, 
+                     uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -207,12 +207,12 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">\nCurrent list: "), 0),
-                                                      (uw_begin_region(ctx), __uwn_toXml_1776(ctx,
+                                                      (uw_begin_region(ctx), __uwn_toXml_22(ctx,
                                                                               __uwr_ls_0),
                                                        uw_end_region(ctx), ((uw_write(ctx, 
                                                                              "<br />\nReversed list: "), 0),
                                                                             (uw_begin_region(ctx),
-                                                                              __uwn_toXml_1776(ctx,
+                                                                              __uwn_toXml_22(ctx,
                                                                                ({
                                                                                struct
                                                                                __uws_1*
@@ -225,7 +225,7 @@
                                                                                arg1
                                                                                =
                                                                                NULL;
-                                                                               __uwn_$revPRIME_unpoly_1764(ctx,
+                                                                               __uwn_$revPRIME_unpoly_5(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -247,7 +247,7 @@
                                                                                arg1
                                                                                =
                                                                                0LL;
-                                                                               __uwn_$lengthPRIME_unpoly_1765(ctx,
+                                                                               __uwn_$lengthPRIME_unpoly_6(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -258,7 +258,7 @@
                                                                                ((uw_write(ctx, 
                                                                                "<br />\n<br />\n<form method=\"post\" action=\"/ListShop/IL/cons/"), 0),
                                                                                (uw_begin_region(ctx),
-                                                                               __uwn_urlify_list_s_1777(ctx,
+                                                                               __uwn_urlify_list_s_23(ctx,
                                                                                __uwr_ls_0),
                                                                                uw_end_region(ctx),
                                                                                (uw_write(ctx, 
@@ -266,8 +266,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_$cons_1760(uw_context ctx, struct __uws_1* __uwr_x1_0, 
-                          struct __uws_2 __uwr_x0_1, uw_unit __uwr___2)
+   __uwn_wrap_$cons_9(uw_context ctx, struct __uws_1* __uwr_x1_0, 
+                       struct __uws_2 __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            uw_Basis_int* disc =
@@ -294,7 +294,7 @@
                    tmp;
                    });
                   uw_unit arg1 = 0;
-                 __uwn_console_1778(ctx, arg0, arg1);
+                 __uwn_console_24(ctx, arg0, arg1);
                  });
               })
               :
@@ -307,8 +307,8 @@
            }));
    }
   
-  static uw_unit __uwn_toXml_1779(uw_context, struct __uws_3*);
-   static uw_unit __uwn_toXml_1779(uw_context ctx, struct __uws_3* __uwr_ls_0)
+  static uw_unit __uwn_toXml_25(uw_context, struct __uws_3*);
+   static uw_unit __uwn_toXml_25(uw_context ctx, struct __uws_3* __uwr_ls_0)
     {restart:
       
     return(({
@@ -344,11 +344,11 @@
     }
    
   
-  static struct __uws_3* __uwn_$revPRIME_unpoly_1766(uw_context,
+  static struct __uws_3* __uwn_$revPRIME_unpoly_14(uw_context,
    struct __uws_3*, struct __uws_3*);
    static struct __uws_3*
-    __uwn_$revPRIME_unpoly_1766(uw_context ctx, struct __uws_3* __uwr_ls_0, 
-                                 struct __uws_3* __uwr_acc_1)
+    __uwn_$revPRIME_unpoly_14(uw_context ctx, struct __uws_3* __uwr_ls_0, 
+                               struct __uws_3* __uwr_acc_1)
     {restart:
       
     return(({
@@ -390,11 +390,11 @@
     }
    
   
-  static uw_Basis_int __uwn_$lengthPRIME_unpoly_1767(uw_context,
+  static uw_Basis_int __uwn_$lengthPRIME_unpoly_15(uw_context,
    struct __uws_3*, uw_Basis_int);
    static uw_Basis_int
-    __uwn_$lengthPRIME_unpoly_1767(uw_context ctx, struct __uws_3* __uwr_ls_0, 
-                                    uw_Basis_int __uwr_acc_1)
+    __uwn_$lengthPRIME_unpoly_15(uw_context ctx, struct __uws_3* __uwr_ls_0, 
+                                  uw_Basis_int __uwr_acc_1)
     {restart:
       
     return(({
@@ -428,9 +428,9 @@
     }
    
   
-  static uw_unit __uwn_urlify_list_s_1780(uw_context, struct __uws_3*);
+  static uw_unit __uwn_urlify_list_s_26(uw_context, struct __uws_3*);
    static uw_unit
-    __uwn_urlify_list_s_1780(uw_context ctx, struct __uws_3* __uwr_x_0)
+    __uwn_urlify_list_s_26(uw_context ctx, struct __uws_3* __uwr_x_0)
     {restart:
       
     return(({
@@ -467,8 +467,8 @@
    
   
   static uw_unit
-   __uwn_console_1781(uw_context ctx, struct __uws_3* __uwr_ls_0, 
-                       uw_unit __uwr___1)
+   __uwn_console_27(uw_context ctx, struct __uws_3* __uwr_ls_0, 
+                     uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -476,12 +476,12 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">\nCurrent list: "), 0),
-                                                      (uw_begin_region(ctx), __uwn_toXml_1779(ctx,
+                                                      (uw_begin_region(ctx), __uwn_toXml_25(ctx,
                                                                               __uwr_ls_0),
                                                        uw_end_region(ctx), ((uw_write(ctx, 
                                                                              "<br />\nReversed list: "), 0),
                                                                             (uw_begin_region(ctx),
-                                                                              __uwn_toXml_1779(ctx,
+                                                                              __uwn_toXml_25(ctx,
                                                                                ({
                                                                                struct
                                                                                __uws_3*
@@ -494,7 +494,7 @@
                                                                                arg1
                                                                                =
                                                                                NULL;
-                                                                               __uwn_$revPRIME_unpoly_1766(ctx,
+                                                                               __uwn_$revPRIME_unpoly_14(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -516,7 +516,7 @@
                                                                                arg1
                                                                                =
                                                                                0LL;
-                                                                               __uwn_$lengthPRIME_unpoly_1767(ctx,
+                                                                               __uwn_$lengthPRIME_unpoly_15(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -527,7 +527,7 @@
                                                                                ((uw_write(ctx, 
                                                                                "<br />\n<br />\n<form method=\"post\" action=\"/ListShop/SL/cons/"), 0),
                                                                                (uw_begin_region(ctx),
-                                                                               __uwn_urlify_list_s_1780(ctx,
+                                                                               __uwn_urlify_list_s_26(ctx,
                                                                                __uwr_ls_0),
                                                                                uw_end_region(ctx),
                                                                                (uw_write(ctx, 
@@ -535,8 +535,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_$cons_1761(uw_context ctx, struct __uws_3* __uwr_x1_0, 
-                          struct __uws_2 __uwr_x0_1, uw_unit __uwr___2)
+   __uwn_wrap_$cons_18(uw_context ctx, struct __uws_3* __uwr_x1_0, 
+                        struct __uws_2 __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            struct __uws_3* arg0 =
@@ -547,32 +547,32 @@
              tmp;
              });
             uw_unit arg1 = 0;
-           __uwn_console_1781(ctx, arg0, arg1);
+           __uwn_console_27(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1763(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_19(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            struct __uws_3* arg0 = NULL;
             uw_unit arg1 = 0;
-           __uwn_console_1781(ctx, arg0, arg1);
+           __uwn_console_27(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1762(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_20(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            struct __uws_1* arg0 = NULL;
             uw_unit arg1 = 0;
-           __uwn_console_1778(ctx, arg0, arg1);
+           __uwn_console_24(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1759(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_21(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -620,10 +620,10 @@
   return uw_Basis_makeSigString(ctx, r);
   }
  
- static struct __uws_3 *unurlify_1771(uw_context, char **);
-  static struct __uws_1 *unurlify_1768(uw_context, char **);
+ static struct __uws_3 *unurlify_10(uw_context, char **);
+  static struct __uws_1 *unurlify_1(uw_context, char **);
    static struct __uws_3
-    *unurlify_1771(uw_context ctx, char **request) {
+    *unurlify_10(uw_context ctx, char **request) {
     return ((*request)[0] == '/' ? ++*request : *request,
      ((!strncmp(*request, "Nil", 3) && ((*request)[3] == 0 || (*request)[3] == '/')) ? (*request
      +=
@@ -635,7 +635,7 @@
       *tmp =
       ({
        uw_Basis_string uwr_1 = uw_Basis_unurlifyString(ctx, request);
-        struct __uws_3* uwr_2 = unurlify_1771(ctx, request);
+        struct __uws_3* uwr_2 = unurlify_10(ctx, request);
          struct __uws_3 tmp = { uwr_1, uwr_2 };
        tmp;
        });
@@ -645,7 +645,7 @@
      }
     
     static struct __uws_1
-     *unurlify_1768(uw_context ctx, char **request) {
+     *unurlify_1(uw_context ctx, char **request) {
      return ((*request)[0] == '/' ? ++*request : *request,
       ((!strncmp(*request, "Nil", 3) && ((*request)[3] == 0 || (*request)[3] == '/')) ? (*request
       +=
@@ -657,7 +657,7 @@
        *tmp =
        ({
         uw_Basis_int uwr_1 = uw_Basis_unurlifyInt(ctx, request);
-         struct __uws_1* uwr_2 = unurlify_1768(ctx, request);
+         struct __uws_1* uwr_2 = unurlify_1(ctx, request);
           struct __uws_1 tmp = { uwr_1, uwr_2 };
         tmp;
         });
@@ -690,7 +690,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1759(ctx, arg0, 0);
+    __uwn_wrap_main_21(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -710,7 +710,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     __uwn_wrap_main_1762(ctx, arg0, 0);
+     __uwn_wrap_main_20(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -730,7 +730,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     __uwn_wrap_main_1763(ctx, arg0, 0);
+     __uwn_wrap_main_19(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -749,7 +749,7 @@
    uw_set_needs_sig(ctx, 0);
    uw_login(ctx);
    {
-    struct __uws_3* arg0 = unurlify_1771(ctx, &request);
+    struct __uws_3* arg0 = unurlify_10(ctx, &request);
      uw_Basis_string uw_input_X;
       
       request = uw_get_input(ctx, 0);
@@ -759,7 +759,7 @@
        struct __uws_2 uw_inputs = {
         uw_input_X,
          };
-      __uwn_wrap_$cons_1761(ctx, arg0, uw_inputs, 0);
+      __uwn_wrap_$cons_18(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -778,7 +778,7 @@
    uw_set_needs_sig(ctx, 0);
    uw_login(ctx);
    {
-    struct __uws_1* arg0 = unurlify_1768(ctx, &request);
+    struct __uws_1* arg0 = unurlify_1(ctx, &request);
      uw_Basis_string uw_input_X;
       
       request = uw_get_input(ctx, 0);
@@ -788,7 +788,7 @@
        struct __uws_2 uw_inputs = {
         uw_input_X,
          };
-      __uwn_wrap_$cons_1760(ctx, arg0, uw_inputs, 0);
+      __uwn_wrap_$cons_9(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }

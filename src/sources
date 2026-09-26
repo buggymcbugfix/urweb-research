@@ -267,6 +267,9 @@ $(SRC)/scriptcheck.sml
 $(SRC)/dbmodecheck.sig
 $(SRC)/dbmodecheck.sml
 
+$(SRC)/renumber.sig
+$(SRC)/renumber.sml
+
 $(SRC)/prepare.sig
 $(SRC)/prepare.sml
 

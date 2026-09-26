@@ -292,13 +292,12 @@
     uw_Basis_string __uwf_Ready;
      };
   
-  static uw_unit __uwn_initializer_1772(uw_context ctx, uw_unit __uwr___0)
+  static uw_unit __uwn_initializer_1(uw_context ctx, uw_unit __uwr___0)
    {
    return(0);
    }
   
-  static uw_unit
-   __uwn_expunger_1771(uw_context ctx, uw_Basis_client __uwr_cli_0)
+  static uw_unit __uwn_expunger_2(uw_context ctx, uw_Basis_client __uwr_cli_0)
    {
    return(0);
    }
@@ -309,8 +308,8 @@
    
   
   static uw_unit
-   __uwn_wrap_confirm_1767(uw_context ctx, uw_Basis_int __uwr_x0_0, 
-                            uw_unit __uwr___1)
+   __uwn_wrap_confirm_3(uw_context ctx, uw_Basis_int __uwr_x0_0, 
+                         uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -333,8 +332,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_upd_1766(uw_context ctx, uw_Basis_int __uwr_x0_0, 
-                        uw_unit __uwr___1)
+   __uwn_wrap_upd_4(uw_context ctx, uw_Basis_int __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            struct __uws_2* disc =
@@ -537,7 +535,7 @@
    }
   
   static uw_unit
-   __uwn_list_1773(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_list_10(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "\n<table border=\"1\">\n<tr>\n<th>ID</th>\n<th>Name</th>\n<th>Ready</th>\n</tr>\n"), 0),
            (uw_begin_region(ctx), (uw_begin_region(ctx), ({
@@ -681,8 +679,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_$save_1769(uw_context ctx, uw_Basis_int __uwr_x1_0, 
-                          struct __uws_5 __uwr_x0_1, uw_unit __uwr___2)
+   __uwn_wrap_$save_6(uw_context ctx, uw_Basis_int __uwr_x1_0, 
+                       struct __uws_5 __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            uw_unit __uwr___3 =
@@ -784,7 +782,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                               __uwn_list_1773(ctx,
+                                                                               __uwn_list_10(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -796,8 +794,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_$delete_1770(uw_context ctx, uw_Basis_int __uwr_x1_0, 
-                            uw_unit __uwr_x0_1, uw_unit __uwr___2)
+   __uwn_wrap_$delete_7(uw_context ctx, uw_Basis_int __uwr_x1_0, 
+                         uw_unit __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            uw_unit __uwr___3 =
@@ -863,7 +861,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                               __uwn_list_1773(ctx,
+                                                                               __uwn_list_10(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -875,8 +873,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_create_1768(uw_context ctx, struct __uws_5 __uwr_x0_0, 
-                           uw_unit __uwr___1)
+   __uwn_wrap_create_8(uw_context ctx, struct __uws_5 __uwr_x0_0, 
+                        uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int __uwr_id_2 =
@@ -1017,7 +1015,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                               __uwn_list_1773(ctx,
+                                                                               __uwn_list_10(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -1031,7 +1029,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1765(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_9(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<head>\n<title>Are you ready\?</title>\n</head><body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -1049,7 +1047,7 @@
                                                                                arg1
                                                                                =
                                                                                0;
-                                                                              __uwn_list_1773(ctx,
+                                                                              __uwn_list_10(ctx,
                                                                               arg0
                                                                                ,
                                                                                
@@ -1128,7 +1126,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1765(ctx, arg0, 0);
+    __uwn_wrap_main_9(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -1148,7 +1146,7 @@
    uw_login(ctx);
    {
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
-     __uwn_wrap_upd_1766(ctx, arg0, 0);
+     __uwn_wrap_upd_4(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -1168,7 +1166,7 @@
    uw_login(ctx);
    {
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
-     __uwn_wrap_confirm_1767(ctx, arg0, 0);
+     __uwn_wrap_confirm_3(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -1202,7 +1200,7 @@
         uw_input_Name,
          uw_input_Ready,
           };
-     __uwn_wrap_create_1768(ctx, uw_inputs, 0);
+     __uwn_wrap_create_8(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -1237,7 +1235,7 @@
          uw_input_Name,
           uw_input_Ready,
            };
-      __uwn_wrap_$save_1769(ctx, arg0, uw_inputs, 0);
+      __uwn_wrap_$save_6(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -1259,7 +1257,7 @@
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
      
       uw_unit uw_inputs;
-      __uwn_wrap_$delete_1770(ctx, arg0, uw_inputs, 0);
+      __uwn_wrap_$delete_7(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -1271,12 +1269,12 @@
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {
-  __uwn_expunger_1771(ctx, cli);
+  __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
-  __uwn_initializer_1772(ctx, 0);
+  __uwn_initializer_1(ctx, 0);
    }
  uw_app uw_application = {2,
                             60,

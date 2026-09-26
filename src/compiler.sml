@@ -1671,12 +1671,20 @@ val dbmodecheck = {
 
 val toDbmodecheck = transform dbmodecheck "dbmodecheck" o toScriptcheck
 
+(* Before the client script is generated, so that its names are dense too. *)
+val renumber = {
+    func = Renumber.renumber,
+    print = MonoPrint.p_file MonoEnv.empty
+}
+
+val toRenumber = transform renumber "renumber" o toDbmodecheck
+
 val jscomp = {
     func = JsComp.process,
     print = MonoPrint.p_file MonoEnv.empty
 }
 
-val toJscomp = transform jscomp "jscomp" o toDbmodecheck
+val toJscomp = transform jscomp "jscomp" o toRenumber
 
 val endpoints = {
     func = fn file =>

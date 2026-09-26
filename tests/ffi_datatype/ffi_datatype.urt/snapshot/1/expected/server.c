@@ -26,7 +26,7 @@
   
   
   static uw_Basis_string
-   __uwn_urShow_1687(uw_context ctx, uw_Outc_outcome __uwr_o_0)
+   __uwn_urShow_1(uw_context ctx, uw_Outc_outcome __uwr_o_0)
    {
    return(({
            uw_Outc_outcome disc =
@@ -62,7 +62,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1689(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_2(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Outc_outcome __uwr_a_2 =
@@ -82,7 +82,7 @@
                                     uw_end_region(ctx), ((uw_write(ctx, ">\n<p>"), 0),
                                                          (uw_begin_region(ctx), 
                                                           uw_Basis_htmlifyString_w(ctx,
-                                                           __uwn_urShow_1687(ctx,
+                                                           __uwn_urShow_1(ctx,
                                                             __uwr_a_2)),
                                                           uw_end_region(ctx), ((uw_write(ctx, 
                                                                                " "), 0),
@@ -96,7 +96,7 @@
                                                                                "</p>\n<p>"), 0),
                                                                                (uw_begin_region(ctx),
                                                                                uw_Basis_htmlifyString_w(ctx,
-                                                                               __uwn_urShow_1687(ctx,
+                                                                               __uwn_urShow_1(ctx,
                                                                                __uwr_b_3)
                                                                                ),
                                                                                uw_end_region(ctx),
@@ -112,7 +112,7 @@
                                                                                "</p>\n<p>"), 0),
                                                                                (uw_begin_region(ctx),
                                                                                uw_Basis_htmlifyString_w(ctx,
-                                                                               __uwn_urShow_1687(ctx,
+                                                                               __uwn_urShow_1(ctx,
                                                                                __uwr_c_4)
                                                                                ),
                                                                                uw_end_region(ctx),
@@ -128,7 +128,7 @@
                                                                                "</p>\n<p>"), 0),
                                                                                (uw_begin_region(ctx),
                                                                                uw_Basis_htmlifyString_w(ctx,
-                                                                               __uwn_urShow_1687(ctx,
+                                                                               __uwn_urShow_1(ctx,
                                                                                ({
                                                                                struct
                                                                                uw_Outc_outcome
@@ -236,7 +236,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1689(ctx, arg0, 0);
+    __uwn_wrap_main_2(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }

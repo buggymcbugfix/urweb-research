@@ -25,7 +25,7 @@
   
   
   static uw_unit
-   __uwn_counter_1683(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr___1)
+   __uwn_counter_4(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -59,23 +59,23 @@
    }
   
   static uw_unit
-   __uwn_wrap_counter_1682(uw_context ctx, uw_Basis_int __uwr_x0_0, 
-                            uw_unit __uwr___1)
+   __uwn_wrap_counter_2(uw_context ctx, uw_Basis_int __uwr_x0_0, 
+                         uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_counter_1683(ctx, arg0, arg1);
+           __uwn_counter_4(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1681(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_3(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int arg0 = 0LL;
             uw_unit arg1 = 0;
-           __uwn_counter_1683(ctx, arg0, arg1);
+           __uwn_counter_4(ctx, arg0, arg1);
            }));
    }
  
@@ -141,7 +141,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1681(ctx, arg0, 0);
+    __uwn_wrap_main_3(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -161,7 +161,7 @@
    uw_login(ctx);
    {
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
-     __uwn_wrap_counter_1682(ctx, arg0, 0);
+     __uwn_wrap_counter_2(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }

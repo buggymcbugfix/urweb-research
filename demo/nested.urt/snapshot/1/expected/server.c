@@ -34,8 +34,8 @@
      };
   
   static uw_unit
-   __uwn_$pageC_1691(uw_context ctx, uw_Basis_string __uwr_forename_0, 
-                      uw_Basis_string __uwr_surname_1, uw_unit __uwr___2)
+   __uwn_$pageC_9(uw_context ctx, uw_Basis_string __uwr_forename_0, 
+                   uw_Basis_string __uwr_surname_1, uw_unit __uwr___2)
    {
    return(((uw_write(ctx, "\n<head>\n<title>C</title>\n</head>\n<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -140,20 +140,20 @@
    }
   
   static uw_unit
-   __uwn_wrap_$pageCPRIME_1688(uw_context ctx, uw_Basis_string __uwr_x1_0, 
-                                struct __uws_1 __uwr_x0_1, uw_unit __uwr___2)
+   __uwn_wrap_$pageCPRIME_2(uw_context ctx, uw_Basis_string __uwr_x1_0, 
+                             struct __uws_1 __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            uw_Basis_string arg0 = __uwr_x1_0;
             uw_Basis_string arg1 = __uwr_x0_1.__uwf_Surname;
             uw_unit arg2 = 0;
-           __uwn_$pageC_1691(ctx, arg0, arg1, arg2);
+           __uwn_$pageC_9(ctx, arg0, arg1, arg2);
            }));
    }
   
   static uw_unit
-   __uwn_$pageB_1692(uw_context ctx, uw_Basis_string __uwr_forename_0, 
-                      uw_unit __uwr_$x_1, uw_unit __uwr___2)
+   __uwn_$pageB_10(uw_context ctx, uw_Basis_string __uwr_forename_0, 
+                    uw_unit __uwr_$x_1, uw_unit __uwr___2)
    {
    return(((uw_write(ctx, "\n<head>\n<title>B</title>\n</head>\n<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -169,20 +169,20 @@
    }
   
   static uw_unit
-   __uwn_wrap_$pageB_1690(uw_context ctx, uw_Basis_string __uwr_x1_0, 
-                           uw_unit __uwr_x0_1, uw_unit __uwr___2)
+   __uwn_wrap_$pageB_4(uw_context ctx, uw_Basis_string __uwr_x1_0, 
+                        uw_unit __uwr_x0_1, uw_unit __uwr___2)
    {
    return(({
            uw_Basis_string arg0 = __uwr_x1_0;
             uw_unit arg1 = __uwr_x0_1;
             uw_unit arg2 = 0;
-           __uwn_$pageB_1692(ctx, arg0, arg1, arg2);
+           __uwn_$pageB_10(ctx, arg0, arg1, arg2);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_fromA_1687(uw_context ctx, struct __uws_2 __uwr_x0_0, 
-                          uw_unit __uwr___1)
+   __uwn_wrap_fromA_5(uw_context ctx, struct __uws_2 __uwr_x0_0, 
+                       uw_unit __uwr___1)
    {
    return(({
            uw_Basis_bool disc =
@@ -193,7 +193,7 @@
              uw_Basis_string arg0 = __uwr_x0_0.__uwf_Forename;
               uw_unit arg1 = 0;
               uw_unit arg2 = 0;
-             __uwn_$pageB_1692(ctx, arg0, arg1, arg2);
+             __uwn_$pageB_10(ctx, arg0, arg1, arg2);
              })
              :
             disc == uw_Basis_False ?
@@ -201,7 +201,7 @@
               uw_Basis_string arg0 = __uwr_x0_0.__uwf_Forename;
                uw_Basis_string arg1 = NULL;
                uw_unit arg2 = 0;
-              __uwn_$pageC_1691(ctx, arg0, arg1, arg2);
+              __uwn_$pageC_9(ctx, arg0, arg1, arg2);
               })
               :
              ({
@@ -214,7 +214,7 @@
    }
   
   static uw_unit
-   __uwn_pageA_1693(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_pageA_11(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "\n<head>\n<title>A</title>\n</head>\n<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -225,22 +225,22 @@
    }
   
   static uw_unit
-   __uwn_wrap_pageA_1689(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_pageA_7(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_pageA_1693(ctx, arg0, arg1);
+           __uwn_pageA_11(ctx, arg0, arg1);
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1686(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_8(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit arg0 = 0;
             uw_unit arg1 = 0;
-           __uwn_pageA_1693(ctx, arg0, arg1);
+           __uwn_pageA_11(ctx, arg0, arg1);
            }));
    }
  
@@ -316,7 +316,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1686(ctx, arg0, 0);
+    __uwn_wrap_main_8(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -350,7 +350,7 @@
         uw_input_EnterSurname,
          uw_input_Forename,
           };
-     __uwn_wrap_fromA_1687(ctx, uw_inputs, 0);
+     __uwn_wrap_fromA_5(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -379,7 +379,7 @@
        struct __uws_1 uw_inputs = {
         uw_input_Surname,
          };
-      __uwn_wrap_$pageCPRIME_1688(ctx, arg0, uw_inputs, 0);
+      __uwn_wrap_$pageCPRIME_2(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -399,7 +399,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     __uwn_wrap_pageA_1689(ctx, arg0, 0);
+     __uwn_wrap_pageA_7(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -420,7 +420,7 @@
    {
     uw_Basis_string arg0 = uw_Basis_unurlifyString(ctx, &request);
      uw_unit arg1 = uw_Basis_unurlifyUnit(ctx, &request);
-      __uwn_wrap_$pageB_1690(ctx, arg0, arg1, 0);
+      __uwn_wrap_$pageB_4(ctx, arg0, arg1, 0);
     uw_write(ctx, "</html>");
      return;
     }

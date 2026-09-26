@@ -40,8 +40,8 @@
   /* cookie Cookie/c */
   
   static uw_unit
-   __uwn_wrap_setExp_1690(uw_context ctx, struct __uws_1 __uwr_x0_0, 
-                           uw_unit __uwr___1)
+   __uwn_wrap_setExp_1(uw_context ctx, struct __uws_1 __uwr_x0_0, 
+                        uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -91,8 +91,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_set_1689(uw_context ctx, struct __uws_1 __uwr_x0_0, 
-                        uw_unit __uwr___1)
+   __uwn_wrap_set_2(uw_context ctx, struct __uws_1 __uwr_x0_0, 
+                     uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -133,7 +133,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_delete_1688(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_delete_3(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -148,7 +148,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1687(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_4(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -335,7 +335,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1687(ctx, arg0, 0);
+    __uwn_wrap_main_4(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -356,7 +356,7 @@
    {
     
      uw_unit uw_inputs;
-     __uwn_wrap_delete_1688(ctx, uw_inputs, 0);
+     __uwn_wrap_delete_3(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -396,7 +396,7 @@
           uw_input_B,
            uw_input_C,
             };
-     __uwn_wrap_set_1689(ctx, uw_inputs, 0);
+     __uwn_wrap_set_2(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -436,7 +436,7 @@
           uw_input_B,
            uw_input_C,
             };
-     __uwn_wrap_setExp_1690(ctx, uw_inputs, 0);
+     __uwn_wrap_setExp_1(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
