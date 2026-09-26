@@ -1,0 +1,6 @@
+<!DOCTYPE html><html><head></head><body>up</body></html>
+--- log
+Fatal error: periodic.ur:20:22-21:3: boom in the body
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Periodic/main....

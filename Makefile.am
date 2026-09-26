@@ -15,7 +15,7 @@ all-local: smlnj mlton
 
 SUBDIRS = src/c
 
-.PHONY: smlnj mlton mlton-tc test check-local urt check-snapshot update-snapshot check-urt
+.PHONY: smlnj mlton mlton-tc test check-local urt check-snapshot update-snapshot check-urt check-run update-run
 
 smlnj: src/urweb.cm src/version.sml xml/entities.sml
 mlton: bin/urweb
@@ -171,7 +171,15 @@ update-snapshot: urt
 check-urt: urt
 	$(MAKE) -C urt check CC="$(CC)"
 
-check-local: bin/urweb
+# Runtime tests (see tests/run/run.sh): applications compiled, started,
+# driven, and their logs compared with golden transcripts.
+check-run: bin/urweb
+	@tests/run/run.sh
+
+update-run: bin/urweb
+	@tests/run/run.sh -u
+
+check-local: bin/urweb check-run
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \
