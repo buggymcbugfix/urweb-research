@@ -1,0 +1,10 @@
+mimeTypes mime.types
+file /hello.txt hello.txt
+file /img/dot.png dot.png
+file /data data.bin
+allow url /Served_file/main
+safeGet Served_file/main
+minHeap 65536
+
+$/option
+served_file
