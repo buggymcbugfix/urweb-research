@@ -1,0 +1,6 @@
+database dbname=test
+sql rand.sql
+allow url /Rand/main
+safeGet Rand/main
+
+rand

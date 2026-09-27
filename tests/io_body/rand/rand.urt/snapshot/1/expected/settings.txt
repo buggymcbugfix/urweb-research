@@ -1,0 +1,31 @@
+Prefix: /
+Database: dbname=test
+Exe: tests/io_body/rand/rand.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Linker: (none)
+JsModule: (none)
+Url allow #*
+Url allow /Rand/main
+Source tests/io_body/rand/rand
+Dbms: (none)
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Rand/main
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types
