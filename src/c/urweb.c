@@ -4271,6 +4271,51 @@ uw_Basis_blob uw_Basis_fileData(uw_context ctx, uw_Basis_file f) {
   return f.data;
 }
 
+// The application's served file at this URI, or NULL.
+static const uw_served_file *served_file(uw_context ctx, const char *uri) {
+  const uw_served_file *f;
+
+  for (f = ctx->app->served_files; f && f->uri; ++f)
+    if (!strcmp(f->uri, uri))
+      return f;
+
+  return NULL;
+}
+
+// A served file as a uw_Basis_file: named by the last segment of its URI (no
+// name when that is empty), typed as the directive said or "" when nothing
+// was known, and its data the bytes in the table, which nothing writes to.
+static uw_Basis_file file_of_served(uw_context ctx, const uw_served_file *f) {
+  const char *name = strrchr(f->uri, '/');
+  uw_Basis_file r;
+
+  name = name ? name + 1 : f->uri;
+  r.name = *name ? uw_strdup(ctx, (char *)name) : NULL;
+  r.type = f->type ? (char *)f->type : "";
+  r.data.size = f->size;
+  r.data.data = (char *)f->data;
+  return r;
+}
+
+uw_Basis_file uw_Basis_blessServedFile(uw_context ctx, uw_Basis_string uri) {
+  const uw_served_file *f = served_file(ctx, uri);
+
+  if (!f)
+    uw_error(ctx, FATAL, "No file directive serves %s", uw_Basis_htmlifyString(ctx, uri));
+  return file_of_served(ctx, f);
+}
+
+uw_Basis_file *uw_Basis_checkServedFile(uw_context ctx, uw_Basis_string uri) {
+  const uw_served_file *f = served_file(ctx, uri);
+  uw_Basis_file *r;
+
+  if (!f)
+    return NULL;
+  r = uw_malloc(ctx, sizeof *r);
+  *r = file_of_served(ctx, f);
+  return r;
+}
+
 uw_Basis_string uw_Basis_postType(uw_context ctx, uw_Basis_postBody pb) {
   (void)ctx;
   return pb.type;
@@ -4344,17 +4389,6 @@ __attribute__((noreturn)) void uw_return_blob(uw_context ctx, uw_Basis_blob b, u
 void uw_replace_page(uw_context ctx, const char *data, size_t size) {
   uw_buffer_reset(&ctx->page);
   ctx_uw_buffer_append(ctx, "page", &ctx->page, data, size);
-}
-
-// The application's served file at this URI, or NULL.
-static const uw_served_file *served_file(uw_context ctx, const char *uri) {
-  const uw_served_file *f;
-
-  for (f = ctx->app->served_files; f && f->uri; ++f)
-    if (!strcmp(f->uri, uri))
-      return f;
-
-  return NULL;
 }
 
 int uw_serve_file(uw_context ctx, const char *request, const char *last_modified) {
