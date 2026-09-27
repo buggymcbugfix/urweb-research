@@ -364,6 +364,12 @@ fun mapfoldB {typ = fc, exp = fe, bind} =
                         S.map2 (mft t,
                                 fn t' =>
                                    (EUnurlify (e', t', b), loc)))
+              | ERunTransaction (e, t, b) =>
+                S.bind2 (mfe ctx e,
+                     fn e' =>
+                        S.map2 (mft t,
+                                fn t' =>
+                                   (ERunTransaction (e', t', b), loc)))
               | EJavaScript (m, e) =>
                 S.bind2 (mfmode ctx m,
                          fn m' =>
@@ -513,6 +519,7 @@ fun appLoc f =
                | ENextval e1 => appl e1
                | ESetval (e1, e2) => (appl e1; appl e2)
                | EUnurlify (e1, _, _) => appl e1
+               | ERunTransaction (e1, _, _) => appl e1
                | EJavaScript (_, e1) => appl e1
                | ESignalReturn e1 => appl e1
                | ESignalBind (e1, e2) => (appl e1; appl e2)

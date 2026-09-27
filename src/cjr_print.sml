@@ -1431,6 +1431,7 @@ fun potentiallyFancy (e, _) =
       | ENextval {seq = e, ...} => potentiallyFancy e
       | ESetval {seq = e1, count = e2} => potentiallyFancy e1 orelse potentiallyFancy e2
       | EUnurlify _ => true
+      | ERunTransaction _ => true
 
 val self = ref (NONE : int option)
 
@@ -1702,14 +1703,6 @@ and p_exp' par tail env (e, loc) =
                 [_, _] => pFuncall env ("Basis", "strcat", es, NONE)
               | _ => pFuncall env ("Basis", "mstrcat", es, SOME "NULL")
         end
-
-      (* Basis.runTransaction and attemptTransaction, in an io computation:
-       * the body is run as a transaction of its own, with the runtime's
-       * retry protocol, inline in the io code.  For attemptTransaction the
-       * value is an option, None when the transaction failed; runTransaction
-       * re-raises the failure to the enclosing io loop. *)
-      | EFfiApp ("Basis", "runTransaction", [(e, t)]) => p_runTransaction par env (e, t, false)
-      | EFfiApp ("Basis", "attemptTransaction", [(e, t)]) => p_runTransaction par env (e, t, true)
 
       | EFfiApp (m, x, es) => pFuncall env (m, x, es, NONE)
       | EApp (f, args) =>
@@ -2332,12 +2325,12 @@ and p_exp' par tail env (e, loc) =
                  string "})"]
         end
 
+      | ERunTransaction (e, t, try) => p_runTransaction par env (e, t, try)
 
-(* Basis.runTransaction and attemptTransaction, in an io computation: the body
- * is run as a transaction of its own, with the runtime's retry protocol,
- * inline in the io code.  For attemptTransaction the value is an option, None
- * (NULL) when the transaction failed; runTransaction re-raises the failure
- * to the enclosing io loop. *)
+(* The body is run as a transaction of its own, with the runtime's retry
+ * protocol, inline in the io code.  For attemptTransaction (try) the value is
+ * an option, None (NULL) when the transaction failed; runTransaction
+ * re-raises the failure to the enclosing io loop. *)
 and p_runTransaction par env (e, t, try) =
     let
         val boxed = try andalso not (isUnboxable t)
@@ -3370,6 +3363,7 @@ fun p_file env (ds, ps) =
               | ENextval _ => true
               | ESetval _ => true
               | EUnurlify (e, _, _) => expDb e
+              | ERunTransaction (e, _, _) => expDb e
               | _ => false
 
         fun declDb (d, _) =

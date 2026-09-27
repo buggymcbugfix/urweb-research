@@ -113,6 +113,12 @@ datatype exp' =
 
        | EUnurlify of exp * typ * bool
 
+       (* Basis.runTransaction (false) and attemptTransaction (true), in an io
+        * computation: the body, a transaction already applied to unit, run as
+        * a transaction of its own under the runtime's retry protocol.  The
+        * type is the body's; attemptTransaction yields an option of it. *)
+       | ERunTransaction of exp * typ * bool
+
        | EJavaScript of javascript_mode * exp
 
        | ESignalReturn of exp

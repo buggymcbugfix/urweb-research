@@ -348,6 +348,9 @@ fun p_exp' par env (e, _) =
       | EUnurlify (e, _, _) => box [string "unurlify(",
                                     p_exp env e,
                                     string ")"]
+      | ERunTransaction (e, _, try) => box [string (if try then "attemptTransaction(" else "runTransaction("),
+                                            p_exp env e,
+                                            string ")"]
       | EJavaScript (m, e) => box [string "JavaScript(",
                                    p_mode env m,
                                    string ",",

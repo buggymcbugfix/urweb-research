@@ -99,6 +99,10 @@ datatype exp' =
                        prepared : {id : int, query : string} option }
        | ESetval of { seq : exp, count : exp }
        | EUnurlify of exp * typ * bool
+       (* Basis.runTransaction (false) and attemptTransaction (true): the body,
+        * of the given type, run as a transaction of its own in an io
+        * computation; see Mono. *)
+       | ERunTransaction of exp * typ * bool
 
 withtype exp = exp' located
 

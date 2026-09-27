@@ -936,6 +936,7 @@ fun process (file : file) =
                             end
 
                           | EUnurlify (_, _, true) => unsupported "EUnurlify"
+                          | ERunTransaction _ => unsupported "runTransaction"
 
                           | EUnurlify (e, t, false) =>
                             let
@@ -1253,6 +1254,12 @@ fun process (file : file) =
                      val (e, st) = exp outer (e, st)
                  in
                      ((EUnurlify (e, t, b), loc), st)
+                 end
+               | ERunTransaction (e, t, b) =>
+                 let
+                     val (e, st) = exp outer (e, st)
+                 in
+                     ((ERunTransaction (e, t, b), loc), st)
                  end
 
                | EJavaScript (m as Source t, e') =>
