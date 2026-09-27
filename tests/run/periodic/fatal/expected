@@ -1,6 +1,6 @@
 <!DOCTYPE html><html><head></head><body>up</body></html>
 --- log
-Fatal error in periodic task: periodic.ur:20:22-21:3: boom in the body
+Fatal error in periodic task: periodic.ur:22:22-23:3: boom in the body
 still running
 Accepted connection.
 Handling connection with thread #0.

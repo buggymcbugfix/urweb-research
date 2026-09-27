@@ -5,6 +5,8 @@ effectful Misbehave.step
 effectful Misbehave.failInCommit
 effectful Misbehave.boundedRetry
 effectful Misbehave.fatalWithoutTransaction
+effectful Misbehave.pendingWrite
+effectful Misbehave.finishPendingWrite
 allow env PERIODIC_MODE
 allow url /Periodic/main
 safeGet Periodic/main
