@@ -1,0 +1,4 @@
+allow url /Initialize_io/main
+safeGet Initialize_io/main
+
+initialize_io

@@ -1,0 +1,31 @@
+Prefix: /
+Database: (none)
+Exe: tests/task_kind/no_monad/no_monad.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Linker: (none)
+JsModule: (none)
+Url allow #*
+Url allow /No_monad/main
+Source tests/task_kind/no_monad/no_monad
+Dbms: (none)
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet No_monad/main
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types
