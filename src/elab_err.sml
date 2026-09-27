@@ -187,7 +187,8 @@ datatype exp_error =
      | OutOfContext of ErrorMsg.span * (exp * con) option
      | IllegalRec of string * exp
      | IllegalFlex of Source.exp
-     | IoTaskKind of ErrorMsg.span
+     | TaskMonad of ErrorMsg.span
+     | TaskMonadUnknown of ErrorMsg.span
 
 val simplExp = U.Exp.mapB {kind = fn _ => fn k => k,
                            con = fn env => fn c => #1 (ElabOps.reduceCon env (c, ErrorMsg.dummySpan)),
@@ -259,8 +260,10 @@ fun expError env err =
         (ErrorMsg.errorAt (#2 e) "Illegal 'val rec' righthand side (must be a function abstraction)";
          eprefaces' [("Variable", PD.string x),
                      ("Expression", p_exp env e)])
-      | IoTaskKind loc =>
-        ErrorMsg.errorAt loc "A task body in the io monad is only allowed for a periodic task"
+      | TaskMonad loc =>
+        ErrorMsg.errorAt loc "A task body must be a transaction or an io computation"
+      | TaskMonadUnknown loc =>
+        ErrorMsg.errorAt loc "The monad of this task body is not determined: write it as a transaction or as an io computation, for instance (return () : transaction unit)"
       | IllegalFlex e =>
         (ErrorMsg.errorAt (#2 e) "Flex record syntax (\"...\") only allowed in patterns";
          eprefaces' [("Expression", SourcePrint.p_exp e)])

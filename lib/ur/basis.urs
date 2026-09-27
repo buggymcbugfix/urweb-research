@@ -1293,15 +1293,14 @@ val io_rand : io int
 
 (** Tasks *)
 
-con task_kind :: Type -> Type
-val initialize : task_kind unit
-val clientLeaves : task_kind client
-val periodic : int -> task_kind unit
-(* A periodic task's body may be a [transaction unit], run and committed on
-   every period, or an [io unit], run on every period outside any
-   transaction.  The elaborator turns [periodic n] into [periodic_io n] for
-   the latter; it is not meant to be written directly. *)
-val periodic_io : int -> task_kind unit
+(* A task kind names an extension point, the type what the task is given
+   there, and the monad what its body runs in: a [transaction], run and
+   committed on the occasion, or, for a periodic task, an [io] computation,
+   run on every period outside any transaction. *)
+con task_kind :: Type -> (Type -> Type) -> Type
+val initialize : task_kind unit transaction
+val clientLeaves : task_kind client transaction
+val periodic : m ::: (Type -> Type) -> int -> task_kind unit m
 
 
 (** Information flow security *)

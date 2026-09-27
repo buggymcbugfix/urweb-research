@@ -12,4 +12,4 @@ of its body go together:
 - `periodic_io`: the io periodic kind named outright, `periodic_io 5`,
   with a transaction body.
 - `no_monad`: `task periodic 60 = fn () => return ()`, a body that says
-  nothing about its monad.  Today it is taken to be a transaction.
+  nothing about its monad, which is refused.

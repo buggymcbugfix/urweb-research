@@ -1236,6 +1236,20 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
             end
           | L.EFfi ("Basis", "attemptTransaction") => poly ()
 
+          (* periodic, in the monad of the task's body: the io kind is
+             periodic_io from here on, which the code generator and the
+             runtime tell it by. *)
+          | L.EApp ((L.ECApp ((L.EFfi ("Basis", "periodic"), _), m), _), n) =>
+            let
+                val (n, fm) = monoExp (env, st, fm) n
+                val kind = case #1 m of
+                               L.CFfi ("Basis", "io") => "periodic_io"
+                             | _ => "periodic"
+            in
+                ((L'.EFfiApp ("Basis", kind, [(n, (L'.TFfi ("Basis", "int"), loc))]), loc), fm)
+            end
+          | L.EFfi ("Basis", "periodic") => poly ()
+
           | L.EApp ((L.ECApp ((L.EFfi ("Basis", "recv"), _), t1), _), ch) =>
             let
                 val un = (L'.TRecord [], loc)
@@ -4493,13 +4507,16 @@ fun monoDecl (env, fm) (all as (d, loc)) =
 
                 val un = (L'.TRecord [], loc)
                 val t = if MonoUtil.Exp.exists {typ = fn _ => false,
-                                                exp = fn L'.EFfiApp ("Basis", "periodic", _) =>
-                                                         (if #persistent (Settings.currentProtocol ()) then
-                                                              ()
-                                                          else
-                                                              E.errorAt (#2 e1)
-                                                                        ("Periodic tasks aren't allowed in the selected protocol (" ^ #name (Settings.currentProtocol ()) ^ ").");
-                                                          true)
+                                                exp = fn L'.EFfiApp ("Basis", kind, _) =>
+                                                         if kind = "periodic" orelse kind = "periodic_io" then
+                                                             (if #persistent (Settings.currentProtocol ()) then
+                                                                  ()
+                                                              else
+                                                                  E.errorAt (#2 e1)
+                                                                            ("Periodic tasks aren't allowed in the selected protocol (" ^ #name (Settings.currentProtocol ()) ^ ").");
+                                                              true)
+                                                         else
+                                                             false
                                                        | _ => false} e1 then
                             (L'.TFfi ("Basis", "int"), loc)
                         else
