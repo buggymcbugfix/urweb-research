@@ -1489,11 +1489,6 @@ fun evalExp env (e as (_, loc)) k =
                 St.assert [AReln (Known, [e])];
                 k e
             end
-          (* The body of a transaction run from io code: its queries and
-           * updates are checked like any other, and its value is the
-           * transaction's; attemptTransaction's is an option of it. *)
-          | EFfiApp ("Basis", "runTransaction", [(body, _)]) => evalExp env body k
-          | EFfiApp ("Basis", "attemptTransaction", [(body, _)]) => evalExp env body (fn _ => default ())
           | EFfiApp x => doFfi x
           | EApp ((EFfi (m, s), _), e) => doFfi (m, s, [(e, (TRecord [], loc))])
 
@@ -1791,6 +1786,11 @@ fun evalExp env (e as (_, loc)) k =
             end
 
           | EUnurlify _ => default ()
+          (* The body of a transaction run from io code: its queries and
+           * updates are checked like any other, and its value is the
+           * transaction's; attemptTransaction's is an option of it. *)
+          | ERunTransaction (body, _, false) => evalExp env body k
+          | ERunTransaction (body, _, true) => evalExp env body (fn _ => default ())
           | EJavaScript _ => default ()
           | ESignalReturn _ => default ()
           | ESignalBind _ => default ()
@@ -2094,6 +2094,7 @@ fun check (file : file) =
                           | ENextval e1 => (ENextval (doExp env e1), loc)
                           | ESetval (e1, e2) => (ESetval (doExp env e1, doExp env e2), loc)
                           | EUnurlify (e1, t, b) => (EUnurlify (doExp env e1, t, b), loc)
+                          | ERunTransaction (e1, t, b) => (ERunTransaction (doExp env e1, t, b), loc)
                           | EJavaScript (m, e) => (EJavaScript (m, doExp env e), loc)
                           | ESignalReturn _ => e
                           | ESignalBind _ => e

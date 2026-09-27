@@ -300,6 +300,12 @@ fun prepExp (e as (_, loc), st) =
         in
             ((EUnurlify (e, t, b), loc), st)
         end
+      | ERunTransaction (e, t, b) =>
+        let
+            val (e, st) = prepExp (e, st)
+        in
+            ((ERunTransaction (e, t, b), loc), st)
+        end
 
 fun prepDecl (d as (_, loc), st) =
     case #1 d of

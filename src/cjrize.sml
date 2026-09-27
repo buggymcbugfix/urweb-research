@@ -504,6 +504,14 @@ fun cifyExp (eAll as (e, loc), sm) =
                 ((L'.EUnurlify (e, t, b), loc), sm)
             end
 
+          | L.ERunTransaction (e, t, b) =>
+            let
+                val (e, sm) = cifyExp (e, sm)
+                val (t, sm) = cifyTyp (t, sm)
+            in
+                ((L'.ERunTransaction (e, t, b), loc), sm)
+            end
+
           | L.EJavaScript _ => fail "Uncompilable JavaScript remains"
 
           | L.ESignalReturn _ => fail "Signal monad 'return' remains in server-side code"

@@ -1209,9 +1209,9 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
           | L.EFfiApp ("Basis", "io_rand", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "rand", es), loc)
 
           (* runTransaction and attemptTransaction: the transaction, a thunk,
-             is applied inside the FFI argument, so that after reduction the
-             argument is the transaction's body, which the code generator
-             prints inline under the runtime's retry protocol.  For
+             is applied inside ERunTransaction, so that after reduction the
+             body of the form is the transaction's body, which the code
+             generator prints inline under the runtime's retry protocol.  For
              attemptTransaction the block yields an option. *)
           | L.EApp ((L.ECApp ((L.EFfi ("Basis", "runTransaction"), _), t), _), m) =>
             let
@@ -1221,7 +1221,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                 val body = (L'.EApp (liftExpInExp 0 m, (L'.ERecord [], loc)), loc)
             in
                 ((L'.EAbs ("_", un, t',
-                           (L'.EFfiApp ("Basis", "runTransaction", [(body, t')]), loc)), loc), fm)
+                           (L'.ERunTransaction (body, t', false), loc)), loc), fm)
             end
           | L.EFfi ("Basis", "runTransaction") => poly ()
           | L.EApp ((L.ECApp ((L.EFfi ("Basis", "attemptTransaction"), _), t), _), m) =>
@@ -1232,7 +1232,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                 val body = (L'.EApp (liftExpInExp 0 m, (L'.ERecord [], loc)), loc)
             in
                 ((L'.EAbs ("_", un, (L'.TOption t', loc),
-                           (L'.EFfiApp ("Basis", "attemptTransaction", [(body, t')]), loc)), loc), fm)
+                           (L'.ERunTransaction (body, t', true), loc)), loc), fm)
             end
           | L.EFfi ("Basis", "attemptTransaction") => poly ()
 

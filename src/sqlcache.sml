@@ -448,6 +448,7 @@ fun freePaths' bound exp =
       | ENextval e => freePaths' bound e
       | ESetval (e1, e2) => freePaths' bound e1 o freePaths' bound e2
       | EUnurlify (e, _, _) => freePaths' bound e
+      | ERunTransaction (e, _, _) => freePaths' bound e
       | EJavaScript (_, e) => freePaths' bound e
       | ESignalReturn e => freePaths' bound e
       | ESignalBind (e1, e2) => freePaths' bound e1 o freePaths' bound e2
@@ -1295,6 +1296,7 @@ fun typOfExp' (env : MonoEnv.env) : exp' -> typ option =
   | ELet (s, t, e1, e2) => typOfExp (MonoEnv.pushERel env s t (SOME e1)) e2
   | EClosure _ => NONE
   | EUnurlify (_, t, _) => SOME t
+  | ERunTransaction (_, t, try) => SOME (if try then (TOption t, dummyLoc) else t)
   | EQuery {state, ...} => SOME state
   | e => NONE
 
