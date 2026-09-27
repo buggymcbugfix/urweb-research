@@ -5069,11 +5069,26 @@ jmp_buf *uw_jmp_buf(uw_context ctx) {
 // heap is not reset between attempts (it is the io computation's), so a
 // retried body's garbage stays until the computation ends.
 
+// What a transaction leaves in the context once it has been committed or
+// rolled back: the messages it sent (uw_commit delivers them and would
+// deliver them again), the client it held (released by commit and rollback,
+// but still named), its cleanups and its transactionals.  A request's
+// uw_reset clears all of this along with the heap; an io computation runs
+// several transactions on one context and keeps its heap, so each of them
+// starts from this.
+static void uw_transaction_reset(uw_context ctx) {
+  ctx->used_deltas = 0;
+  ctx->client = NULL;
+  ctx->cur_container = NULL;
+  ctx->cleanup_front = ctx->cleanup;
+  ctx->used_transactionals = 0;
+}
+
 void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
   memcpy(&t->outer, &ctx->jmp_buf, sizeof(jmp_buf));
   t->retries_left = UW_IO_MAX_RETRIES;
   t->failed = 0;
-  ctx->used_transactionals = 0;
+  uw_transaction_reset(ctx);
   ctx->error_message[0] = 0;
   uw_transaction_arrives();
 }
@@ -5088,7 +5103,7 @@ void uw_io_transaction_commit(uw_context ctx, uw_io_transaction *t) {
     ctx->used_transactionals = 0;
     uw_error(ctx, UNLIMITED_RETRY, "Commit conflict; retrying");
   }
-  ctx->used_transactionals = 0;
+  uw_transaction_reset(ctx);
   if (uw_has_error(ctx)) {
     // A transactional's commit callback failed, after the database committed.
     char msg[ERROR_BUF_LEN];
@@ -5119,7 +5134,7 @@ int uw_io_transaction_retry(uw_context ctx, uw_io_transaction *t, int fk) {
 
   if (uw_rollback(ctx, again))
     ctx->loggers->log_error(ld, "Error running SQL ROLLBACK in io transaction\n");
-  ctx->used_transactionals = 0;
+  uw_transaction_reset(ctx);
 
   if (!again)
     t->failed = 1;
