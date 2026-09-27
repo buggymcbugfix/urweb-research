@@ -21,7 +21,7 @@ task initialize = fn () =>
     dml (DELETE FROM t WHERE T.Id = 1);
     dml (INSERT INTO t (Id, Name) VALUES (1, 'init'))
 
-task periodic 3600 = fn () => return ()
+task periodic 3600 = fn () => (return () : transaction unit)
 
 task clientLeaves = fn cl => dml (DELETE FROM chans WHERE T.Client = {[cl]})
 

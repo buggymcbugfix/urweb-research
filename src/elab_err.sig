@@ -83,7 +83,7 @@ signature ELAB_ERR = sig
            | Unresolvable of ErrorMsg.span * Elab.con
            | OutOfContext of ErrorMsg.span * (Elab.exp * Elab.con) option
            | IllegalRec of string * Elab.exp
-           | IoTaskKind of ErrorMsg.span
+           | TaskMonad of ErrorMsg.span
            | IllegalFlex of Source.exp
 
     val expError : ElabEnv.env -> exp_error -> unit

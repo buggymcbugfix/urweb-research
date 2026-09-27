@@ -1115,11 +1115,9 @@ $$\infer{\Gamma \vdash \mt{cookie} \; x : \tau \leadsto \Gamma, x : \mt{Basis}.\
 \quad \infer{\Gamma \vdash \mt{style} \; x \leadsto \Gamma, x : \mt{Basis}.\mt{css\_class}}{}$$
 
 $$\infer{\Gamma \vdash \mt{task} \; e_1 = e_2 \leadsto \Gamma}{
-  \Gamma \vdash e_1 :: \mt{Basis}.\mt{task\_kind} \; \tau
-  & \Gamma \vdash e_2 :: \tau \to \mt{Basis}.\mt{transaction} \; \{\}
-}
-\quad \infer{\Gamma \vdash \mt{task} \; \mt{periodic} \; n = e_2 \leadsto \Gamma}{
-  \Gamma \vdash e_2 :: \{\} \to \mt{Basis}.\mt{io} \; \{\}
+  \Gamma \vdash e_1 :: \mt{Basis}.\mt{task\_kind} \; \tau \; m
+  & \Gamma \vdash e_2 :: \tau \to m \; \{\}
+  & m \in \{\mt{Basis}.\mt{transaction}, \mt{Basis}.\mt{io}\}
 }$$
 
 $$\infer{\overline{y}; x; \Gamma \vdash \cdot \leadsto \Gamma}{}
@@ -2503,13 +2501,13 @@ The HTTP standard suggests that GET requests only be used in ways that generate 
 In many web applications, it's useful to run code at points other than requests from browsers.  Ur/Web's \emph{task} mechanism facilitates this.  A type family of \emph{task kinds} is in the standard library:
 
 $$\begin{array}{l}
-\mt{con} \; \mt{task\_kind} :: \mt{Type} \to \mt{Type} \\
-\mt{val} \; \mt{initialize} : \mt{task\_kind} \; \mt{unit} \\
-\mt{val} \; \mt{clientLeaves} : \mt{task\_kind} \; \mt{client} \\
-\mt{val} \; \mt{periodic} : \mt{int} \to \mt{task\_kind} \; \mt{unit}
+\mt{con} \; \mt{task\_kind} :: \mt{Type} \to (\mt{Type} \to \mt{Type}) \to \mt{Type} \\
+\mt{val} \; \mt{initialize} : \mt{task\_kind} \; \mt{unit} \; \mt{transaction} \\
+\mt{val} \; \mt{clientLeaves} : \mt{task\_kind} \; \mt{client} \; \mt{transaction} \\
+\mt{val} \; \mt{periodic} : m ::: (\mt{Type} \to \mt{Type}) \to \mt{int} \to \mt{task\_kind} \; \mt{unit} \; m
 \end{array}$$
 
-A task kind names a particular extension point of generated applications, where the type parameter of a task kind describes which extra input data is available at that extension point.  Add task code with the special declaration form $\mt{task} \; e_1 = e_2$, where $e_1$ is a task kind with data $\tau$, and $e_2$ is a function from $\tau$ to $\mt{transaction} \; \mt{unit}$.  For a $\mt{periodic}$ task, $e_2$ may instead be a function to $\mt{io} \; \mt{unit}$: the body then runs outside any transaction, on every period, and is not restarted after a failure; see Section \ref{io}.
+A task kind names a particular extension point of generated applications, where the first type parameter of a task kind describes which extra input data is available at that extension point, and the second the monad the task's code runs in.  Add task code with the special declaration form $\mt{task} \; e_1 = e_2$, where $e_1$ is a task kind with data $\tau$ and monad $m$, and $e_2$ is a function from $\tau$ to $m \; \mt{unit}$.  The monad is $\mt{transaction}$, or, for a $\mt{periodic}$ task, either $\mt{transaction}$ or $\mt{io}$, as the body decides: an $\mt{io}$ body runs outside any transaction, on every period, and is not restarted after a failure; see Section \ref{io}.
 
 The currently supported task kinds are:
 \begin{itemize}

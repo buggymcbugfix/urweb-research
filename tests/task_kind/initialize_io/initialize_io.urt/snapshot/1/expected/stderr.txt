@@ -1,1 +1,7 @@
-tests/task_kind/initialize_io/initialize_io.ur:3:0: (to 3:46) A task body in the io monad is only allowed for a periodic task
+tests/task_kind/initialize_io/initialize_io.ur:3:21: (to 3:23) Unification failure
+Expression:  fn $x : {} => case $x of {} => io_debug "starting"
+  Have con:  {} -> io {}
+  Need con:  {} -> transaction {}
+Incompatible constructors
+Have:  io
+Need:  transaction
