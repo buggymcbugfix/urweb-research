@@ -1,0 +1,6 @@
+# Each served file: status, type, size and contents; then a path nothing serves.
+for p in /hello.txt /img/dot.png /data /nope; do
+  curl -s -o body -w "$p: %{http_code} [%{content_type}] %{size_download} bytes\n" "http://127.0.0.1:$port$p"
+  od -An -c body | sed 's/^ */  /'
+done
+rm -f body
