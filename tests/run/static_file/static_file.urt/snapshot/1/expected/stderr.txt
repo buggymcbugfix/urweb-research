@@ -1,0 +1,1 @@
+WARNING: No MIME type known for extension 'bin'.  Header 'Content-Type' will be omitted in HTTP responses.

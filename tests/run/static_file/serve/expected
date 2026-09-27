@@ -1,0 +1,25 @@
+/hello.txt: 200 [text/plain] 14 bytes
+  H   e   l   l   o   ,       w   o   r   l   d   !  \n
+/img/dot.png: 200 [image/png] 69 bytes
+  211   P   N   G  \r  \n 032  \n  \0  \0  \0  \r   I   H   D   R
+  \0  \0  \0 001  \0  \0  \0 001  \b 002  \0  \0  \0 220   w   S
+  336  \0  \0  \0  \f   I   D   A   T   x 234   c 370 317 300  \0
+  \0 003 001 001  \0 311 376 222 357  \0  \0  \0  \0   I   E   N
+  D 256   B   ` 202
+/data: 200 [] 14 bytes
+  n   o   t       t   e   x   t   :      \0 001 002  \n
+/nope: 404 [text/plain] 9 bytes
+  N   o   t       F   o   u   n   d
+--- log
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /hello.txt....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /img/dot.png....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /data....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /nope....
