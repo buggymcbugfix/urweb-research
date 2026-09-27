@@ -3563,6 +3563,27 @@ fun p_file env (ds, ps) =
              box (rev protos),
              box (rev defs),
 
+             string "static uw_served_file uw_served_files[] = {",
+             newline,
+             p_list_sep newline (fn x => x)
+                        (map (fn r =>
+                                 box [string "{\"",
+                                      string (String.toCString (#Uri r)),
+                                      string "\", ",
+                                      (case #ContentType r of
+                                           NONE => string "NULL"
+                                         | SOME ct => box [string "\"",
+                                                           string (String.toCString ct),
+                                                           string "\""]),
+                                      string ", ",
+                                      string (Int.toString (Word8Vector.length (#Bytes r))),
+                                      string ", \"",
+                                      string (hexify (#Bytes r)),
+                                      string "\"},"]) (Settings.listFiles ())
+                         @ [string "{NULL, NULL, 0, NULL}};"]),
+             newline,
+             newline,
+
              string "static void uw_handle(uw_context ctx, char *request) {",
              newline,
              string "uw_Basis_string ims = uw_Basis_requestHeader(ctx, \"If-modified-since\");",
@@ -3598,33 +3619,8 @@ fun p_file env (ds, ps) =
                         (if !hasJs then [(!runtime_js, "jslib"), (!app_js, "jsapp")] else []),
              newline,
 
-             p_list_sep newline (fn r =>
-                                    box [string "if (!strcmp(request, \"",
-                                         string (String.toCString (#Uri r)),
-                                         string "\")) {",
-                                         newline,
-                                         box [(case #ContentType r of
-                                                   NONE => box []
-                                                 | SOME ct => box [string "uw_write_header(ctx, \"Content-Type: ",
-                                                                   string (String.toCString ct),
-                                                                   string "\\r\\n\");",
-                                                                   newline]),
-                                              string ("uw_write_header(ctx, \"Last-Modified: " ^ Date.fmt rfcFmt lastMod ^ "\\r\\n\");"),
-                                              newline,
-                                              string ("uw_write_header(ctx, \"Content-Length: " ^ Int.toString (Word8Vector.length (#Bytes r)) ^ "\\r\\n\");"),
-                                              newline,
-                                              string ("uw_write_header(ctx, \"Cache-Control: max-age=31536000, public\\r\\n\");"),
-                                              newline,
-                                              string "uw_replace_page(ctx, \"",
-                                              string (hexify (#Bytes r)),
-                                              string "\", ",
-                                              string (Int.toString (Word8Vector.length (#Bytes r))),
-                                              string ");",
-                                              newline,
-                                              string "return;",
-                                              newline],
-                                         string "};",
-                                         newline]) (Settings.listFiles ()),
+             string ("if (uw_serve_file(ctx, request, \"" ^ Date.fmt rfcFmt lastMod ^ "\")) return;"),
+             newline,
 
              newline,
              p_list_sep newline (fn x => x) pds',
@@ -3745,7 +3741,8 @@ fun p_file env (ds, ps) =
                          if Settings.getIsHtml5 () then "1" else "0",
                          (case Settings.getFileCache () of
                               NONE => "NULL"
-                            | SOME s => "\"" ^ Prim.toCString s ^ "\"")],
+                            | SOME s => "\"" ^ Prim.toCString s ^ "\""),
+                         "uw_served_files"],
              string "};",
              newline]
     end

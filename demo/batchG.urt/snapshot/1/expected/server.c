@@ -885,7 +885,10 @@
       : (uw_error(ctx, FATAL, "Error unurlifying datatype list_s"), NULL))));
       }
      
-     static void uw_handle(uw_context ctx, char *request) {
+     static uw_served_file uw_served_files[] = {
+ {NULL, NULL, 0, NULL}};
+ 
+ static void uw_handle(uw_context ctx, char *request) {
  uw_Basis_string ims = uw_Basis_requestHeader(ctx, "If-modified-since");
  if (ims && !strcmp(ims, "Thu, 01 Jan 1970 00:00:00 GMT")) {
  uw_clear_headers(ctx);
@@ -910,6 +913,7 @@
     return;
     }
    
+ if (uw_serve_file(ctx, request, "Thu, 01 Jan 1970 00:00:00 GMT")) return;
  
  if (!strncmp(request, "/BatchG/main", 12) && (request[12] == 0 || request[12] == '/')) {
   request += 12;
@@ -1046,5 +1050,7 @@
                                               my_periodics,
                                                            "%c",
                                                                 1,
-                                                                  NULL};
+                                                                  NULL,
+                                                                       
+                           uw_served_files};
  

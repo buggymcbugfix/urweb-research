@@ -4346,6 +4346,39 @@ void uw_replace_page(uw_context ctx, const char *data, size_t size) {
   ctx_uw_buffer_append(ctx, "page", &ctx->page, data, size);
 }
 
+// The application's served file at this URI, or NULL.
+static const uw_served_file *served_file(uw_context ctx, const char *uri) {
+  const uw_served_file *f;
+
+  for (f = ctx->app->served_files; f && f->uri; ++f)
+    if (!strcmp(f->uri, uri))
+      return f;
+
+  return NULL;
+}
+
+int uw_serve_file(uw_context ctx, const char *request, const char *last_modified) {
+  const uw_served_file *f = served_file(ctx, request);
+  char header[64];
+
+  if (!f)
+    return 0;
+
+  if (f->type) {
+    uw_write_header(ctx, "Content-Type: ");
+    uw_write_header(ctx, (char *)f->type);
+    uw_write_header(ctx, "\r\n");
+  }
+  uw_write_header(ctx, "Last-Modified: ");
+  uw_write_header(ctx, (char *)last_modified);
+  uw_write_header(ctx, "\r\n");
+  snprintf(header, sizeof header, "Content-Length: %lu\r\n", (unsigned long)f->size);
+  uw_write_header(ctx, header);
+  uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
+  uw_replace_page(ctx, f->data, f->size);
+  return 1;
+}
+
 __attribute__((noreturn)) void uw_return_blob_from_page(uw_context ctx, uw_Basis_string mimeType) {
   cleanup *cl;
   int len;
