@@ -11,8 +11,8 @@ fun describe (f : file) : xbody = <xml>
 
 fun check (path : string) : xbody =
     case checkServedFile path of
-        Success f => describe f
-      | Failure e => <xml>refused: {e}</xml>
+        Some f => describe f
+      | None => <xml>nothing serves {[path]}</xml>
 
 fun main () = return <xml><body>
   <p>{describe (blessServedFile "/hello.txt")}</p>

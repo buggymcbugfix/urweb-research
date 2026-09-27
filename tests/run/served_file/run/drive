@@ -1,0 +1,5 @@
+# The literal paths, then paths from the request: one served, one not.  In
+# a URL argument a byte is escaped as .XX, so "/hello.txt" is .2Fhello.2Etxt.
+curl -s "http://127.0.0.1:$port/Served_file/main"; echo
+curl -s "http://127.0.0.1:$port/Served_file/look/.2Fhello.2Etxt"; echo
+curl -s "http://127.0.0.1:$port/Served_file/look/.2Fnope"; echo

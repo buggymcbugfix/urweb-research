@@ -4277,6 +4277,40 @@ static const uw_served_file *served_file(uw_context ctx, const char *uri) {
   return NULL;
 }
 
+// A served file as a uw_Basis_file: named by the last segment of its URI (no
+// name when that is empty), typed as the directive said or "" when nothing
+// was known, and its data the bytes in the table, which nothing writes to.
+static uw_Basis_file file_of_served(uw_context ctx, const uw_served_file *f) {
+  const char *name = strrchr(f->uri, '/');
+  uw_Basis_file r;
+
+  name = name ? name + 1 : f->uri;
+  r.name = *name ? uw_strdup(ctx, (char *)name) : NULL;
+  r.type = f->type ? (char *)f->type : "";
+  r.data.size = f->size;
+  r.data.data = (char *)f->data;
+  return r;
+}
+
+uw_Basis_file uw_Basis_blessServedFile(uw_context ctx, uw_Basis_string uri) {
+  const uw_served_file *f = served_file(ctx, uri);
+
+  if (!f)
+    uw_error(ctx, FATAL, "No file directive serves %s", uw_Basis_htmlifyString(ctx, uri));
+  return file_of_served(ctx, f);
+}
+
+uw_Basis_file *uw_Basis_checkServedFile(uw_context ctx, uw_Basis_string uri) {
+  const uw_served_file *f = served_file(ctx, uri);
+  uw_Basis_file *r;
+
+  if (!f)
+    return NULL;
+  r = uw_malloc(ctx, sizeof *r);
+  *r = file_of_served(ctx, f);
+  return r;
+}
+
 uw_Basis_string uw_Basis_postType(uw_context ctx, uw_Basis_postBody pb) {
   (void)ctx;
   return pb.type;

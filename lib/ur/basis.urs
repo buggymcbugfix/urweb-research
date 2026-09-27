@@ -1245,6 +1245,18 @@ val stopPropagation : transaction unit
 val show_xml : ctx ::: {Unit} -> use ::: {Type} -> bind ::: {Type} -> show (xml ctx use bind)
 
 
+(** Served files *)
+
+(* The contents, baked into the executable, of a file that a [file] directive
+   of the project file serves, and so makes public, by the path it is served
+   at: its name is the path's last segment, its MIME type the directive's (""
+   when none is known), and its data the file's contents as of compile time.
+   [blessServedFile] fails on a path nothing serves, at compile time for a
+   literal; [checkServedFile] gives [None] instead. *)
+val blessServedFile : string -> file
+val checkServedFile : string -> option file
+
+
 (** Tasks *)
 
 con task_kind :: Type -> Type

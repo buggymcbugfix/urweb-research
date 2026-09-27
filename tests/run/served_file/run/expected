@@ -1,0 +1,30 @@
+<!DOCTYPE html><html><head></head><body>
+<p>
+hello.txt [text/plain] 14 bytes:
+Hello, world!&#10;
+</p>
+<p>
+dot.png [image/png] 69 bytes:
+(binary)
+</p>
+<p>
+data [] 14 bytes:
+(binary)
+</p>
+<p>nothing serves /nope</p>
+</body></html>
+<!DOCTYPE html><html><head></head><body>
+hello.txt [text/plain] 14 bytes:
+Hello, world!&#10;
+</body></html>
+<!DOCTYPE html><html><head></head><body>nothing serves /nope</body></html>
+--- log
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Served_file/main....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Served_file/look/.2Fhello.2Etxt....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Served_file/look/.2Fnope....
