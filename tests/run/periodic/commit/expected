@@ -1,6 +1,6 @@
 <!DOCTYPE html><html><head></head><body>up</body></html>
 --- log
-Fatal error in periodic task, after commit: boom in commit
+Fatal error in periodic task, at or after commit: boom in commit
 still running
 Accepted connection.
 Handling connection with thread #0.

@@ -1,6 +1,7 @@
 <!DOCTYPE html><html><head></head><body>up</body></html>
 --- log
-Commit error: cannot commit transaction - SQL statements in progress<br />Fatal error in periodic task, after commit: Error running SQL COMMIT
-Begin error: cannot start a transaction within a transaction<br />Accepted connection.
+Commit error: cannot commit transaction - SQL statements in progress<br />Fatal error in periodic task, at or after commit: Error running SQL COMMIT
+still running
+Accepted connection.
 Handling connection with thread #0.
 Serving URI /Periodic/main....
