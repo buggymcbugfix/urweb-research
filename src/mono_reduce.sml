@@ -330,6 +330,8 @@ val freeInAbs = U.Exp.existsB {typ = fn _ => false,
                                         case e of
                                             EAbs (_, _, _, b) => countFree n 0 b > 0
                                           | EJavaScript (_, b) => countFree n 0 b > 0
+                                          (* The body runs once per attempt. *)
+                                          | ERunTransaction (b, _, _) => countFree n 0 b > 0
                                           | _ => false,
                                bind = fn (n, b) =>
                                          case b of

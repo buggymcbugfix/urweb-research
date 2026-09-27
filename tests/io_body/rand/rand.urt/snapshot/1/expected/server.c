@@ -219,65 +219,70 @@
  static void uw_periodic0(uw_context ctx) {
   uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
    ({
-    uw_io_transaction __uwt;
-    uw_unit
-    __uwr;
-    uw_io_transaction_begin(ctx, &__uwt);
-    while (1) {
-    int __uwfk = setjmp(*uw_jmp_buf(ctx));
-     if (__uwfk == 0) {
-     __uwr =
-      (uw_begin_region(ctx), ({
-       uw_Basis_int arg1 = uw_Basis_rand(ctx);
-        
-        uw_ensure_transaction(ctx);
-        
-        PGconn *conn = uw_get_db(ctx);
-         static const int paramFormats[] = { 0 };
-          const int *paramLengths = paramFormats;
-           const char **paramValues = uw_malloc(ctx, 1 * sizeof(char*));
-          paramValues[0] = uw_Basis_attrifyInt(ctx, arg1);
-           
+    uw_Basis_int __uwr_r_2 =
+    (uw_begin_region(ctx), uw_Basis_rand(ctx));
+    uw_end_region(ctx);
+     ({
+      uw_io_transaction __uwt;
+      uw_unit
+      __uwr;
+      uw_io_transaction_begin(ctx, &__uwt);
+      while (1) {
+      int __uwfk = setjmp(*uw_jmp_buf(ctx));
+       if (__uwfk == 0) {
+       __uwr =
+        (uw_begin_region(ctx), ({
+         uw_Basis_int arg1 = __uwr_r_2;
           
-         PGresult *res;
-         
-         res = PQexecPrepared(conn, "uw0", 1, paramValues, paramLengths, paramFormats, 0);
-         
-         if (res == NULL) {
-                            uw_try_reconnecting_and_restarting(ctx);
-                            uw_error(ctx, FATAL, "Can't allocate DML result; database server may be down.");
-                            }
+          uw_ensure_transaction(ctx);
           
-          if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-          if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40001")) {
-           
-            PQclear(res);
-            uw_error(ctx, UNLIMITED_RETRY, "Serialization failure");
-            }
-           if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40P01")) {
-           
-            PQclear(res);
-            uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
-            }
-           PQclear(res);
-            uw_error(ctx, FATAL, "tests/io_body/rand/rand.ur:11:4-11:59: DML failed:\n%s\n%s", 
-            "INSERT INTO uw_Rand_t (uw_N) VALUES ($1::int8)", PQerrorMessage(conn));
-           }
+          PGconn *conn = uw_get_db(ctx);
+           static const int paramFormats[] = { 0 };
+            const int *paramLengths = paramFormats;
+             const char **paramValues = uw_malloc(ctx, 1 * sizeof(char*));
+            paramValues[0] = uw_Basis_attrifyInt(ctx, arg1);
              
+            
+           PGresult *res;
+           
+           res = PQexecPrepared(conn, "uw0", 1, paramValues, paramLengths, paramFormats, 0);
+           
+           if (res == NULL) {
+                              uw_try_reconnecting_and_restarting(ctx);
+                              uw_error(ctx, FATAL, "Can't allocate DML result; database server may be down.");
+                              }
+            
+            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+            if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40001")) {
+             
+              PQclear(res);
+              uw_error(ctx, UNLIMITED_RETRY, "Serialization failure");
+              }
+             if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40P01")) {
+             
+              PQclear(res);
+              uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
+              }
              PQclear(res);
-             
-       
-       uw_end_region(ctx);
-       0;
-       }));
-      uw_io_transaction_commit(ctx, &__uwt);
-      break;
-      } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
-     break;
-      }
-     }
-    uw_io_transaction_end(ctx, &__uwt, 1);
-    __uwr;
+              uw_error(ctx, FATAL, "tests/io_body/rand/rand.ur:11:4-11:59: DML failed:\n%s\n%s", 
+              "INSERT INTO uw_Rand_t (uw_N) VALUES ($1::int8)", PQerrorMessage(conn));
+             }
+               
+               PQclear(res);
+               
+         
+         uw_end_region(ctx);
+         0;
+         }));
+        uw_io_transaction_commit(ctx, &__uwt);
+        break;
+        } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+       break;
+        }
+       }
+      uw_io_transaction_end(ctx, &__uwt, 1);
+      __uwr;
+      });
     });
    }
   
