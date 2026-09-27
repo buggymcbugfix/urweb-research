@@ -4,6 +4,8 @@
    ticks fit into the drive's wait.  What the runtime does with each failure
    is the point. *)
 
+table stuck : { N : int }
+
 fun mode () =
     m <- getenv (blessEnvVar "PERIODIC_MODE");
     return (Option.get "none" m)
@@ -31,6 +33,17 @@ task periodic 1 = fn () =>
       | "rollback" =>
         if n = 1 then Misbehave.fatalWithoutTransaction "boom without a transaction"
         else if n = 2 then debug "still running"
+        else return ()
+      | "commitfail" =>
+        (* COMMIT fails and the database transaction stays open, as after
+           SQLITE_BUSY; the next tick then has to be able to BEGIN. *)
+        if n = 1 then
+            dml (INSERT INTO stuck (N) VALUES (1));
+            Misbehave.pendingWrite
+        else if n = 2 then
+            Misbehave.finishPendingWrite;
+            dml (INSERT INTO stuck (N) VALUES (2));
+            debug "still running"
         else return ()
       | _ => return ()
 
