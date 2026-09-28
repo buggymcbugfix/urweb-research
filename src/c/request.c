@@ -99,11 +99,50 @@ typedef struct {
 // goes on to the next period: there is nobody to answer to, so the log is
 // all there is, and a task that stopped running would be worse than one
 // that failed once.
+// The thread of a periodic task whose body is an io computation: run it
+// outside any transaction, log a failure, sleep, again.  The body runs its
+// own transactions (Basis.runTransaction), each with the retry protocol; the
+// body itself is never run again, whatever failed, since its side effects
+// cannot be undone.  The expunger's lock is taken by those transactions
+// only, not across the body, which may be slow (a network call, say).
+static void *io_periodic_loop(periodic *p) {
+  uw_loggers *ls = p->ls;
+  void *ld = ls->logger_data;
+  uw_context ctx = uw_request_new_context(p->id, p->app, p->ls);
+
+  if (!ctx)
+    exit(1);
+  uw_io_prepare(ctx);
+
+  while (1) {
+    failure_kind r;
+
+    uw_reset(ctx);
+    r = uw_runIo(ctx, p->pdic.callback);
+
+    if (r != SUCCESS) {
+      // FATAL, or a retry request from outside any transaction, which io
+      // code cannot honour: either way this run is over.
+      ls->log_error(ld, "Fatal error in io task: %s\n", uw_error_message(ctx));
+      // Nothing should be open; make sure.
+      if (uw_rollback(ctx, 0))
+        ls->log_error(ld, "Error running SQL ROLLBACK after a failed io task\n");
+    }
+
+    sleep(p->pdic.period);
+  }
+}
+
 static void *periodic_loop(void *data) {
   periodic *p = (periodic *)data;
   uw_loggers *ls = p->ls;
   void *ld = ls->logger_data;
-  uw_context ctx = uw_request_new_context(p->id, p->app, p->ls);
+  uw_context ctx;
+
+  if (p->pdic.io)
+    return io_periodic_loop(p);
+
+  ctx = uw_request_new_context(p->id, p->app, p->ls);
 
   if (!ctx)
     exit(1);

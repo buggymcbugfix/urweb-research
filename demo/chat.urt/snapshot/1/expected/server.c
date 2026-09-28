@@ -620,14 +620,14 @@
                                          uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                                          }
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query failed:\n%s\n%s", 
+                                        uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query failed:\n%s\n%s", 
                                         "SELECT T_T.uw_Room FROM uw_Chat_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                                         }
                                        
                                        if (PQnfields(res) != 1) {
                                        int nf = PQnfields(res);
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
+                                        uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
                                         "SELECT T_T.uw_Room FROM uw_Chat_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                                         }
                                        
@@ -642,7 +642,7 @@
                                         __uwr_r_3.__uwf_T.__uwf_Room =
                                          (PQgetisnull(res, i, 0) ? ({uw_Basis_int
                                                                     tmp;
-                                                                    uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Unexpectedly NULL field #0");
+                                                                    uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Unexpectedly NULL field #0");
                                                                     tmp;
                                                                     }) : uw_Basis_stringToInt_error(ctx, 
                                                                           PQgetvalue(res, i, 0)));
@@ -666,7 +666,7 @@
                                     ({
                                      struct __uws_2
                                      tmp;
-                                     uw_error(ctx, FATAL, "$/top.ur:418:24-419:3: %s", 
+                                     uw_error(ctx, FATAL, "$/top.ur:426:24-427:3: %s", 
                                      "Query returned no rows");
                                      tmp;
                                      })
@@ -808,14 +808,14 @@
                   uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                   }
                  PQclear(res);
-                 uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query failed:\n%s\n%s", 
+                 uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query failed:\n%s\n%s", 
                  "SELECT T_T.uw_Room, T_T.uw_Title FROM uw_Chat_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                  }
                 
                 if (PQnfields(res) != 2) {
                 int nf = PQnfields(res);
                  PQclear(res);
-                 uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query returned %d columns instead of 2:\n%s\n%s", nf, 
+                 uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query returned %d columns instead of 2:\n%s\n%s", nf, 
                  "SELECT T_T.uw_Room, T_T.uw_Title FROM uw_Chat_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                  }
                 
@@ -830,7 +830,7 @@
                  __uwr_r_3.__uwf_T.__uwf_Room =
                   (PQgetisnull(res, i, 0) ? ({uw_Basis_int
                                              tmp;
-                                             uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Unexpectedly NULL field #0");
+                                             uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Unexpectedly NULL field #0");
                                              tmp;
                                              }) : uw_Basis_stringToInt_error(ctx, 
                                                    PQgetvalue(res, i, 0)));
@@ -838,7 +838,7 @@
                   __uwr_r_3.__uwf_T.__uwf_Title =
                    (PQgetisnull(res, i, 1) ? ({uw_Basis_string
                                               tmp;
-                                              uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Unexpectedly NULL field #1");
+                                              uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Unexpectedly NULL field #1");
                                               tmp;
                                               }) : uw_strdup(ctx, PQgetvalue(res, i, 1)));
                    
@@ -861,7 +861,7 @@
              ({
               struct __uws_6
               tmp;
-              uw_error(ctx, FATAL, "$/top.ur:418:24-419:3: %s", "Query returned no rows");
+              uw_error(ctx, FATAL, "$/top.ur:426:24-427:3: %s", "Query returned no rows");
               tmp;
               })
               :
@@ -1361,14 +1361,14 @@
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                                                                                }
                                                                                PQclear(res);
-                                                                               uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query failed:\n%s\n%s", 
+                                                                               uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query failed:\n%s\n%s", 
                                                                                "SELECT COUNT(*) AS uw_N FROM uw_Chat_Room_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                                                                                }
                                                                                
                                                                                if (PQnfields(res) != 1) {
                                                                                int nf = PQnfields(res);
                                                                                PQclear(res);
-                                                                               uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
+                                                                               uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
                                                                                "SELECT COUNT(*) AS uw_N FROM uw_Chat_Room_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                                                                                }
                                                                                
@@ -1388,7 +1388,7 @@
                                                                                (PQgetisnull(res, i, 0) ? 
                                                                                ({uw_Basis_int
                                                                                tmp;
-                                                                               uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Unexpectedly NULL field #0");
+                                                                               uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Unexpectedly NULL field #0");
                                                                                tmp;
                                                                                }) : 
                                                                                uw_Basis_stringToInt_error(ctx, 
@@ -1426,7 +1426,7 @@
                                                                                struct
                                                                                __uws_10
                                                                                tmp;
-                                                                               uw_error(ctx, FATAL, "$/top.ur:418:24-419:3: %s", 
+                                                                               uw_error(ctx, FATAL, "$/top.ur:426:24-427:3: %s", 
                                                                                "Query returned no rows");
                                                                                tmp;
                                                                                })

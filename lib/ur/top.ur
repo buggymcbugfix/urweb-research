@@ -63,6 +63,14 @@ val result_monad = mkMonad
                    Failure e => Failure e
                  | Success v => m2 v}
 
+fun tryRunTransaction [t] (m : transaction t) : io (result t) =
+    r <- attemptTransaction m;
+    case r of
+        Some v => return (Success v)
+      | None =>
+        e <- io_errorMessage;
+        return (Failure (cdata e))
+
 con ident = K ==> fn t :: K => t
 con record (t :: {Type}) = $t
 con fst = K1 ==> K2 ==> fn t :: (K1 * K2) => t.1

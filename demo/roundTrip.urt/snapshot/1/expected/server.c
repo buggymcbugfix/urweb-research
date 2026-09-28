@@ -388,14 +388,14 @@
                                          uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                                          }
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query failed:\n%s\n%s", 
+                                        uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query failed:\n%s\n%s", 
                                         "SELECT T_Channels.uw_Channel FROM uw_RoundTrip_channels AS T_Channels WHERE (T_Channels.uw_Client = $1::int4)", PQerrorMessage(conn));
                                         }
                                        
                                        if (PQnfields(res) != 1) {
                                        int nf = PQnfields(res);
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
+                                        uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
                                         "SELECT T_Channels.uw_Channel FROM uw_RoundTrip_channels AS T_Channels WHERE (T_Channels.uw_Client = $1::int4)", PQerrorMessage(conn));
                                         }
                                        
@@ -411,7 +411,7 @@
                                          =
                                          (PQgetisnull(res, i, 0) ? ({uw_Basis_channel
                                                                     tmp;
-                                                                    uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Unexpectedly NULL field #0");
+                                                                    uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Unexpectedly NULL field #0");
                                                                     tmp;
                                                                     }) : uw_Basis_stringToChannel_error(ctx, 
                                                                           PQgetvalue(res, i, 0)));
@@ -435,7 +435,7 @@
                                     ({
                                      struct __uws_3
                                      tmp;
-                                     uw_error(ctx, FATAL, "$/top.ur:418:24-419:3: %s", 
+                                     uw_error(ctx, FATAL, "$/top.ur:426:24-427:3: %s", 
                                      "Query returned no rows");
                                      tmp;
                                      })

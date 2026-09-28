@@ -20,6 +20,8 @@
 #include <math.h>
 
 #include <pthread.h>
+#include <sys/mman.h>
+#include <errno.h>
 
 #include <unicode/utf8.h>
 #include <unicode/uchar.h>
@@ -482,6 +484,11 @@ struct uw_context {
   void *db;
   int transaction_started;
 
+  // An io context (uw_io_prepare): the heap is a reserved mapping that grows
+  // in place, since io code cannot be run again after a failure.
+  int io;
+  size_t heap_reserved;
+
   jmp_buf jmp_buf;
 
   regions *regions;
@@ -605,6 +612,8 @@ uw_context uw_init(int id, uw_loggers *lg) {
 
   ctx->db = NULL;
   ctx->transaction_started = 0;
+  ctx->io = 0;
+  ctx->heap_reserved = 0;
 
   ctx->regions = NULL;
 
@@ -713,7 +722,10 @@ void uw_free(uw_context ctx) {
   uw_buffer_free(&ctx->outHeaders);
   uw_buffer_free(&ctx->script);
   uw_buffer_free(&ctx->page);
-  uw_buffer_free(&ctx->heap);
+  if (ctx->io)
+    munmap(ctx->heap.start, ctx->heap_reserved);
+  else
+    uw_buffer_free(&ctx->heap);
   free(ctx->inputs);
   free(ctx->subinputs);
   free(ctx->cleanup);
@@ -1394,10 +1406,42 @@ void uw_set_at_most_one_query(uw_context ctx, int n) {
 }
 
 
+// The io heap: a reservation of address space, committed page by page as the
+// heap grows, so that growth never moves it.  Nothing is charged until a page
+// is made writable (the reservation is PROT_NONE, which counts against no
+// overcommit limit).
+static size_t page_size(void) {
+  static size_t sz = 0;
+  if (!sz) {
+    long l = sysconf(_SC_PAGESIZE);
+    sz = l > 0 ? (size_t)l : 4096;
+  }
+  return sz;
+}
+
+static void uw_io_heap_grow(uw_context ctx, uw_buffer *b, size_t desired) {
+  size_t used = b->back - b->start, next = used ? used : page_size(), ps = page_size();
+  while (next < desired)
+    next *= 2;
+  if (next > ctx->heap_reserved)
+    next = ctx->heap_reserved;
+  next = (next + ps - 1) / ps * ps;
+  if (next > ctx->heap_reserved || next < desired)
+    uw_error(ctx, FATAL, "Memory limit exceeded (io heap)");
+  if (mprotect(b->start + used, next - used, PROT_READ | PROT_WRITE))
+    uw_error(ctx, FATAL, "Cannot commit memory for the io heap: %s", strerror(errno));
+  b->back = b->start + next;
+}
+
 static void uw_buffer_check_ctx(uw_context ctx, const char *kind, uw_buffer *b, size_t extra, const char *desc) {
   if (b->back - b->front < extra) {
     size_t desired = b->front - b->start + extra, next;
     char *new_heap;
+
+    if (ctx->io && b == &ctx->heap) {
+      uw_io_heap_grow(ctx, b, desired);
+      return;
+    }
 
     next = b->back - b->start;
     if (next == 0)
@@ -4942,6 +4986,158 @@ failure_kind uw_runCallback(uw_context ctx, void (*callback)(uw_context)) {
   }
 
   return r;
+}
+
+// io computations.  The body runs with no transaction open and is never run
+// again after a failure, so its heap must not move under it: uw_io_prepare
+// replaces the context's heap with a reservation of address space that grows
+// in place (uw_io_heap_grow).  How much is reserved is the heap limit when
+// one is set, else 8 GiB; the reservation costs nothing until used.
+
+#define UW_IO_HEAP_DEFAULT_RESERVATION (8ULL * 1024 * 1024 * 1024)
+#define UW_IO_MAX_RETRIES 5
+
+void uw_io_prepare(uw_context ctx) {
+  size_t reserve = uw_heap_max == SIZE_MAX ? UW_IO_HEAP_DEFAULT_RESERVATION : uw_heap_max;
+  size_t ps = page_size(), initial;
+  char *map;
+
+  if (ctx->io)
+    return;
+
+  reserve = (reserve + ps - 1) / ps * ps;
+  map = mmap(NULL, reserve, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS
+#ifdef MAP_NORESERVE
+             | MAP_NORESERVE
+#endif
+             , -1, 0);
+  if (map == MAP_FAILED) {
+    fprintf(stderr, "Cannot reserve %llu bytes of address space for an io task's heap: %s\n",
+            (unsigned long long)reserve, strerror(errno));
+    exit(1);
+  }
+
+  initial = uw_min_heap < ps ? ps : (uw_min_heap + ps - 1) / ps * ps;
+  if (initial > reserve)
+    initial = reserve;
+  if (mprotect(map, initial, PROT_READ | PROT_WRITE)) {
+    fprintf(stderr, "Cannot commit the first %llu bytes of an io task's heap: %s\n",
+            (unsigned long long)initial, strerror(errno));
+    exit(1);
+  }
+
+  uw_buffer_free(&ctx->heap);
+  ctx->heap.start = ctx->heap.front = map;
+  ctx->heap.back = map + initial;
+  ctx->heap.max = reserve;
+  ctx->heap_reserved = reserve;
+  ctx->io = 1;
+}
+
+failure_kind uw_runIo(uw_context ctx, void (*callback)(uw_context)) {
+  int r;
+
+  if (!ctx->io) {
+    uw_set_error_message(ctx, "uw_runIo on a context without an io heap");
+    return FATAL;
+  }
+
+  r = setjmp(ctx->jmp_buf);
+
+  if (r == 0)
+    callback(ctx);
+
+  return r;
+}
+
+jmp_buf *uw_jmp_buf(uw_context ctx) {
+  return &ctx->jmp_buf;
+}
+
+// A transaction inline in io code.  The generated code is
+//
+//   uw_io_transaction t;  T r;
+//   uw_io_transaction_begin(ctx, &t);
+//   while (1) {
+//     int fk = setjmp(*uw_jmp_buf(ctx));
+//     if (fk == 0) { r = BODY; uw_io_transaction_commit(ctx, &t); break; }
+//     else if (!uw_io_transaction_retry(ctx, &t, fk)) { [r = NULL;] break; }
+//   }
+//   uw_io_transaction_end(ctx, &t, reraise);
+//
+// which is uw_request's protocol for a handler, with the body inline.  The
+// heap is not reset between attempts (it is the io computation's), so a
+// retried body's garbage stays until the computation ends.
+
+void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
+  memcpy(&t->outer, &ctx->jmp_buf, sizeof(jmp_buf));
+  t->retries_left = UW_IO_MAX_RETRIES;
+  t->failed = 0;
+  ctx->used_transactionals = 0;
+  ctx->error_message[0] = 0;
+  uw_transaction_arrives();
+}
+
+void uw_io_transaction_commit(uw_context ctx, uw_io_transaction *t) {
+  (void)t;
+  if (uw_commit(ctx)) {
+    // A serialization failure at COMMIT: rolled back by the database, the
+    // transactionals undone and freed; run the body again.  uw_commit leaves
+    // them counted, and the retry's uw_rollback would undo and free them a
+    // second time.
+    ctx->used_transactionals = 0;
+    uw_error(ctx, UNLIMITED_RETRY, "Commit conflict; retrying");
+  }
+  ctx->used_transactionals = 0;
+  if (uw_has_error(ctx)) {
+    // A transactional's commit callback failed, after the database committed.
+    char msg[ERROR_BUF_LEN];
+    strcpy(msg, ctx->error_message);
+    uw_error(ctx, FATAL, "%s", msg);
+  }
+}
+
+int uw_io_transaction_retry(uw_context ctx, uw_io_transaction *t, int fk) {
+  int again;
+  void *ld = ctx->loggers->logger_data;
+
+  switch (fk) {
+  case UNLIMITED_RETRY:
+    ctx->loggers->log_debug(ld, "Error triggers unlimited retry in io transaction: %s\n", ctx->error_message);
+    again = 1;
+    break;
+  case BOUNDED_RETRY:
+    ctx->loggers->log_debug(ld, "Error triggers bounded retry in io transaction: %s\n", ctx->error_message);
+    again = --t->retries_left > 0;
+    if (!again)
+      ctx->loggers->log_error(ld, "Fatal error in io transaction (out of retries): %s\n", ctx->error_message);
+    break;
+  default:
+    again = 0;
+    break;
+  }
+
+  if (uw_rollback(ctx, again))
+    ctx->loggers->log_error(ld, "Error running SQL ROLLBACK in io transaction\n");
+  ctx->used_transactionals = 0;
+
+  if (!again)
+    t->failed = 1;
+  return again;
+}
+
+void uw_io_transaction_end(uw_context ctx, uw_io_transaction *t, int reraise) {
+  memcpy(&ctx->jmp_buf, &t->outer, sizeof(jmp_buf));
+  uw_transaction_departs();
+  if (t->failed && reraise) {
+    char msg[ERROR_BUF_LEN];
+    strcpy(msg, ctx->error_message);
+    uw_error(ctx, FATAL, "%s", msg);
+  }
+}
+
+uw_Basis_string uw_Basis_io_errorMessage(uw_context ctx) {
+  return uw_strdup(ctx, ctx->error_message);
 }
 
 uw_Basis_bool uw_Basis_eq_time(uw_context ctx, uw_Basis_time t1, uw_Basis_time t2) {

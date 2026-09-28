@@ -1,0 +1,13 @@
+transaction open around io code: False
+transaction open inside runTransaction: True
+effect: between transactions
+tryRunTransaction: Failure tests/io_task/io_task.ur:21:32-22:40: boom in a transaction
+Error triggers bounded retry in io transaction: flaky
+Error triggers bounded retry in io transaction: flaky
+Error triggers bounded retry in io transaction: flaky
+Error triggers bounded retry in io transaction: flaky
+Error triggers bounded retry in io transaction: flaky
+bounded retries: Failure flaky
+rows committed: 1
+env: set
+still running

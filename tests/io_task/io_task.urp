@@ -1,0 +1,11 @@
+database dbname=io_task.db
+ffi iocheck
+include iocheck.h
+link iocheck.c
+allow env IO_TASK_ENV
+allow url /Io_task/main
+safeGet Io_task/main
+minHeap 65536
+
+$/option
+io_task
