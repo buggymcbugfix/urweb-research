@@ -45,17 +45,16 @@ fun p_t t =
       | String (_, s) => box [string "\"", string (String.toString s), string "\""]
       | Char ch => box [string "#\"", string (String.toString (String.str ch)), string "\""]
 
-fun int2s n =
-    if Int64.compare (n, Int64.fromInt 0) = LESS then
-        "-" ^ Int64.toString (Int64.~ n) ^ "LL"
-    else
-        Int64.toString n ^ "LL"
+(* An int in decimal, with '-' for SML's '~'.  (Negating a negative int to
+   print it overflows for the smallest one.) *)
+fun int2s' n = String.translate (fn #"~" => "-" | ch => str ch) (Int64.toString n)
 
-fun int2s' n =
-    if Int64.compare (n, Int64.fromInt 0) = LESS then
-        "-" ^ Int64.toString (Int64.~ n)
-    else
-        Int64.toString n
+(* As a C literal: the smallest int has none, since -9223372036854775808LL is
+   the negation of a literal too large for long long. *)
+fun int2s n =
+    case Int64.minInt of
+        SOME min => if n = min then "(" ^ int2s' (Int64.+ (n, 1)) ^ "LL - 1)" else int2s' n ^ "LL"
+      | NONE => int2s' n ^ "LL"
 
 val float2s = String.translate (fn #"~" => "-" | ch => str ch) o Real64.toString
 

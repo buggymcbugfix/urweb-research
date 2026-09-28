@@ -33,11 +33,7 @@ structure U = MonoUtil
 fun typ t = t
 fun decl d = d
 
-fun attrifyInt n =
-    if n < 0 then
-        "-" ^ Int64.toString (Int64.~ n)
-    else
-        Int64.toString n
+fun attrifyInt n = String.translate (fn #"~" => "-" | ch => str ch) (Int64.toString n)
 
 fun attrifyFloat n =
     if n < 0.0 then
