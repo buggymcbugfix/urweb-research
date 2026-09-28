@@ -16,15 +16,15 @@ val isSuccess : a ::: Type -> result a -> bool
 val mp : a ::: Type -> b ::: Type -> (a -> b) -> result a -> result b
 val bind : a ::: Type -> b ::: Type -> (a -> result b) -> result a -> result b
 
-val get : a ::: Type -> a -> result a -> a
 (* The value, or the given default when it failed. *)
+val get : a ::: Type -> a -> result a -> a
 
-val errorGet : a ::: Type -> result a -> a
 (* The value, or an error carrying the failure's own message. *)
+val errorGet : a ::: Type -> result a -> a
 
-val readResult : t ::: Type -> read t -> string -> result t
 (* `read`, with a failure instead of None. *)
+val readResult : t ::: Type -> read t -> string -> result t
 
-val guard : bool -> xbody -> result unit
 (* Success () when the condition holds, Failure with the message otherwise, so
 that a chain of binds can give up partway. *)
+val guard : bool -> xbody -> result unit
