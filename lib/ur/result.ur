@@ -51,3 +51,22 @@ fun readResult [t] (_ : read t) (s : string) : result t =
       | Some v => Success v
 
 fun guard (b : bool) (e : xbody) : result unit = if b then Success () else Failure e
+
+fun validate [a] (rs : list (result a)) : result (list a) =
+    let
+        fun validate' (acc : result (list a)) rs =
+            case rs of
+            | [] => mp List.rev acc
+            | r :: rs =>
+                validate'
+                    (
+                        case (acc, r) of
+                        | (Success vs, Success v) => Success (v :: vs)
+                        | (Success _, Failure e) => Failure e
+                        | (Failure e, Success _) => Failure e
+                        | (Failure es, Failure e) => Failure <xml>{es}<br/>{e}</xml>
+                    )
+                    rs
+    in
+        validate' (Success []) rs
+    end

@@ -28,3 +28,6 @@ val readResult : t ::: Type -> read t -> string -> result t
 (* Success () when the condition holds, Failure with the message otherwise, so
 that a chain of binds can give up partway. *)
 val guard : bool -> xbody -> result unit
+
+(* Accumulate all errors, if any, else we know all values are good. *)
+val validate : a ::: Type -> list (result a) -> result (list a)
