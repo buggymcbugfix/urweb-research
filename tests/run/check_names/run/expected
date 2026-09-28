@@ -1,7 +1,7 @@
-env TEST_VAR: False
+env TEST_VAR: True
 env PLAIN: True
 env NOT_ALLOWED: False
-header X-Test: False
+header X-Test: True
 header Plain: True
 header X-Other: False
 env TEST_VAR: True, header X-Test: True
