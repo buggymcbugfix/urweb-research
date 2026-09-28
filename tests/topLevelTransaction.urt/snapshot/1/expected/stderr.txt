@@ -1,0 +1,1 @@
+tests/topLevelTransaction.ur:8:8: (to 9:17) Anonymous function remains at code generation
