@@ -1,0 +1,29 @@
+env TEST_VAR: False
+env PLAIN: True
+env NOT_ALLOWED: False
+header X-Test: False
+header Plain: True
+header X-Other: False
+env TEST_VAR: True, header X-Test: True
+--- log
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Check_names/check/env/TEST_VAR....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Check_names/check/env/PLAIN....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Check_names/check/env/NOT_ALLOWED....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Check_names/check/header/X-Test....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Check_names/check/header/Plain....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Check_names/check/header/X-Other....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Check_names/literal....

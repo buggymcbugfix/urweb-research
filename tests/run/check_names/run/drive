@@ -1,0 +1,6 @@
+# Allowed names with and without '_' and '-', one not allowed, each as the
+# runtime checks it; then the literals, as the compiler does.
+for u in env/TEST_VAR env/PLAIN env/NOT_ALLOWED header/X-Test header/Plain header/X-Other; do
+  curl -s "http://127.0.0.1:$port/Check_names/check/$u" | sed -e 's/<[^>]*>//g'; echo
+done
+curl -s "http://127.0.0.1:$port/Check_names/literal" | sed -e 's/<[^>]*>//g' | tr -s ' \n' ' ' | sed 's/^ *//; s/ *$//'; echo

@@ -1,0 +1,11 @@
+allow env TEST_VAR
+allow env PLAIN
+allow responseHeader X-Test
+allow responseHeader Plain
+allow url /Check_names/*
+safeGet Check_names/check
+safeGet Check_names/literal
+minHeap 65536
+
+$/option
+check_names
