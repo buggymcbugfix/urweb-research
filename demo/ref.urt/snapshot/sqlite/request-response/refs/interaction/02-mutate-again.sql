@@ -19,9 +19,9 @@ DELETE FROM uw_Ref_SR_s;
 INSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES ('hi', 2);
 -- demo/ref.ur:14:4-28:2 (1 row)
 UPDATE uw_Ref_IR_t SET uw_Data = 10 WHERE (uw_Id = 4);
--- $/basis.urs:720:0-720:33 (1 row)
+-- $/basis.urs:722:0-722:33 (1 row)
 DELETE FROM uw_Ref_IR_t WHERE (uw_Id = 3);
--- $/basis.urs:720:0-720:33 (1 row)
+-- $/basis.urs:722:0-722:33 (1 row)
 DELETE FROM uw_Ref_IR_t WHERE (uw_Id = 4);
 -- demo/ref.ur:22:4-28:2 (1 row)
 DELETE FROM uw_Ref_SR_t WHERE (uw_Id = 2);

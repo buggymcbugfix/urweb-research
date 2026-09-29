@@ -42,22 +42,31 @@ type state = {
 
 fun frob file =
     let
-        val (rpcBaseIds, trpcBaseIds) =
-            foldl (fn ((d, _), (rpcIds, trpcIds)) =>
+        (* The four RPC primitives: the failure mode the client sees, and
+         * whether the function called is an io computation. *)
+        fun primitive x =
+            case x of
+                "rpc" => SOME (None, false)
+              | "tryRpc" => SOME (Error, false)
+              | "io_rpc" => SOME (None, true)
+              | "io_tryRpc" => SOME (Error, true)
+              | _ => NONE
+
+        (* Values bound to one of the primitives, directly or through another
+         * such value. *)
+        val baseIds =
+            foldl (fn ((d, _), ids) =>
                       case d of
-                          DVal (_, n, _, (EFfi ("Basis", "rpc"), _), _) =>
-                          (IS.add (rpcIds, n), trpcIds)
-                        | DVal (_, n, _, (EFfi ("Basis", "tryRpc"), _), _) =>
-                          (rpcIds, IS.add (trpcIds, n))
+                          DVal (_, n, _, (EFfi ("Basis", x), _), _) =>
+                          (case primitive x of
+                               SOME p => IM.insert (ids, n, p)
+                             | NONE => ids)
                         | DVal (_, n, _, (ENamed n', _), _) =>
-                          if IS.member (rpcIds, n') then
-                              (IS.add (rpcIds, n), trpcIds)
-                          else if IS.member (trpcIds, n') then
-                              (rpcIds, IS.add (trpcIds, n))
-                          else
-                              (rpcIds, trpcIds)
-                        | _ => (rpcIds, trpcIds))
-                  (IS.empty, IS.empty) file
+                          (case IM.find (ids, n') of
+                               SOME p => IM.insert (ids, n, p)
+                             | NONE => ids)
+                        | _ => ids)
+                  IM.empty file
 
         val tfuncs = foldl
                      (fn ((d, _), tfuncs) =>
@@ -96,7 +105,12 @@ fun frob file =
                       | EApp (e1, e2) => getApp (#1 e1, e2 :: args)
                       | _ => NONE
 
-                fun newRpc (trans : exp, st : state, fm) =
+                (* The call becomes a server call; the function is exported as
+                 * an RPC, of the io kind when the primitive was io_rpc or
+                 * io_tryRpc, which is how the code generator knows to run it
+                 * outside any transaction.  (The types already agree: only
+                 * an io function can be passed to those two.) *)
+                fun newRpc (trans : exp, st : state, (fm, io)) =
                     case getApp (#1 trans, []) of
                         NONE => (ErrorMsg.errorAt (#2 trans)
                                                   "RPC code doesn't use a named function or transaction";
@@ -111,12 +125,14 @@ fun frob file =
                             let
                                 val loc = #2 trans
 
+                                val kind = if io then IoRpc ReadWrite else Rpc ReadWrite
+
                                 val (exported, export_decls) =
                                     if IS.member (#exported st, n) then
                                         (#exported st, #export_decls st)
                                     else
                                         (IS.add (#exported st, n),
-                                         (DExport (Rpc ReadWrite, n, false), loc) :: #export_decls st)
+                                         (DExport (kind, n, false), loc) :: #export_decls st)
 
                                 val st = {exported = exported,
                                           export_decls = export_decls}
@@ -127,15 +143,14 @@ fun frob file =
                             end
             in
                 case e of
-                    EApp ((ECApp ((EFfi ("Basis", "rpc"), _), ran), _), trans) => newRpc (trans, st, None)
-                  | EApp ((ECApp ((EFfi ("Basis", "tryRpc"), _), ran), _), trans) => newRpc (trans, st, Error)
+                    EApp ((ECApp ((EFfi ("Basis", x), _), ran), _), trans) =>
+                    (case primitive x of
+                         SOME p => newRpc (trans, st, p)
+                       | NONE => (e, st))
                   | EApp ((ECApp ((ENamed n, _), ran), _), trans) =>
-                    if IS.member (rpcBaseIds, n) then
-                        newRpc (trans, st, None)
-                    else if IS.member (trpcBaseIds, n) then
-                        newRpc (trans, st, Error)
-                    else
-                        (e, st)
+                    (case IM.find (baseIds, n) of
+                         SOME p => newRpc (trans, st, p)
+                       | NONE => (e, st))
 
                   | _ => (e, st)
             end

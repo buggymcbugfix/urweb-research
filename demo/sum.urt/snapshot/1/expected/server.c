@@ -149,5 +149,6 @@
                                                                 1,
                                                                   NULL,
                                                                        
-                           uw_served_files};
+                           uw_served_files,
+                                           0};
  

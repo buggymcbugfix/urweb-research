@@ -4400,6 +4400,9 @@ fun monoDecl (env, fm) (all as (d, loc)) =
                         L.TFun (dom, ran) => unwind (ran, dom :: args)
                       | L.CApp ((L.CFfi ("Basis", "transaction"), _), t) =>
                         unwind (t, (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc) :: args)
+                      | L.CApp ((L.CFfi ("Basis", "io"), _), t) =>
+                        (* An io RPC: a thunk as well. *)
+                        unwind (t, (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc) :: args)
                       | _ => (rev args, t)
 
                 val (ts, ran) = unwind (t, [])
@@ -4585,6 +4588,7 @@ fun monoize env file =
                               case d of
                                   L.DExport (L.Action L.ReadCookieWrite, n, _) => IS.add (rcook, n)
                                 | L.DExport (L.Rpc L.ReadCookieWrite, n, _) => IS.add (rcook, n)
+                                | L.DExport (L.IoRpc L.ReadCookieWrite, n, _) => IS.add (rcook, n)
                                 | _ => rcook)
                           IS.empty file
         val () = readCookie := rcook

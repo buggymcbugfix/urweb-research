@@ -39,6 +39,7 @@ datatype export_kind =
          Link of effect
        | Action of effect
        | Rpc of effect
+       | IoRpc of effect (* an RPC whose function is an io computation *)
        | Extern of effect
 
 fun p_effect ef =
@@ -52,6 +53,7 @@ fun p_export_kind ck =
         Link ef => box [string "link(", p_effect ef, string ")"]
       | Action ef => box [string "action(", p_effect ef, string ")"]
       | Rpc ef => box [string "rpc(", p_effect ef, string ")"]
+      | IoRpc ef => box [string "io_rpc(", p_effect ef, string ")"]
       | Extern ef => box [string "extern(", p_effect ef, string ")"]
 
 end

@@ -36,6 +36,7 @@ datatype export_kind =
          Link of effect
        | Action of effect
        | Rpc of effect
+       | IoRpc of effect (* an RPC whose function is an io computation *)
        | Extern of effect
 
 val p_effect : effect Print.printer

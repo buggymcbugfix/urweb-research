@@ -488,6 +488,9 @@ struct uw_context {
   // in place, since io code cannot be run again after a failure.
   int io;
   size_t heap_reserved;
+  // A request is running an io function (uw_io_request_begin): its client
+  // is kept across the function's transactions, for the request to release.
+  int io_request;
 
   jmp_buf jmp_buf;
 
@@ -614,6 +617,7 @@ uw_context uw_init(int id, uw_loggers *lg) {
   ctx->transaction_started = 0;
   ctx->io = 0;
   ctx->heap_reserved = 0;
+  ctx->io_request = 0;
 
   ctx->regions = NULL;
 
@@ -760,6 +764,7 @@ void uw_reset_keep_error_message(uw_context ctx) {
   ctx->cleanup_front = ctx->cleanup;
   ctx->used_deltas = 0;
   ctx->client = NULL;
+  ctx->io_request = 0;
   ctx->cur_container = NULL;
   ctx->used_transactionals = 0;
   ctx->script_header = "";
@@ -3781,12 +3786,20 @@ uw_unit uw_Basis_send(uw_context ctx, uw_Basis_channel chn, uw_Basis_string msg)
   return uw_unit_v;
 }
 
+// Release the client a transaction held, at its commit or rollback -- unless
+// the transaction is one of an io function run by a request
+// (uw_io_request_begin), whose client is the request's: it stays held, and
+// named in the context, until the request itself commits or rolls back.
+static void release_client_of(uw_context ctx) {
+  if (ctx->client && !ctx->io_request)
+    release_client(ctx->client);
+}
+
 int uw_rollback(uw_context ctx, int will_retry) {
   int i;
   cleanup *cl;
 
-  if (ctx->client)
-    release_client(ctx->client);
+  release_client_of(ctx);
 
   for (cl = ctx->cleanup; cl < ctx->cleanup_front; ++cl)
     cl->func(cl->arg);
@@ -3866,8 +3879,7 @@ int uw_commit(uw_context ctx) {
       if (ctx->used_deltas > 0)
         pthread_mutex_unlock(&message_send_mutex);
 
-      if (ctx->client)
-        release_client(ctx->client);
+      release_client_of(ctx);
 
       if (code == -1) {
         // This case is for a serialization failure, which is not really an "error."
@@ -3909,8 +3921,7 @@ int uw_commit(uw_context ctx) {
           if (ctx->used_deltas > 0)
             pthread_mutex_unlock(&message_send_mutex);
 
-          if (ctx->client)
-            release_client(ctx->client);
+          release_client_of(ctx);
 
           for (i = ctx->used_transactionals-1; i >= 0; --i)
             if (ctx->transactionals[i].rollback != NULL)
@@ -3936,8 +3947,7 @@ int uw_commit(uw_context ctx) {
   if (ctx->used_deltas > 0)
     pthread_mutex_unlock(&message_send_mutex);
 
-  if (ctx->client)
-    release_client(ctx->client);
+  release_client_of(ctx);
 
   for (i = ctx->used_transactionals-1; i >= 0; --i)
     if (ctx->transactionals[i].free)
@@ -5075,10 +5085,12 @@ jmp_buf *uw_jmp_buf(uw_context ctx) {
 // but still named), its cleanups and its transactionals.  A request's
 // uw_reset clears all of this along with the heap; an io computation runs
 // several transactions on one context and keeps its heap, so each of them
-// starts from this.
+// starts from this.  The client of an io function run by a request is the
+// request's, not the transaction's: it stays (see release_client_of).
 static void uw_transaction_reset(uw_context ctx) {
   ctx->used_deltas = 0;
-  ctx->client = NULL;
+  if (!ctx->io_request)
+    ctx->client = NULL;
   ctx->cur_container = NULL;
   ctx->cleanup_front = ctx->cleanup;
   ctx->used_transactionals = 0;
@@ -5153,6 +5165,56 @@ void uw_io_transaction_end(uw_context ctx, uw_io_transaction *t, int reraise) {
 
 uw_Basis_string uw_Basis_io_errorMessage(uw_context ctx) {
   return uw_strdup(ctx, ctx->error_message);
+}
+
+// The io function of an RPC, inline in the handler the compiler generates:
+//
+//   uw_io_request r;
+//   uw_io_request_begin(ctx, &r);
+//   { int fk = setjmp(*uw_jmp_buf(ctx));
+//     if (fk == 0) { T v = BODY; uw_io_request_end(ctx, &r, 0); ANSWER v; }
+//     else uw_io_request_end(ctx, &r, fk); }
+//
+// The request came in under uw_request's protocol for a handler: the
+// expunger's read lock taken, uw_login done, no transaction begun yet (that
+// happens at the first query).  The body is an io computation: it opens no
+// transaction of the request's, runs its own (uw_io_transaction_*), and is
+// never run again, so a failure that reaches this level is re-raised to
+// uw_request as FATAL whatever its kind -- a retry from inside a transaction
+// never gets here, and one from outside cannot be honoured.  For the same
+// reason the context must have the io heap (uw_io_prepare), which the runtime
+// gives every request context of an application with io handlers: a heap
+// that moved would ask for a retry.  Meanwhile the expunger's lock is held
+// by the inner transactions only, not across the body (a network call, say),
+// as in an io task; and the client uw_login found or made stays held and
+// named across the inner transactions (release_client_of), for the request's
+// own commit or rollback to release.
+void uw_io_request_begin(uw_context ctx, uw_io_request *r) {
+  if (!ctx->io)
+    uw_error(ctx, FATAL, "io code in a request on a context without an io heap");
+  memcpy(&r->outer, &ctx->jmp_buf, sizeof(jmp_buf));
+  ctx->io_request = 1;
+  uw_transaction_departs();
+}
+
+void uw_io_request_end(uw_context ctx, uw_io_request *r, int fk) {
+  uw_transaction_arrives();
+  memcpy(&ctx->jmp_buf, &r->outer, sizeof(jmp_buf));
+  ctx->io_request = 0;
+
+  switch (fk) {
+  case 0:
+    return;
+  case BOUNDED_RETRY:
+  case UNLIMITED_RETRY: {
+    char msg[ERROR_BUF_LEN];
+    strcpy(msg, ctx->error_message);
+    uw_error(ctx, FATAL, "%s (retry requested outside any transaction in io code)", msg);
+  }
+  default:
+    // FATAL, or any other kind: on to uw_request as it is.
+    longjmp(ctx->jmp_buf, fk);
+  }
 }
 
 uw_Basis_bool uw_Basis_eq_time(uw_context ctx, uw_Basis_time t1, uw_Basis_time t2) {

@@ -385,6 +385,14 @@ void uw_io_transaction_commit(struct uw_context *, uw_io_transaction *);
 int uw_io_transaction_retry(struct uw_context *, uw_io_transaction *, int fk);
 void uw_io_transaction_end(struct uw_context *, uw_io_transaction *, int reraise);
 uw_Basis_string uw_Basis_io_errorMessage(struct uw_context *);
+// The io function of an RPC (Basis.io_rpc), run by the handler the compiler
+// generates: begin, then setjmp on *uw_jmp_buf(ctx) and run the function; end
+// on either path, with the failure kind the setjmp gave (0 when none), which
+// it re-raises as FATAL when it was a retry, since the function is never run
+// again.  Between the two the request's client is kept across the function's
+// transactions, and the expunger's lock is not held, as in an io task.
+void uw_io_request_begin(struct uw_context *, uw_io_request *);
+void uw_io_request_end(struct uw_context *, uw_io_request *, int fk);
 
 uw_Basis_string uw_Basis_timef(struct uw_context *, const char *fmt, uw_Basis_time);
 uw_Basis_time uw_Basis_stringToTimef(struct uw_context *, const char *fmt, uw_Basis_string);

@@ -1,0 +1,4 @@
+call 2: twice 2
+transaction open around the body: False
+transaction open inside runTransaction: True
+effect: between transactions

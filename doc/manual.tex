@@ -1544,7 +1544,7 @@ $$\begin{array}{l}
 
 A fatal error inside $\mt{runTransaction}$ ends the $\mt{io}$ computation, as it would a request; $\mt{attemptTransaction}$ reports it instead as $\mt{None}$, the transaction having been rolled back, and $\mt{io\_errorMessage}$ then has its message.  Top's $\mt{tryRunTransaction} : \mt{t} ::: \mt{Type} \to \mt{transaction} \; \mt{t} \to \mt{io} \; (\mt{result} \; \mt{t})$ packages the two as a $\mt{Failure}$ carrying the message.  The few transaction primitives that make sense outside a transaction are available in $\mt{io}$ under their own names: $\mt{io\_debug}$, $\mt{io\_getenv}$, $\mt{io\_now}$, $\mt{io\_rand}$.
 
-For now, $\mt{io}$ code runs only as the body of a $\mt{periodic}$ task (see Section \ref{tasks}) and in FFI functions: an FFI function whose result type is $\mt{io} \; \tau$ is called when the computation runs, like one into $\mt{transaction}$, and its C code may allocate with \texttt{uw\_malloc()} as usual; the heap of an $\mt{io}$ computation never moves, so no such computation is restarted for lack of memory.
+For now, $\mt{io}$ code runs as the body of a $\mt{periodic}$ task (see Section \ref{tasks}), as the function of a remote procedure call made with $\mt{io\_rpc}$ or $\mt{io\_tryRpc}$ (see Section \ref{rpc}), and in FFI functions: an FFI function whose result type is $\mt{io} \; \tau$ is called when the computation runs, like one into $\mt{transaction}$, and its C code may allocate with \texttt{uw\_malloc()} as usual; the heap of an $\mt{io}$ computation never moves, so no such computation is restarted for lack of memory.  In an RPC, the client that made the request stays known to every transaction the computation runs (for $\mt{self}$, channels and messages), and a failure outside any transaction ends the computation and fails the request, as one inside $\mt{runTransaction}$ does; the request is never repeated.
 
 \subsection{HTTP}
 
@@ -2297,7 +2297,7 @@ $$\begin{array}{l}
   \mt{val} \; \mt{active} : \mt{unit} \to \mt{tag} \; [\mt{Code} = \mt{transaction} \; \mt{xbody}] \; \mt{body} \; [] \; [] \; []
 \end{array}$$
 
-\subsubsection{Remote Procedure Calls}
+\subsubsection{\label{rpc}Remote Procedure Calls}
 
 Any function call may be made a client-to-server ``remote procedure call'' if the function being called needs no features that are only available to client code.  To make a function call an RPC, pass that function call as the argument to $\mt{Basis.rpc}$:
 
@@ -2309,6 +2309,13 @@ There is an alternate form that uses $\mt{None}$ to indicate that an error occur
 
 $$\begin{array}{l}
   \mt{val} \; \mt{tryRpc} : \mt{t} ::: \mt{Type} \to \mt{transaction} \; \mt{t} \to \mt{transaction} \; (\mt{option} \; \mt{t})
+\end{array}$$
+
+The function called may instead be an $\mt{io}$ computation (Section \ref{io}), through the two forms below.  It then runs on the server with no transaction open, running transactions of its own, and is never run again after a failure: what it did, it did.  The client gets its value as with $\mt{rpc}$, or, with $\mt{io\_tryRpc}$, $\mt{None}$ when it failed.
+
+$$\begin{array}{l}
+  \mt{val} \; \mt{io\_rpc} : \mt{t} ::: \mt{Type} \to \mt{io} \; \mt{t} \to \mt{transaction} \; \mt{t} \\
+  \mt{val} \; \mt{io\_tryRpc} : \mt{t} ::: \mt{Type} \to \mt{io} \; \mt{t} \to \mt{transaction} \; (\mt{option} \; \mt{t})
 \end{array}$$
 
 \subsubsection{Asynchronous Message-Passing}
