@@ -1,0 +1,11 @@
+> POST /Curl_io/payRetried/1
+HTTP/1.1 200 OK
+
+
+order+1.3A+paid
+> provider charges
+  1 charges
+  order-1
+> database
+  order 1 (ok): paid charged order 1 amount 50 ref 1
+  | Error triggers bounded retry in io transaction: first try of recording 1

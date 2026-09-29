@@ -97,8 +97,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   # test dependencies
   nativeCheckInputs = [
-    curl 
-  ] ++ lib.optional withUrt python3; # urt's pty cases and stand-in server
+    curl # the demo test's requests, and libcurl for tests/io_curl
+    python3 # tests/io_curl's stub server; urt's pty cases and stand-in server
+  ];
 
   # What the build writes into src/version.sml (see Makefile.am): the
   # sandbox has neither git nor .git to read it from

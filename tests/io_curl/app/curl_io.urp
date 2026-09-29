@@ -1,0 +1,24 @@
+database dbname=curl_io.db
+ffi ../urweb-curl/curlFfi
+include ../urweb-curl/curl.h
+link -I../../../include
+link ../urweb-curl/curl.c
+link -lcurl
+effectful CurlFfi.perform
+ffi ../../ioprobe/probe
+include ../../ioprobe/probe.h
+link ../../ioprobe/probe.c
+allow url http://127.0.0.1:*
+allow url /Curl_io/main
+allow url /Curl_io/state
+allow env CURL_TEST_HTTP
+allow env CURL_TEST_CLOSED
+safeGet Curl_io/main
+safeGet Curl_io/state
+
+$/char
+$/list
+$/option
+$/string
+../urweb-curl/curl
+curl_io

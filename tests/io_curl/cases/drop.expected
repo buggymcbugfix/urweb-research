@@ -1,0 +1,9 @@
+> POST /Curl_io/pay/6
+HTTP/1.1 200 OK
+
+
+order+6.3A+unknown
+> provider charges
+  0 charges
+> database
+  order 6 (drop): unknown

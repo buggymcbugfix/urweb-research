@@ -1594,7 +1594,8 @@ database dbname=io_rpc_attempts.db
            (fn v =>
              return
               (Basis.strcat (case r of None => "None" | Some {} => "Some")
-                (Basis.strcat ", cookie seen afterwards: " (show v)))))
+                (Basis.strcat ", cookie seen afterwards: "
+                  (case v of None => "none" | Some v => v)))))
     
     val rec
      retried : int -> io int =

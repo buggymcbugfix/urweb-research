@@ -1,0 +1,1 @@
+POST /Rpc_types/strs/a+b+c -H 'Content-type: text/plain'

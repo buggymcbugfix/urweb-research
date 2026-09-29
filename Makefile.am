@@ -171,7 +171,14 @@ update-snapshot: urt
 check-urt: urt
 	$(MAKE) -C urt check CC="$(CC)"
 
-check-local: bin/urweb
+# HTTP requests from io code, against a stub server: see
+# tests/io_curl/README.md.  Needs python3, curl and sqlite3, and libcurl to
+# link the application.
+.PHONY: check-io-curl
+check-io-curl: bin/urweb
+	tests/io_curl/run.sh
+
+check-local: bin/urweb check-io-curl
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \

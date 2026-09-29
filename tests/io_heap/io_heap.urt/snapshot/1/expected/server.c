@@ -386,7 +386,7 @@
                                                   uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                                   uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                                                   if (sqlite3_bind_int64(stmt, 1, 
-                                                       arg1) != SQLITE_OK) uw_error(ctx, FATAL, "$/basis.urs:720:0-720:33: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
+                                                       arg1) != SQLITE_OK) uw_error(ctx, FATAL, "$/basis.urs:722:0-722:33: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
                                                    
                                                   int r;
                                                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
@@ -394,11 +394,11 @@
                                                     uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                     }
                                                    
-                                                   if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/basis.urs:720:0-720:33: DML step failed: %s<br />%s", 
+                                                   if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/basis.urs:722:0-722:33: DML step failed: %s<br />%s", 
                                                                           "INSERT INTO uw_Io_heap_t (uw_N) VALUES (\?)", sqlite3_errmsg(conn->conn));
                                                                           else if (uw_dml_log_enabled()) {
                                                    char *expanded = sqlite3_expanded_sql(stmt);
-                                                    uw_log_dml(ctx, "$/basis.urs:720:0-720:33", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                                    uw_log_dml(ctx, "$/basis.urs:722:0-722:33", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
                                                     sqlite3_free(expanded);
                                                     }
                                                    uw_pop_cleanup(ctx);
@@ -927,5 +927,6 @@
                                                                 1,
                                                                   NULL,
                                                                        
-                           uw_served_files};
+                           uw_served_files,
+                                           0};
  

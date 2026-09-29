@@ -650,7 +650,7 @@
                                                       ({
                                                        uw_Basis_float*
                                                        tmp;
-                                                       uw_error(ctx, FATAL, "$/basis.urs:545:20-545:36: pattern match failure");
+                                                       uw_error(ctx, FATAL, "$/basis.urs:547:20-547:36: pattern match failure");
                                                        tmp;
                                                        });
                                                     });
@@ -1023,5 +1023,6 @@
                                                                 1,
                                                                   NULL,
                                                                        
-                           uw_served_files};
+                           uw_served_files,
+                                           0};
  

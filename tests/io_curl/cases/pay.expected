@@ -1,0 +1,42 @@
+> POST /Curl_io/pay/1
+HTTP/1.1 200 OK
+
+
+order+1.3A+paid
+> POST /Curl_io/pay/1
+HTTP/1.1 200 OK
+
+
+order+1+is+paid
+> POST /Curl_io/pay/2
+HTTP/1.1 200 OK
+
+
+order+2.3A+failed
+> POST /Curl_io/pay/2
+HTTP/1.1 200 OK
+
+
+order+2.3A+failed
+> POST /Curl_io/pay/3
+HTTP/1.1 200 OK
+
+
+order+3.3A+not+sent
+> POST /Curl_io/pay/3
+HTTP/1.1 200 OK
+
+
+order+3.3A+not+sent
+> POST /Curl_io/pay/9
+HTTP/1.1 200 OK
+
+
+no+such+order
+> provider charges
+  1 charges
+  order-1
+> database
+  order 1 (ok): paid charged order 1 amount 50 ref 1
+  order 2 (error): failed status 500
+  order 3 (closed): not sent

@@ -1,0 +1,14 @@
+~ the state page answered while the two payments waited
+> POST /Curl_io/pay/4
+
+order+4.3A+unknown
+> POST /Curl_io/pay/5
+
+order+5.3A+unknown
+> provider charges
+  2 charges
+  order-4
+  order-5
+> database
+  order 4 (slow): unknown
+  order 5 (slow): unknown

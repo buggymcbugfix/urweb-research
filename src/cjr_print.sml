@@ -2388,7 +2388,10 @@ and p_runTransaction par env (e, t, try) =
                                    string "} else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {",
                                    newline,
                                    box [if try then
-                                            box [string (if boxed then "__uwr = NULL;" else "__uwr = NULL;"),
+                                            (* None: NULL as the option itself
+                                             * when the type is a pointer, or
+                                             * as the missing box. *)
+                                            box [string "__uwr = NULL;",
                                                  newline]
                                         else
                                             box [],
@@ -3139,6 +3142,7 @@ fun p_file env (ds, ps) =
                         Link _ => false
                       | Action ef => ef = ReadCookieWrite
                       | Rpc ef => ef = ReadCookieWrite
+                      | IoRpc ef => ef = ReadCookieWrite
                       | Extern _ => false
 
                 fun couldWriteDb ek =
@@ -3146,7 +3150,13 @@ fun p_file env (ds, ps) =
                         Link ef => ef <> ReadOnly
                       | Action ef => ef <> ReadOnly
                       | Rpc ef => ef <> ReadOnly
+                      | IoRpc ef => ef <> ReadOnly
                       | Extern ef => ef <> ReadOnly
+
+                (* An RPC of either kind answers a value, not a page; an io
+                 * RPC runs its function outside any transaction. *)
+                val isRpc = case ek of Rpc _ => true | IoRpc _ => true | _ => false
+                val isIoRpc = case ek of IoRpc _ => true | _ => false
 
                 val s =
                     case Settings.getUrlPrefix () of
@@ -3174,18 +3184,19 @@ fun p_file env (ds, ps) =
                      newline,
                      string "if (*request == '/') ++request;",
                      newline,
-                     case ek of
-                         Rpc _ => box [string "if (uw_hasPostBody(ctx)) {",
-                                       newline,
-                                       box [string "uw_Basis_postBody pb = uw_getPostBody(ctx);",
-                                            newline,
-                                            string "if (pb.data[0])",
-                                            newline,
-                                            box [string "request = uw_Basis_strcat(ctx, request, pb.data);"],
-                                            newline],
-                                       string "}",
-                                       newline]
-                       | _ => box [],
+                     if isRpc then
+                         box [string "if (uw_hasPostBody(ctx)) {",
+                              newline,
+                              box [string "uw_Basis_postBody pb = uw_getPostBody(ctx);",
+                                   newline,
+                                   string "if (pb.data[0])",
+                                   newline,
+                                   box [string "request = uw_Basis_strcat(ctx, request, pb.data);"],
+                                   newline],
+                              string "}",
+                              newline]
+                     else
+                         box [],
                      if couldWrite ek andalso not (Settings.checkNoXsrfProtection s) then
                          box [string "{",
                               newline,
@@ -3209,10 +3220,10 @@ fun p_file env (ds, ps) =
                               newline]
                      else
                          box [],
-                     box (case ek of
-                              Core.Rpc _ => [string "uw_write_header(ctx, \"Content-type: text/plain\\r\\n\");",
-                                             newline]
-                            | _ => [string "uw_write_header(ctx, \"Content-type: text/html; charset=utf-8\\r\\n\");",
+                     box (if isRpc then
+                              [string "uw_write_header(ctx, \"Content-type: text/plain\\r\\n\");",
+                               newline]
+                          else [string "uw_write_header(ctx, \"Content-type: text/html; charset=utf-8\\r\\n\");",
                                     newline,
                                     case side of
                                         ServerOnly => box []
@@ -3260,52 +3271,92 @@ fun p_file env (ds, ps) =
                      newline,
                      string "uw_login(ctx);",
                      newline,
-                     box [string "{",
-                          newline,
-                          box (ListUtil.mapi (fn (i, t) => box [p_typ env t,
-                                                                space,
-                                                                string "arg",
-                                                                string (Int.toString i),
-                                                                space,
-                                                                string "=",
-                                                                space,
-                                                                case #1 t of
-                                                                    TFfi ("Basis", "postBody") => string "uw_getPostBody(ctx)"
-                                                                  | TOption (TFfi ("Basis", "queryString"), _) => string "uw_queryString(ctx)"
-                                                                  | _ => unurlify false env t,
-                                                                string ";",
-                                                                newline]) ts),
-                          defInputs,
-                          box (case ek of
-                                   Core.Rpc _ => [p_typ env ran,
-                                                  space,
-                                                  string "it0",
-                                                  space,
-                                                  string "=",
-                                                  space]
-                                 | _ => []),
-                          p_enamed env n,
-                          string "(",
-                          p_list_sep (box [string ",", space])
-                                     (fn x => x)
-                                     (string "ctx"
-                                      :: ListUtil.mapi (fn (i, _) => string ("arg" ^ Int.toString i)) ts),
-                          inputsVar,
-                          string ", 0);",
-                          newline,
-                          box (case ek of
-                                   Core.Rpc _ => [string "uw_write(ctx, uw_get_real_script(ctx));",
-                                                  newline,
-                                                  string "uw_write(ctx, \"\\n\");",
-                                                  newline,
-                                                  urlify env ran]
-                                 | _ => [string "uw_write(ctx, \"</html>\");",
-                                         newline]),
-                          string "return;",
-                          newline,
-                          string "}",
-                          newline,
-                          string "}"]
+                     box ([string "{",
+                           newline,
+                           box (ListUtil.mapi (fn (i, t) => box [p_typ env t,
+                                                                 space,
+                                                                 string "arg",
+                                                                 string (Int.toString i),
+                                                                 space,
+                                                                 string "=",
+                                                                 space,
+                                                                 case #1 t of
+                                                                     TFfi ("Basis", "postBody") => string "uw_getPostBody(ctx)"
+                                                                   | TOption (TFfi ("Basis", "queryString"), _) => string "uw_queryString(ctx)"
+                                                                   | _ => unurlify false env t,
+                                                                 string ";",
+                                                                 newline]) ts),
+                           defInputs]
+                          @ (let
+                                 val call = [p_enamed env n,
+                                             string "(",
+                                             p_list_sep (box [string ",", space])
+                                                        (fn x => x)
+                                                        (string "ctx"
+                                                         :: ListUtil.mapi (fn (i, _) => string ("arg" ^ Int.toString i)) ts),
+                                             inputsVar,
+                                             string ", 0);",
+                                             newline]
+
+                                 val result = [p_typ env ran,
+                                               space,
+                                               string "it0",
+                                               space,
+                                               string "=",
+                                               space]
+
+                                 val answer = [string "uw_write(ctx, uw_get_real_script(ctx));",
+                                               newline,
+                                               string "uw_write(ctx, \"\\n\");",
+                                               newline,
+                                               urlify env ran]
+                             in
+                                 if isIoRpc then
+                                     (* The function is an io computation, run
+                                      * under a jump target of its own, the way
+                                      * uw_runIo runs a task: no transaction is
+                                      * open around it, and a failure reaching
+                                      * it is re-raised by uw_io_request_end as
+                                      * FATAL, never as a retry, since the body
+                                      * cannot be run again.  The value is used
+                                      * only on the path that did not longjmp. *)
+                                     [string "uw_io_request __uwr;",
+                                      newline,
+                                      string "uw_io_request_begin(ctx, &__uwr);",
+                                      newline,
+                                      string "{",
+                                      newline,
+                                      box [string "int __uwfk = setjmp(*uw_jmp_buf(ctx));",
+                                           newline,
+                                           string "if (__uwfk == 0) {",
+                                           newline,
+                                           box (result
+                                                @ call
+                                                @ [string "uw_io_request_end(ctx, &__uwr, 0);",
+                                                   newline]
+                                                @ answer
+                                                @ [string "return;",
+                                                   newline]),
+                                           string "} else",
+                                           newline,
+                                           box [string "uw_io_request_end(ctx, &__uwr, __uwfk);",
+                                                newline]],
+                                      string "}",
+                                      newline]
+                                 else
+                                     box (if isRpc then result else [])
+                                     :: call
+                                     @ [box (if isRpc then
+                                                 answer
+                                             else
+                                                 [string "uw_write(ctx, \"</html>\");",
+                                                  newline]),
+                                        string "return;",
+                                        newline]
+                             end)
+                          @ [string "}",
+                             newline,
+                             string "}"])
                     ]
             end
 
@@ -3831,7 +3882,14 @@ fun p_file env (ds, ps) =
                          (case Settings.getFileCache () of
                               NONE => "NULL"
                             | SOME s => "\"" ^ Prim.toCString s ^ "\""),
-                         "uw_served_files"],
+                         "uw_served_files",
+                         (* io_handlers: whether a request may run io code,
+                          * which needs the heap that never moves *)
+                         if List.exists (fn (IoRpc _, _, _, _, _, _, _, _) => true
+                                          | _ => false) ps then
+                             "1"
+                         else
+                             "0"],
              string "};",
              newline]
     end

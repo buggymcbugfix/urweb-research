@@ -1,0 +1,1 @@
+POST /Rpc_types/colors/Blue/q/Some/3 -H 'Content-type: text/plain'

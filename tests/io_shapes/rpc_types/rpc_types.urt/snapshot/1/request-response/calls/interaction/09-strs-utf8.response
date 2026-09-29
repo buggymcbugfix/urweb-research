@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-type: text/plain
+Connection: close
+Content-length: 18
+
+
+caf.C3.A9.231.234

@@ -68,23 +68,29 @@ fun cancel (orderId : int) : transaction string =
         dml (UPDATE orders SET Status = "cancelled" WHERE Id = {[orderId]});
         return "cancelled"
 
+(* The pending orders are tried again, once their first payment has been
+   recorded: an order whose checkout is still running has no payment row yet,
+   and is left to it. *)
 task periodic 1 = fn () =>
     pending <- runTransaction (queryL1 (SELECT orders.Id, orders.Total FROM orders WHERE orders.Status = "pending"));
     List.app (fn o =>
                  attempts <- runTransaction (oneRowE1 (SELECT COUNT( * ) FROM payments WHERE payments.OrderId = {[o.Id]}));
-                 outcome <- provider o.Id o.Total (attempts + 1);
-                 runTransaction (record o.Id (attempts + 1) outcome);
-                 io_debug ("retried order " ^ show o.Id ^ ": " ^ outcome))
+                 if attempts = 0 then
+                     return ()
+                 else
+                     outcome <- provider o.Id o.Total (attempts + 1);
+                     runTransaction (record o.Id (attempts + 1) outcome);
+                     io_debug ("retried order " ^ show o.Id ^ ": " ^ outcome))
              pending
 
 fun state () =
     os <- queryL1 (SELECT orders.Id, orders.CartId, orders.Total, orders.Status FROM orders ORDER BY orders.Id);
     ps <- queryL1 (SELECT payments.OrderId, payments.Attempt, payments.Outcome FROM payments ORDER BY payments.OrderId, payments.Attempt);
-    cs <- queryL1 (SELECT cart.Id, COUNT( * ) AS N FROM cart GROUP BY cart.Id ORDER BY cart.Id);
+    cs <- queryL (SELECT cart.Id, COUNT( * ) AS N FROM cart GROUP BY cart.Id ORDER BY cart.Id);
     return <xml><body>
       <h2>orders</h2>{List.mapX (fn o => <xml><div>{[o.Id]} cart {[o.CartId]} total {[o.Total]} {[o.Status]}</div></xml>) os}
       <h2>payments</h2>{List.mapX (fn p => <xml><div>order {[p.OrderId]} attempt {[p.Attempt]}: {[p.Outcome]}</div></xml>) ps}
-      <h2>carts</h2>{List.mapX (fn c => <xml><div>cart {[c.Id]}: {[c.N]} lines</div></xml>) cs}
+      <h2>carts</h2>{List.mapX (fn c => <xml><div>cart {[c.Cart.Id]}: {[c.N]} lines</div></xml>) cs}
     </body></xml>
 
 fun main () : transaction page =

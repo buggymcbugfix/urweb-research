@@ -1,1 +1,7 @@
-tests/typecheck/io_rpc_transaction/io_rpc_transaction.ur:8:47: (to 8:53) Unbound expression variable:  io_rpc
+tests/typecheck/io_rpc_transaction/io_rpc_transaction.ur:8:54: (to 8:59) Unification failure
+Expression:  f 1
+  Have con:  transaction int
+  Need con:  io <UNIF:U67::Type>
+Incompatible constructors
+Have:  transaction
+Need:  io

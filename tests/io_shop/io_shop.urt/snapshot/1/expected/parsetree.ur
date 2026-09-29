@@ -1806,16 +1806,20 @@ database dbname=io_shop.db
                        OrderBy = Basis.sql_order_by_Nil [(_ :: {Type})], 
                        Limit = Basis.sql_no_limit, Offset = Basis.sql_no_offset})))
                (fn attempts =>
-                 Basis.bind (provider o.#Id o.#Total (Basis.plus attempts 1))
-                  (fn outcome =>
+                 case Basis.eq attempts 0 of
+                  Basis.True => return {} | 
+                   Basis.False =>
                     Basis.bind
-                     (runTransaction
-                       (record o.#Id (Basis.plus attempts 1) outcome))
-                     (fn _ : {} =>
-                       io_debug
-                        (Basis.strcat "retried order "
-                          (Basis.strcat (show o.#Id)
-                            (Basis.strcat ": " outcome))))))) pending)
+                     (provider o.#Id o.#Total (Basis.plus attempts 1))
+                     (fn outcome =>
+                       Basis.bind
+                        (runTransaction
+                          (record o.#Id (Basis.plus attempts 1) outcome))
+                        (fn _ : {} =>
+                          io_debug
+                           (Basis.strcat "retried order "
+                             (Basis.strcat (show o.#Id)
+                               (Basis.strcat ": " outcome))))))) pending)
     
     val rec
      state : (_ :: Type) -> (_ :: Type) =
@@ -1870,7 +1874,7 @@ database dbname=io_shop.db
                    Limit = Basis.sql_no_limit, Offset = Basis.sql_no_offset}))
              (fn ps =>
                Basis.bind
-                (queryL1
+                (queryL
                   (Basis.sql_query
                     {Rows =
                       Basis.sql_query1 [[]]
@@ -1945,7 +1949,8 @@ database dbname=io_shop.db
                                                   Basis.None {} (div {})
                                                   (Basis.join
                                                     (Basis.cdata "cart ")
-                                                    (Basis.join (Top.txt c.#Id)
+                                                    (Basis.join
+                                                      (Top.txt c.#Cart.#Id)
                                                       (Basis.join
                                                         (Basis.cdata ": ")
                                                         (Basis.join

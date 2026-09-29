@@ -23,7 +23,8 @@ fun rolledBack (n : int) : io string =
                              setHeader (blessResponseHeader "X-Io") "rolled back";
                              (error <xml>refused</xml> : transaction unit));
     v <- runTransaction (getCookie c);
-    return ((case r of None => "None" | Some () => "Some") ^ ", cookie seen afterwards: " ^ show v)
+    return ((case r of None => "None" | Some () => "Some") ^ ", cookie seen afterwards: "
+            ^ (case v of None => "none" | Some v => v))
 
 (* A cookie set in a transaction that is run a second time: sent once, with
    the second attempt's value. *)

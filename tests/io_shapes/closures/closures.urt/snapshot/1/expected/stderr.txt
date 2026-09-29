@@ -1,7 +1,0 @@
-tests/io_shapes/closures/closures.ur:85:50: (to 85:56) Unbound expression variable:  io_rpc
-tests/io_shapes/closures/closures.ur:86:53: (to 86:59) Unbound expression variable:  io_rpc
-tests/io_shapes/closures/closures.ur:87:51: (to 87:57) Unbound expression variable:  io_rpc
-tests/io_shapes/closures/closures.ur:88:51: (to 88:57) Unbound expression variable:  io_rpc
-tests/io_shapes/closures/closures.ur:89:50: (to 89:56) Unbound expression variable:  io_rpc
-tests/io_shapes/closures/closures.ur:90:50: (to 90:56) Unbound expression variable:  io_rpc
-tests/io_shapes/closures/closures.ur:91:52: (to 91:58) Unbound expression variable:  io_rpc

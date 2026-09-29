@@ -1,0 +1,7 @@
+effect: around a: before
+effect: M.f 1
+effect: around b: before
+effect: M.Inner.g 2
+effect: M.f 2
+effect: around b: after
+effect: around a: after

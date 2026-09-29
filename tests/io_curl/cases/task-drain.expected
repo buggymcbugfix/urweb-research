@@ -1,0 +1,7 @@
+  | drained job 1
+  | drained job 2
+  | drained job 3
+> database
+  job 1: done 200 GET /echo?job=1
+  job 2: done 200 GET /echo?job=2
+  job 3: done 200 GET /echo?job=3
