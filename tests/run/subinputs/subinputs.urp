@@ -1,0 +1,6 @@
+allow url /Subinputs/*
+safeGet Subinputs/main
+minHeap 65536
+
+$/list
+subinputs
