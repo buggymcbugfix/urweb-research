@@ -1,0 +1,6 @@
+# The links, then each followed.
+page=$(curl -s "http://127.0.0.1:$port/Urlify_char/main")
+printf '%s\n' "$page" | grep -o 'href="[^"]*"'
+for u in $(printf '%s' "$page" | grep -o 'href="[^"]*"' | sed 's/^href="//; s/"$//'); do
+  curl -s "http://127.0.0.1:$port$u" | sed -e 's/<[^>]*>//g'; echo
+done
