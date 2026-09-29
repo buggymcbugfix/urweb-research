@@ -2,10 +2,8 @@ href="/Urlify_char/show1/a"
 href="/Urlify_char/show1/.C3.A9"
 href="/Urlify_char/show1/.E2.82.AC"
 a
-Fatal ErrorFatal error: Unurlified character is multiple characters long
-
-Fatal ErrorFatal error: Unurlified character is multiple characters long
-
+é
+€
 --- log
 Accepted connection.
 Handling connection with thread #0.
@@ -16,8 +14,6 @@ Serving URI /Urlify_char/show1/a....
 Accepted connection.
 Handling connection with thread #0.
 Serving URI /Urlify_char/show1/.C3.A9....
-Fatal error: Unurlified character is multiple characters long
 Accepted connection.
 Handling connection with thread #0.
 Serving URI /Urlify_char/show1/.E2.82.AC....
-Fatal error: Unurlified character is multiple characters long
