@@ -1,0 +1,11 @@
+# The form's 20 entries, posted with their defaults and a text each.
+page=$(curl -s "http://127.0.0.1:$port/Subinputs/main")
+action=$(printf '%s' "$page" | grep -o 'action="[^"]*"' | head -1 | sed 's/^action="//; s/"$//')
+data=$(printf '%s' "$page" | grep -o '<input [^>]*>' | while read -r i; do
+  name=$(printf '%s' "$i" | sed -n 's/.*name="\([^"]*\)".*/\1/p')
+  [ -n "$name" ] || continue
+  value=$(printf '%s' "$i" | sed -n 's/.*value="\([^"]*\)".*/\1/p')
+  [ -n "$value" ] || value=t
+  printf '%s=%s&' "$name" "$value"
+done)
+curl -s -X POST --data "${data%&}" "http://127.0.0.1:$port$action" | sed -e 's/<[^>]*>//g' -e 's/ *$//'; echo
