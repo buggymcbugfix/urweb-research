@@ -1,2 +1,0 @@
-Function: 
-(fn $x : {} => ((UNBOUNDN_2 0 UNBOUND_1) + (UNBOUNDN_2 0 UNBOUND_1)))

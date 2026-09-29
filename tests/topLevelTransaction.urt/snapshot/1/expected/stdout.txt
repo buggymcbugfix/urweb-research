@@ -1,6 +1,0 @@
-Function: 
-(fn _ : {} =>
-  (let _ : {} =
-   (FFI(Basis.debug(FFI(Basis.intToString(((UNBOUNDN_2 0 UNBOUND_1) +
-                                            (UNBOUNDN_2 0 UNBOUND_1)))))))
-   in ({})))
