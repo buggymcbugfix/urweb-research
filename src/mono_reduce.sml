@@ -902,8 +902,29 @@ fun reduce' (file : file) =
 
         and reduceExp env = U.Exp.mapB {typ = typ, exp = exp, bind = bind} env
 
+        (* The body of a function, under its abstractions, may be lets in front
+           of a transaction's (or an io computation's) abstraction over unit.
+           Where a let's expression is impure, exp above leaves it there, lest
+           an effect be delayed; but code generation has no closures, and a
+           function's abstractions all become the C function's parameters, so
+           the function is only ever called with all its arguments, the unit
+           included, and the let is evaluated at the same point either way.
+           Moving it inside is the only way the function compiles. *)
+        fun top e =
+            case e of
+                (EAbs (x, dom, ran, b), loc) => (EAbs (x, dom, ran, top b), loc)
+              | (ELet (x, t, e', b), loc) =>
+                (case top b of
+                     (EAbs (x', t' as (TRecord [], _), ran, e''), loc') =>
+                     (EAbs (x', t', ran, (ELet (x, t, liftExpInExp 0 e', swapExpVars 0 e''), loc)), loc')
+                   | b' => (ELet (x, t, e', b'), loc))
+              | _ => e
+
         fun decl env d = ((*Print.preface ("d", MonoPrint.p_decl env (d, ErrorMsg.dummySpan));*)
-                          d)
+                          case d of
+                              DVal (x, n, t, e, s) => DVal (x, n, t, top e, s)
+                            | DValRec vis => DValRec (map (fn (x, n, t, e, s) => (x, n, t, top e, s)) vis)
+                            | _ => d)
     in
         U.File.mapB {typ = typ, exp = exp, decl = decl, bind = bind} E.empty file
     end
