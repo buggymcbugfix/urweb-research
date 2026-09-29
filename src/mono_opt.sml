@@ -222,6 +222,18 @@ fun checkProperty s =
                  n > 1 andalso identStart (String.sub (s, 1)) andalso allFrom 2)
   end
 
+(* Constant integer arithmetic, folded as the generated C computes it at run
+   time: modulo 2^64, in two's complement.  Int64's own operations raise
+   Overflow instead, which nothing handled, and a result that does not fit
+   is no error of the program as such: it may sit in a branch never taken,
+   as in `if n > max / 1000 then max else n * 1000` once n is known. *)
+fun wrapping f (n1, n2) =
+    let
+        fun w n = Word64.fromLargeInt (Int64.toLarge n)
+    in
+        Int64.fromLarge (Word64.toLargeIntX (f (w n1, w n2)))
+    end
+
 fun exp e =
     case e of
         EPrim (Prim.String (Prim.Html, s)) =>
@@ -741,9 +753,9 @@ fun exp e =
       | EWrite (EFfiApp ("Basis", "str1", [e]), _) =>
         EFfiApp ("Basis", "writec", [e])
 
-      | EBinop (_, "+", (EPrim (Prim.Int n1), _), (EPrim (Prim.Int n2), _)) => EPrim (Prim.Int (Int64.+ (n1, n2)))
-      | EBinop (_, "-", (EPrim (Prim.Int n1), _), (EPrim (Prim.Int n2), _)) => EPrim (Prim.Int (Int64.- (n1, n2)))
-      | EBinop (_, "*", (EPrim (Prim.Int n1), _), (EPrim (Prim.Int n2), _)) => EPrim (Prim.Int (Int64.* (n1, n2)))
+      | EBinop (_, "+", (EPrim (Prim.Int n1), _), (EPrim (Prim.Int n2), _)) => EPrim (Prim.Int (wrapping Word64.+ (n1, n2)))
+      | EBinop (_, "-", (EPrim (Prim.Int n1), _), (EPrim (Prim.Int n2), _)) => EPrim (Prim.Int (wrapping Word64.- (n1, n2)))
+      | EBinop (_, "*", (EPrim (Prim.Int n1), _), (EPrim (Prim.Int n2), _)) => EPrim (Prim.Int (wrapping Word64.* (n1, n2)))
 
       | _ => e
 
