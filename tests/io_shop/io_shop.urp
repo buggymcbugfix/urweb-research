@@ -1,0 +1,9 @@
+database dbname=io_shop.db
+allow url /Io_shop/main
+allow url /Io_shop/state
+safeGet Io_shop/main
+safeGet Io_shop/state
+
+$/list
+$/option
+io_shop

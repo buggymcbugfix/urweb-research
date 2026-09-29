@@ -1,0 +1,8 @@
+database dbname=rpc_types.db
+allow url /Rpc_types/main
+safeGet Rpc_types/main
+
+$/list
+$/option
+$/string
+rpc_types

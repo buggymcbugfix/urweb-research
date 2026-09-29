@@ -1,0 +1,11 @@
+database dbname=io_rpc.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_rpc/main
+allow url /Io_rpc/rows
+safeGet Io_rpc/main
+minHeap 65536
+
+$/option
+io_rpc

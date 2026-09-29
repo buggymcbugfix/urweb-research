@@ -1,0 +1,16 @@
+tests/io_shapes/rpc_types/rpc_types.ur:8:12: (to 8:20) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:9:15: (to 9:26) Unbound expression variable:  io_tryRpc
+tests/io_shapes/rpc_types/rpc_types.ur:80:52: (to 80:58) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:81:52: (to 81:58) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:82:48: (to 82:54) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:83:49: (to 83:55) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:84:56: (to 84:62) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:85:49: (to 85:55) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:86:44: (to 86:50) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:87:51: (to 87:57) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:88:49: (to 88:55) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:89:50: (to 89:56) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:90:51: (to 90:57) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:91:47: (to 91:53) Unbound expression variable:  io_rpc
+tests/io_shapes/rpc_types/rpc_types.ur:93:53: (to 93:62) Unbound expression variable:  io_tryRpc
+tests/io_shapes/rpc_types/rpc_types.ur:94:52: (to 94:58) Unbound expression variable:  io_rpc

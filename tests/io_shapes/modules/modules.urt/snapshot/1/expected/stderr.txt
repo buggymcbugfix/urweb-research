@@ -1,0 +1,8 @@
+tests/io_shapes/modules/modules.ur:71:46: (to 71:52) Unbound expression variable:  io_rpc
+tests/io_shapes/modules/modules.ur:72:46: (to 72:52) Unbound expression variable:  io_rpc
+tests/io_shapes/modules/modules.ur:73:47: (to 73:53) Unbound expression variable:  io_rpc
+tests/io_shapes/modules/modules.ur:74:47: (to 74:53) Unbound expression variable:  io_rpc
+tests/io_shapes/modules/modules.ur:75:49: (to 75:55) Unbound expression variable:  io_rpc
+tests/io_shapes/modules/modules.ur:76:53: (to 76:59) Unbound expression variable:  io_rpc
+tests/io_shapes/modules/modules.ur:77:51: (to 77:57) Unbound expression variable:  io_rpc
+tests/io_shapes/modules/modules.ur:78:52: (to 78:58) Unbound expression variable:  io_rpc

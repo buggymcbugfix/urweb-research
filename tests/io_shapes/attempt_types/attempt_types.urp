@@ -1,0 +1,8 @@
+database dbname=attempt_types.db
+allow url /Attempt_types/main
+safeGet Attempt_types/main
+
+$/list
+$/option
+$/string
+attempt_types

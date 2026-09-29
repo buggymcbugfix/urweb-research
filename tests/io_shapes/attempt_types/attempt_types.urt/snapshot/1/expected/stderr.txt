@@ -1,0 +1,3 @@
+tests/io_shapes/attempt_types/attempt_types.ur:60:47: (to 60:53) Unbound expression variable:  io_rpc
+tests/io_shapes/attempt_types/attempt_types.ur:61:48: (to 61:54) Unbound expression variable:  io_rpc
+tests/io_shapes/attempt_types/attempt_types.ur:62:49: (to 62:55) Unbound expression variable:  io_rpc

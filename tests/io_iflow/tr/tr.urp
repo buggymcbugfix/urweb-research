@@ -1,0 +1,5 @@
+database dbname=tr.db
+allow url /
+
+$/list
+tr

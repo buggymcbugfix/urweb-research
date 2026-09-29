@@ -1,0 +1,1 @@
+tests/io_shop/io_shop.ur:95:55: (to 95:61) Unbound expression variable:  io_rpc
