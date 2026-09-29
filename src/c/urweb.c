@@ -946,7 +946,7 @@ static input *INP(uw_context ctx) {
 
 static void adjust_pointer(input **ptr, input *old_start, input *new_start, size_t len) {
   if (*ptr != NULL && *ptr >= old_start && *ptr < old_start + len)
-    *ptr += new_start - old_start;
+    *ptr = new_start + (*ptr - old_start);
 }
 
 static void adjust_input(input *x, input *old_start, input *new_start, size_t len) {
@@ -2118,7 +2118,7 @@ uw_unit uw_Basis_urlifyChar_w(uw_context ctx, uw_Basis_char c) {
   
   if (c == ' ')
     uw_writec_unsafe(ctx, '+');
-  else if (isalnum(c) && c <= 0x7f)
+  else if (c <= 0x7f && isalnum(c))
     uw_writec_unsafe(ctx, c);
   else {
     aux_urlifyChar(&(ctx->page.front), c);
@@ -3847,10 +3847,11 @@ int uw_commit(uw_context ctx) {
       if (uw_buffer_used(&ctx->script) > 0) {
         size_t lenH = strlen(ctx->script_header), len = uw_buffer_used(&ctx->script);
         size_t lenP = lenH + 40 + len;
-        char *start = s + 6, *oldPage = ctx->page.start;
+        size_t startOff = s + 6 - ctx->page.start;
+        char *start;
 
         ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenP);
-        start += ctx->page.start - oldPage;
+        start = ctx->page.start + startOff;
         memmove(start + lenP, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenP;
         memcpy(start, ctx->script_header, lenH);
@@ -3859,10 +3860,11 @@ int uw_commit(uw_context ctx) {
         memcpy(start + lenH + 31 + len, "</script>", 9);
       } else {
         size_t lenH = strlen(ctx->script_header);
-        char *start = s + 6, *oldPage = ctx->page.start;
+        size_t startOff = s + 6 - ctx->page.start;
+        char *start;
 
         ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenH);
-        start += ctx->page.start - oldPage;
+        start = ctx->page.start + startOff;
         memmove(start + lenH, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenH;
         memcpy(start, ctx->script_header, lenH);
@@ -3873,10 +3875,11 @@ int uw_commit(uw_context ctx) {
       if (uw_buffer_used(&ctx->script) > 0) {
         size_t lenH = strlen(ctx->script_header), len = uw_buffer_used(&ctx->script);
         size_t lenP = lenH + 53 + len;
-        char *start = s, *oldPage = ctx->page.start;
+        size_t startOff = s - ctx->page.start;
+        char *start;
 
         ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenP);
-        start += ctx->page.start - oldPage;
+        start = ctx->page.start + startOff;
         memmove(start + lenP, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenP;
         memcpy(start, "<head>", 6);
@@ -3887,10 +3890,11 @@ int uw_commit(uw_context ctx) {
       } else {
         size_t lenH = strlen(ctx->script_header);
         size_t lenP = lenH + 13;
-        char *start = s, *oldPage = ctx->page.start;
+        size_t startOff = s - ctx->page.start;
+        char *start;
 
         ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenP);
-        start += ctx->page.start - oldPage;
+        start = ctx->page.start + startOff;
         memmove(start + lenP, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenP;
         memcpy(start, "<head>", 6);
