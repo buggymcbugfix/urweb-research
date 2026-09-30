@@ -944,9 +944,15 @@ static input *INP(uw_context ctx) {
     uw_error(ctx, FATAL, "INP: Wrong kind (%d, %p)", ctx->cur_container->kind, ctx->cur_container);
 }
 
+// If *ptr points into the len inputs at old_start, point it at the same one
+// among those at new_start.  The test is on addresses: *ptr may point into
+// another object (ctx->inputs), and comparing pointers into different
+// objects with < is undefined.
 static void adjust_pointer(input **ptr, input *old_start, input *new_start, size_t len) {
-  if (*ptr != NULL && *ptr >= old_start && *ptr < old_start + len)
-    *ptr = new_start + (*ptr - old_start);
+  uintptr_t p = (uintptr_t)*ptr, old = (uintptr_t)old_start;
+
+  if (p >= old && p - old < len * sizeof(input))
+    *ptr = new_start + (p - old) / sizeof(input);
 }
 
 static void adjust_input(input *x, input *old_start, input *new_start, size_t len) {
@@ -979,19 +985,27 @@ static input *check_input_space(uw_context ctx, size_t len) {
     if (ctx->used_subinputs + len > uw_subinputs_max)
       uw_error(ctx, FATAL, "Exceeded limit on number of subinputs");
 
-    input *new_subinputs = realloc(ctx->subinputs, sizeof(input) * (ctx->used_subinputs + len));
+    // A new block, not realloc: the pointers into the old block are moved
+    // while it is still allocated.  After realloc they would point to freed
+    // memory, and any use of them, even a comparison, would be undefined.
+    input *new_subinputs = malloc(sizeof(input) * (ctx->used_subinputs + len));
 
-    if (ctx->subinputs != new_subinputs) {
-      for (i = 0; i < ctx->used_subinputs; ++i)
-        adjust_input(&new_subinputs[i], ctx->subinputs, new_subinputs, ctx->used_subinputs);
-      for (i = 0; i < ctx->app->inputs_len; ++i)
-        adjust_input(&ctx->inputs[i], ctx->subinputs, new_subinputs, ctx->used_subinputs);
+    if (new_subinputs == NULL)
+      uw_error(ctx, FATAL, "Out of memory for subinputs");
 
-      adjust_pointer(&ctx->cur_container, ctx->subinputs, new_subinputs, ctx->used_subinputs);
+    if (ctx->used_subinputs > 0)
+      memcpy(new_subinputs, ctx->subinputs, sizeof(input) * ctx->used_subinputs);
 
-      ctx->n_subinputs = ctx->used_subinputs + len;
-      ctx->subinputs = new_subinputs;
-    }
+    for (i = 0; i < ctx->used_subinputs; ++i)
+      adjust_input(&new_subinputs[i], ctx->subinputs, new_subinputs, ctx->used_subinputs);
+    for (i = 0; i < ctx->app->inputs_len; ++i)
+      adjust_input(&ctx->inputs[i], ctx->subinputs, new_subinputs, ctx->used_subinputs);
+
+    adjust_pointer(&ctx->cur_container, ctx->subinputs, new_subinputs, ctx->used_subinputs);
+
+    free(ctx->subinputs);
+    ctx->subinputs = new_subinputs;
+    ctx->n_subinputs = ctx->used_subinputs + len;
   }
 
   r = &ctx->subinputs[ctx->used_subinputs];
