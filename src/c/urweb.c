@@ -3218,13 +3218,13 @@ uw_Basis_float *uw_Basis_stringToFloat(uw_context ctx, uw_Basis_string s) {
 
 uw_Basis_char *uw_Basis_stringToChar(uw_context ctx, uw_Basis_string s) {
   if (s[0] == 0) {
-    uw_Basis_char *r = uw_malloc(ctx, 1);
+    uw_Basis_char *r = uw_malloc(ctx, sizeof *r);
     r[0] = 0;
     return r;
   } else if (uw_Basis_strlenGe(ctx, s, 2))
     return NULL;
   else {
-    uw_Basis_char *r = uw_malloc(ctx, 1);
+    uw_Basis_char *r = uw_malloc(ctx, sizeof *r);
     int offset = 0;
     U8_NEXT(s, offset, -1, *r);
     return r;
