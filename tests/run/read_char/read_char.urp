@@ -1,0 +1,5 @@
+allow url /Read_char/*
+safeGet Read_char/main
+minHeap 65536
+
+read_char

@@ -1,0 +1,21 @@
+a! 2187617
+é! 564773865
+€! -1400708436
+😀! -1734348800
+ab! None
+--- log
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Read_char/main/a....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Read_char/main/%C3%A9....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Read_char/main/%E2%82%AC....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Read_char/main/%F0%9F%98%80....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Read_char/main/ab....
