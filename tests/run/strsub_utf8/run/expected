@@ -1,12 +1,10 @@
-97 -61 -87
-href="/Strsub_utf8/show1/.FF.BF.BF.83"
-Fatal ErrorFatal error: Unurlified character is not exactly one character
-
+97 195 169
+href="/Strsub_utf8/show1/.C3.83"
+195
 --- log
 Accepted connection.
 Handling connection with thread #0.
 Serving URI /Strsub_utf8/main....
 Accepted connection.
 Handling connection with thread #0.
-Serving URI /Strsub_utf8/show1/.FF.BF.BF.83....
-Fatal error: Unurlified character is not exactly one character
+Serving URI /Strsub_utf8/show1/.C3.83....
