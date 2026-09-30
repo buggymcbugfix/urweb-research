@@ -2566,7 +2566,7 @@ uw_Basis_char uw_Basis_strsubUtf8(uw_context ctx, uw_Basis_string s, uw_Basis_in
   if (n < 0 || n >= strlen(s))
     uw_error(ctx, FATAL, "Out-of-bounds strsubUtf8");
 
-  return s[n];
+  return (unsigned char)s[n];
 }
 
 uw_Basis_char uw_Basis_strsub(uw_context ctx, uw_Basis_string s, uw_Basis_int n) {
