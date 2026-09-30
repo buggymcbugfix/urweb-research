@@ -1,0 +1,6 @@
+# The bytes, the link, and the link followed.
+page=$(curl -s "http://127.0.0.1:$port/Strsub_utf8/main")
+printf '%s\n' "$page" | grep -o '<p>[^<]*</p>' | sed -e 's/<[^>]*>//g'
+printf '%s\n' "$page" | grep -o 'href="[^"]*"'
+u=$(printf '%s' "$page" | grep -o 'href="[^"]*"' | sed 's/^href="//; s/"$//')
+curl -s "http://127.0.0.1:$port$u" | sed -e 's/<[^>]*>//g'; echo

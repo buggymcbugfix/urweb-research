@@ -1,0 +1,6 @@
+allow url /Strsub_utf8/*
+safeGet Strsub_utf8/main
+safeGet Strsub_utf8/show1
+minHeap 65536
+
+strsub_utf8
