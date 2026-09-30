@@ -1,0 +1,4 @@
+# One character of one to four bytes in UTF-8, and a string of two.
+for s in a %C3%A9 %E2%82%AC %F0%9F%98%80 ab; do
+  curl -s "http://127.0.0.1:$port/Read_char/main/$s" | sed -e 's/<[^>]*>//g'; echo
+done
