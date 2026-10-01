@@ -1,0 +1,10 @@
+Makefile.coq
+Makefile.coq.conf
+.Makefile.coq.d
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux
+.lia.cache
+.nia.cache
