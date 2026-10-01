@@ -71,13 +71,68 @@ val place : order -> eff txn [Db.Write.(Shop.order), Err.Constraint.(Shop.order)
 val tryDml : d ::: Set -> dml d -> eff txn (d -- [Err.Constraint]) (option string)
 ```
 
-Two holes, worth knowing before anyone promises this. A `delete` or `update` can
-violate a foreign key *of another table* that references this one (`RESTRICT`), and
-which tables those are is a whole-program fact, not a fact about `tn`'s type; so
-`delete` gets the coarse `Err.Constraint` without a table, or the compiler fills in
-the inverse foreign-key graph at link time, as it already computes the schema. And a
-`check` constraint's name is in the row, but `NOT NULL` violations and type overflows
-are not constraints with names; they stay under a generic `Err.Db`.
+Two things reach beyond the table's own type, and both are static facts about the
+schema, which the compiler has whole. A `delete` on `order` can violate a foreign key
+*of another table* (`item.Fk_order` with `RESTRICT`), and under `CASCADE` or `SET NULL`
+it *writes* that other table, so the write footprint `Db.Write.(Shop.order)` is
+incomplete too, with or without errors. (Sqlcache has this blind spot today: it flushes
+the caches of the one table a DML names, so a cascading delete leaves the referencing
+table's caches stale; on the bug list.)
+
+The error side needs no whole-program step if the error is attributed to the table the
+statement is *on*. A failing delete says "a row of `order` is still referenced", which
+is what the message should say anyway, and the leaf is local to `tn`:
+
+```
+val delete : tn ::: Name -> fields ::: {Type} -> uniques ::: {{Unit}}
+             -> sql_table tn fields uniques -> sql_exp [T = fields] [] [] bool
+             -> dml ([Db.Write.(tn)] \/ [Err.Referenced.(tn)])
+```
+
+The write side, and the per-constraint form of the error side if wanted, is a function
+of the schema, and can be a *compiler-resolved* constructor: `cascades (tn) :: Set` is
+the set of tables whose rows change when a row of `tn` is deleted, the transitive
+closure over the foreign keys that reference `tn` with `CASCADE` or `SET NULL`
+(`SET NULL` is an update of the referencing row, which can fire `ON UPDATE` actions in
+turn); `restricts (tn)` the constraints `(r).(c)` that can fail along the same closure;
+`cascadesOnUpdate (tn) cols` the same for an update of the columns `cols`, which matters
+only when they are referenced keys.
+
+```
+val delete : ... -> dml ([Db.Write.(tn)] \/ [Db.Write = cascades (tn)] \/ [Err.Constraint = restricts (tn)])
+val update : ... changed :: {Type} ... -> dml ([Db.Write.(tn)] \/ [Db.Write = cascadesOnUpdate (tn) (labels changed)] \/ ...)
+```
+
+During elaboration these are opaque: a rigid term the solver carries as a constant of
+unknown value, a region variable it may not solve for. Once the whole program is
+elaborated and the schema is closed, which is when the undetermined-variable check and
+Effectize already run, they evaluate to literal sets and whatever was left is checked.
+Most constraints never wait, because the opaque term sits under a known prefix: `[Db.Write
+= cascades (tn)] -- [Db] = []` holds whatever the schema says, so `transaction`'s bound
+and `allowedTxn` are decided at once. A constraint that does depend on it, a caller
+demanding `e -- [Db.Write.(Shop.item)] = e` ("you must not write `item`") of a delete on
+`order`, stays residual until link time and then either holds or fails with a message
+naming the handler, the statement and the path (`order ← item.Fk_order CASCADE`). Inside
+a functor, `cascades (tn)` with `tn` abstract is a term like any other and is resolved
+per instantiation. The cost is one more deferred check in a compiler that has several,
+and a solver that knows rigid terms. The payoff goes beyond errors: Sqlcache's
+per-table invalidation becomes correct under cascades for free, since the write
+footprint is now the whole truth.
+
+The simplest schema discipline avoids all of it: with `restrict`/`no_action` only
+(Ur makes the mode explicit in every `foreign_key`, there is no default) no statement
+writes a table it does not name, and the only cross-table effect is
+`Err.Referenced.(tn)`, which is local.
+
+What cannot happen from well-typed Ur: a `NOT NULL` violation (a non-`option` column
+takes an `sql_exp … t` with `t` not an option type, and `set_null` is typed
+`propagation_mode (map option fs)`), or a value too large for its column (`int` is
+64-bit as `int8` is, strings are `text`). So every *semantic* database error is a named
+constraint or a referenced-table error. What remains is evaluation errors inside SQL
+expressions (`1 / x` in a `SELECT`, `bigint out of range` on `+`), handled in §1.5 with
+Ur's own arithmetic, and infrastructure failures (connection lost, disk full,
+serialization failure after the retries), which are the "any allocation can fail" class
+of §1.4.
 
 ### 1.3 `try`, `catch`, and savepoints
 
@@ -139,30 +194,68 @@ library, a `fold` written once for `eff` and used purely, all leave the monad at
 end without a second, pure copy of the code. It is also what makes "cannot fail" a
 theorem rather than a comment: `repent m` type-checks only if `m` has no `Err` path.
 
-"Every `Err`-free program is total" overclaims, though, and the paper should not say
-it. Ur has unrestricted recursion, so an `Err`-free computation may diverge; Koka
-closes this gap with a `div` effect that its termination checker removes for
-structurally recursive functions and leaves on everything else, and `total` means
-neither `exn` nor `div`. Ur could do the same, and the `Set` kind would hold `Div`
-without ceremony, but a termination checker is a project of its own and "cannot fail"
-is the honest claim. There are also failures the type would not see unless Basis is
-rewritten: integer division by zero, `String.sub` out of range, `readError`, resource
-limits (`uw_error(ctx, FATAL, "Memory limit exceeded")`), and `naughtyDebug : string ->
-int`, which is an `unsafePerformIO` in plain sight. The next section is about the
-first three.
+"Every `Err`-free program is total" overclaims, and the paper should say *reasonably
+total* instead: an `Err`-free computation cannot fail except by resource exhaustion
+(memory, stack, a database connection; `uw_error(ctx, FATAL, "Memory limit exceeded")`
+and its kin) and by not terminating. Nobody tracks the first, since any allocation can
+fail; Koka tracks the second with a `div` effect that its termination checker removes
+for structurally recursive functions and leaves on everything else, so that `total`
+means neither `exn` nor `div`. Ur has unrestricted recursion and no termination checker,
+and getting one is a project of its own; the `Set` kind would hold `Div` without
+ceremony if it ever arrives. Reasonable totality is still a strong statement, and it has
+a precondition that §1.5 spells out: *everything that can throw is in `eff`*, with no
+pure-typed function left that fails.
 
-### 1.5 Pure partial functions: the dilemma
+### 1.5 Everything that throws goes into `eff`, or becomes total
 
-`/` and `%` on `int`, `String.sub`, `readError`, `Option.unsafeGet` are partial and
-pure-typed. Giving them `Err` grades makes arithmetic monadic, which nobody will
-accept; leaving them pure makes "cannot fail" mean "cannot call `error` or fail in the
-database". Three resolutions exist in the literature: Koka puts `exn` on division and
-lives with it, because its effect inference makes the annotation free and `catch`
-discharges it; Idris and Agda make the functions total by construction (a `div` that
-takes a proof or returns an `option`); Rust and OCaml leave them partial and document
-it. For Ur the third is the default and the second is available piecemeal (`String.sub`
-returning `option`), and the claim is "cannot fail except in the ways the Basis
-documents as pure partiality". Not glorious, but true.
+The rule is the one just stated; what it costs is a pass over Basis. The partial
+functions, and what each becomes:
+
+```
+(* total by definition, as in Lean and Koka (Euclidean-0 division): x / 0 = 0, x % 0 = x *)
+val divide : t ::: Type -> num t -> t -> t -> t              (* unchanged type, changed semantics *)
+val mod    : t ::: Type -> num t -> t -> t -> t
+
+(* total by a different result type *)
+val strsub : string -> int -> option char                    (* today: char, fails out of range *)
+val read   : t ::: Type -> read t -> string -> option t      (* exists; readError goes *)
+
+(* effectful *)
+val error     : t ::: Type -> xbody -> eff everywhere [Err.Error] t
+val unsafeGet : t ::: Type -> option t -> eff everywhere [Err.Partial] t     (* or goes *)
+
+(* goes *)
+val naughtyDebug : string -> int          (* an unsafePerformIO; debug is in eff already *)
+```
+
+Making `/` total by definition rather than by an `Err` grade is what keeps arithmetic
+pure, and it is the choice Lean made and Koka adopted. The same definition has to reach
+the SQL that Ur generates, where today `x / y` is emitted as is and the database raises
+on zero: the emitted form becomes `CASE WHEN y = 0 THEN 0 ELSE x / y END`, which is what
+making a language's semantics total means when half of its expressions run elsewhere.
+
+Overflow is the awkward one. Ur `int` arithmetic is emitted as plain C `+`, `-`, `*` on
+`long long` without `-fwrapv`, so overflow is undefined behaviour today (and `minInt /
+-1` passes the divisor check into the same; on the bug list), while Postgres raises
+`bigint out of range` for the same expression in SQL. Under the rule there are two
+consistent choices: define `int` as wrapping two's complement and make the SQL wrap too
+(emitting `numeric` arithmetic reduced modulo 2⁶⁴, which is ugly but mechanical), or
+treat overflow as an error, in C with `__builtin_add_overflow` raising and in SQL as it
+is, and then `+` carries `Err.Overflow`, which makes arithmetic monadic and is not
+acceptable. So: wrapping, defined, on both sides. For SQL expressions generally, the
+clean treatment is an error index on `sql_exp`, threaded by union exactly as `reads` is
+threaded through `sql_from_items` (mockup §5): a query whose expressions cannot fail
+carries nothing, one that uses a database function that can (`CAST`, a user-defined
+function) carries `Err.Db.Expression`, and the runner joins it into its grade.
+
+Pure code that calls `error` for an impossible branch is the churn item of §1.1 again,
+and under the rule it has no pure escape hatch; it is restructured (a total `case`, an
+`option` result) or it is in `eff`. That is the price of the claim, and it is the price
+Koka's and Flix's users pay; Flix even gives `Pure` a keyword. A documented hatch
+(`Unsafe.impossible`, greppable) is the compromise if the price is too high in places,
+and then the claim is "reasonably total outside `Unsafe`".
+
+FFI functions are whatever their `.urs` says, which is the trust the FFI always was.
 
 ### 1.6 Related
 
