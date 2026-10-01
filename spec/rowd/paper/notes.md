@@ -1587,11 +1587,32 @@ con transaction = eff txn allowedTxn          (* the Txn column of the table, cl
 val f : transaction unit = dml q              (* inferred txn [Db.Write.(Shop.order)]; -- allowedTxn = []: fine *)
 ```
 
-keeps every existing signature compiling: `transaction t` becomes "runs in `Txn` and
-does at most what `Txn` allows", precision appears only where someone writes it, and
-`rpc`, `url`, `task` read the bound. Where an exact grade is wanted in a signature it is
-written as such; where "at least" is wanted, `[E] ++ e`. The same bound reading applies
-to `xbody`-style closed HTML types if the contents index of §6.5 is added.
+keeps every existing signature compiling *on the `what` side*: `transaction t` becomes
+"runs in `txn` and does at most what `txn` allows", precision appears only where someone
+writes it, and `rpc`, `url`, `task` read the bound. Where an exact grade is wanted in a
+signature it is written as such; where "at least" is wanted, `[E] ++ e`. The same bound
+reading applies to `xbody`-style closed HTML types if the contents index of §6.5 is
+added.
+
+On the `where` side the claim has an exception that the mockup's own signatures create.
+`declared W ⊆ inferred` is the only sound reading (a caller in a `Task` relies on the
+declared `Task`), and the mockup gives request primitives narrow sides, `getCookie :
+eff [PageHandler, RpcHandler] …`, to forbid cookie reads in tasks statically. Then
+
+```
+fun currentUser () : transaction (option user) = c <- getCookie session; …
+```
+
+is rejected: inferred `[PageHandler, RpcHandler]` does not contain `txn`'s `Task`. Every
+application has functions like this. Two ways out, and the choice is open (§12): keep
+the narrow sides and narrow these signatures to `eff [PageHandler, RpcHandler] allowedTxn
+…` (mechanical, and each change makes a latent task-unsafety explicit; today `getCookie`
+in a task silently returns `None`, since there is no request); or give the request
+primitives `txn` as their where and keep today's run-time `None`, losing the one piece
+of new precision `where` offered on the server. A slack reading of annotations
+(`transaction t` as `eff (txn -- ?s) …` with `?s` fresh) does not help: inside a module
+it only re-infers, and through a signature the `?s` would have to be rigid, which is
+the precise signature again.
 
 ### 8.6 Poisoning, and the price of `bind`
 
@@ -1906,7 +1927,8 @@ one the text above assumes.
 | closed against closed | `restrict`/`weaken`, identity at run time | abstraction-site subsumption as in Flix |
 | the monad | `eff` built in, graded, own `bind`; `<-` picks by head | one graded class for all monads |
 | `Txn`: side or opened context | the mockup picks: transactional entry points `txn = [PageHandler, RpcHandler, Task]` as today, no handler migration, `transaction = eff txn allowedTxn`; `Serv` for non-transactional server code with `runTransaction : eff txn e t -> eff serv e t` (§7.2, mockup) | a `Txn` side of its own, disjoint from `server`, as in the sketch |
-| side set | `Client`, `PageHandler`, `RpcHandler`, `Task`, `Serv` | Nectry's four; the sketch's `Txn` |
+| side set | `Client`, `PageHandler`, `RpcHandler`, `Task`, `Serv` | Nectry's four; the sketch's `Txn`; `fanciful.md` §7's `Database` |
+| request primitives in tasks | **open** (§8.5): narrow sides (`getCookie : eff [PageHandler, RpcHandler]`) and narrowed `transaction` signatures where cookies or headers are read; or `txn` sides with today's run-time `None` | — |
 | side-polymorphic signatures | `everywhere -- s` | a finite side kind with complement |
 | `Signal` | stays a plain monad; `current` is the bridge | graded with constant grade |
 | effect labels | a `Set` of paths with Nix's dot sugar, Basis's at the root, a library's under its module name (§8.3); stage 1 leaves only, stage 2 the table footprint `Db.Read.(Shop.order)` | `{{Unit}}` rows of sets at a fixed depth; heterogeneous record kinds |
@@ -1939,8 +1961,8 @@ variable cap and representations (source); the numbers and quotes from the paper
 What is deliberately *not* in this design, with sketches of how it would go, is in
 `fanciful.md`: errors as effects (`Err`, `try`/`catch` with savepoints, named constraint
 violations), the `.urp` policy as a `Set` bound and FFI directives as grades,
-type-level strings and prefix rules, sides as paths, further footprints, and why effect
-handlers are not for Ur.
+type-level strings and prefix rules, sides as paths, further footprints, why effect
+handlers are not for Ur, and compiling Ur to the database as a `Database` side.
 
 ## Sources
 

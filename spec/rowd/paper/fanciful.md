@@ -493,7 +493,7 @@ val redirect : t ::: Type -> url -> eff [Server.Txn.PageHandler, Client] [Redire
 of a finite side kind with complement (`notes.md` §12), which the open universe rules
 out, and the small comfort that `{Unit}` is a kind Ur already has. This is the one item
 in this file that could be folded into the design proper at little cost; it is here
-because it was not needed to make the design work.
+because it was not needed to make the design work. §7 adds a side below `Server.Txn`.
 
 ## 5. Footprints and their consumers
 
@@ -533,10 +533,145 @@ state (`handle : ... -> eff client ...`), and the asymmetry is reason enough not
 start. A test handler for `Urmail.Send` is better done as it is done today, by a functor
 taking the mailer as a structure, which the module system already provides.
 
+## 7. Compiling Ur to the database: a `Database` side
+
+Today the only Ur that runs inside the database is the `sql_exp` sublanguage: a fixed
+set of combinators (`sql_binary`, `sql_ufunc`, `sql_coalesce`, `sql_if_then_else`,
+`sql_similarity`, …) with injected *values* (`{[e]}`, `sql_inject`, which computes `e`
+on the server and ships the result). A predicate that is not in that set is written as
+SQL by hand or applied after the rows arrive; a function applied to a selected column is
+applied in the callback; a `query` whose callback does a `dml` per row is `N + 1` round
+trips. The project: let ordinary Ur code be compiled to the database, a complex
+predicate in a `WHERE`, a function on a `SELECT` term, a whole transactional computation
+as one statement, and record where it runs in the type with a new side, `Database`.
+
+### 7.1 What the side says
+
+A side is a placement target, and the `where` index is the set of targets a computation
+admits; placing a computation on a side is the subset check the design already has for
+handlers (`[PageHandler] -- w = []`). `Database` is one more target, and its primitives
+are the ones with an implementation inside the database engine:
+
+```
+con dbside     = [Database]
+con everywhere = client ++ server ++ dbside
+
+val return : t ::: Type -> t -> eff everywhere [] t                         (* a constant *)
+val now    : eff everywhere [Clock] time                                    (* clock_timestamp() *)
+val rand   : eff everywhere [Random] int                                    (* random() *)
+val error  : t ::: Type -> xbody -> eff everywhere [Err.Error] t            (* RAISE EXCEPTION; aborts as on the server *)
+val debug  : string -> eff (everywhere -- dbside) [Stderr] unit            (* no stderr in the engine *)
+val source : t ::: Type -> t -> eff (everywhere -- dbside) [Source.New] (source t)
+
+val query  : … -> eff ((txn ++ dbside) -- s) (e \/ [Db.Read = reads]) state   (* a subquery *)
+val dml    : d ::: Set -> dml d -> eff (txn ++ dbside) [Db.Write = d] unit     (* a statement in a function body *)
+val nextval : sn ::: Name -> sql_sequence sn -> eff (txn ++ dbside) [Db.Write.(sn)] int
+val getenv : v :: Name -> eff server [Env.(v)] (option string)                  (* server has no Database: unchanged *)
+val send   : t ::: Type -> channel t -> t -> eff server [Send] unit             (* unchanged *)
+```
+
+`txn` stays `[PageHandler, RpcHandler, Task]`, since the engine is not an entry point;
+it is a place a transactional computation may be *moved to*, inside the issuing
+handler's transaction, which is why `dml` and `query` admit it and `getCookie` does not
+(the engine has no request). `--` earns its keep: "everywhere but the engine" is
+written, not enumerated. The `what` index is untouched: a computation reads and writes
+the same tables wherever it runs, so Sqlcache's footprints and the read-only check are
+placement-independent, which is the first sign that the design is right.
+
+`bind` does the rest. A callback `fn r => dml (UPDATE …)` has where `txn ++ dbside`; a
+callback that also calls `debug` has where `txn`, and the compiler sees from the meet
+that it cannot be pushed:
+
+```
+(* pushable: the whole loop is one UPDATE … FROM, one round trip *)
+queryI (SELECT T.Id, T.Price FROM order AS T WHERE T.Status = {[Open]})
+       (fn r => dml (UPDATE order SET Price = {[discount r.Price]} WHERE Id = {[r.Id]}))
+   : eff (txn ++ dbside) [Db.Read.(Shop.order), Db.Write.(Shop.order)] unit
+
+(* not pushable, and the type says why: debug has no Database *)
+queryI (…) (fn r => debug (show r.Id); dml (…))
+   : eff txn [Db.Read.(Shop.order), Db.Write.(Shop.order), Stderr] unit
+```
+
+Placement is then a choice the type permits, not one it forces, which is new: client
+and server placement are fixed by program structure (a handler runs on the server, a
+`<dyn>` on the client), database placement is an optimization or a request. The request
+form is a quotation in an SQL position, `WHERE {{ isActive T.Status T.Since }}`, and
+`indb : w ::: {Unit} -> e ::: Set -> t ::: Type -> eff (dbside ++ w) e t -> eff (dbside ++ w) e t`
+for a whole computation (identity in the type, "run this as one statement" to the
+compiler, a compile error if the body is not translatable); the optimization form is
+the compiler pushing what it can, as it inlines what it can today.
+
+### 7.2 Pure code, and why the side does not cover it
+
+The side classifies *effectful* primitives. `isActive : status -> time -> bool` has no
+grade, and whether it can be compiled to SQL is not a question about effects but about
+the target language: SQL has no closures, no general recursion, no algebraic datatypes.
+This is the one place the design's choice of a monadic effect index, rather than
+effect-annotated function arrows, shows a cost. Links puts an effect row on *every*
+arrow, with a `wild` effect marking code that cannot run in a query, so that "query-
+safe" is a type (Lindley and Cheney, "Row-based effect types for database integration",
+TLDI 2012), and `query` demands a `wild`-free argument. For Ur that would mean grading
+every function type, which is not on the table; so the pure fragment is checked where
+it is today for the JavaScript backend: at the quotation, by the compiler, after
+specialization and inlining, with a precise error ("`isActive` uses `List.foldl`, which
+has no SQL translation") where `-explainEmbed` reports embedding failures now. The
+translation itself is the known one: beta-reduce and inline until first order, `case`
+on `option` to `CASE … IS NULL`, records to row expressions, `bool`/`int`/`float`/
+`string`/`time` to their column types, recursion to `WITH RECURSIVE` (Duta and Grust,
+"Functional-style SQL UDFs with a capital F", SIGMOD 2020; Hirn and Grust, "One WITH
+RECURSIVE is worth many GOTOs", SIGMOD 2021), or a `CREATE FUNCTION` emitted into the
+schema file that the `sql` directive already writes. T-LINQ's normalization theorem
+(Cheney, Lindley and Wadler, "A practical theory of language-integrated query", ICFP
+2013) is the shape of the guarantee to aim for: a quoted term of flat type normalizes
+to one SQL expression, or is rejected, before anything runs. Nested results need either
+shredding (Cheney, Lindley and Wadler, SIGMOD 2014) or a JSON aggregate on the way out.
+Three engines: `WITH RECURSIVE` is in all of them; `CREATE FUNCTION` is not in SQLite,
+where the natural route is the opposite one, registering the C-compiled Ur function
+with `sqlite3_create_function` so that the engine calls back into the application, and
+`Database` for SQLite is in-process.
+
+### 7.3 Coherence, the actual theorem
+
+Three backends for one source need one semantics, and a pushed computation must mean
+what the server-side one means. Every known mismatch between Ur-in-C and SQL is on the
+list from §1.5 plus a few: `NULL` and three-valued logic (`option` equality must be
+`IS NOT DISTINCT FROM`, not `=`); division by zero (total by definition on both sides,
+§1.5); integer overflow (defined on both sides, §1.5, today undefined in C and an error
+in Postgres); string order (`<` on strings is byte order in C and a collation in SQL:
+`COLLATE "C"`, or a binary comparison); `show` of floats (`printf` versus `CAST`); `time`
+precision and zones; `now` (`time(NULL)` on the server, `clock_timestamp()` in the
+engine, never `now()`, which is the transaction start). The C/JavaScript pair has had
+this problem since the beginning and solved it only informally, and not completely:
+client-side `int` is a JavaScript double, so arithmetic above 2⁵³ differs between the
+two tiers (bug list). A third tier with a stated coherence theorem, "the SQL
+translation of a translatable term denotes the same function as its C compilation",
+would be the research content, and would force the C/JavaScript pair to be made honest
+too. The `where` theorem of `notes.md` §10.6 is the frame: an operational model with
+sides, now three, and the statement that a closed computation of grade `(W, e)`
+evaluates to the same value on every side in `W`.
+
+### 7.4 What it buys
+
+Round trips: a `query` with a `dml` in its callback becomes one statement, which is the
+`N + 1` problem solved by a type rather than by hand-written SQL. Expressiveness:
+predicates and projections written once in Ur and used in queries, instead of a
+hand-maintained `sql_exp` copy. Nectry's `Serv` code with `runTransaction` gets the
+same option. And, with §4, the hierarchy says it in one path: `Server.Txn.Database`, a
+transactional context the engine provides, below `Server.Txn` and beside the entry
+points, so that `dml`'s `eff [Server.Txn]` admits it with no change to the signature.
+
 ## Sources
 
 Koka: Leijen, "Koka: programming with row polymorphic effect types" (MSFP 2014) and the
-Koka book on `exn`, `div` and `total`. Leroy and Pessaux, "Type-based analysis of
+Koka book on `exn`, `div` and `total`. Lindley and Cheney, "Row-based effect types for
+database integration", TLDI 2012. Cooper, "The script-writer's dream", DBPL 2009.
+Cheney, Lindley and Wadler, "A practical theory of language-integrated query", ICFP
+2013, and "Query shredding", SIGMOD 2014. Grust, Mayr, Rittinger and Schreiber, "FERRY:
+database-supported program execution", SIGMOD 2009. Duta and Grust, "Functional-style
+SQL UDFs with a capital F", SIGMOD 2020. Hirn and Grust, "One WITH RECURSIVE is worth
+many GOTOs", SIGMOD 2021. Ramachandra et al., "Froid: optimization of imperative
+programs in a relational database", VLDB 2018. Leroy and Pessaux, "Type-based analysis of
 uncaught exceptions", TOPLAS 22(2), 2000. Blume, Acar and Chae, "Exception handlers as
 extensible cases", APLAS 2008. Hillerström and Lindley, "Liberating effects with rows
 and handlers", TyDe 2016. Plotkin and Pretnar, "Handlers of algebraic effects", ESOP
