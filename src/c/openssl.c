@@ -12,6 +12,7 @@
 #include <openssl/opensslv.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+#include <openssl/err.h>
 
 #if !defined(OPENSSL_THREADS)
 #error "Ur/Web requires OpenSSL configured with thread support"
@@ -25,10 +26,47 @@ static int password[PASSSIZE];
 
 char *uw_sig_file = NULL;
 
+// Fills buf with num cryptographically strong random bytes and returns 1.  On
+// failure returns 0 and writes the reason to why, a string of up to len bytes.
+// RAND_bytes' -1, "not supported by the current RAND method", is a failure
+// too: the buffer is not to be used.  The reason is what OpenSSL queued for
+// this thread, which is emptied here; it is the only place that says why.
+int uw_rand_bytes(unsigned char *buf, int num, char *why, size_t len) {
+  int rc = RAND_bytes(buf, num);
+  size_t n = 0;
+  unsigned long e;
+
+  if (rc == 1)
+    return 1;
+
+  why[0] = 0;
+
+  if (rc < 0) {
+    ERR_clear_error();
+    snprintf(why, len, "not supported by the current RAND method");
+    return 0;
+  }
+
+  while ((e = ERR_get_error())) {
+    char one[256];
+
+    ERR_error_string_n(e, one, sizeof one);
+    n += snprintf(why + n, len - n, "%s%s", n ? "; " : "", one);
+    if (n >= len)
+      n = len - 1;
+  }
+
+  if (!n)
+    snprintf(why, len, "OpenSSL gave no reason");
+
+  return 0;
+}
+
 static void random_password() {
-  if (!RAND_bytes((unsigned char *)password, sizeof password)) {
-    fprintf(stderr, "Error generating random password\n");
-    perror("RAND_bytes");
+  char why[256];
+
+  if (!uw_rand_bytes((unsigned char *)password, sizeof password, why, sizeof why)) {
+    fprintf(stderr, "Error generating random password: %s\n", why);
     exit(1);
   }
 }
