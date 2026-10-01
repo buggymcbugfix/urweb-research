@@ -1,0 +1,17 @@
+== RAND_bytes returns 0, with a reason
+<html><head><title>Fatal Error</title></head><body>Fatal error: Random number generation failed: error:1200006E:random number generator::error retrieving entropy
+</body></html>
+500
+-- log
+Fatal error: Random number generation failed: error:1200006E:random number generator::error retrieving entropy
+
+== RAND_bytes returns -1
+<html><head><title>Fatal Error</title></head><body>Fatal error: Random number generation failed: not supported by the current RAND method
+</body></html>
+500
+-- log
+Fatal error: Random number generation failed: not supported by the current RAND method
+
+== RAND_bytes returns 0 on startup, without a signature file
+Error generating random password: error:1200006E:random number generator::error retrieving entropy
+exit status 1

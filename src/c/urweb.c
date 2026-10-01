@@ -13,7 +13,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <openssl/rand.h>
 #include <openssl/sha.h>
 #include <time.h>
 #include <math.h>
@@ -175,13 +174,16 @@ void *uw_init_client_data();
 void uw_free_client_data(void *);
 void uw_copy_client_data(void *dst, void *src);
 
+extern int uw_rand_bytes(unsigned char *buf, int num, char *why, size_t len);
+
 static int my_rand(uw_context ctx) {
   unsigned int ret;
-  if (RAND_bytes((unsigned char *)&ret, sizeof ret)) {
+  char why[256];
+  if (uw_rand_bytes((unsigned char *)&ret, sizeof ret, why, sizeof why)) {
     ret >>= 1; // clear top bit
     return ret;
   } else
-    uw_error(ctx, FATAL, "Random number generation failed");
+    uw_error(ctx, FATAL, "Random number generation failed: %s", why);
 }
 
 static client *new_client(uw_context ctx) {
