@@ -75,7 +75,7 @@ tests/*.db
 
 syntax: regexp
 
-Makefile
+/Makefile
 src/c/Makefile
 libtool
 include/urweb/config.h
