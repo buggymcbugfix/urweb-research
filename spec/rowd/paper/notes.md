@@ -1482,14 +1482,24 @@ below it, which is why `[Db.Write.(Shop.order)] ⊆ [Db.Write] ⊆ [Db]` and why
 name a namespace. A `Set` term then denotes a set of paths built from subtrees by
 finitely many unions and differences (a subtree with holes, Flix's `CofiniteIntSet` on
 a tree), `\/` is plain union and `--` is plain set difference; "prefix difference" is
-only what that looks like on the written paths. The denotations form a Boolean ring
-without unit, the same theory as `{Unit}`: there is no "all effects", and `[A]` is a
-generator, not `[A = ⊤]`, so `[A = x] = [A]` has no solution, as `x = ⊤` has none at
-`{Unit}`. The laws one expects fall out: `[A] \/ [A.B] = [A]` (a namespace absorbs its
-members, so there is no antichain convention to keep), `[A] -- [A.B]` is "any `A`
-effect but `B`", a usable bound, `[A = s] \/ [A = t] = [A = s \/ t]`, `[A = []] = []`,
-and `[Db.Read, Db.Write] ≠ [Db]`, since `Db` may have other children; the name
-universe stays open.
+only what that looks like on the written paths. So a bare `[A]` is *not* the
+flag `[A = []]` of the row-of-sets draft (that is `[]`, no paths at all); it denotes
+what `[A = ⊤]` would, every path starting with `A`, except that there is no term `⊤`:
+the denotations form a Boolean ring without unit, the same theory as `{Unit}`, with no
+"all effects", and `[A = x] = [A]` has no solution, as `x = ⊤` has none at `{Unit}`.
+The laws one expects fall out, and one of them runs the other way from the draft:
+`[A] \/ [A.B] = [A]`, because `[A.B] ⊆ [A]`, a namespace absorbs its members (the draft
+had `[A = []] \/ [A = [B]] = [A = [B]]`, the member absorbing the empty namespace), so
+there is no antichain convention to keep; `[A] -- [A.B]` is "any `A` effect but `B`", a
+usable bound; `[A = s] \/ [A = t] = [A = s \/ t]`; `[A = []] = []`; and `[Db.Read,
+Db.Write] ≠ [Db]`, since `Db` may have other children; the name universe stays open.
+Read as an effect, a path means "some effect at or below this path": a leaf such as
+`Clock`, with nothing declared below it, means `Clock`; `Db` means "some database
+effect", so `[Db] \/ [Db.Read] = [Db]` loses nothing, the first disjunct already
+allowed the read. There is no element "`A` itself but none of its children"; that
+would be an infinite difference, and nothing needs it. Primitives carry leaves, so an
+inferred grade never contains a bare namespace; namespaces appear in bounds
+(`allowedTxn`) and as right operands of `--` and `/\`.
 
 Inference. The solver of §5 applies per *region* instead of per name. Let `M` be the
 paths an equation mentions, closed under prefixes; the regions are `R(p) = [p] --
