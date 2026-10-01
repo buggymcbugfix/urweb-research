@@ -131,7 +131,8 @@ EXTRA_DIST = demo/prose demo/*.urs demo/*.ur demo/*.urp demo/more/prose demo/mor
 	doc/Makefile doc/*.tex doc/*.ur doc/LICENSE lib/js \
 	lib/ur/*.urs lib/ur/*.ur xml/parse.sml xml/*.ent \
 	src/coq src/*.sig src/*.sml src/*.mlb src/config.sml.in src/elisp src/*.cm src/sources src/*.grm src/*.lex \
-	CHANGELOG LICENSE urweb.ebuild include/urweb/*.h tests/*.html
+	CHANGELOG LICENSE urweb.ebuild include/urweb/*.h tests/*.html \
+	tests/rand/run.sh tests/rand/shim.c tests/rand/rand.ur tests/rand/expected
 
 dist-hook:
 	cd src; rm -f urweb.mlton.lex urweb.mlton.grm *.lex.* *.grm.*
@@ -171,7 +172,12 @@ update-snapshot: urt
 check-urt: urt
 	$(MAKE) -C urt check CC="$(CC)"
 
-check-local: bin/urweb
+# What the runtime does when OpenSSL's RAND_bytes fails (tests/rand)
+.PHONY: check-rand
+check-rand: bin/urweb
+	@tests/rand/run.sh
+
+check-local: bin/urweb check-rand
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \
