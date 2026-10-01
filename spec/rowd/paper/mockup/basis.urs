@@ -44,6 +44,11 @@ val return : t ::: Type -> t -> eff everywhere [] t
 val bind : w1 ::: {Unit} -> e1 ::: Set -> w2 ::: {Unit} -> e2 ::: Set -> t1 ::: Type -> t2 ::: Type
            -> eff w1 e1 t1 -> (t1 -> eff w2 e2 t2) -> eff (w1 /\ w2) (e1 \/ e2) t2
 
+(* The unit grade is pure, so it may leave the monad: repent (return x) = x and
+   return (repent m) = m. Sound only because every primitive below whose result depends
+   on more than its arguments carries a side restriction or an effect (notes §8.8). *)
+val repent : t ::: Type -> eff everywhere [] t -> t
+
 (* Sides. Entry points that run inside a database transaction, as every handler does
    today; Serv is non-transactional server code (Nectry), where no database operation
    is allowed and runTransaction opens one. *)
@@ -62,10 +67,10 @@ con everywhere  = client ++ server
    e -- [Db.Write] in both stages. A library's effects live under its module name:
    Urmail.Send. *)
 
-con allowedTxn  = [Db, Clock, Random, Stderr, CookieRead, CookieWrite, Env,
+con allowedTxn  = [Db, Clock, Random, Stderr, CookieRead, CookieWrite, Env, Source.New,
                    Send, Redirect, Response, Request]            (* the Txn column of the table; Db is a subtree *)
 con allowedServ = allowedTxn -- [Db]
-con allowedClient = [Clock, Random, Stderr, Rpc, Redirect, SourceWrite, Spawn]
+con allowedClient = [Clock, Random, Stderr, Rpc, Redirect, Source, Spawn, Sleep]
 
 (* Today's monad, as a bound: "runs in a transactional entry point, does at most what
    one may". Every existing signature val f : transaction t keeps compiling, because a
@@ -109,15 +114,15 @@ val returnBlob : t ::: Type -> blob -> mimeType -> eff [PageHandler] [Response] 
           val get : t ::: Type -> source t -> signal t         (* unchanged: a signal *)
           val set : t ::: Type -> source t -> t -> transaction unit
           val current : t ::: Type -> signal t -> transaction t *)
-val source : t ::: Type -> t -> eff everywhere [] (source t)
-val set : t ::: Type -> source t -> t -> eff client [SourceWrite] unit
-val current : t ::: Type -> signal t -> eff client [] t
+val source : t ::: Type -> t -> eff everywhere [Source.New] (source t)    (* allocation is observable: §2, repent *)
+val set : t ::: Type -> source t -> t -> eff client [Source.Write] unit
+val current : t ::: Type -> signal t -> eff client [Source.Read] t
 val signal_monad : monad signal                                 (* unchanged *)
 
 (* today: val spawn : transaction unit -> transaction unit
           val sleep : int -> transaction unit *)
 val spawn : e ::: Set -> eff client e unit -> eff client (e \/ [Spawn]) unit
-val sleep : int -> eff client [] unit
+val sleep : int -> eff client [Sleep] unit
 
 (* today: val rpc : t ::: Type -> transaction t -> transaction t
    The body must be runnable as an RPC handler; the client-side call records the body's

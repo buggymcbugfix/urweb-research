@@ -1218,8 +1218,8 @@ design (the overview) puts the algebra into `bind` and gives primitives exact gr
 
 ```
 val return : t ::: Type -> t -> eff everywhere [] t
-val bind : w1 ::: {Unit} -> e1 ::: {Unit} -> w2 ::: {Unit} -> e2 ::: {Unit} -> t1 ::: Type -> t2 ::: Type
-           -> eff w1 e1 t1 -> (t1 -> eff w2 e2 t2) -> eff (w1 ^ w2) (e1 & e2) t2
+val bind : w1 ::: {Unit} -> e1 ::: Set -> w2 ::: {Unit} -> e2 ::: Set -> t1 ::: Type -> t2 ::: Type
+           -> eff w1 e1 t1 -> (t1 -> eff w2 e2 t2) -> eff (w1 /\ w2) (e1 \/ e2) t2
 val currentUrl : eff [Txn, PageHandler, RpcHandler, Client] [] url
 val dml : dml -> eff [Txn] [Db.Write] unit
 ```
@@ -1260,9 +1260,9 @@ con everywhere  = client ++ server ++ transaction
 
 val debug  : string -> eff everywhere [Stderr] unit
 val now    : eff everywhere [Clock] time
-val source : t ::: Type -> t -> eff everywhere [] (source t)
-val get    : t ::: Type -> source t -> eff client [] t
-val set    : t ::: Type -> source t -> t -> eff client [SourceWrite] unit
+val source : t ::: Type -> t -> eff everywhere [Source.New] (source t)
+val current : t ::: Type -> signal t -> eff client [Source.Read] t
+val set    : t ::: Type -> source t -> t -> eff client [Source.Write] unit
 val recv   : t ::: Type -> channel t -> eff client [] t
 val send   : t ::: Type -> channel t -> t -> eff (server ++ transaction) [Send] unit
 val dml    : dml -> eff transaction [Db.Write] unit
@@ -1531,8 +1531,8 @@ Bounds are prefix bounds. "`e` is within `B`" is `e -- B = []`, so a bound may n
 namespace or a whole subtree:
 
 ```
-con allowedTxn = [Clock, Random, Stderr, CookieRead, CookieWrite, Env, Send, Redirect,
-                  Response, Request, Db]                 (* Db: the whole subtree *)
+con allowedTxn = [Clock, Random, Stderr, CookieRead, CookieWrite, Env, Source.New, Send,
+                  Redirect, Response, Request, Db]       (* Db: the whole subtree *)
 ```
 
 Stages. First a `Set` of leaves without table structure (`[Db.Read, Clock,
@@ -1604,11 +1604,43 @@ keeps its grade and `bind` combines them. This is the reason to pay for §7.5.
 ### 8.7 Where the effects go
 
 Consumers inside the compiler, in order of payoff: read-only transaction detection
-(today reachability to `dml`, ICFP 2015 §3.7) becomes `Db.Write ∉ e`; Mono Reduce's
-commutation summaries come from the grades of the monomorphized code's origins; Sqlcache
-gets per-table footprints once table names are in the types. None of these passes reads
-the type today and none is disturbed by the index until wired in; the index is erased
-with the rest.
+(today reachability to `dml`, ICFP 2015 §3.7) becomes `e /\ [Db.Write] = []`; Effectize's
+three reachability analyses (`writers`, `readers`, `pushers` in `effectize.sml`, which
+label exports for the anti-XSRF signature and refuse a GET handler that writes unless
+the `.urp` says `safeGet`) become `e /\ [Db.Write, …] ≠ []` and `e /\ [CookieRead,
+Request, Env] ≠ []`; Mono Reduce's commutation summaries come from the grades of the
+monomorphized code's origins; Sqlcache gets per-table footprints once table names are
+in the types. None of these passes reads the type today and none is disturbed by the
+index until wired in; the index is erased with the rest. `fanciful.md` §2 takes the
+Effectize point to its conclusion (`url` refusing writers by type).
+
+### 8.8 The unit grade is pure: `repent`
+
+`return` has the unit grade `(everywhere, [])`. The converse belongs in Basis too:
+
+```
+val repent : t ::: Type -> eff everywhere [] t -> t
+```
+
+A computation that may run anywhere and does nothing is a pure value, and `repent`
+lets it leave the monad; `repent (return x) = x` and `return (repent m) = m`, so `t` and
+`eff everywhere [] t` are isomorphic. It is Flix's rule that a function of effect `{}`
+may be called anywhere and Koka's that a `total` function is pure, as an explicit
+coercion rather than a typing rule, because Ur has no subtyping. Uses are few until
+errors are effects (`fanciful.md` §1), when it lets generic monadic code (`mapM` over a
+pure step, a monadic parser) be used purely without a second copy; it is listed now for
+completeness and because it fixes a design invariant that is easy to break:
+
+*every primitive whose result depends on anything but its arguments must carry a
+side restriction or a non-empty effect.* Otherwise `repent` would let its result be
+hoisted as a constant. `currentUrl : eff ([PageHandler, RpcHandler] ++ client) [] url`
+is fine, its `where` is not `everywhere`; and the optimizer may already treat it as a
+per-request constant. `source : t -> eff everywhere [] (source t)` was not fine: fresh
+allocation is observable (`repent (source 0)` would be one cell shared by every use),
+so `source` has `[Source.New]`, `set` has `[Source.Write]` and `current` has
+`[Source.Read]` (mockup §3). The theorem behind `repent` is the one §10.6 asks for
+anyway: in an operational model with sides, a closed computation of grade
+`(everywhere, [])` evaluates to the same value in every configuration.
 
 ## 9. Structured definitions at the type level
 
@@ -1880,6 +1912,7 @@ one the text above assumes.
 | effect labels | a `Set` of paths with Nix's dot sugar, Basis's at the root, a library's under its module name (§8.3); stage 1 leaves only, stage 2 the table footprint `Db.Read.(Shop.order)` | `{{Unit}}` rows of sets at a fixed depth; heterogeneous record kinds |
 | generative names | `table t` and `sequence s` also declare a constructor of kind `Name`, generative per functor application, written `(M.t)` in a path | per-table labels generated by the compiler |
 | annotations under exact grades | bounds (declared ⊆ inferred where; inferred `-- declared = []` for what, so a bound may name a namespace) | exact |
+| name of the kind | `Set` for now; candidates `Paths` (what a literal is), `Eff` (Flix's name; clashes with `eff`), `Space`/`Namespace`; `Set` invites confusion with `{Unit}`, which is also a set | rename when the design settles |
 | the `Set` kind | one new kind for effects, literals with dotted paths and `[A = s]` prefixing, `\/`, `--` (§8.3); table footprint `Db.Read.(t)`, `Db.Write.(t)`, verb first so that read-only is `e -- [Db.Write]` | stay on `{{Unit}}` and give up mixed depth; `Foo.Bar` as sugar for `Foo = [Bar]` on rows, which breaks at depth two |
 | effect namespaces | structural: the module name as the path's first component, by convention | an `effect` declaration generating atoms |
 | contents index on `xml` | add with the HTML stage, to change `xml`'s arity once | later |
@@ -1902,6 +1935,12 @@ constructors, six passes name `transaction`, `<-` desugars to `Basis.bind`, `sid
 reports from a fixed list after monomorphization (source); Flix's solver phases,
 variable cap and representations (source); the numbers and quotes from the papers
 (reading notes).
+
+What is deliberately *not* in this design, with sketches of how it would go, is in
+`fanciful.md`: errors as effects (`Err`, `try`/`catch` with savepoints, named constraint
+violations), the `.urp` policy as a `Set` bound and FFI directives as grades,
+type-level strings and prefix rules, sides as paths, further footprints, and why effect
+handlers are not for Ur.
 
 ## Sources
 
