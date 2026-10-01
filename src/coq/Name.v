@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *)
 
-Require Import String.
+From Stdlib Require Import String.
 
 Definition name := string.
 Definition name_eq_dec : forall x y : name, {x = y} + {x <> y} := string_dec.
