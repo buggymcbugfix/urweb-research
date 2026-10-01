@@ -1,9 +1,10 @@
-(* Basis after row difference, the graded eff, declared effect names and the new HTML
- * indices: the parts that change, with today's form in a comment above each.
+(* Basis after row difference, the graded eff, the Set kind of effect paths and the new
+ * HTML indices: the parts that change, with today's form in a comment above each.
  *
  * Mockup against lib/ur/basis.urs on main (2026-10-01). Not accepted by any compiler.
- * Legend:  -- row difference (names-only)   /\ \/ Basis.inter, Basis.union as infix
- *          effect X   declares a fresh type-level name X of kind Name (§8 of notes.md) *)
+ * Legend:  -- row difference (names-only on rows, prefix difference on Set)
+ *          /\ \/ Basis.inter, Basis.union as infix
+ *          Set    the kind of effect sets (§1 below, notes.md §8.3) *)
 
 
 (** 1. Row difference and what is defined from it *)
@@ -13,10 +14,17 @@
 
 con inter = K ==> fn (r1 :: {K}) (r2 :: {K}) => r1 -- (r1 -- r2)     (* infix /\ *)
 con union = K ==> fn (r1 :: {K}) (r2 :: {K}) => r1 ++ (r2 -- r1)     (* infix \/ ; the ++ is guard-free *)
-con symdiff = K ==> fn (r1 :: {K}) (r2 :: {K}) => (r1 -- r2) ++ (r2 -- r1)
 
-(* At set-like kinds ({Unit}, {{Unit}}, ...) /\ and \/ are the pointwise meet and join
-   and \\ the pointwise difference; at {Unit} they are inter, union and --. *)
+(* Effect sets have their own kind (notes.md §8.3):
+     kind Set                       sets of paths; a path stands for its whole subtree
+     [Urmail.Send, Clock]           a literal; the dot is the path separator, equal prefixes merge
+     [Urmail = s]                   prefix every path of s :: Set by Urmail; s may be a variable
+     [Db.Read.(Shop.order)]         a parenthesized component is a constructor of kind Name
+     s \/ t                         union;            [A] \/ [A.B] = [A]
+     s -- t                         set difference;   [A] -- [A.B] = "any A but A.B"
+     s /\ t = s -- (s -- t)         intersection;     e /\ [Db] = the database footprint of e
+   Basis's effects sit at the root (Clock, Stderr, Db...); a library's under its module
+   name. Symmetric difference is the solver's and the spec's, not a Basis operator. *)
 
 
 (** 2. The computation type *)
@@ -24,15 +32,16 @@ con symdiff = K ==> fn (r1 :: {K}) (r2 :: {K}) => (r1 -- r2) ++ (r2 -- r1)
 (* today: con transaction :: Type -> Type
           val transaction_monad : monad transaction *)
 
-con eff :: {Unit} -> {Unit} -> Type -> Type
-(*         where     what      result:
-   where = the set of sides on which every part of the computation can run,
-   what  = the set of effects some part performs.  Stage 1: what is a flat set. *)
+con eff :: {Unit} -> Set -> Type -> Type
+(*         where     what   result:
+   where = the set of sides on which every part of the computation can run ({Unit}),
+   what  = the set of effects some part performs (Set, §1).  Stage 1 uses leaves only;
+   stage 2 (§5) adds the table footprint under Db. *)
 
 (* Built in; x <- e1; e2 desugars to this bind when e1 : eff _ _ _.
    Grades: return has the unit grade, bind meets the wheres and joins the whats. *)
 val return : t ::: Type -> t -> eff everywhere [] t
-val bind : w1 ::: {Unit} -> e1 ::: {Unit} -> w2 ::: {Unit} -> e2 ::: {Unit} -> t1 ::: Type -> t2 ::: Type
+val bind : w1 ::: {Unit} -> e1 ::: Set -> w2 ::: {Unit} -> e2 ::: Set -> t1 ::: Type -> t2 ::: Type
            -> eff w1 e1 t1 -> (t1 -> eff w2 e2 t2) -> eff (w1 /\ w2) (e1 \/ e2) t2
 
 (* Sides. Entry points that run inside a database transaction, as every handler does
@@ -47,43 +56,31 @@ con everywhere  = client ++ server
 (* Side-polymorphic signatures bind the slack and write everywhere -- s, never a bare w:
    txn /\ (everywhere -- s) = txn -- s holds for every s, txn /\ w = w does not. *)
 
-(* The effects Basis itself performs. Each declaration introduces a fresh name,
-   distinct from every literal and every other declared name; Urmail.Send is another
-   library's. *)
-effect DbRead
-effect DbWrite
-effect Clock
-effect Random
-effect Stderr
-effect CookieRead
-effect CookieWrite
-effect Env
-effect Send
-effect Rpc
-effect Redirect
-effect Response
-effect Request
-effect SourceWrite
-effect Spawn
+(* The effects Basis itself performs are paths at the root; no declaration introduces
+   them, they are names in Set literals. Stage 1 uses the leaves Db.Read and Db.Write;
+   stage 2 (§5) lengthens them to Db.Read.(table), Db.Write.(table), so "read-only" is
+   e -- [Db.Write] in both stages. A library's effects live under its module name:
+   Urmail.Send. *)
 
-con allowedTxn  = [DbRead, DbWrite, Clock, Random, Stderr, CookieRead, CookieWrite, Env,
-                   Send, Redirect, Response, Request]            (* the Txn column of the table *)
-con allowedServ = allowedTxn -- [DbRead, DbWrite]
+con allowedTxn  = [Db, Clock, Random, Stderr, CookieRead, CookieWrite, Env,
+                   Send, Redirect, Response, Request]            (* the Txn column of the table; Db is a subtree *)
+con allowedServ = allowedTxn -- [Db]
 con allowedClient = [Clock, Random, Stderr, Rpc, Redirect, SourceWrite, Spawn]
 
 (* Today's monad, as a bound: "runs in a transactional entry point, does at most what
    one may". Every existing signature val f : transaction t keeps compiling, because a
-   declared grade is read as a bound on the inferred one (declared where ⊆ inferred,
-   inferred what ⊆ declared). *)
+   declared grade is read as a bound on the inferred one: declared where ⊆ inferred,
+   and inferred what -- declared = [] with prefix difference, so a bound may name a
+   whole subtree (Db). *)
 con transaction = eff txn allowedTxn
 
 (* Explicit weakening for the places where two closed grades meet; identity at run time. *)
-val weaken : w ::: {Unit} -> e ::: {Unit} -> t ::: Type -> w' ::: {Unit} -> e' ::: {Unit}
+val weaken : w ::: {Unit} -> e ::: Set -> t ::: Type -> w' ::: {Unit} -> e' ::: Set
              -> eff w e t -> eff (w -- w') (e \/ e') t
 
 (* Non-transactional server code opening a transaction (Nectry). The transaction's
    effects are the server code's effects. *)
-val runTransaction : e ::: {Unit} -> t ::: Type -> eff txn e t -> eff serv e t
+val runTransaction : e ::: Set -> t ::: Type -> eff txn e t -> eff serv e t
 
 
 (** 3. Effectful primitives, by side *)
@@ -119,13 +116,13 @@ val signal_monad : monad signal                                 (* unchanged *)
 
 (* today: val spawn : transaction unit -> transaction unit
           val sleep : int -> transaction unit *)
-val spawn : e ::: {Unit} -> eff client e unit -> eff client (e \/ [Spawn]) unit
+val spawn : e ::: Set -> eff client e unit -> eff client (e \/ [Spawn]) unit
 val sleep : int -> eff client [] unit
 
 (* today: val rpc : t ::: Type -> transaction t -> transaction t
    The body must be runnable as an RPC handler; the client-side call records the body's
    effects as its own, since it causes them. *)
-val rpc : w ::: {Unit} -> e ::: {Unit} -> t ::: Type
+val rpc : w ::: {Unit} -> e ::: Set -> t ::: Type
           -> eff ([RpcHandler] ++ w) e t -> eff client (e \/ [Rpc]) t
 
 (* today: val send : t ::: Type -> channel t -> t -> transaction unit
@@ -138,7 +135,7 @@ val recv : t ::: Type -> channel t -> eff client [] t
    [PageHandler] ++ w is union [PageHandler] w: the handler's where must contain
    PageHandler. A pure handler (grade everywhere) qualifies; a client-only one does not,
    and the error names Client and PageHandler. *)
-val url : w ::: {Unit} -> e ::: {Unit} -> eff ([PageHandler] ++ w) e page -> url
+val url : w ::: {Unit} -> e ::: Set -> eff ([PageHandler] ++ w) e page -> url
 
 (* Tasks: task k = f requires f : a -> eff ([Task] ++ w) e unit for k : task_kind a. *)
 con task_kind :: Type -> Type
@@ -227,20 +224,20 @@ val sql_inner_join : free ::: {{Type}} -> tabs1 ::: {{Type}} -> tabs2 ::: {{Type
    The callback's grade flows into the result; the runner itself needs txn and reads. *)
 val query : tables ::: {{Type}} -> exps ::: {Type}
             -> [tables ~ exps] =>
-                  state ::: Type -> s ::: {Unit} -> e ::: {Unit}
+                  state ::: Type -> s ::: {Unit} -> e ::: Set
                   -> sql_query [] [] tables exps
                   -> ($(exps ++ map (fn fields :: {Type} => $fields) tables)
                       -> state
                       -> eff (everywhere -- s) e state)
                   -> state
-                  -> eff (txn -- s) (e \/ [DbRead]) state
+                  -> eff (txn -- s) (e \/ [Db.Read]) state
 
 (* Mutators. dml values are not computations; running one is. *)
 type dml
 (* today: val dml : dml -> transaction unit
           val tryDml : dml -> transaction (option string) *)
-val dml : dml -> eff txn [DbWrite] unit
-val tryDml : dml -> eff txn [DbWrite] (option string)
+val dml : dml -> eff txn [Db.Write] unit
+val tryDml : dml -> eff txn [Db.Write] (option string)
 
 (* UNCHANGED *)
 val insert : fields ::: {Type} -> uniques ::: {{Unit}}
@@ -271,8 +268,8 @@ val delete : fields ::: {Type} -> uniques ::: {{Unit}}
 (* today: val nextval : sql_sequence -> transaction int
           val setval : sql_sequence -> int -> transaction unit *)
 type sql_sequence
-val nextval : sql_sequence -> eff txn [DbWrite] int
-val setval : sql_sequence -> int -> eff txn [DbWrite] unit
+val nextval : sql_sequence -> eff txn [Db.Write] int
+val setval : sql_sequence -> int -> eff txn [Db.Write] unit
 
 (* Policies: unchanged (they are declarations, not computations); the guards
    [[New] ~ tables], [[Old, New] ~ tables] are "the policy's pseudo-tables must not
@@ -281,95 +278,100 @@ val setval : sql_sequence -> int -> eff txn [DbWrite] unit
 
 (** 5. SQL, stage 2: per-table reads and writes *)
 
-(* what becomes a row of sets; a flag is a one-element set at its own label. *)
-con eff :: {Unit} -> {{Unit}} -> Type -> Type
-(*  [DbRead = [Shop.Order, Shop.Customer], DbWrite = [Shop.Order], Clock = [Clock], Stderr = [Stderr]] *)
-
-(* A table declaration also declares its name: in module Shop,
+(* The table footprint lives under the root path Db:
+     [Db.Read.(Shop.order), Db.Write.(Shop.order), Clock, Stderr] :: Set
+   A table declaration also declares its name: in module Shop,
      table order : {Id : int, ...}
-   gives val order : sql_table #order [Id = int, ...] [] with #order the declared,
-   module-qualified name Shop.order, generative per functor application. *)
+   gives val order : sql_table order [Id = int, ...] [] together with a constructor
+   order :: Name, generative per functor application; in a path it is written
+   (Shop.order). Values and constructors are separate namespaces, so the two coexist. *)
 
 (* today: con sql_table :: {Type} -> {{Unit}} -> Type *)
 con sql_table :: Name -> {Type} -> {{Unit}} -> Type
 val fieldsOf_table : tn ::: Name -> fs ::: {Type} -> keys ::: {{Unit}} -> fieldsOf (sql_table tn fs keys) fs
 class tableNameOf :: Type -> Name -> Type
 val tableNameOf_table : tn ::: Name -> fs ::: {Type} -> keys ::: {{Unit}} -> tableNameOf (sql_table tn fs keys) tn
-val tableNameOf_view : fs ::: {Type} -> tableNameOf (sql_view fs) View       (* views read their own tables elsewhere *)
 
-(* FROM items carry the set of tables they read. Two aliases of one table read it once:
-   the sets are joined, not concatenated, so no guard on reads. *)
+(* FROM items carry the set of tables read, one atom (t) per table t; the runner puts it
+   under Db.Read. Two aliases of one table read it once: the sets are joined, not
+   concatenated, so no guard on reads. *)
 (* today: con sql_from_items :: {{Type}} -> {{Type}} -> Type *)
-con sql_from_items :: {{Type}} -> {{Type}} -> {Unit} -> Type
+con sql_from_items :: {{Type}} -> {{Type}} -> Set -> Type
 val sql_from_nil : free ::: {{Type}} -> sql_from_items free [] []
 val sql_from_table : free ::: {{Type}} -> t ::: Type -> fs ::: {Type} -> tn ::: Name
                      -> fieldsOf t fs -> tableNameOf t tn -> name :: Name
-                     -> t -> sql_from_items free [name = fs] [tn]
-val sql_from_query : free ::: {{Type}} -> fs ::: {Type} -> reads ::: {Unit} -> name :: Name
+                     -> t -> sql_from_items free [name = fs] [(tn)]
+val sql_from_query : free ::: {{Type}} -> fs ::: {Type} -> reads ::: Set -> name :: Name
                      -> sql_query free [] [] fs reads -> sql_from_items free [name = fs] reads
 val sql_from_comma : free ::: {{Type}} -> tabs1 ::: {{Type}} -> tabs2 ::: {{Type}}
-                     -> r1 ::: {Unit} -> r2 ::: {Unit}
+                     -> r1 ::: Set -> r2 ::: Set
                      -> [tabs1 ~ tabs2]
     => sql_from_items free tabs1 r1 -> sql_from_items free tabs2 r2
        -> sql_from_items free (tabs1 ++ tabs2) (r1 \/ r2)
 val sql_inner_join : free ::: {{Type}} -> tabs1 ::: {{Type}} -> tabs2 ::: {{Type}}
-                     -> r1 ::: {Unit} -> r2 ::: {Unit}
+                     -> r1 ::: Set -> r2 ::: Set
                      -> [free ~ tabs1] => [free ~ tabs2] => [tabs1 ~ tabs2]
     => sql_from_items free tabs1 r1 -> sql_from_items free tabs2 r2
        -> sql_exp (free ++ tabs1 ++ tabs2) [] [] bool
        -> sql_from_items free (tabs1 ++ tabs2) (r1 \/ r2)
 
 (* today: con sql_query :: {{Type}} -> {{Type}} -> {{Type}} -> {Type} -> Type *)
-con sql_query :: {{Type}} -> {{Type}} -> {{Type}} -> {Type} -> {Unit} -> Type
-con sql_query1 :: {{Type}} -> {{Type}} -> {{Type}} -> {{Type}} -> {Type} -> {Unit} -> Type
+con sql_query :: {{Type}} -> {{Type}} -> {{Type}} -> {Type} -> Set -> Type
+con sql_query1 :: {{Type}} -> {{Type}} -> {{Type}} -> {{Type}} -> {Type} -> Set -> Type
 (* sql_query1, sql_relop, sql_subquery: the reads index is threaded through as the
-   join of the parts' reads; a subquery in an expression adds its reads to the
-   expression's query. *)
+   union of the parts' reads; a subquery in an expression adds its reads to the
+   enclosing query's. *)
 
-val query : tables ::: {{Type}} -> exps ::: {Type} -> reads ::: {Unit}
+(* The runner prefixes the reads: [Db.Read = reads] is [Db.Read.(Shop.order), ...]. *)
+val query : tables ::: {{Type}} -> exps ::: {Type} -> reads ::: Set
             -> [tables ~ exps] =>
-                  state ::: Type -> s ::: {Unit} -> e ::: {{Unit}}
+                  state ::: Type -> s ::: {Unit} -> e ::: Set
                   -> sql_query [] [] tables exps reads
                   -> ($(exps ++ map (fn fields :: {Type} => $fields) tables)
                       -> state
                       -> eff (everywhere -- s) e state)
                   -> state
-                  -> eff (txn -- s) (e \/ [DbRead = reads]) state
+                  -> eff (txn -- s) (e \/ [Db.Read = reads]) state
 
 (* A dml value knows what it writes. *)
-con dml :: {{Unit}} -> Type
-val dml : d ::: {{Unit}} -> dml d -> eff txn d unit
-val tryDml : d ::: {{Unit}} -> dml d -> eff txn d (option string)
+con dml :: Set -> Type
+val dml : d ::: Set -> dml d -> eff txn [Db.Write = d] unit
+val tryDml : d ::: Set -> dml d -> eff txn [Db.Write = d] (option string)
 
 val insert : tn ::: Name -> fields ::: {Type} -> uniques ::: {{Unit}}
              -> sql_table tn fields uniques
              -> $(map (fn t :: Type => sql_exp [] [] [] t) fields)
-             -> dml [DbWrite = [tn]]
+             -> dml [(tn)]
 
 val update : tn ::: Name -> unchanged ::: {Type} -> uniques ::: {{Unit}} -> changed :: {Type} ->
              [changed ~ unchanged] =>
                 $(map (fn t :: Type => sql_exp [T = changed ++ unchanged] [] [] t) changed)
                 -> sql_table tn (changed ++ unchanged) uniques
                 -> sql_exp [T = changed ++ unchanged] [] [] bool
-                -> dml [DbWrite = [tn]]
+                -> dml [(tn)]
 
 val delete : tn ::: Name -> fields ::: {Type} -> uniques ::: {{Unit}}
              -> sql_table tn fields uniques
              -> sql_exp [T = fields] [] [] bool
-             -> dml [DbWrite = [tn]]
+             -> dml [(tn)]
 
-(* An update whose WHERE clause has a subquery reads too:
-   dml ([DbWrite = [tn]] \/ [DbRead = reads]); the \/ here is the pointwise join of the
-   two rows, which at distinct labels is ++. *)
+(* An update whose WHERE clause has a subquery reads too; then dml carries both:
+   con dml :: Set -> Set -> Type with the reads as a second index, and
+   val dml : r ::: Set -> d ::: Set -> dml r d -> eff txn ([Db.Read = r] \/ [Db.Write = d]) unit.
+   Left at one index here for legibility. *)
 
-(* Sequences declare names like tables. *)
+(* Sequences declare names like tables; nextval is a write, since a read-only
+   transaction check must treat it as one. *)
 con sql_sequence :: Name -> Type
-val nextval : sn ::: Name -> sql_sequence sn -> eff txn [SeqWrite = [sn]] int
+val nextval : sn ::: Name -> sql_sequence sn -> eff txn [Db.Write.(sn)] int
 
 (* What a Sqlcache or a read-only-transaction check reads off a handler's type:
-     val report : eff [PageHandler] [DbRead = [Shop.Order, Shop.Customer], Clock = [Clock]] page
-   says the handler reads two tables, writes none, and depends on the clock, before
-   monomorphization and without a syntactic walk. *)
+     val report : eff [PageHandler] [Db.Read.(Shop.order), Db.Read.(Shop.customer), Clock] page
+   says the handler reads two tables, writes none (e /\ [Db.Write] = []), and depends
+   on the clock, before monomorphization and without a syntactic walk. A caller that
+   must not write: f : eff server (e -- [Db.Write]) t; one that must not write one
+   table: f : eff server (e -- [Db.Write.(Shop.order)]) t; one that must not touch the
+   database: f : eff server (e -- [Db]) t. *)
 
 
 (** 6. Where the HTML signatures went *)

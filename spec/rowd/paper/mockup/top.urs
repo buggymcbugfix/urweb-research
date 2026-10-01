@@ -3,7 +3,8 @@
  * Mockup against lib/ur/top.urs on main (2026-10-01). Sections marked UNCHANGED keep
  * every signature of today's Top to the character; they are listed so that the claim
  * is checkable. Where a signature changes, today's form is in a comment above it.
- * Infix /\ and \/ are Basis.inter and Basis.union; -- is row difference. *)
+ * Infix /\ and \/ are Basis.inter and Basis.union; -- is row difference. Binders
+ * e ::: Set are effect sets (basis.urs §1); s ::: {Unit} is the side slack. *)
 
 (** Row folding: UNCHANGED *)
 
@@ -128,7 +129,7 @@ val mapX2 : K --> tf1 :: (K -> Type) -> tf2 :: (K -> Type) -> w :: {Unit} -> a :
 (* mapX3, mapX4: the same change, ctx :: {Unit} becomes w :: {Unit} -> a :: {Unit}. *)
 
 (** Query runners. Two things change in every one of them: transaction becomes eff with
-    where = txn and what = [DbRead], and where a runner takes a callback, the callback's
+    where = txn and what = [Db.Read], and where a runner takes a callback, the callback's
     grade flows into the result. The guards [tables ~ exps] stay: a selected expression
     named like a table alias is a clash in the result record, which the caller should
     hear about.
@@ -142,41 +143,41 @@ val mapX2 : K --> tf1 :: (K -> Type) -> tf2 :: (K -> Type) -> w :: {Unit} -> a :
 val queryL : tables ::: {{Type}} -> exps ::: {Type}
              -> [tables ~ exps] =>
                   sql_query [] [] tables exps
-                  -> eff txn [DbRead] (list $(exps ++ map (fn fields :: {Type} => $fields) tables))
+                  -> eff txn [Db.Read] (list $(exps ++ map (fn fields :: {Type} => $fields) tables))
 
 val queryL1 : t ::: Name -> fs ::: {Type}
               -> sql_query [] [] [t = fs] []
-              -> eff txn [DbRead] (list $fs)
+              -> eff txn [Db.Read] (list $fs)
 
 val queryLE1 : tabs ::: {Unit} -> nm ::: Name -> t ::: Type
                -> [tabs ~ [nm]] =>
                sql_query [] [] (mapU [] tabs) [nm = t]
-               -> eff txn [DbRead] (list t)
+               -> eff txn [Db.Read] (list t)
 
 (* today: ... -> ($fs -> state -> transaction state) -> state -> transaction state *)
-val query1 : t ::: Name -> fs ::: {Type} -> state ::: Type -> s ::: {Unit} -> e ::: {Unit}
+val query1 : t ::: Name -> fs ::: {Type} -> state ::: Type -> s ::: {Unit} -> e ::: Set
              -> sql_query [] [] [t = fs] []
              -> ($fs -> state -> eff (everywhere -- s) e state)
              -> state
-             -> eff (txn -- s) (e \/ [DbRead]) state
+             -> eff (txn -- s) (e \/ [Db.Read]) state
 
 val query1' : t ::: Name -> fs ::: {Type} -> state ::: Type
               -> sql_query [] [] [t = fs] []
               -> ($fs -> state -> state)
               -> state
-              -> eff txn [DbRead] state
+              -> eff txn [Db.Read] state
 
-val queryI : tables ::: {{Type}} -> exps ::: {Type} -> s ::: {Unit} -> e ::: {Unit}
+val queryI : tables ::: {{Type}} -> exps ::: {Type} -> s ::: {Unit} -> e ::: Set
              -> [tables ~ exps] =>
              sql_query [] [] tables exps
              -> ($(exps ++ map (fn fields :: {Type} => $fields) tables)
                  -> eff (everywhere -- s) e unit)
-             -> eff (txn -- s) (e \/ [DbRead]) unit
+             -> eff (txn -- s) (e \/ [Db.Read]) unit
 
-val queryI1 : nm ::: Name -> fs ::: {Type} -> s ::: {Unit} -> e ::: {Unit}
+val queryI1 : nm ::: Name -> fs ::: {Type} -> s ::: {Unit} -> e ::: Set
               -> sql_query [] [] [nm = fs] []
               -> ($fs -> eff (everywhere -- s) e unit)
-              -> eff (txn -- s) (e \/ [DbRead]) unit
+              -> eff (txn -- s) (e \/ [Db.Read]) unit
 
 (* today: ... -> ctx ::: {Unit} -> inp ::: {Type} -> ... -> ($row -> xml ctx inp []) -> transaction (xml ctx inp []) *)
 val queryX : tables ::: {{Type}} -> exps ::: {Type} -> w ::: {Unit} -> a ::: {Unit} -> inp ::: {Type}
@@ -184,84 +185,84 @@ val queryX : tables ::: {{Type}} -> exps ::: {Type} -> w ::: {Unit} -> a ::: {Un
              sql_query [] [] tables exps
              -> ($(exps ++ map (fn fields :: {Type} => $fields) tables)
                  -> xml w a inp [])
-             -> eff txn [DbRead] (xml w a inp [])
+             -> eff txn [Db.Read] (xml w a inp [])
 
 val queryXI : tables ::: {{Type}} -> exps ::: {Type} -> w ::: {Unit} -> a ::: {Unit} -> inp ::: {Type}
               -> [tables ~ exps] =>
     sql_query [] [] tables exps
     -> (int -> $(exps ++ map (fn fields :: {Type} => $fields) tables)
         -> xml w a inp [])
-    -> eff txn [DbRead] (xml w a inp [])
+    -> eff txn [Db.Read] (xml w a inp [])
 
 val queryX1 : nm ::: Name -> fs ::: {Type} -> w ::: {Unit} -> a ::: {Unit} -> inp ::: {Type}
               -> sql_query [] [] [nm = fs] []
               -> ($fs -> xml w a inp [])
-              -> eff txn [DbRead] (xml w a inp [])
+              -> eff txn [Db.Read] (xml w a inp [])
 
 val queryX1I : nm ::: Name -> fs ::: {Type} -> w ::: {Unit} -> a ::: {Unit} -> inp ::: {Type}
                -> sql_query [] [] [nm = fs] []
                -> (int -> $fs -> xml w a inp [])
-               -> eff txn [DbRead] (xml w a inp [])
+               -> eff txn [Db.Read] (xml w a inp [])
 
 (* The primed forms run an effectful callback per row: callback grade flows through. *)
 val queryX' : tables ::: {{Type}} -> exps ::: {Type} -> w ::: {Unit} -> a ::: {Unit} -> inp ::: {Type}
-              -> s ::: {Unit} -> e ::: {Unit}
+              -> s ::: {Unit} -> e ::: Set
               -> [tables ~ exps] =>
               sql_query [] [] tables exps
               -> ($(exps ++ map (fn fields :: {Type} => $fields) tables)
                   -> eff (everywhere -- s) e (xml w a inp []))
-              -> eff (txn -- s) (e \/ [DbRead]) (xml w a inp [])
+              -> eff (txn -- s) (e \/ [Db.Read]) (xml w a inp [])
 val queryX1' : nm ::: Name -> fs ::: {Type} -> w ::: {Unit} -> a ::: {Unit} -> inp ::: {Type}
-               -> s ::: {Unit} -> e ::: {Unit}
+               -> s ::: {Unit} -> e ::: Set
                -> sql_query [] [] [nm = fs] []
                -> ($fs -> eff (everywhere -- s) e (xml w a inp []))
-               -> eff (txn -- s) (e \/ [DbRead]) (xml w a inp [])
+               -> eff (txn -- s) (e \/ [Db.Read]) (xml w a inp [])
 val queryXE' : exps ::: {Type} -> w ::: {Unit} -> a ::: {Unit} -> inp ::: {Type}
-               -> s ::: {Unit} -> e ::: {Unit}
+               -> s ::: {Unit} -> e ::: Set
                -> sql_query [] [] [] exps
                -> ($exps -> eff (everywhere -- s) e (xml w a inp []))
-               -> eff (txn -- s) (e \/ [DbRead]) (xml w a inp [])
+               -> eff (txn -- s) (e \/ [Db.Read]) (xml w a inp [])
 
 val hasRows : tables ::: {{Type}} -> exps ::: {Type}
               -> [tables ~ exps] =>
     sql_query [] [] tables exps
-    -> eff txn [DbRead] bool
+    -> eff txn [Db.Read] bool
 
 val oneOrNoRows : tables ::: {{Type}} -> exps ::: {Type}
                   -> [tables ~ exps] =>
                   sql_query [] [] tables exps
-                  -> eff txn [DbRead]
+                  -> eff txn [Db.Read]
                          (option
                               $(exps
                                     ++ map (fn fields :: {Type} => $fields) tables))
 
 val oneOrNoRows1 : nm ::: Name -> fs ::: {Type}
                    -> sql_query [] [] [nm = fs] []
-                   -> eff txn [DbRead] (option $fs)
+                   -> eff txn [Db.Read] (option $fs)
 
 val oneOrNoRowsE1 : tabs ::: {Unit} -> nm ::: Name -> t ::: Type
                     -> [tabs ~ [nm]] =>
     sql_query [] [] (mapU [] tabs) [nm = t]
-    -> eff txn [DbRead] (option t)
+    -> eff txn [Db.Read] (option t)
 
 val oneRow : tables ::: {{Type}} -> exps ::: {Type}
              -> [tables ~ exps] =>
              sql_query [] [] tables exps
-             -> eff txn [DbRead]
+             -> eff txn [Db.Read]
                     $(exps
                           ++ map (fn fields :: {Type} => $fields) tables)
 
 val oneRow1 : nm ::: Name -> fs ::: {Type}
     -> sql_query [] [] [nm = fs] []
-    -> eff txn [DbRead] $fs
+    -> eff txn [Db.Read] $fs
 
 val oneRowE1 : tabs ::: {Unit} -> nm ::: Name -> t ::: Type
                -> [tabs ~ [nm]] =>
     sql_query [] [] (mapU [] tabs) [nm = t]
-    -> eff txn [DbRead] t
+    -> eff txn [Db.Read] t
 
 val nonempty : fs ::: {Type} -> us ::: {{Unit}} -> sql_table fs us
-               -> eff txn [DbRead] bool
+               -> eff txn [Db.Read] bool
 
 (** UNCHANGED: SQL expression helpers, since sql_exp is not a computation *)
 

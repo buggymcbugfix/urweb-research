@@ -74,19 +74,22 @@ type-level operator it needs is row difference, `--`.
 
 The same finite-set machinery indexes three different things:
 
-| use                      | index                                       | combined by | bound a primitive states                     |
-|--------------------------|---------------------------------------------|-------------|----------------------------------------------|
-| HTML content models (§6) | the parents a fragment may stand in; flags  | `^`         | "one of these parents": `takesFlow -- s`     |
-| where code runs (§7)     | the sides a computation may run on          | `^`         | "these sides": a closed set                  |
-| what code does (§8)      | the effects a computation performs          | `&`         | "at least this": `[Dml] ++ e`, or exact      |
+| use                      | index, kind                                           | combined by | bound a primitive states                     |
+|--------------------------|-------------------------------------------------------|-------------|----------------------------------------------|
+| HTML content models (§6) | the parents a fragment may stand in; flags; `{Unit}`  | `/\`        | "one of these parents": `takesFlow -- s`     |
+| where code runs (§7)     | the sides a computation may run on; `{Unit}`          | `/\`        | "these sides": a closed set                  |
+| what code does (§8)      | the effects a computation performs; `Set` (paths)     | `\/`        | "at most this": a closed set, read as a bound; "at least": `[Db.Write] ++ e` |
 
-Intersection and union are definable from difference (`inter s1 s2 = s1 -- (s1 -- s2)`,
-`union s1 s2 = s1 ++ (s2 -- s1)`), but difference is not definable from them, and
-union and intersection alone form a distributive lattice, which has *no most general
-unifiers* (Madsen, van de Pol and Henriksen, OOPSLA 2023, §2.6, citing Gerhard and
-Petrich). So `--` is the primitive, and everything else, including `^`, `&`, `client`,
-`server`, `everywhere` and the pointwise joins on structured effects, is an ordinary
-`con` (§9).
+The sketch wrote `^` and `&`; these notes write `/\` and `\/` (meet and join, §2.2), the
+same operations. Intersection and union are definable from difference (`inter s1 s2 =
+s1 -- (s1 -- s2)`, `union s1 s2 = s1 ++ (s2 -- s1)`), but difference is not definable
+from them, and union and intersection alone form a distributive lattice, which has *no
+most general unifiers* (Madsen, van de Pol and Henriksen, OOPSLA 2023, §2.6, citing
+Gerhard and Petrich). So `--` is the primitive, and everything else, including `/\`,
+`\/`, `client`, `server`, `everywhere`, is an ordinary `con` (§9). The effect index has
+a kind of its own, `Set`, finite sets of *paths* of names, so that a library's effects
+can live under its module name and a table's footprint under `Db` (§8.3); `--` on it is
+difference by prefix, and at depth one it is the `{Unit}` difference again.
 
 ## Motivation.
 
@@ -163,10 +166,10 @@ For the programmer, an effect index answers questions the current system cannot:
 
 ```
 (* A page handler whose effects the compiler infers and a reader can see. *)
-val report : eff [PageHandler] [DbRead, Stderr] page
+val report : eff [PageHandler] [Db.Read, Stderr] page
 
 (* Run arbitrary user code, but only if it sends no mail: the ICFP 2023 "without" form. *)
-fun safely [e ::: {Unit}] [t] (f : eff server (e -- [Mail]) t) : eff server (e -- [Mail]) t = f
+fun safely [e ::: Set] [t] (f : eff server (e -- [Urmail]) t) : eff server (e -- [Urmail]) t = f
 
 (* A callback may do at most logging and clock reads: the ICFP 2023 upper-bound form. *)
 fun onTick [s ::: {Unit}] (k : eff everywhere ([Stderr, Clock] -- s) unit) : eff server [Stderr, Clock] unit =
@@ -174,7 +177,8 @@ fun onTick [s ::: {Unit}] (k : eff everywhere ([Stderr, Clock] -- s) unit) : eff
 ```
 
 The slack variable `e` or `s` belongs to the *caller*: `safely` accepts any `f` whose
-effects unify with `e -- [Mail]`, which is exactly the `f`s whose effects lack `Mail`. A
+effects unify with `e -- [Urmail]`, which is exactly the `f`s with no effect of urmail
+(§8.3 has the kind of `e`). A
 definition's own declared grade is a closed set read as a bound (§8.5).
 
 This is the "effect exclusion" of Lutze, Madsen, Schuster and Brachthäuser (ICFP
@@ -268,6 +272,26 @@ language has:
 ```
 fun project [nm :: Name] [t ::: Type] [r ::: {Type}] [[nm] ~ r] (x : $([nm = t] ++ r)) : t = x.nm
 ```
+
+Why the guards have to be written at all, if `++` already requires disjointness: the
+requirement is a *kinding* side condition, and kinding is checked where a `++` is
+written. Inside a polymorphic definition, `[nm] ++ r` is written with `nm` and `r`
+unknown, so the only way the kind check can pass is a hypothesis in scope, which is
+what `[[nm] ~ r]` puts there; at a call site the hypothesis becomes an obligation, and
+there the rows are known and it is discharged by computation (`disjoint.sml`:
+`decomposeRow` splits each side into pieces, literal names and row variables; `prove1`
+declares two literal names disjoint when they differ and otherwise looks the pair up in
+`denv`, the map of pieces that `assert` filled from the guards in scope; a side with a
+piece it cannot decompose, a unification variable say, is deferred and retried later).
+Nothing is inferred
+because disjointness is not a type-class-style constraint that gets abstracted
+automatically: Ur chose explicit guards over a qualified-type inference à la Gaster and
+Jones (1996), where `lacks` predicates are generated from the body and generalized at
+`let`. The cost of Ur's choice is the pervasive guards; the benefit is that
+disjointness never appears in an inferred type unseen, and that the elaborator never
+has to simplify a predicate set. With difference the guards stay wherever they check
+something (§6.3), and only the ones that merely said "this variable lacks these names"
+disappear into `-- literal`.
 
 Definitional equality (PLDI 2010 Fig. 3) has beta, congruence, `[] ++ c ≡ c`,
 commutativity of `++` under disjointness, associativity, and five laws for `map`
@@ -504,10 +528,12 @@ which needs a constructor of its own:
 ```
 con inter = fn (s1 :: {Unit}) (s2 :: {Unit}) => s1 -- (s1 -- s2)
 con union = fn (s1 :: {Unit}) (s2 :: {Unit}) => s1 ++ (s2 -- s1)
-con symdiff = fn (s1 :: {Unit}) (s2 :: {Unit}) => (s1 -- s2) ++ (s2 -- s1)
 ```
 
-`^` and `&` in the `eff` sketch are `inter` and `union` with infix spelling. The `++`
+`/\` and `\/` (`^` and `&` in the sketch) are `inter` and `union` with infix spelling.
+Symmetric difference, `(s1 -- s2) ++ (s2 -- s1)`, is the ring's `⊕` and the form the
+solver and the spec work on (`s = t` iff `symdiff s t = []`, `Diff.v`); no signature
+needs it, so it is not a Basis operator. The `++`
 in `union` is always well formed: `s1` and `s2 -- s1` share no name, and this is one of
 the two new disjointness rules (§3.2), so `union` needs no guard and `inter` never
 needs one. The definitions work at every row kind, biased to the left: `inter r1 r2`
@@ -1068,6 +1094,26 @@ and a list item inside a form sees `InForm`, so it may hold inputs.
 Guards go: every `[[Body] ~ ctx]` disappears, since `[El] ++ c` is well formed by the
 rule `(c1 -- c2) ~ c2` when written through `union`, and `P -- s` never needs one.
 
+Not every guard, though, and the distinction matters beyond HTML (§1.1 says why the
+guards exist; the mockup applies the distinction to every signature of `Top` and the
+SQL part of `Basis`). A guard `[r1 ~ r2]` and a difference do different jobs. The guard *checks*:
+when both rows are the caller's choice and overlap is a mistake, the guard reports it,
+and nothing in this proposal takes that away. `[tables ~ exps]` in the query runners (a
+selected expression named like a table alias), `[tabs1 ~ tabs2]` in `FROM` items (two
+tables under one alias), `[changed ~ unchanged]` in `update`, `Folder.concat`'s
+`[r1 ~ r2]`, and `$r1 ++ $r2` in user code all stay as they are. The difference
+*drops*: `r1 ++ (r2 -- r1)` is always well formed, and whatever `r2` shares with `r1`
+disappears without a word. That is right when one side is a literal and the guard only
+ever said "this variable lacks these names", which is every `ctx` guard in `basis.urs`:
+the `[Body] ++ ctx` under the guard `[[Body] ~ ctx]` means `union [Body] ctx` and
+nothing else, since no caller would pass a `ctx` containing `Body` on purpose. It would
+be wrong for `update`, where a silently dropped overlap would be an `UPDATE` that
+quietly does not set a column. The rule of thumb: a guard between a *literal* and a
+*variable* is a "lacks" and becomes `-- literal` or `literal ++ c`; a guard between two
+variables, or between two things the caller supplies independently, is a clash check
+and stays. Nothing forces the choice, which is a cost of the proposal: a library author
+has to decide, signature by signature, whether an overlap is an error or a non-event.
+
 Labels go, with one exception to be careful about. `MakeForm` and `Form` become the
 flag `InForm`; `List` becomes the parent `Li`; `Subform` needs the same look. `Dyn` is
 neither a parent nor a flag, and the earlier notes dropped it by letting `dyn` pass its
@@ -1175,10 +1221,10 @@ val return : t ::: Type -> t -> eff everywhere [] t
 val bind : w1 ::: {Unit} -> e1 ::: {Unit} -> w2 ::: {Unit} -> e2 ::: {Unit} -> t1 ::: Type -> t2 ::: Type
            -> eff w1 e1 t1 -> (t1 -> eff w2 e2 t2) -> eff (w1 ^ w2) (e1 & e2) t2
 val currentUrl : eff [Txn, PageHandler, RpcHandler, Client] [] url
-val dml : dml -> eff [Txn] [DbWrite] unit
+val dml : dml -> eff [Txn] [Db.Write] unit
 ```
 
-and `x <- currentUrl; dml q` has the computed grade `eff [Txn] [DbWrite] unit`. The
+and `x <- currentUrl; dml q` has the computed grade `eff [Txn] [Db.Write] unit`. The
 consequences, side by side:
 
 | | bounds in signatures (`monad` class) | graded `bind` |
@@ -1219,9 +1265,9 @@ val get    : t ::: Type -> source t -> eff client [] t
 val set    : t ::: Type -> source t -> t -> eff client [SourceWrite] unit
 val recv   : t ::: Type -> channel t -> eff client [] t
 val send   : t ::: Type -> channel t -> t -> eff (server ++ transaction) [Send] unit
-val dml    : dml -> eff transaction [DbWrite] unit
-val query1 : ... -> eff transaction [DbRead] ...
-val sendMail : message -> eff [RpcHandler, Task] [Mail] unit            (* an FFI library *)
+val dml    : dml -> eff transaction [Db.Write] unit
+val query1 : ... -> eff transaction [Db.Read] ...
+val sendMail : message -> eff [RpcHandler, Task] [Urmail.Send] unit     (* an FFI library; §8.3 *)
 ```
 
 The decision that shapes everything else: **is `Txn` where a page handler runs, or a
@@ -1232,7 +1278,7 @@ In the sketch `transaction = [Txn]` is disjoint from `server`, and
 the other, so a handler that touches the database must open a transaction explicitly:
 
 ```
-fun handler () : eff [PageHandler] [DbRead] page =
+fun handler () : eff [PageHandler] [Db.Read] page =
     rows <- runTransaction (queryL1 (SELECT t.Foo FROM t));
     return <xml>...</xml>
 ```
@@ -1355,14 +1401,14 @@ forces `m ⊆ C1 ∩ C2`; `[E1] ++ e1 = [E2] ++ e2` forces `m ⊇ E1 ∪ E2`); u
 
 ```
 (* exclusion: the ICFP 2023 "without" form *)
-val runUntrusted : e ::: {Unit} -> t ::: Type -> eff server (e -- [Mail, Http]) t -> eff server (e -- [Mail, Http]) t
+val runUntrusted : e ::: Set -> t ::: Type -> eff server (e -- [Urmail, Curl]) t -> eff server (e -- [Urmail, Curl]) t
 
 (* at most: a definition's declared grade is a closed bound, read as in §8.5 *)
 val render : xbody -> eff everywhere [Clock, Stderr] string
 
 (* information for the optimizer, from the type rather than a syntactic walk;
    second-stage form with table names, §8.3 *)
-val lookup : int -> eff transaction [DbRead = [T]] (option string)
+val lookup : int -> eff txn [Db.Read.(Shop.t)] (option string)
 ```
 
 For the compiler: Mono Reduce's hardcoded `{WritePage, ReadDb, WriteDb, ?}` (ICFP 2015
@@ -1372,81 +1418,163 @@ what ICFP 2015 p. 16 asks for. For the programmer: the questions of the motivati
 For the paper: Flix's effect system is the model, with the labels as rigid constants
 and without complement.
 
-### 8.3 Structured effects
+### 8.3 Namespaces and structure: effects as sets of paths
 
-The sketch wants more than a flat set: `Db = [Read = tbls, Update = tbls, Insert = tbls,
-Delete = tbls, Clock = bool]` as one component next to `Clock` and `Write = [Stderr]`.
-Three facts shape how that is written.
+Two things the flat set cannot do. Libraries must not have to coordinate on names:
+`sendMail : message -> eff [RpcHandler, Task] [Urmail.Send] unit` should be writable
+without a central registry and without the library being a functor that takes its
+names from the client. And the sketch's `Db = [Read = tbls, Update = tbls, ...]` wants
+structure under an effect: which tables a computation reads.
 
-First, Ur has no heterogeneous record kinds: a row `{k}` has one kind for all fields,
-and the only product kinds are positional tuples. `[Db = db, Clock, Write = [Stderr]]`
-with `db :: DB`, `Clock :: Unit`, `Write :: {Unit}` is not a row of any kind.
-
-Second, effects must be *open*: an FFI library adds `Mail` by adding a field, so the
-outer structure is a row, not a closed record kind.
-
-Third, every structured effect here is a set at the leaves: table names, stream names,
-a flag. So the encoding with no new kind former is a row of sets, `{{Unit}}`, with the
-`Db` components flattened to labels and a flag as a one-element set at its own label:
+The row-of-sets encoding (`what :: {{Unit}}`) handles the first by making the module
+name the outer label, but it fixes the depth of every element at two, and the table
+footprint is deeper (`Db.Read.Shop.order`), so it cannot hold both `Clock` and
+the footprint in one row; Ur has no heterogeneous record kinds, a row `{k}` has one
+kind for all fields, and no fixed depth fits. The answer is to take the "sets of paths"
+reading of §9 literally and give it a kind:
 
 ```
-con what = {{Unit}}
-(* [DbRead = [T], DbUpdate = [], DbInsert = [], DbDelete = [], DbClock = [],
-    Clock = [Clock], Write = [Stderr]] :: what *)
+kind Set                          (* sets of paths, a path being a non-empty sequence of names
+                                     and standing for its whole subtree (semantics below) *)
+[]                                (* empty *)
+[Urmail.Send, Clock]              (* literal: dotted paths; Basis's own effects sit at the root *)
+[Urmail = s]                      (* prefix every path of s :: Set by Urmail; s may be a variable *)
+[Db.Read.(Shop.order)]            (* a parenthesized component is a constructor of kind Name *)
+s \/ t                            (* union *)
+s -- t                            (* difference; on the written paths: the paths of s with no path of t as a prefix *)
+s /\ t  =  s -- (s -- t)          (* intersection; on the written paths: the paths of s under a path of t *)
 ```
 
-Two stages, then: first a flat `{Unit}` set of labels (`[DbWrite, Clock, Stderr]`, as
-in §7 and §8.2), then the row of sets, where a flat label `L` becomes the field
-`L = [L]` and labels that carry sets get them.
+The dot sugar is Nix's: `[Urmail.Send, Urmail.Receive]` is `[Urmail = [Send, Receive]]`,
+equal prefixes merge, and prefixing the empty set is empty, so there is no `[L = []]`
+to quotient away. Inside a `Set` literal the dot is always the path separator; a
+module-projected constructor goes in parentheses, which is also how a generative name
+enters a path (below). Basis's own effects sit at the root (`Clock`, `Stderr`, `Db.…`),
+as Nix's top-level attributes do; a library's live under its module name. Flags are
+leaves (`Clock`); libraries need no declaration, their module name is their namespace
+by convention, and nothing
+enforces it, which is fine: a library claiming another's effect is harmless, and
+omitting one is FFI trust as before.
 
-Semantically such a row is a finite set of *paths* (`DbRead.T`, `Clock.Clock`,
-`Write.Stderr`), and `&`, `^`, `--` on it are the set operations on paths: pointwise
-union of the sets at shared labels, `++` of the rest. This has two consequences. The
-quotient `[L = []] ≡ []` must hold (an effect label with an empty set is no effect),
-which is not row equality; it is the model equality of §3.3 applied to a set-like kind
-(§9). And pointwise difference at `{{Unit}}` is not the names-only difference of §2:
-`[A = [x, y]] -- [A = [x]]` is `[]` by names and `[A = [y]]` pointwise; today's
-`{{Unit}}` rows (SQL constraints) want the first, effects the second, so the pointwise
-family needs its own symbols (§9.3). `Db = db` as one component can come back later as
-sugar through named record kinds (§9.2).
+Difference is by *prefix*, which is what makes namespaces useful:
 
-Table names. `DbRead = [T]` needs `T` at the type level, and `sql_table fields
-constraints` carries no name; either `table t` also binds a `Name`, or the type gets a
-name index, and both ripple through every functor over tables and through query
-typing. Staged: `DbRead` as a flat flag first (`[DbRead]` present or not), per-table
-footprints second, with Sqlcache's per-table read/write summaries as the payoff that
-justifies the second step.
+```
+e -- [Urmail]                     (* no effect of urmail at all *)
+e -- [Db.Write]                   (* read-only: no writes to any table *)
+e -- [Db.Write.(Shop.order)]      (* no writes to that table *)
+e /\ [Db]                         (* the database footprint of e *)
+e /\ [Db.Read.(Shop.order), Db.Write.(Shop.order)]   (* what e does to that table *)
+```
+
+The footprint is spelled `Db.Read.(t)`, `Db.Write.(t)`, the verb before the table, so
+that `Db.Write` is itself a path and "writes nothing" is one leaf, `e -- [Db.Write]`;
+the sketch's `Db = [Read = tbls, Update = tbls, ...]` is exactly this shape,
+`[Db.Read = tbls]`. (The other order, `Db.(t).Write`, would make "no writes" a
+quantification over tables, which no finite set can say.) The stage-one leaves
+`Db.Read`, `Db.Write` are the same paths before the table component is appended, so
+the refinement from stage one to stage two only lengthens paths.
+
+At depth one, prefix difference is set difference, so on sides and HTML indices,
+which stay `{Unit}`, nothing changes; `Set` is used for `what` only.
+
+Semantics. A path stands for its *subtree*: `[Db.Write]` is `Db.Write` and every path
+below it, which is why `[Db.Write.(Shop.order)] ⊆ [Db.Write] ⊆ [Db]` and why a bound may
+name a namespace. A `Set` term then denotes a set of paths built from subtrees by
+finitely many unions and differences (a subtree with holes, Flix's `CofiniteIntSet` on
+a tree), `\/` is plain union and `--` is plain set difference; "prefix difference" is
+only what that looks like on the written paths. The denotations form a Boolean ring
+without unit, the same theory as `{Unit}`: there is no "all effects", and `[A]` is a
+generator, not `[A = ⊤]`, so `[A = x] = [A]` has no solution, as `x = ⊤` has none at
+`{Unit}`. The laws one expects fall out: `[A] \/ [A.B] = [A]` (a namespace absorbs its
+members, so there is no antichain convention to keep), `[A] -- [A.B]` is "any `A`
+effect but `B`", a usable bound, `[A = s] \/ [A = t] = [A = s \/ t]`, `[A = []] = []`,
+and `[Db.Read, Db.Write] ≠ [Db]`, since `Db` may have other children; the name
+universe stays open.
+
+Inference. The solver of §5 applies per *region* instead of per name. Let `M` be the
+paths an equation mentions, closed under prefixes; the regions are `R(p) = [p] --
+[q₁] -- … -- [qₙ]` for each `p ∈ M` with `q₁…qₙ` the mentioned proper extensions of
+`p`, plus one region for the paths under no mentioned root. The regions partition the
+universe, every mentioned constant is a union of regions, and a prefixed variable
+`[A = x]` meets `R(A.p')` exactly where `x` meets `R(p')`, so after renaming the
+equation splits into one Boolean equation per region whose constants are `0` and `1`
+(`R(p)` itself). A variable's part inside a region is not two-valued, it is any
+element of the algebra below `R(p)`, but that changes nothing: Boole's consistency
+condition `∏ₐ F(a) = 0` decides solvability in every nontrivial Boolean algebra at
+once, and Löwenheim's general solution is a polynomial identity valid in every Boolean
+algebra, so the cell-wise mgu computed as in §5 is an mgu here (the step from "one
+unmentioned name" to "all unmentioned names" in §5.3 is the same argument). The
+assembled substitution is a `Set` term: `x := ⋁ₚ (Pₚ(x'ₚ) /\ R(p))` with one fresh
+`x'ₚ` per region, the unmentioned region written `x' -- [r₁, …, rₖ]`. Prefixing is
+injective, so `[Urmail = x] = [Urmail.Send, Urmail.Receive]` solves to `x := [Send,
+Receive]`. Unitary, and with the same variable blow-up and the same cap as Flix.
+
+Generative names. Effects need no declaration, but a table is an identity: two
+applications of a functor containing `table order` are two tables, and a literal path
+would conflate them. So `table order : {...}` in module `Shop` also declares a
+constructor `order :: Name`, generative per functor application (values and
+constructors are separate namespaces in Ur, so the two `order`s coexist), and the path
+component is written `(Shop.order)`; the same for `sequence`. That is the one
+declaration the design keeps, and it is already a declaration.
+
+Bounds are prefix bounds. "`e` is within `B`" is `e -- B = []`, so a bound may name a
+namespace or a whole subtree:
+
+```
+con allowedTxn = [Clock, Random, Stderr, CookieRead, CookieWrite, Env, Send, Redirect,
+                  Response, Request, Db]                 (* Db: the whole subtree *)
+```
+
+Stages. First a `Set` of leaves without table structure (`[Db.Read, Clock,
+Urmail.Send]`), which is the stage-one design with namespaces for free; then the table
+footprint `[Db.Read.(Shop.order), Db.Write.(Shop.order)]` once `sql_table` carries its
+name (mockup, stage 2), with Sqlcache's per-table read/write summaries as the payoff.
+The sketch's `DB` record kind is not needed: its components are the paths under `Db`.
+
+What the kind costs. One new kind with five constructors (empty, a leaf `[A]`, a
+prefix `[A = s]`, union, difference) and its own literal syntax (`[A.B, C]` is
+`[A = [B]] \/ [C]`), and an elaborator that knows `Set` terms normalize to path sets.
+Kinding is trivial: every operand is a `Set`, there is no row kind to unify, which is
+where the sugar-over-rows alternative (`Foo.Bar` for `Foo = [Bar]`) runs into trouble:
+`[Foo = [Bar]] :: {{Unit}}` and `[Foo = [Bar = [Baz]]] :: {{{Unit}}}` have different
+kinds, and a set holding `Clock` and `Db.Read.(Shop.order)` has none, since a row's
+fields share a kind. `Set` is that sugar with the kind problem removed by giving mixed
+depth a kind of its own. What it saves: no
+heterogeneous record kinds, no `effect` declaration form, no fixed depth, no
+`[L = []]` quotient, no pointwise operator family (`\\` of the earlier draft is gone:
+`--` is names-only on rows and prefix difference on sets, and the two agree at depth
+one).
 
 ### 8.4 Sequencing, worked
 
-In the second-stage form of §8.3:
+In the stage-two form of §8.3, with `Shop.order` the table:
 
 ```
-val example : eff server [DbRead = [T], Clock = [Clock], Write = [Stderr]] unit =
-  foos <- runTransaction (queryL1 (SELECT t.Foo FROM t));   (* eff server [DbRead = [T]] (list ...) *)
-  time <- now;                                              (* eff everywhere [Clock = [Clock]] time *)
-  debug ("Current date and time: " ^ show time);           (* eff everywhere [Write = [Stderr]] unit *)
+val example : eff server [Db.Read.(Shop.order), Clock, Stderr] unit =
+  foos <- runTransaction (queryL1 (SELECT t.Foo FROM order AS T));   (* eff server [Db.Read.(Shop.order)] (list ...) *)
+  time <- now;                                              (* eff everywhere [Clock] time *)
+  debug ("Current date and time: " ^ show time);           (* eff everywhere [Stderr] unit *)
   return {}                                                 (* eff everywhere [] unit *)
 ```
 
-`where`: `server ^ everywhere ^ everywhere ^ everywhere = server`.
-`what`: the labels are distinct, so `&` is `++`. Two transactions in sequence,
-`runTransaction q1; runTransaction q2` with `[DbRead = [T1]]` and `[DbRead = [T2]]`, meet
-at the label `DbRead`, where `&` is pointwise: `[DbRead = [T1, T2]]`. That is the one
-place the path semantics differs from row concatenation.
+`where`: `server /\ everywhere /\ everywhere /\ everywhere = server`. `what`: a union
+of path sets, `[Db.Read.(Shop.order)] \/ [Clock] \/ [Stderr] \/ []`. Two
+transactions in sequence reading two tables give `[Db.Read.(Shop.order),
+Db.Read.(Shop.customer)]`, and `e /\ [Db]` is that footprint.
 
 ### 8.5 Annotations are bounds, and the compatibility story
 
 With exact grades, `val f : eff [Txn] E unit` would demand *exactly* the effects `E`,
 and today's `val f : transaction unit` accepts any body. So an annotation on a
-definition must mean a bound: declared `W ⊆ where_inferred` and `what_inferred ⊆ E`.
+definition must mean a bound: declared `W ⊆ where_inferred`, and `what_inferred -- E
+= []` with the prefix difference of §8.3, so that `E` may name whole namespaces.
 That is OOPSLA 2025's abstraction-site subeffecting (`P <: Q ⟹ P ∨ Y = Q` at lambdas
 and definitions; their SE-Def and SE-Lam), and with inferred grades usually closed it
 is a check, not an equation with slack. Then
 
 ```
-con transaction = eff [Txn] allowedTxn        (* the Txn column of the table, closed *)
-val f : transaction unit = dml q              (* inferred [Txn] [DbWrite]; [DbWrite] ⊆ allowedTxn: fine *)
+con transaction = eff txn allowedTxn          (* the Txn column of the table, closed; §8.3 *)
+val f : transaction unit = dml q              (* inferred txn [Db.Write.(Shop.order)]; -- allowedTxn = []: fine *)
 ```
 
 keeps every existing signature compiling: `transaction t` becomes "runs in `Txn` and
@@ -1466,7 +1594,7 @@ keeps its grade and `bind` combines them. This is the reason to pay for §7.5.
 ### 8.7 Where the effects go
 
 Consumers inside the compiler, in order of payoff: read-only transaction detection
-(today reachability to `dml`, ICFP 2015 §3.7) becomes `DbWrite ∉ e`; Mono Reduce's
+(today reachability to `dml`, ICFP 2015 §3.7) becomes `Db.Write ∉ e`; Mono Reduce's
 commutation summaries come from the grades of the monomorphized code's origins; Sqlcache
 gets per-table footprints once table names are in the types. None of these passes reads
 the type today and none is disturbed by the index until wired in; the index is erased
@@ -1498,9 +1626,11 @@ undecidable in general and a new solver per theory.
 
 Products and finite maps of Boolean rings are Boolean rings, componentwise. So every
 kind built from `{Unit}` by rows, and by named record kinds if those are added, denotes
-finite sets of *paths*, and `^`, `&`, `--` are the same three set operations at every
+finite sets of *paths*, and `\/`, `/\`, `--` are the same three set operations at every
 such kind, unification is Boolean per path with the same "all other paths" class, and
-the solver is written once. Nothing about `DB` or `what` is built in; what is built in
+the solver is written once. The `Set` kind of §8.3 is this observation made into a kind
+of its own, with the depth of a path left free; rows of sets are its fixed-depth
+views. Nothing about `DB` or `what` is built in; what is built in
 is `{Unit}` difference and its lifting to structured kinds. OOPSLA 2025's "design
 recipe, select the algebra" is the same shape; ours is a family of Boolean algebras
 indexed by kind structure. Four readings of "structured definitions", with their price:
@@ -1530,15 +1660,18 @@ cases, one level up. A second Ur; not for this step.
 
 *User-declared theories*: no, for the reason above.
 
-### 9.3 Two differences
+### 9.3 One difference, two kinds
 
-At a row kind, names-only difference (§2) and pointwise difference differ, and both are
-wanted: `[Uniq = [A, B]] -- [Uniq]` drops a constraint from an `sql_constraints` row,
-`[DbRead = [T1, T2]] -- [DbRead = [T1]]` is `[DbRead = [T2]]` for effects. So `--` stays
-names-only at every row kind, as the earlier notes define it, and the pointwise family
-(`&`, `^` and a pointwise difference) exists at set-like kinds with its own symbols. The
-flattened `what` of §8.3 then needs no new kind former at all; `Db = db` returns as
-sugar when named record kinds arrive.
+At a row kind `--` is names-only: `[Uniq = [A, B]] -- [Uniq]` drops a constraint from an
+`sql_constraints` row, and `[A = [x, y]] -- [A = [x]]` is `[]`, because the right
+operand's *names* are what count. At `Set` (§8.3) a path stands for its subtree and
+`--` is set difference, which on the written paths is difference by prefix:
+`[Db.Read.(Shop.order), Db.Write.(Shop.order)] -- [Db.Write.(Shop.order)]` is
+`[Db.Read.(Shop.order)]`, and `e -- [Db.Write]` removes every write. At depth one the
+two coincide, and effects are the only index at `Set`, so no second operator family is
+needed; an earlier draft of these notes had pointwise `\\`, `\/`, `/\` on rows of
+sets for effects, which `Set` makes unnecessary. The set-like kinds of §9.2 remain the right view of rows of sets where
+those occur (keys, constraints), with the names-only `--`.
 
 ## 10. The specification
 
@@ -1677,8 +1810,9 @@ spec/rocq`, `Print Assumptions` unchanged.
 `hnormCon`/`reduce.sml` so that closed differences compute before Monoize; the
 per-name Boolean solver for equations at set-like kinds, with Flix's rewrite phases in
 front and a variable cap behind; guards folded into equations (`f -- H = []`);
-`map f r ≡ r` at `{Unit}`; the one rule of §4.2 at other kinds; `inter`, `union`,
-`symdiff` in Top; defaulting of open `{Unit}` variables at program end; `restrict`.
+`map f r ≡ r` at `{Unit}`; the one rule of §4.2 at other kinds; `inter`, `union` in
+Basis with the infix `/\`, `\/` (`symdiff` stays inside the solver); defaulting of
+open `{Unit}` variables at program end; `restrict`.
 Check: snapshot tests for each rule and each worked example of §5.2 (accepted and
 rejected), the existing suite unchanged, Warenwirtschaft unchanged.
 
@@ -1696,14 +1830,18 @@ declarations with sides; the six passes retargeted from `transaction` to `eff`;
 first (§7.2). Check: every program `sidecheck` rejects today is rejected in elaboration
 with a message naming primitive and sides; nothing it accepts is rejected.
 
-**Stage 4, effects.** The `what` grade as a flat label set; FFI labels; annotations read
-as bounds (§8.5); `transaction` as the bound `eff [Txn] allowedTxn`; the first consumer
-(read-only transaction detection from `DbWrite ∉ e`). Then the row-of-sets form and the
-pointwise family (§9.3); then table names, with Sqlcache as the consumer. Check: the
-inferred grades of the demos against hand-written expectations, as snapshots.
+**Stage 4, effects.** The `Set` kind with leaves only (`[Db.Read, Clock, Urmail.Send]`),
+its literal syntax with the dot sugar and `[A = s]`, prefix difference and the per-path
+solver (§8.3); FFI labels; annotations read as bounds (§8.5); `transaction` as the
+bound `eff txn allowedTxn`; the first consumer (read-only transaction detection from
+`e /\ [Db.Write] = []`). Then table names as generative `Name` constructors declared by
+`table` and `sequence`, the `reads` index on `sql_from_items`/`sql_query`, `dml` indexed
+by its writes, `[Db.Read = reads]` in the runners (mockup §5), with Sqlcache as the
+consumer. Check: the inferred grades of the demos against hand-written expectations, as
+snapshots.
 
-**Stage 5, conveniences.** Named record kinds for `Db = db`; a finite side kind; `--`
-spelled and documented; the manual.
+**Stage 5, conveniences.** A finite side kind; `--` spelled and documented; the manual.
+(Named record kinds for `Db = db` are no longer needed: §8.3.)
 
 The paper tracks the stages: motivation (this file's top), difference and its theory
 (§§2–5, stage 1), the three uses as case studies (§§6–8), the spec (§10), and the
@@ -1719,19 +1857,21 @@ one the text above assumes.
 | syntax of difference | `--`, free at the constructor level | `\`; `---` as at the value level |
 | difference at other kinds | names-only `--` at every row kind; computed when names known; the one rule of §4.2; otherwise opaque | complete unification at every kind now |
 | kind of the right operand | any row kind | the kind of the left operand |
-| pointwise set operations | a separate family at set-like kinds (§9.3) | overload `--` by kind |
-| `inter`, `union`, `^`, `&` | `con`s in Top | built-in operators |
+| difference on sets | `--` is prefix difference at `Set` and names-only at row kinds; they agree at depth one (§9.3) | a separate pointwise family on rows of sets |
+| `inter`, `union` and their spelling | `con`s in Basis, infix `/\` and `\/` (meet and join; Flix's `&`, `+` would clash with `&` as union); `symdiff` only in the solver and the spec | `^`, `&` as in the sketch; built-in operators |
 | upper-bound idiom | `C -- s` | `inter s C` |
 | leftover `{Unit}` variables | `[]` at program end, where the current check is | report as undetermined; generalize |
 | closed against closed | `restrict`/`weaken`, identity at run time | abstraction-site subsumption as in Flix |
 | the monad | `eff` built in, graded, own `bind`; `<-` picks by head | one graded class for all monads |
-| `Txn`: side or opened context | **undecided**; shapes the whole `where` design | page handlers are transactions, `url` accepts `[Txn]`; or `Txn` implied by entry points |
-| side set | `Client`, `PageHandler`, `RpcHandler`, `Task`, `Txn` | Nectry's four |
+| `Txn`: side or opened context | the mockup picks: transactional entry points `txn = [PageHandler, RpcHandler, Task]` as today, no handler migration, `transaction = eff txn allowedTxn`; `Serv` for non-transactional server code with `runTransaction : eff txn e t -> eff serv e t` (§7.2, mockup) | a `Txn` side of its own, disjoint from `server`, as in the sketch |
+| side set | `Client`, `PageHandler`, `RpcHandler`, `Task`, `Serv` | Nectry's four; the sketch's `Txn` |
 | side-polymorphic signatures | `everywhere -- s` | a finite side kind with complement |
 | `Signal` | stays a plain monad; `current` is the bridge | graded with constant grade |
-| effect labels | flat `{Unit}` first, then `{{Unit}}` with `L = [L]` for flags | heterogeneous record kind |
-| table names in effects | second stage; needs a type-level table name | per-table labels generated by the compiler |
-| annotations under exact grades | bounds (declared ⊆ inferred where, inferred ⊆ declared what) | exact |
+| effect labels | a `Set` of paths with Nix's dot sugar, Basis's at the root, a library's under its module name (§8.3); stage 1 leaves only, stage 2 the table footprint `Db.Read.(Shop.order)` | `{{Unit}}` rows of sets at a fixed depth; heterogeneous record kinds |
+| generative names | `table t` and `sequence s` also declare a constructor of kind `Name`, generative per functor application, written `(M.t)` in a path | per-table labels generated by the compiler |
+| annotations under exact grades | bounds (declared ⊆ inferred where; inferred `-- declared = []` for what, so a bound may name a namespace) | exact |
+| the `Set` kind | one new kind for effects, literals with dotted paths and `[A = s]` prefixing, `\/`, `--` (§8.3); table footprint `Db.Read.(t)`, `Db.Write.(t)`, verb first so that read-only is `e -- [Db.Write]` | stay on `{{Unit}}` and give up mixed depth; `Foo.Bar` as sugar for `Foo = [Bar]` on rows, which breaks at depth two |
+| effect namespaces | structural: the module name as the path's first component, by convention | an `effect` declaration generating atoms |
 | contents index on `xml` | add with the HTML stage, to change `xml`'s arity once | later |
 | ancestor flags | `InForm`, `InInteractive`, hand-written | the set of all ancestor element names |
 | HTML sets | generated from the WHATWG index table | hand-written |
