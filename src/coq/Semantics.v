@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *)
 
-Require Import Eqdep_dec.
+From Stdlib Require Import Eqdep_dec.
 
 Require Import Axioms.
 Require Import Syntax.
@@ -128,7 +128,7 @@ Ltac deq_disj_correct scm :=
           | [ |- context[if ?E then _ else _] ] => destruct E
           end; t).
 
-Hint Unfold dvar.
+Hint Unfold dvar : core.
 
 Theorem deq_correct : forall k (c1 c2 : con kDen k),
     deq dvar c1 c2
@@ -149,7 +149,7 @@ Theorem name_eq_dec_refl : forall n, name_eq_dec n n = left _ (refl_equal n).
     match goal with
     | [ e : _ = _ |- _ ] => rewrite (UIP_dec name_eq_dec e (refl_equal _)); reflexivity
     end
-  | elimtype False; tauto
+  | exfalso; tauto
   ].
 Qed.
 
