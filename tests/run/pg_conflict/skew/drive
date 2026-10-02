@@ -1,0 +1,10 @@
+# x commits after a second, y after two and a half; y starts a third of a second later.
+tmp=$(mktemp -d)
+curl -s -m 30 "http://127.0.0.1:$port/Pg_conflict/race/x/y/1000" | sed -e 's/<[^>]*>//g' > "$tmp/x" &
+sleep 0.3
+curl -s -m 30 "http://127.0.0.1:$port/Pg_conflict/race/y/x/2500" | sed -e 's/<[^>]*>//g' > "$tmp/y" &
+wait
+echo "x: $(cat "$tmp/x")"
+echo "y: $(cat "$tmp/y")"
+curl -s "http://127.0.0.1:$port/Pg_conflict/rows" | sed -e 's/<[^>]*>//g'; echo
+rm -rf "$tmp"

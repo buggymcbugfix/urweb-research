@@ -1,0 +1,15 @@
+x: x saw 0 of y
+y: y saw 0 of x
+rows: x
+--- log
+Accepted connection.
+Handling connection with thread #N.
+Serving URI /Pg_conflict/race/x/y/1000....
+start x
+Accepted connection.
+Handling connection with thread #N.
+Serving URI /Pg_conflict/race/y/x/2500....
+start y
+Accepted connection.
+Handling connection with thread #N.
+Serving URI /Pg_conflict/rows....

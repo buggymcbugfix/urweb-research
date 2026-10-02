@@ -1,0 +1,11 @@
+ffi race
+include race.h
+link race.o
+effectful Race.nap
+allow url /Pg_conflict/*
+safeGet Pg_conflict/race
+safeGet Pg_conflict/rows
+minHeap 65536
+
+$/list
+pg_conflict
