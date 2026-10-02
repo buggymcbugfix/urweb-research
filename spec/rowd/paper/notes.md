@@ -93,6 +93,10 @@ difference by prefix, and at depth one it is the `{Unit}` difference again.
 
 ## Motivation.
 
+This work aims to make Ur/Web more useful. While working on evolving the compiler to allow for more control over transactions, a design developed around an `io` monad, inside which transactions could be run via `runTransaction : t ::: Type -> transaction t -> io t`. We needed a new monad, because we do not want to allow nested transactions. But then, we'd suddenly need to have two versions of each effectful computation, such as `debug`, `now` and `rand`, or index all of them, e.g. with typeclass constraints. We tried several designs and either they were imprecise or they were stupidly complicated.
+
+So we took a step back and thought about what we really need. Thus, this design was born.
+
 ### Principled & intuitive sidedness-check.
 
 > The most mentioned pain point was the way that the Ur/Web compiler checks that server-side code does not call functions that only make sense in the client, or vice versa. In designing the language, we were worried that it would be too complex to extend the type system to track such constraints, tagging monadic computation types with sidedness information. However, the approach we adopted instead, with ad-hoc static analysis on whole programs at compile time, leads to error messages that confuse even experienced Ur/Web programmers. In general, improvements to error messages and performance of the compiler (which does specialized whole-program optimization) are high on our list of future priorities.
