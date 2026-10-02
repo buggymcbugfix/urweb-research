@@ -27,6 +27,8 @@
 
 Require Import Name.
 Export Name.
+Require Import Sets.
+Export Sets.
 
 Set Implicit Arguments.
 
@@ -106,6 +108,17 @@ Section vars.
       -> subs c3 c3'
       -> subs (fun x => CDiff (c2 x) (c3 x)) (CDiff c2' c3').
   End subs.
+
+  (* The {Unit} row a first-order term of Sets.v stands for, its variables
+   * standing for the rows env gives them. *)
+  Fixpoint embed (env : nat -> con (KRecord KUnit)) (e : uexp) : con (KRecord KUnit) :=
+    match e with
+    | UVar i => env i
+    | UName s => CSingle (Name s) CUnit
+    | UEmpty => CEmpty KUnit
+    | UConcat e1 e2 => CConcat (embed env e1) (embed env e2)
+    | UDiff e1 e2 => CDiff (embed env e1) (embed env e2)
+    end.
 
   Inductive disj : forall k, con (KRecord k) -> con (KRecord k) -> Prop :=
   | DVar : forall k (c1 c2 : con (KRecord k)),
@@ -209,7 +222,22 @@ Section vars.
     deq (CDiff c (CApp (CApp (CMap k1 k2) f) c2)) (CDiff c c2)
   | Eq_Diff_Disj : forall k (c1 c2 : con (KRecord k)),
     disj c1 c2
-    -> deq (CDiff c1 c2) c1.
+    -> deq (CDiff c1 c2) c1
+
+  (* {Unit} rows are sets of names.  Two are equal when their first-order
+   * skeletons are, by Sets.decide, whatever rows the skeletons' variables
+   * stand for.  Sets.v proves decide sound and complete for the model: this
+   * one rule derives every equation of ++, -- and [] at {Unit} that holds
+   * there.  The skeleton's indices say which subterms are the same, which
+   * the rule cannot ask of the PHOAS terms themselves. *)
+  | Eq_Unit : forall env e1 e2,
+    decide e1 e2 = true
+    -> deq (embed env e1) (embed env e2)
+  (* A row with no names is empty.  With Eq_Unit, this brings to rows of
+   * any kind the {Unit} laws that only depend on names (Diff.v). *)
+  | Eq_Names_Empty : forall k (c : con (KRecord k)),
+    deq (CApp (CApp (CMap k KUnit) (CAbs (fun _ => CUnit))) c) (CEmpty KUnit)
+    -> deq c (CEmpty k).
 
   Variable evar : con KType -> Type.
 

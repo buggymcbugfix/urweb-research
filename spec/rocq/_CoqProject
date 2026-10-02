@@ -3,6 +3,7 @@
 
 Axioms.v
 Name.v
+Sets.v
 Syntax.v
 Semantics.v
 Diff.v

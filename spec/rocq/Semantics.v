@@ -91,6 +91,11 @@ Theorem subs_correct : forall k1 (c1 : con kDen k1) k2 (c2 : _ -> con kDen k2) c
            end; intuition.
 Qed.
 
+Lemma cDen_embed : forall env e,
+    cDen (embed env e) = eval (fun i => cDen (env i)) e.
+  induction e; simpl; try rewrite IHe1; try rewrite IHe2; reflexivity.
+Qed.
+
 Definition dvar k (c1 c2 : con kDen (KRecord k)) :=
   disjoint (cDen c1) (cDen c2).
 
@@ -132,7 +137,16 @@ Ltac deq_disj_correct scm :=
           | [ _ : context[match cDen ?C ?E with Some _ => _ | None => _ end] |- _ ] =>
             use_disjoint E; destruct (cDen C E)
           | [ |- context[if ?E then _ else _] ] => destruct E
-          end; t).
+          end; t);
+
+  (* Eq_Unit, by Sets.decide_sound; Eq_Names_Empty, name by name. *)
+  try match goal with
+      | [ H : decide _ _ = true |- _ ] =>
+        rewrite !cDen_embed; apply decide_sound; exact H
+      | [ H : _ = (fun _ => None) |- cDen ?C ?X = None ] =>
+        generalize (f_equal (fun r => r X) H); simpl; destruct (cDen C X);
+          intros; first [ discriminate | reflexivity ]
+      end.
 
 Hint Unfold dvar : core.
 

@@ -7,7 +7,11 @@ Its only axiom is functional extensionality (Axioms.v).
 
 Diff.v is a sketch of row difference (`c1 -- c2`, constructor CDiff) on top
 of it: inter and union defined from it, a difference computed by the rules,
-and the finite-set laws at kind {Unit} in the model.
+and the set laws as derivations in deq.  At kind {Unit} they come from the
+rule Eq_Unit, which asks Sets.v's decision procedure; Sets.v proves it sound
+and complete for the model, so every equation of [], ++ and -- at {Unit}
+that holds there is derivable.  Through a row's names they reach
+differences at any kind: cutting in either order gives the same row.
 
 Checked with Rocq 9.1.1 and rocq-stdlib 9.0.0, as pinned in nixpkgs.nix:
 
