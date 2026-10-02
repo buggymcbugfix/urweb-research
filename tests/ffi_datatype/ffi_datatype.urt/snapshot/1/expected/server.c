@@ -35,11 +35,11 @@
            disc->tag == uw_Outc_Sent ? "Ur:sent"
              :
             disc->tag == uw_Outc_NotSent &&
-                                         !strcmp(disc->data.uw_Outc_NotSent,
+                                         !strcmp(disc->data.uw_NotSent,
                                           "try again") ? "Ur:retry"
               :
              disc->tag == uw_Outc_NotSent && 1 ?
-              ({uw_Basis_string __uwr_m_1 = disc->data.uw_Outc_NotSent;
+              ({uw_Basis_string __uwr_m_1 = disc->data.uw_NotSent;
                  ({
                   uw_Basis_string arg0 = "Ur:notsent:";
                    uw_Basis_string arg1 = __uwr_m_1;
@@ -48,7 +48,7 @@
                })
                :
               disc->tag == uw_Outc_Unknown && 1 ?
-               ({uw_Basis_string __uwr_m_1 = disc->data.uw_Outc_Unknown;
+               ({uw_Basis_string __uwr_m_1 = disc->data.uw_Unknown;
                   ({
                    uw_Basis_string arg0 = "Ur:unknown:";
                     uw_Basis_string arg1 = __uwr_m_1;
