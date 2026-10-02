@@ -1,0 +1,9 @@
+attempt 1, in transaction True, rows now 1
+stored:
+--- log
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Commit_conflict/main....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Commit_conflict/rows....

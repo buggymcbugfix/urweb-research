@@ -1,0 +1,2 @@
+curl -s "http://127.0.0.1:$port/Commit_conflict/main" | sed -e 's/<[^>]*>//g'; echo
+curl -s "http://127.0.0.1:$port/Commit_conflict/rows" | sed -e 's/<[^>]*>//g'; echo
