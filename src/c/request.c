@@ -94,8 +94,15 @@ typedef struct {
   uw_app *app;
 } periodic;
 
+// The thread of one periodic task: run it, commit, sleep, again, for the
+// life of the process.  A failure of any kind is logged, and the thread
+// goes on to the next period: there is nobody to answer to, so the log is
+// all there is, and a task that stopped running would be worse than one
+// that failed once.
 static void *periodic_loop(void *data) {
   periodic *p = (periodic *)data;
+  uw_loggers *ls = p->ls;
+  void *ld = ls->logger_data;
   uw_context ctx = uw_request_new_context(p->id, p->app, p->ls);
 
   if (!ctx)
@@ -103,32 +110,49 @@ static void *periodic_loop(void *data) {
 
   while (1) {
     int retries_left = MAX_RETRIES;
+    failure_kind r;
+    int again;
 
     uw_transaction_arrives();
-    
-    failure_kind r;
+
     do {
+      again = 0;
       uw_reset(ctx);
       r = uw_runCallback(ctx, p->pdic.callback);
-      if (r == BOUNDED_RETRY)
-        --retries_left;
-      else if (r == UNLIMITED_RETRY)
-        p->ls->log_debug(p->ls->logger_data, "Error triggers unlimited retry in periodic: %s\n", uw_error_message(ctx));
-      else if (r == BOUNDED_RETRY)
-        p->ls->log_debug(p->ls->logger_data, "Error triggers bounded retry in periodic: %s\n", uw_error_message(ctx));
-      else if (r == FATAL)
-        p->ls->log_error(p->ls->logger_data, "Fatal error: %s\n", uw_error_message(ctx));
-      if (r == FATAL || r == BOUNDED_RETRY || r == UNLIMITED_RETRY)
-        if (try_rollback(ctx, 0, p->ls->logger_data, p->ls->log_error)) {
-          uw_transaction_departs();
-          return NULL;
-        }
-    } while (r == UNLIMITED_RETRY || (r == BOUNDED_RETRY && retries_left > 0));
 
-    if (r != FATAL && r != BOUNDED_RETRY) {
-      if (uw_commit(ctx))
-	r = UNLIMITED_RETRY;
-    }
+      if (r == SUCCESS) {
+        uw_commit(ctx);
+        if (uw_has_error(ctx)) {
+          // An error from a transactional's commit callback, after the
+          // database committed: a side effect that failed (a message that
+          // could not be sent, say).  There is nothing to roll back; the
+          // callback's own transactionals have been freed by uw_commit.
+          ls->log_error(ld, "Fatal error in periodic task, after commit: %s\n", uw_error_message(ctx));
+          uw_reset_keep_error_message(ctx);
+        }
+        break;
+      }
+
+      if (r == BOUNDED_RETRY) {
+        --retries_left;
+        ls->log_debug(ld, "Error triggers bounded retry in periodic: %s\n", uw_error_message(ctx));
+      } else if (r == UNLIMITED_RETRY)
+        ls->log_debug(ld, "Error triggers unlimited retry in periodic: %s\n", uw_error_message(ctx));
+      else if (r == FATAL)
+        ls->log_error(ld, "Fatal error in periodic task: %s\n", uw_error_message(ctx));
+      else
+        ls->log_error(ld, "Unknown uw_runCallback return code in periodic task!\n");
+
+      again = r == UNLIMITED_RETRY || (r == BOUNDED_RETRY && retries_left > 0);
+      if (try_rollback(ctx, again, ld, ls->log_error))
+        // The rollback itself failed (no transaction was active, or the
+        // connection is gone).  Nothing is held: the next period starts
+        // afresh, and uw_ensure_transaction reconnects if it has to.
+        ls->log_error(ld, "Periodic task continues after the failed rollback\n");
+    } while (again);
+
+    if (r == BOUNDED_RETRY)
+      ls->log_error(ld, "Fatal error in periodic task (out of retries): %s\n", uw_error_message(ctx));
 
     uw_transaction_departs();
 
