@@ -1,6 +1,6 @@
 x: x saw 0 of y
-y: y saw 0 of x
-rows: x
+y: y saw 1 of x
+rows: x y
 --- log
 Accepted connection.
 Handling connection with thread #N.
@@ -9,6 +9,8 @@ start x
 Accepted connection.
 Handling connection with thread #N.
 Serving URI /Pg_conflict/race/y/x/2500....
+start y
+Commit conflict; retrying
 start y
 Accepted connection.
 Handling connection with thread #N.
