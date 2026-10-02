@@ -1921,9 +1921,7 @@ one the text above assumes.
 
 | question | proposal | alternative |
 |---|---|---|
-| syntax of difference | `--`, free at the constructor level | `\`; `---` as at the value level |
 | difference at other kinds | names-only `--` at every row kind; computed when names known; the one rule of §4.2; otherwise opaque | complete unification at every kind now |
-| kind of the right operand | any row kind | the kind of the left operand |
 | difference on sets | `--` is prefix difference at `Set` and names-only at row kinds; they agree at depth one (§9.3) | a separate pointwise family on rows of sets |
 | `inter`, `union` and their spelling | `con`s in Basis, infix `/\` and `\/` (meet and join; Flix's `&`, `+` would clash with `&` as union); `symdiff` only in the solver and the spec | `^`, `&` as in the sketch; built-in operators |
 | upper-bound idiom | `C -- s` | `inter s C` |
