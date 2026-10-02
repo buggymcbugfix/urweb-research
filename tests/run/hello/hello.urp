@@ -1,0 +1,5 @@
+allow url /Hello/main
+safeGet Hello/main
+minHeap 65536
+
+hello
