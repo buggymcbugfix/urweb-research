@@ -416,13 +416,12 @@
    struct __uws_3 __uwf_T;
     };
   
-  static uw_unit __uwn_initializer_1759(uw_context ctx, uw_unit __uwr___0)
+  static uw_unit __uwn_initializer_1(uw_context ctx, uw_unit __uwr___0)
    {
    return(0);
    }
   
-  static uw_unit
-   __uwn_expunger_1758(uw_context ctx, uw_Basis_client __uwr_cli_0)
+  static uw_unit __uwn_expunger_2(uw_context ctx, uw_Basis_client __uwr_cli_0)
    {
    return(0);
    }
@@ -433,7 +432,7 @@
    
   
   static uw_Basis_int
-   __uwn_new_1723(uw_context ctx, uw_Basis_int __uwr_d_0, uw_unit __uwr___1)
+   __uwn_new_3(uw_context ctx, uw_Basis_int __uwr_d_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int __uwr_id_2 =
@@ -525,7 +524,7 @@
    }
   
   static uw_Basis_int
-   __uwn_read_1725(uw_context ctx, uw_Basis_int __uwr_r_0, uw_unit __uwr___1)
+   __uwn_read_4(uw_context ctx, uw_Basis_int __uwr_r_0, uw_unit __uwr___1)
    {
    return(({
            struct __uws_2* disc =
@@ -629,7 +628,7 @@
    }
   
   static uw_unit
-   __uwn_delete_1729(uw_context ctx, uw_Basis_int __uwr_r_0, uw_unit __uwr___1)
+   __uwn_delete_5(uw_context ctx, uw_Basis_int __uwr_r_0, uw_unit __uwr___1)
    {
    return((uw_begin_region(ctx), ({
            uw_Basis_int arg1 = __uwr_r_0;
@@ -681,14 +680,14 @@
    
   
   static uw_unit
-   __uwn_wrap_mutate_1757(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_mutate_6(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int __uwr_ir_2 =
            (uw_begin_region(ctx), ({
                                    uw_Basis_int arg0 = 3LL;
                                     uw_unit arg1 = 0;
-                                   __uwn_new_1723(ctx, arg0, arg1);
+                                   __uwn_new_3(ctx, arg0, arg1);
                                    }));
            uw_end_region(ctx);
             ({
@@ -696,7 +695,7 @@
              (uw_begin_region(ctx), ({
                                      uw_Basis_int arg0 = 7LL;
                                       uw_unit arg1 = 0;
-                                     __uwn_new_1723(ctx, arg0, arg1);
+                                     __uwn_new_3(ctx, arg0, arg1);
                                      }));
              uw_end_region(ctx);
               ({
@@ -831,7 +830,7 @@
                     (uw_begin_region(ctx), ({
                                             uw_Basis_int arg0 = __uwr_ir_2;
                                              uw_unit arg1 = 0;
-                                            __uwn_read_1725(ctx, arg0, arg1);
+                                            __uwn_read_4(ctx, arg0, arg1);
                                             }));
                     uw_end_region(ctx);
                      ({
@@ -840,8 +839,7 @@
                                               uw_Basis_int arg0 =
                                                __uwr_irPRIME_3;
                                                uw_unit arg1 = 0;
-                                              __uwn_read_1725(ctx,
-                                              arg0, arg1);
+                                              __uwn_read_4(ctx, arg0, arg1);
                                               }));
                       uw_end_region(ctx);
                        ({
@@ -951,7 +949,7 @@
                                                  uw_Basis_int arg0 =
                                                   __uwr_ir_2;
                                                   uw_unit arg1 = 0;
-                                                 __uwn_delete_1729(ctx,
+                                                 __uwn_delete_5(ctx,
                                                  arg0, arg1);
                                                  }));
                          uw_end_region(ctx);
@@ -961,7 +959,7 @@
                                                    uw_Basis_int arg0 =
                                                     __uwr_irPRIME_3;
                                                     uw_unit arg1 = 0;
-                                                   __uwn_delete_1729(ctx,
+                                                   __uwn_delete_5(ctx,
                                                    arg0, arg1);
                                                    }));
                            uw_end_region(ctx);
@@ -1057,7 +1055,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1756(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_7(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -1129,7 +1127,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1756(ctx, arg0, 0);
+    __uwn_wrap_main_7(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -1150,7 +1148,7 @@
    {
     
      uw_unit uw_inputs;
-     __uwn_wrap_mutate_1757(ctx, uw_inputs, 0);
+     __uwn_wrap_mutate_6(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -1162,12 +1160,12 @@
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {
-  __uwn_expunger_1758(ctx, cli);
+  __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
-  __uwn_initializer_1759(ctx, 0);
+  __uwn_initializer_1(ctx, 0);
    }
  uw_app uw_application = {1,
                             60,

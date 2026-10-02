@@ -205,13 +205,12 @@
      uw_Basis_string __uwf_Parent;
       };
   
-  static uw_unit __uwn_initializer_1686(uw_context ctx, uw_unit __uwr___0)
+  static uw_unit __uwn_initializer_1(uw_context ctx, uw_unit __uwr___0)
    {
    return(0);
    }
   
-  static uw_unit
-   __uwn_expunger_1685(uw_context ctx, uw_Basis_client __uwr_cli_0)
+  static uw_unit __uwn_expunger_2(uw_context ctx, uw_Basis_client __uwr_cli_0)
    {
    return(0);
    }
@@ -223,7 +222,7 @@
    
   
   static uw_unit
-   __uwn_main_1687(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_main_3(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -402,8 +401,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_add_1684(uw_context ctx, struct __uws_3 __uwr_x0_0, 
-                        uw_unit __uwr___1)
+   __uwn_wrap_add_4(uw_context ctx, struct __uws_3 __uwr_x0_0, 
+                     uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -516,18 +515,18 @@
             ({
              uw_unit arg0 = 0;
               uw_unit arg1 = 0;
-             __uwn_main_1687(ctx, arg0, arg1);
+             __uwn_main_3(ctx, arg0, arg1);
              });
            }));
    }
   
   static uw_unit
-   __uwn_wrap_main_1683(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_5(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit arg0 = __uwr_x0_0;
             uw_unit arg1 = 0;
-           __uwn_main_1687(ctx, arg0, arg1);
+           __uwn_main_3(ctx, arg0, arg1);
            }));
    }
  
@@ -603,7 +602,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1683(ctx, arg0, 0);
+    __uwn_wrap_main_5(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -643,7 +642,7 @@
           uw_input_Nam,
            uw_input_Parent,
             };
-     __uwn_wrap_add_1684(ctx, uw_inputs, 0);
+     __uwn_wrap_add_4(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
      return;
     }
@@ -655,12 +654,12 @@
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {
-  __uwn_expunger_1685(ctx, cli);
+  __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
-  __uwn_initializer_1686(ctx, 0);
+  __uwn_initializer_1(ctx, 0);
    }
  uw_app uw_application = {3,
                             60,

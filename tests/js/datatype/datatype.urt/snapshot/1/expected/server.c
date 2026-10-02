@@ -29,11 +29,10 @@
     uw_Basis_int __uwf_W;
      };
   
-  enum __uwe_shape_1924 { __uwc_Dot_1925, __uwc_Circle_1926, __uwc_Box_1927
-   };
+  enum __uwe_shape_1 { __uwc_Dot_2, __uwc_Circle_3, __uwc_Box_4 };
    
-   struct __uwd_shape_1924 {
-   enum __uwe_shape_1924
+   struct __uwd_shape_1 {
+   enum __uwe_shape_1
    tag;
    union {
     uw_Basis_int uw_Circle;
@@ -41,7 +40,7 @@
     } data;
     };
   struct __uws_2 {
-   struct __uwd_shape_1924* __uwf_1;
+   struct __uwd_shape_1* __uwf_1;
     struct __uws_2* __uwf_2;
      };
   
@@ -49,16 +48,16 @@
    static char jsapp[] = "*script elided*";
   
   static struct __uws_2*
-   __uwn_shapes_1929(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_shapes_5(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(({
            struct __uws_2 *tmp = uw_malloc(ctx, sizeof(struct __uws_2));
            *tmp =
            ({ struct __uws_2 tmp =
             {({
-              struct __uwd_shape_1924 *tmp =
-              uw_malloc(ctx, sizeof(struct __uwd_shape_1924));
-              tmp->tag = __uwc_Circle_1926;
+              struct __uwd_shape_1 *tmp =
+              uw_malloc(ctx, sizeof(struct __uwd_shape_1));
+              tmp->tag = __uwc_Circle_3;
               tmp->data.uw_Circle = 1LL;
                tmp;
               }), 
@@ -68,10 +67,10 @@
                *tmp =
                ({ struct __uws_2 tmp =
                 {({
-                  struct __uwd_shape_1924 *tmp =
-                  uw_malloc(ctx, sizeof(struct __uwd_shape_1924));
+                  struct __uwd_shape_1 *tmp =
+                  uw_malloc(ctx, sizeof(struct __uwd_shape_1));
                   tmp->tag =
-                  __uwc_Box_1927;
+                  __uwc_Box_4;
                   tmp->data.uw_Box =
                    ({ struct __uws_1 tmp = {3LL, 2LL}; tmp; });
                    tmp;
@@ -82,9 +81,9 @@
                    *tmp =
                    ({ struct __uws_2 tmp =
                     {({
-                      struct __uwd_shape_1924 *tmp =
-                      uw_malloc(ctx, sizeof(struct __uwd_shape_1924));
-                      tmp->tag = __uwc_Dot_1925;
+                      struct __uwd_shape_1 *tmp =
+                      uw_malloc(ctx, sizeof(struct __uwd_shape_1));
+                      tmp->tag = __uwc_Dot_2;
                       tmp;
                       }), NULL}; tmp; });
                    tmp;
@@ -96,11 +95,11 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_1931(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_6(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_source __uwr_s_2 =
-           uw_Basis_new_client_source(ctx, "{c:\"c\",v:1925}");
+           uw_Basis_new_client_source(ctx, "{c:\"c\",v:2}");
            ((uw_write(ctx, "<body"), 0),
             (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
                                                    uw_Basis_get_settings(ctx,
@@ -186,23 +185,23 @@
   return uw_Basis_makeSigString(ctx, r);
   }
  
- static void urlify_1924(uw_context, struct __uwd_shape_1924*);
+ static void urlify_1(uw_context, struct __uwd_shape_1*);
   static void urlifyl_2(uw_context, struct __uws_2 *);
-   static void urlify_1924(uw_context ctx, struct __uwd_shape_1924*
+   static void urlify_1(uw_context ctx, struct __uwd_shape_1*
     it0) {
     if
-     (it0->tag==__uwc_Dot_1925) {
+     (it0->tag==__uwc_Dot_2) {
      uw_write(ctx, "Dot");
       } else {
      if
-      (it0->tag==__uwc_Circle_1926) {
+      (it0->tag==__uwc_Circle_3) {
       uw_write(ctx, "Circle/");
        uw_Basis_int it1 = it0->data.uw_Circle;
        uw_Basis_urlifyInt_w(ctx, it1);
         
        } else {
       if
-       (it0->tag==__uwc_Box_1927) {
+       (it0->tag==__uwc_Box_4) {
        uw_write(ctx, "Box/");
         struct __uws_1 it1 =
         it0->data.uw_Box;
@@ -232,10 +231,10 @@
     static void urlifyl_2(uw_context ctx, struct __uws_2
      *it0) {
      if (it0) {
-      struct __uwd_shape_1924* it1 =
+      struct __uwd_shape_1* it1 =
       it0->__uwf_1;
       uw_write(ctx, "Cons/");
-      urlify_1924(ctx, it1);
+      urlify_1(ctx, it1);
        ;
       uw_write(ctx, "/");
       urlifyl_2(ctx, it0->__uwf_2);
@@ -261,7 +260,7 @@
    }
   
   
-  if (!strcmp(request, "/app.78D0D6E64A291F92498AA73467345768F83534CA.js")) {
+  if (!strcmp(request, "/app.B1573482FAAF684AC54B89B039A27B85BE5AA7AA.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -277,7 +276,7 @@
    uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
     uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.78D0D6E64A291F92498AA73467345768F83534CA.js\"></script>\n");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.B1573482FAAF684AC54B89B039A27B85BE5AA7AA.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 0);
   uw_set_needs_push(ctx, 0);
@@ -285,7 +284,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1931(ctx, arg0, 0);
+    __uwn_wrap_main_6(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
@@ -307,7 +306,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     struct __uws_2* it0 = __uwn_shapes_1929(ctx, arg0, 0);
+     struct __uws_2* it0 = __uwn_shapes_5(ctx, arg0, 0);
     uw_write(ctx, uw_get_real_script(ctx));
      uw_write(ctx, "\n");
      urlifyl_2(ctx, it0);

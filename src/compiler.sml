@@ -1671,12 +1671,19 @@ val dbmodecheck = {
 
 val toDbmodecheck = transform dbmodecheck "dbmodecheck" o toScriptcheck
 
+val renumber = {
+    func = Renumber.renumber,
+    print = MonoPrint.p_file MonoEnv.empty
+}
+
+val toRenumber = transform renumber "renumber" o toDbmodecheck
+
 val jscomp = {
     func = JsComp.process,
     print = MonoPrint.p_file MonoEnv.empty
 }
 
-val toJscomp = transform jscomp "jscomp" o toDbmodecheck
+val toJscomp = transform jscomp "jscomp" o toRenumber
 
 val endpoints = {
     func = fn file =>
@@ -1746,12 +1753,14 @@ val sqlcache = {
 
 val toSqlcache = transform sqlcache "sqlcache" o toFilecache
 
+val toRenumber2 = transform renumber "renumber2" o toSqlcache
+
 val cjrize = {
     func = Cjrize.cjrize,
     print = CjrPrint.p_file CjrEnv.empty
 }
 
-val toCjrize = transform cjrize "cjrize" o toSqlcache
+val toCjrize = transform cjrize "cjrize" o toRenumber2
 
 val prepare = {
     func = Prepare.prepare,

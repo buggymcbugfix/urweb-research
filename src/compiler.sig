@@ -125,6 +125,7 @@ signature COMPILER = sig
     val iflow : (Mono.file, Mono.file) phase
     val namejs : (Mono.file, Mono.file) phase
     val scriptcheck : (Mono.file, Mono.file) phase
+    val renumber : (Mono.file, Mono.file) phase
     val jscomp : (Mono.file, Mono.file) phase
     val fuse : (Mono.file, Mono.file) phase
     val pathcheck : (Mono.file, Mono.file) phase
@@ -185,6 +186,7 @@ signature COMPILER = sig
     val toNamejs_untangle : (string, Mono.file) transform
     val toScriptcheck : (string, Mono.file) transform
     val toDbmodecheck : (string, Mono.file) transform
+    val toRenumber : (string, Mono.file) transform
     val toJscomp : (string, Mono.file) transform
     val toMono_opt3 : (string, Mono.file) transform
     val toFuse : (string, Mono.file) transform
@@ -201,6 +203,7 @@ signature COMPILER = sig
     val toSigcheck : (string, Mono.file) transform
     val toFilecache : (string, Mono.file) transform
     val toSqlcache : (string, Mono.file) transform
+    val toRenumber2 : (string, Mono.file) transform
     val toCjrize : (string, Cjr.file) transform
     val toPrepare : (string, Cjr.file) transform
     val toChecknest : (string, Cjr.file) transform
