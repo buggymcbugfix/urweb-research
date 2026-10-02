@@ -1,0 +1,2 @@
+for n in 1 2; do curl -s "http://127.0.0.1:$port/Pg_smoke/add/$n" | sed -e 's/<[^>]*>//g'; echo; done
+curl -s "http://127.0.0.1:$port/Pg_smoke/total" | sed -e 's/<[^>]*>//g'; echo

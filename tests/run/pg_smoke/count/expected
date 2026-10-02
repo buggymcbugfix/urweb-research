@@ -1,0 +1,13 @@
+added 1
+added 2
+rows 2
+--- log
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Pg_smoke/add/1....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Pg_smoke/add/2....
+Accepted connection.
+Handling connection with thread #0.
+Serving URI /Pg_smoke/total....

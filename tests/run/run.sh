@@ -21,6 +21,14 @@
 #               log (stdout and stderr, in order), less the runtime's
 #               start-up chatter
 #
+# A project whose `dbms` file says postgres is compiled for postgres and run
+# against a server started for the run, on a unix socket in a scratch
+# directory.  Postgres will not run as root: then RUN_PG_AS is a command that
+# runs its arguments as another user, and RUN_PG_USER names that user.  A
+# case's `args` file adds command-line arguments to the application (-t 4 for
+# more threads, say); which thread takes a request then varies, so the thread
+# number is masked in its log.
+#
 # Each case gets a fresh database and a fresh process, started with -d/-P
 # (no fixed port, no polling).  Run from anywhere, after `make mlton`; the
 # compiler is bin/urweb -boot, or the one URWEB names, run with URWEB_FLAGS
@@ -69,6 +77,32 @@ fi
 app_pid=""
 built=""
 bad=""
+pgdir=""
+pguser=${RUN_PG_USER:-$(id -un)}
+
+pg() { ${RUN_PG_AS:-} "$@"; }
+
+# One server for the whole run, started when the first postgres project needs it.
+pg_start() {
+  [ -z "$pgdir" ] || return 0
+  for tool in initdb pg_ctl createdb dropdb psql; do
+    command -v "$tool" >/dev/null || die "$tool is needed for a postgres project"
+  done
+  if [ "$(id -u)" = 0 ] && [ -z "${RUN_PG_AS:-}" ]; then
+    die "postgres will not run as root: set RUN_PG_AS and RUN_PG_USER"
+  fi
+  pgdir=$(mktemp -d /tmp/urweb-run-pg.XXXXXX) || die "no scratch directory"
+  chmod 755 "$pgdir"
+  [ "$(id -u)" != 0 ] || chown "$pguser" "$pgdir"
+  pg initdb -D "$pgdir/data" -A trust --no-sync -E UTF8 --locale=C > "$out/pg.log" 2>&1 \
+    && pg pg_ctl -D "$pgdir/data" -o "-k $pgdir -c listen_addresses= -c fsync=off" \
+         -l "$pgdir/server.log" -w start >> "$out/pg.log" 2>&1 \
+    || { cat "$out/pg.log" >&2; [ ! -f "$pgdir/server.log" ] || cat "$pgdir/server.log" >&2; die "postgres did not start"; }
+}
+pg_stop() {
+  [ -z "$pgdir" ] || pg pg_ctl -D "$pgdir/data" stop -m fast > /dev/null 2>&1
+  [ -z "$pgdir" ] || rm -rf "$pgdir"
+}
 
 # The application is a daemon, not our child: stop it by pid, and take what
 # was built out of the tree, however this ends.
@@ -81,6 +115,7 @@ stop_app() {
 }
 cleanup() {
   stop_app
+  pg_stop
   for p in $built; do rm -f "$here/$p/$p.exe" "$here/$p"/*.o; done
 }
 trap cleanup EXIT
@@ -95,7 +130,8 @@ normalize() {
       -e '/^Starting the Ur\/Web native HTTP server/,/^$/d' \
       -e '/^Forking to PID [0-9]*\.\.\.\.$/d' \
       -e '/^Listening on port [0-9]*\.\.\.\.$/d' \
-      "$1"
+      "$1" |
+    if [ -n "$appargs" ]; then sed -e 's/^\(Handling connection with thread #\)[0-9]*\./\1N./'; else cat; fi
 }
 
 failed=0
@@ -105,6 +141,9 @@ for case in "${cases[@]}"; do
   dir=$here/$case
   work=$out/$case
   mkdir -p "$work"
+
+  dbms=sqlite
+  [ ! -f "$pdir/dbms" ] || dbms=$(tr -d ' \n' < "$pdir/dbms")
 
   # The project, once.
   case " $built " in
@@ -119,9 +158,14 @@ for case in "${cases[@]}"; do
           || { echo "$project: $(basename "$c") does not compile" >&2; cat "$out/$project.cc.log" >&2; ok=0; }
       done
       [ $ok = 1 ] || bad="$bad $project"
+      dbstring="$out/$project.db"
+      if [ "$dbms" = postgres ]; then
+        pg_start
+        dbstring="host=$pgdir dbname=$project user=$pguser"
+      fi
       case " $bad " in *" $project "*) ;; *)
-        ( cd "$pdir" && "$urweb" $urweb_flags -protocol http -dbms sqlite \
-            -db "$out/$project.db" -sql "$out/$project.sql" "$project" ) > "$out/$project.build.log" 2>&1 \
+        ( cd "$pdir" && "$urweb" $urweb_flags -protocol http -dbms "$dbms" \
+            -db "$dbstring" -sql "$out/$project.sql" "$project" ) > "$out/$project.build.log" 2>&1 \
           || { echo "$project: does not compile" >&2; cat "$out/$project.build.log" >&2; bad="$bad $project"; } ;;
       esac
       ;;
@@ -130,8 +174,19 @@ for case in "${cases[@]}"; do
 
   # A fresh database; the sqlite driver reads its path from the environment.
   rm -f "$work/db.sqlite"* "$work/log"
-  [ -f "$out/$project.sql" ] && sqlite3 "$work/db.sqlite" < "$out/$project.sql" > /dev/null
-  envs=(URWEB_SQLITE_DB_PATH="$work/db.sqlite")
+  if [ "$dbms" = postgres ]; then
+    pg dropdb --if-exists -h "$pgdir" "$project" > /dev/null 2>&1
+    pg createdb -h "$pgdir" "$project" || { echo "$case: no database" >&2; failed=1; continue; }
+    cp "$out/$project.sql" "$pgdir/schema.sql" && chmod a+r "$pgdir/schema.sql"
+    pg psql -q -h "$pgdir" -d "$project" -f "$pgdir/schema.sql" > /dev/null 2>&1 \
+      || { echo "$case: the schema did not load" >&2; failed=1; continue; }
+    envs=(RUN_CASE="$case")
+  else
+    [ -f "$out/$project.sql" ] && sqlite3 "$work/db.sqlite" < "$out/$project.sql" > /dev/null
+    envs=(URWEB_SQLITE_DB_PATH="$work/db.sqlite")
+  fi
+  appargs=""
+  [ ! -f "$dir/args" ] || appargs=$(cat "$dir/args")
   if [ -f "$dir/env" ]; then
     while IFS= read -r line; do
       case $line in ''|'#'*) ;; *) envs+=("$line") ;; esac
@@ -140,7 +195,7 @@ for case in "${cases[@]}"; do
 
   # Up, driven, down.  The log is stdout and stderr together, in order.
   unset status pid port
-  eval "$( env "${envs[@]}" "$pdir/$project.exe" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>>"$work/log" 2>&1 )"
+  eval "$( env "${envs[@]}" "$pdir/$project.exe" $appargs -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>>"$work/log" 2>&1 )"
   if [ "${status:-}" != OK ]; then
     echo "$case: the application did not start" >&2; cat "$work/log" >&2; failed=1; continue
   fi
