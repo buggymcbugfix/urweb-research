@@ -1969,18 +1969,19 @@ handlers are not for Ur, and compiling Ur to the database as a `Database` side.
 ## Sources
 
 The reading notes in `bibliography/*.md` and `../../papers/*.md` give page pointers for
-every paper cited. In short: Chlipala, PLDI 2010 (Ur, Featherweight Ur, the inference
-heuristics); Chlipala, POPL 2015 (the sidedness quote; no formal model); Chlipala, ICFP
-2015 (compiler pipeline, Monoize, Mono Reduce's effect set); Scully and Chlipala, POPL
-2017 (Sqlcache's effect needs); Martin and Nipkow, JSC 1989 (Boolean unification,
-reproductive solutions, SVE, Löwenheim); Baader, IPL 1998 (complexity); Madsen and van
-de Pol, OOPSLA 2020 (effects as Boolean formulas, SVE in a type system, generalization);
-Madsen, van de Pol and Henriksen, OOPSLA 2023 (the engineering and the measurements);
-Lutze, Madsen, Schuster and Brachthäuser, ICFP 2023 (effect exclusion, `ef - {E}`, the
-symbolic universe, upper bounds); Lee, Starup, Lhoták and Madsen, OOPSLA 2025 (qualified
-types over Boolean algebras, `P <: Q ⟹ P ∨ Y = Q`, abstraction-site subeffecting,
-Rocq); Katsumata, POPL 2014 and Orchard and Petricek, Haskell 2014 (graded monads and
-their Haskell embedding); Morris and McKinna, POPL 2019 (Rose, rows as qualified types);
-Yorgey et al., TLDI 2012 and Stolarek et al., Haskell 2015 (promoted data and type
-families, injectivity); the Flix compiler sources (`SetUnification.scala`,
-`SveAlgorithm.scala`, `CofiniteIntSet.scala`, `zhegalkin/`, `CompilerConstants.scala`).
+every paper cited. In short:
+
+- Chlipala, PLDI 2010 (Ur, Featherweight Ur, the inference heuristics)
+- Chlipala, POPL 2015 (the sidedness quote; no formal model)
+- Chlipala, ICFP 2015 (compiler pipeline, Monoize, Mono Reduce's effect set)
+- Scully and Chlipala, POPL 2017 (Sqlcache's effect needs)
+- Martin and Nipkow, JSC 1989 (Boolean unification, reproductive solutions, SVE, Löwenheim)
+- Baader, IPL 1998 (complexity)
+- Madsen and van de Pol, OOPSLA 2020 (effects as Boolean formulas, SVE in a type system, generalization)
+- Madsen, van de Pol and Henriksen, OOPSLA 2023 (the engineering and the measurements)
+- Lutze, Madsen, Schuster and Brachthäuser, ICFP 2023 (effect exclusion, `ef - {E}`, the symbolic universe, upper bounds)
+- Lee, Starup, Lhoták and Madsen, OOPSLA 2025 (qualified types over Boolean algebras, `P <: Q ⟹ P ∨ Y = Q` abstraction-site subeffecting, Rocq)
+- Katsumata, POPL 2014 and Orchard and Petricek, Haskell 2014 (graded monads and their Haskell embedding)
+- Morris and McKinna, POPL 2019 (Rose, rows as qualified types)
+- Yorgey et al., TLDI 2012 and Stolarek et al., Haskell 2015 (promoted data and type families, injectivity)
+- the Flix compiler sources (`SetUnification.scala`, `SveAlgorithm.scala`, `CofiniteIntSet.scala`, `zhegalkin/`, `CompilerConstants.scala`).
