@@ -2118,7 +2118,7 @@ uw_unit uw_Basis_urlifyChar_w(uw_context ctx, uw_Basis_char c) {
   
   if (c == ' ')
     uw_writec_unsafe(ctx, '+');
-  else if (isalnum(c) && c <= 0x7f)
+  else if ((uint32_t)c <= 0x7f && isalnum(c))
     uw_writec_unsafe(ctx, c);
   else {
     aux_urlifyChar(&(ctx->page.front), c);
@@ -2876,7 +2876,7 @@ uw_Basis_string uw_Basis_sqlifyString(uw_context ctx, uw_Basis_string s) {
         *s2++ = '\\';
       break;
     default:
-      if (isprint((int)c))
+      if (isprint((unsigned char)c))
         *s2++ = c;
       else if (uw_Estrings) {
         sprintf(s2, "\\%03o", (unsigned char)c);
@@ -2918,7 +2918,7 @@ uw_Basis_string uw_Basis_sqlifyChar(uw_context ctx, uw_Basis_char c) {
       *s2++ = '\\';
     break;
   default:
-    if (isprint((int)c))
+    if ((uint32_t)c <= 0x7f && isprint((int)c))
       *s2++ = c;
     else if (uw_Estrings) {
       sprintf(s2, "\\%03o", (unsigned char)c);
@@ -3494,7 +3494,7 @@ uw_Basis_blob uw_Basis_stringToBlob_error(uw_context ctx, uw_Basis_string s, siz
         if (s[1] == '\\') {
           *r++ = '\\';
           s += 2;
-        } else if (isdigit((int)s[1]) && isdigit((int)s[2]) && isdigit((int)s[3])) {
+        } else if (isdigit((unsigned char)s[1]) && isdigit((unsigned char)s[2]) && isdigit((unsigned char)s[3])) {
           *r++ = (s[1] - '0') * 8 * 8 + ((s[2] - '0') * 8) + (s[3] - '0');
           s += 4;
         }
@@ -3704,7 +3704,7 @@ static char *find_sig(char *haystack) {
   s += sizeof sig_intro - 1;
 
   for (i = 0; i < uw_hash_blocksize*2; ++i)
-    if (!isxdigit((int)s[i]))
+    if (!isxdigit((unsigned char)s[i]))
       return NULL;
 
   if (s[i] != '"')
