@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *)
 
-Require Import Eqdep_dec.
+From Stdlib Require Import Eqdep_dec.
 
 Require Import Axioms.
 Require Import Syntax.
@@ -44,6 +44,7 @@ Fixpoint kDen (k : kind) : Type :=
   match k with
   | KType => Set
   | KName => name
+  | KUnit => unit
   | KArrow k1 k2 => kDen k1 -> kDen k2
   | KRecord k1 => row (kDen k1)
   end.
@@ -62,6 +63,7 @@ Fixpoint cDen k (c : con kDen k) : kDen k :=
   | CAbs _ c1 => fun x => cDen (c1 x)
   | CApp c1 c2 => (cDen c1) (cDen c2)
   | Name _ n => n
+  | CUnit _ => tt
   | TRecord c1 => record (cDen c1)
   | CEmpty _ _ => fun _ => None
   | CSingle c1 c2 => fun n => if name_eq_dec n (cDen c1) then Some (cDen c2) else None
@@ -74,6 +76,10 @@ Fixpoint cDen k (c : con kDen k) : kDen k :=
                                  | Some T => Some (f T)
                                  end
   | TGuarded c1 c2 t => disjoint (cDen c1) (cDen c2) -> cDen t
+  | CDiff c1 c2 => fun n => match (cDen c2) n with
+                            | None => (cDen c1) n
+                            | Some _ => None
+                            end
   end.
 
 Theorem subs_correct : forall k1 (c1 : con kDen k1) k2 (c2 : _ -> con kDen k2) c2',
@@ -128,7 +134,7 @@ Ltac deq_disj_correct scm :=
           | [ |- context[if ?E then _ else _] ] => destruct E
           end; t).
 
-Hint Unfold dvar.
+Hint Unfold dvar : core.
 
 Theorem deq_correct : forall k (c1 c2 : con kDen k),
     deq dvar c1 c2
@@ -149,7 +155,7 @@ Theorem name_eq_dec_refl : forall n, name_eq_dec n n = left _ (refl_equal n).
     match goal with
     | [ e : _ = _ |- _ ] => rewrite (UIP_dec name_eq_dec e (refl_equal _)); reflexivity
     end
-  | elimtype False; tauto
+  | exfalso; tauto
   ].
 Qed.
 

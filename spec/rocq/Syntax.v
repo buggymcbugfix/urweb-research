@@ -36,6 +36,7 @@ Set Implicit Arguments.
 Inductive kind : Type :=
 | KType : kind
 | KName : kind
+| KUnit : kind
 | KArrow : kind -> kind -> kind
 | KRecord : kind -> kind.
 
@@ -49,12 +50,16 @@ Section vars.
   | CAbs : forall k1 k2, (cvar k1 -> con k2) -> con (KArrow k1 k2)
   | CApp : forall k1 k2, con (KArrow k1 k2) -> con k1 -> con k2
   | Name : name -> con KName
+  | CUnit : con KUnit
   | TRecord : con (KRecord KType) -> con KType
   | CEmpty : forall k, con (KRecord k)
   | CSingle : forall k, con KName -> con k -> con (KRecord k)
   | CConcat : forall k, con (KRecord k) -> con (KRecord k) -> con (KRecord k)
   | CMap : forall k1 k2, con (KArrow (KArrow k1 k2) (KArrow (KRecord k1) (KRecord k2)))
-  | TGuarded : forall k, con (KRecord k) -> con (KRecord k) -> con KType -> con KType.
+  | TGuarded : forall k, con (KRecord k) -> con (KRecord k) -> con KType -> con KType
+  (* Row difference, [c1 -- c2]: the fields of c1 whose names are not in c2.
+   * Only the names of c2 matter, so it may be a row of any kind. *)
+  | CDiff : forall k k', con (KRecord k) -> con (KRecord k') -> con (KRecord k).
 
   Variable dvar : forall k, con (KRecord k) -> con (KRecord k) -> Type.
 
@@ -95,7 +100,11 @@ Section vars.
       subs c2 c2'
       -> subs c3 c3'
       -> subs c4 c4'
-      -> subs (fun x => TGuarded (c2 x) (c3 x) (c4 x)) (TGuarded c2' c3' c4').
+      -> subs (fun x => TGuarded (c2 x) (c3 x) (c4 x)) (TGuarded c2' c3' c4')
+    | S_CDiff : forall k2 k3 (c2 : _ -> con (KRecord k2)) (c3 : _ -> con (KRecord k3)) c2' c3',
+      subs c2 c2'
+      -> subs c3 c3'
+      -> subs (fun x => CDiff (c2 x) (c3 x)) (CDiff c2' c3').
   End subs.
 
   Inductive disj : forall k, con (KRecord k) -> con (KRecord k) -> Prop :=
@@ -122,6 +131,15 @@ Section vars.
     disj c1 c2
     -> deq c1' c1
     -> disj c1' c2
+
+  (* A difference is disjoint from what it took away, and from whatever its
+   * left operand was disjoint from.  The first needs c2 at the kind of c1:
+   * disj is same-kinded, while CDiff is not (see the sketch notes). *)
+  | DDiff : forall k (c1 c2 : con (KRecord k)),
+    disj (CDiff c1 c2) c2
+  | DDiffL : forall k k' (c1 : con (KRecord k)) (c2 : con (KRecord k')) c,
+    disj c1 c
+    -> disj (CDiff c1 c2) c
 
   with deq : forall k, con k -> con k -> Prop :=
   | Eq_Beta : forall k1 k2 (c1 : cvar k1 -> con k2) c2 c1',
@@ -165,7 +183,33 @@ Section vars.
   | Eq_Map_Fuse : forall k1 k2 k3 f f' c,
     deq (CApp (CApp (CMap k2 k3) f')
       (CApp (CApp (CMap k1 k2) f) c))
-    (CApp (CApp (CMap k1 k3) (CAbs (fun x => CApp f' (CApp f (CVar x))))) c).
+    (CApp (CApp (CMap k1 k3) (CAbs (fun x => CApp f' (CApp f (CVar x))))) c)
+
+  (* Row difference.  Each rule is an equation between finite maps.  The
+   * first eight compute a difference whose names are known and move map
+   * through it, with no disjointness premise; the last says that a
+   * difference takes nothing from a row disjoint from its right operand. *)
+  | Eq_Diff_Empty : forall k k' (c : con (KRecord k')),
+    deq (CDiff (CEmpty k) c) (CEmpty k)
+  | Eq_Diff_Empty_R : forall k k' (c : con (KRecord k)),
+    deq (CDiff c (CEmpty k')) c
+  | Eq_Diff_Single_In : forall k k' n (c1 : con k) (c2 : con k'),
+    deq (CDiff (CSingle n c1) (CSingle n c2)) (CEmpty k)
+  | Eq_Diff_Single_Out : forall k k' X1 X2 (c1 : con k) (c2 : con k'),
+    X1 <> X2
+    -> deq (CDiff (CSingle (Name X1) c1) (CSingle (Name X2) c2)) (CSingle (Name X1) c1)
+  | Eq_Diff_Concat : forall k k' (c1 c2 : con (KRecord k)) (c : con (KRecord k')),
+    deq (CDiff (CConcat c1 c2) c) (CConcat (CDiff c1 c) (CDiff c2 c))
+  | Eq_Diff_Concat_R : forall k k' (c : con (KRecord k)) (c1 c2 : con (KRecord k')),
+    deq (CDiff c (CConcat c1 c2)) (CDiff (CDiff c c1) c2)
+  | Eq_Diff_Map : forall k1 k2 k' f (c1 : con (KRecord k1)) (c2 : con (KRecord k')),
+    deq (CApp (CApp (CMap k1 k2) f) (CDiff c1 c2))
+    (CDiff (CApp (CApp (CMap k1 k2) f) c1) c2)
+  | Eq_Diff_Map_R : forall k k1 k2 f (c : con (KRecord k)) (c2 : con (KRecord k1)),
+    deq (CDiff c (CApp (CApp (CMap k1 k2) f) c2)) (CDiff c c2)
+  | Eq_Diff_Disj : forall k (c1 c2 : con (KRecord k)),
+    disj c1 c2
+    -> deq (CDiff c1 c2) c1.
 
   Variable evar : con KType -> Type.
 

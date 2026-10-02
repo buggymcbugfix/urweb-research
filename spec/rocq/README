@@ -1,0 +1,16 @@
+This is a Rocq formalization of a simplified version of the Ur programming
+language (Featherweight Ur): the syntax of kinds, constructors and
+expressions, the definitional equality and disjointness rules on rows, and a
+denotational model in which every rule is proved sound and every well-typed
+expression has a denotation (Semantics.v: deq_correct, disj_correct, eDen).
+Its only axiom is functional extensionality (Axioms.v).
+
+Diff.v is a sketch of row difference (`c1 -- c2`, constructor CDiff) on top
+of it: inter and union defined from it, a difference computed by the rules,
+and the finite-set laws at kind {Unit} in the model.
+
+Checked with Rocq 9.1.1 and rocq-stdlib 9.0.0, as pinned in nixpkgs.nix:
+
+    nix-shell --pure --run make    # or nix-build
+
+It was originally written for Coq 8.3pl2.
