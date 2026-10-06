@@ -1,0 +1,7 @@
+allow url /Pg_smoke/*
+safeGet Pg_smoke/add
+safeGet Pg_smoke/total
+minHeap 65536
+
+$/list
+pg_smoke
