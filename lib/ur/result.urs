@@ -28,3 +28,15 @@ val readResult : t ::: Type -> read t -> string -> result t
 (* Success () when the condition holds, Failure with the message otherwise, so
 that a chain of binds can give up partway. *)
 val guard : bool -> xbody -> result unit
+
+(** Distributivity between list and result, similarly to [sequence], but
+concatenating any failures.
+
+    validate (Success 1 :: Success 2 :: []) = Success (1 :: 2 :: [])
+
+    validate (Success 1 :: Failure <xml>a</xml> :: Failure <xml>b</xml> :: [])
+             = Failure <xml>a<br/>b</xml>
+
+    validate [] = Success []
+*)
+val validate : a ::: Type -> list (result a) -> result (list a)
