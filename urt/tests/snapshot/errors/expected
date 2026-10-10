@@ -109,7 +109,9 @@ to start with; within a run, the requests build on each other.  So that the
 same requests get the same answers, the application's clock is pinned (the
 first request is served at 2000-01-01 00:00:00 UTC, each further one a second
 later, and the database agrees), as are its random numbers and its time zone,
-UTC; every request is for the host 'localhost', from the user agent 'urt'.
+UTC; its heap starts at 256 MiB, so that no handler is run a second time
+for the heap to grow; every request is for the host 'localhost', from the
+user agent 'urt'.
 
 A case with runs is compiled all the way, so its args cannot hold -stop,
 -stopQuiet or -tc, and it fails if that does not give an application.  The
