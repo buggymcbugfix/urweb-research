@@ -1,0 +1,6 @@
+database dbname=decls
+onError DeclsE.err
+safeGet Decls/main
+
+declsE
+decls
