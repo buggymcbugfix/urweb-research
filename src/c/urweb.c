@@ -11,6 +11,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <stdint.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <openssl/rand.h>
@@ -378,6 +379,8 @@ static void client_send(client *c, uw_buffer *msg, const char *script, int scrip
 extern void uw_global_custom();
 extern void uw_init_crypto();
 
+static void uw_min_heap_from_env();
+
 void uw_global_init() {
   clients = malloc(0);
 
@@ -385,6 +388,7 @@ void uw_global_init() {
   uw_init_crypto();
   uw_reproducible_init();
   uw_dml_log_init();
+  uw_min_heap_from_env();
 
   // Fast non-cryptographic strength randomness for Sqlcache.
   srandom(clock());
@@ -541,6 +545,37 @@ size_t uw_headers_max = SIZE_MAX;
 size_t uw_page_max = SIZE_MAX;
 size_t uw_heap_max = SIZE_MAX;
 size_t uw_script_max = SIZE_MAX;
+
+// URWEB_MIN_HEAP: the size a context's heap starts at, in bytes, in place
+// of the .urp's minHeap.  A request that fits in it never grows the heap,
+// and so is never run again for the heap to have moved; a test that wants
+// every handler run once starts the heap large enough.  The heap limit
+// stays a limit: a size above it is refused, not cut down to it.  Read
+// after uw_global_custom, which has set both from the .urp.
+static void uw_min_heap_from_env() {
+  char *s = getenv("URWEB_MIN_HEAP"), *end;
+  unsigned long long n;
+
+  if (!s || !*s)
+    return;
+
+  errno = 0;
+  n = strtoull(s, &end, 10);
+  if (errno || end == s || *end) {
+    fprintf(stderr, "URWEB_MIN_HEAP: '%s' is not a number of bytes\n", s);
+    exit(1);
+  }
+
+  if (n > uw_heap_max) {
+    fprintf(stderr, "URWEB_MIN_HEAP: %llu is more than the heap limit, %zu\n", n, uw_heap_max);
+    exit(1);
+  }
+  if (n > INT_MAX) {
+    fprintf(stderr, "URWEB_MIN_HEAP: %llu is more than a heap can start at, %d\n", n, INT_MAX);
+    exit(1);
+  }
+  uw_min_heap = (int)n;
+}
 
 uw_context uw_init(int id, uw_loggers *lg) {
   uw_context ctx = malloc(sizeof(struct uw_context));
