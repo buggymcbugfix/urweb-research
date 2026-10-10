@@ -100,3 +100,4 @@ result
 !/urt/src/format/Makefile
 /urt/urt
 /urt/urt-format
+/tests/run/out/
