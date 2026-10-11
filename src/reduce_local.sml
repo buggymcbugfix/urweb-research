@@ -181,6 +181,7 @@ fun con env (all as (c, loc)) =
                       con (deKnown env)
                           (CConcat ((CRecord (ran, [(x, (CApp (f, c), loc))]), loc),
                                     (CApp (c1, (CRecord (dom, rest), loc)), loc)), loc)
+                    | CDiff (a, b) => con (deKnown env) (CDiff ((CApp (c1, a), loc), b), loc)
                     | _ => (CApp (c1, c2), loc))                           
 
                | _ => (CApp (c1, c2), loc)
@@ -214,7 +215,7 @@ fun con env (all as (c, loc)) =
                | (_, CRecord (_, [])) => c1
                | _ => (CConcat (c1, c2), loc)
          end
-       | CDiff (c1, c2) => (CDiff (con env c1, con env c2), loc)
+       | CDiff (c1, c2) => CoreUtil.Con.diff (con (deKnown env)) (con env c1, con env c2, loc)
        | CMap _ => all
 
        | CUnit => all

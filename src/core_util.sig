@@ -45,6 +45,11 @@ end
 structure Con : sig
     val compare : Core.con * Core.con -> order
 
+    (* Row difference c1 -- c2 for Core's reducers, given c1, c2 normalized
+     * and the normalizer to apply to the result; see ElabOps.diffCon for the
+     * equations. *)
+    val diff : (Core.con -> Core.con) -> Core.con * Core.con * ErrorMsg.span -> Core.con
+
     datatype binder =
              RelK of string
            | RelC of string * Core.kind
