@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 317
+
+<!DOCTYPE html><html><head></head><body><form method="post" action="/Crud3/save/1">
+<p> Text: <input type="hidden" name=".b" value="Text" />
+<input value="hello world" type="text" name="A" />
+<input type="text" name="B" />
+<input type="hidden" name=".e" value="1" />
+</p>
+<input type="submit" />
+</form></body></html>

@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 239
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: demo/sql.ur:30:4-39:2: DML step failed: INSERT INTO uw_Sql_t (uw_A, uw_B, uw_C, uw_D) VALUES (1, 1, 'duplicate', 0)<br />UNIQUE constraint failed: uw_Sql_t.uw_A
+</body></html>

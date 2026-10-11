@@ -1,0 +1,30 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 457
+
+<!DOCTYPE html><html><head>
+<title>Crud1</title>
+</head><body>
+<h1>Crud1</h1>
+
+<table border="1">
+<tr>
+<th>ID</th>
+<th>A</th>
+<th>B</th>
+<th>C</th>
+<th>D</th>
+</tr>
+
+</table>
+<br /><hr /><br />
+<form method="post" action="/Crud1/create">
+<p> A: <input type="text" name="A" /></p>
+<p> B: <input type="text" name="B" /></p>
+<p> C: <input type="text" name="C" /></p>
+<p> D: <input type="checkbox" name="D" /></p>
+<input type="submit" />
+</form>
+
+</body></html>

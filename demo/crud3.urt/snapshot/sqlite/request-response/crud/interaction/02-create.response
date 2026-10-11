@@ -1,0 +1,35 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 544
+
+<!DOCTYPE html><html><head></head><body>
+<p>Inserted with ID 1.</p>
+
+<table border="1">
+<tr>
+<th>ID</th>
+<th>Text</th>
+</tr>
+
+<tr>
+<td>1</td>
+<td>hello world</td>
+<td>
+<a href="/Crud3/upd/1">[Update]</a>
+<a href="/Crud3/confirm/1">[Delete]</a>
+</td>
+</tr>
+
+</table>
+<br /><hr /><br />
+<form method="post" action="/Crud3/create">
+<p> Text: <input type="hidden" name=".b" value="Text" />
+<input type="text" name="A" />
+<input type="text" name="B" />
+<input type="hidden" name=".e" value="1" />
+</p>
+<input type="submit" />
+</form>
+
+</body></html>

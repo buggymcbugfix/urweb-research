@@ -1,0 +1,22 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 451
+
+<!DOCTYPE html><html><head></head><body>
+<ul>
+<li> #1: root <form method="post" action="/Tree/del/1"><input type="submit" value="Delete" /></form>
+<form method="post" action="/Tree/add/Some/1">
+Add child: <input type="text" name="Nam" /> <input type="submit" />
+</form>
+</li>
+<li>
+<ul>
+
+</ul>
+</li>
+</ul>
+<form method="post" action="/Tree/add/None">
+Add a top-level node: <input type="text" name="Nam" /> <input type="submit" />
+</form>
+</body></html>

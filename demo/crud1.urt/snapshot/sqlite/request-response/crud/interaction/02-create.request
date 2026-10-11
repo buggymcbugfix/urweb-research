@@ -1,0 +1,1 @@
+POST /Crud1/create -d A=1 -d B=one -d C=1.5 -d D=on
