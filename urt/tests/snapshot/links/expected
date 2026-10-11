@@ -1,0 +1,17 @@
+$ ln -s first runs/good.urt/snapshot/1/request-response/second
+exit 0
+$ ln -s ../../../../../../../hello.ur runs/good.urt/snapshot/1/request-response/first/interaction/03-linked.request
+exit 0
+$ urt snapshot -w runs/good
+
+FAIL runs/good.urt/snapshot/1 (exitcode; no application for its 1 run)
+    --- runs/good.urt/snapshot/1/expected/exitcode
+    +++ runs/good.urt/snapshot/1/expected/exitcode (now)
+    @@ -0,0 +1 @@
+    +0
+    (it said nothing)
+
+1 case: 1 failed, in T
+exit 1
+$ changes
+removed: ./runs/good.urt/snapshot/1/app.exe
