@@ -75,12 +75,14 @@ END
     esac
 done
 
-case $stopped$project in
-    *builds*)
-        printf '#!/bin/sh\necho "not a server" >&2\nexit 3\n' > "$project.exe"
-        chmod +x "$project.exe" ;;
-    *serves*)
-        cp "$(dirname "$0")/app" "$project.exe"
-        chmod +x "$project.exe" ;;
-esac
+if [ -z "$stopped" ]; then
+    case $project in
+        *builds*)
+            printf '#!/bin/sh\necho "not a server" >&2\nexit 3\n' > "$project.exe"
+            chmod +x "$project.exe" ;;
+        *serves*)
+            cp "$(dirname "$0")/app" "$project.exe"
+            chmod +x "$project.exe" ;;
+    esac
+fi
 exit 0

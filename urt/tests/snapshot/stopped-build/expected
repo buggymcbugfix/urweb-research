@@ -7,7 +7,6 @@ UPDATED runs/builds.urt/snapshot/1 (exitcode)
 1 case: 1 updated, in T
 exit 0
 $ ls runs/builds.*
-runs/builds.exe
 runs/builds.ur
 runs/builds.urp
 
@@ -15,7 +14,6 @@ runs/builds.urt:
 snapshot
 exit 0
 $ changes
-added (41 bytes): ./runs/builds.exe
 changed (12 bytes): ./runs/builds.urt/snapshot/1/args
 changed (2 bytes): ./runs/builds.urt/snapshot/1/expected/exitcode
 removed: ./runs/builds.urt/snapshot/1/request-response/1/args
