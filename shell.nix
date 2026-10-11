@@ -12,7 +12,7 @@ pkgs.mkShell {
 
   packages = with pkgs; [
     git # read by make for `urweb -version`
-    python3 # urt's pty cases
+    python3 # urt's pty cases and stand-in server
     rlwrap
     smlnj
     sqlite

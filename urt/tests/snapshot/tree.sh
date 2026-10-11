@@ -129,6 +129,22 @@ mkdir -p runs/stray.urt/snapshot/1/request-response/a/out/more
 : > runs/stray.urt/snapshot/1/request-response/a/out/startup.stdout
 : > runs/stray.urt/snapshot/1/request-response/a/out/shutdown.stderr
 mkdir -p runs/stray.urt/snapshot/1/request-response/b.c/interaction
+# A project the stand-in compiler builds the stand-in server for: its run
+# gets as far as answers, and the answers show what was sent.
+proj runs serves
+snap runs/serves.urt/snapshot/1 exitcode
+arun runs/serves.urt/snapshot/1/request-response/talk
+cd runs/serves.urt/snapshot/1/request-response/talk
+printf 'CREATE TABLE t (id INTEGER);\n' > db.sql
+cd interaction
+printf "POST /add -d 'name=kettle' -d 'price=12' -b 'visitor=somebody' -H 'Accept: text/html'\n" > 02-fields.request
+printf "GET /debug\n" > 03-debug.request
+printf "GET /err\n" > 04-err.request
+printf "GET /dml\n" > 05-dml.request
+printf 'GET /a-b\n' > 06.request
+printf 'GET /a\n' > 06-a.request
+printf 'GET /quiet\n' > 07-quiet.request
+cd "$root"
 proj runs unready
 snap runs/unready.urt/snapshot/1 exitcode
 arun runs/unready.urt/snapshot/1/request-response/a

@@ -1,0 +1,132 @@
+$ urt snapshot runs/serves
+UPDATED runs/serves.urt/snapshot/1 (exitcode)
+UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, out/db_final.sql) curl failed: 07-quiet
+1 case and 1 run: 2 updated, in T
+exit 0
+$ urt snapshot -w runs/serves
+OK runs/serves.urt/snapshot/1
+OK runs/serves.urt/snapshot/1/request-response/talk curl failed: 07-quiet
+1 case and 1 run: 2 ok, in T
+exit 0
+$ cd runs/serves.urt/snapshot/1/request-response/talk && for f in interaction/*.response interaction/*.stdout interaction/*.stderr interaction/*.sql out/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done
+== interaction/01.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 63
+Connection: close
+
+1: GET / HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/02-fields.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 185
+Connection: close
+
+2: POST /add HTTP/1.1
+Accept: text/html
+Content-Length: 20
+Content-Type: application/x-www-form-urlencoded
+Cookie: visitor=somebody
+Host: localhost
+User-Agent: urt
+
+name=kettle&price=12
+== interaction/03-debug.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 68
+Connection: close
+
+3: GET /debug HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/04-err.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 66
+Connection: close
+
+4: GET /err HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/05-dml.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 66
+Connection: close
+
+5: GET /dml HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/06-a.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 64
+Connection: close
+
+6: GET /a HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/06.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 66
+Connection: close
+
+7: GET /a-b HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/07-quiet.response
+curl: (52) Empty reply from server
+
+== interaction/03-debug.stdout
+debug: a line from the handler
+
+== interaction/04-err.stderr
+Fatal error: the handler failed
+
+== interaction/05-dml.sql
+INSERT INTO t VALUES (1);
+
+== out/db_final.sql
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE t (id INTEGER);
+COMMIT;
+
+exit 0
+$ changes
+added (4531 bytes): ./runs/serves.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves.urt/snapshot/1/expected/exitcode
+added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response
+added (270 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/02-fields.response
+added (152 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/03-debug.response
+added (31 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/03-debug.stdout
+added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.response
+added (32 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.stderr
+added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.response
+added (26 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.sql
+added (148 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06-a.response
+added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06.response
+added (35 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/07-quiet.response
+added (81 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/out/db_final.sql

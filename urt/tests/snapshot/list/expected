@@ -36,6 +36,7 @@ broken/twins.urt/snapshot/two
 hello.urt/snapshot/1
 runs/builds.urt/snapshot/1
 runs/good.urt/snapshot/1
+runs/serves.urt/snapshot/1
 runs/stopped.urt/snapshot/1
 ERROR runs/stray.urt/snapshot/1/request-response/a/cookies.txt does not belong in a run
 a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout

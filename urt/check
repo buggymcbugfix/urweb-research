@@ -3,7 +3,8 @@
 # The checks of the toolbox, in groups:
 #
 #   snapshot     `urt snapshot` on a fixture tree with a stand-in compiler
-#   pty          the same on a pseudo-terminal (needs python3)
+#                and a stand-in server (needs python3)
+#   pty          the same on a pseudo-terminal
 #   fmt          `urt format` on the cases under tests/format
 #   fmt-demo     `urt format` on the programs under demo/, which are linked
 #                into tests/format/demo
@@ -24,7 +25,9 @@
 # The snapshot and pty cases: a tree is built afresh for every case by
 # tests/snapshot/tree.sh (projects, their snapshots, and one of every mistake
 # the runner notices); the compiler is tests/snapshot/urweb, which says what
-# it was asked and writes what it was asked for.  A case is a directory with
+# it was asked and writes what it was asked for, and for a project called
+# *serves* builds tests/snapshot/app, a server that answers every request
+# with the request (needs python3).  A case is a directory with
 #
 #   cmd         what to run, as shell lines, from the root of the tree;
 #               `urt` on them is the program under test
@@ -139,12 +142,16 @@ verdict() {
     fi
 }
 
-# normalise: the tree's path, and the times in summaries; in a boxed row
-# the time gives way to spaces, so that the box keeps its edge.
+# normalise: the tree's path, and the times in summaries and after a
+# verdict (a run that took more than a second); in a boxed row the time
+# gives way to spaces, so that the box keeps its edge.
 normalise() {
     sed -e "s|$tmp/tree|TREE|g" | awk '
         match($0, /, in [0-9]+\.[0-9]s$/) {
             $0 = substr($0, 1, RSTART - 1) ", in T"
+        }
+        /^(OK|UPDATED|FAIL) / && match($0, / [0-9]+\.[0-9]s$/) {
+            $0 = substr($0, 1, RSTART - 1)
         }
         match($0, /, in [0-9]+\.[0-9]s *\|$/) {
             $0 = substr($0, 1, RSTART - 1) ", in T" sprintf("%" (RLENGTH - 7) "s|", "")
@@ -168,10 +175,11 @@ transcript() {
 }
 
 group_snapshot() {
+    command -v python3 > /dev/null 2>&1 || { echo "$me: the snapshot cases need python3, for the stand-in server" >&2; exit 2; }
     for d in "$fixture"/*; do
         name=${d#"$here/tests/"}
         case ${d##*/} in
-            tree.sh | urweb) continue ;;
+            app | tree.sh | urweb) continue ;;
         esac
         if [ ! -d "$d" ]; then
             fail "$name" "not a case directory"
@@ -197,7 +205,7 @@ group_snapshot() {
 }
 
 group_pty() {
-    command -v python3 > /dev/null 2>&1 || { echo "$me: the pty cases need python3" >&2; exit 2; }
+    command -v python3 > /dev/null 2>&1 || { echo "$me: the pty cases need python3, for the terminal" >&2; exit 2; }
     for d in "$here"/tests/pty/*; do
         name=${d#"$here/tests/"}
         if [ ! -d "$d" ]; then

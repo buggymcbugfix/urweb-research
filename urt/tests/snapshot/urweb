@@ -8,6 +8,8 @@
 #   a project *builds*     when not stopped early, build PROJECT.exe, which
 #                          is no server and exits 3, and name it in the
 #                          settings dump, as the compiler does
+#   a project *serves*     the same, with PROJECT.exe a copy of the stand-in
+#                          server beside this script, app
 #
 # The settings dump names the files it was asked for, canonicalised as
 # the compiler's OS.Path.mkCanonical would (a doubled slash becomes one),
@@ -44,7 +46,7 @@ for f in $files; do
         -saveSettings)
             printf 'Project: %s\nDatabase: %s\n' "$project" "${dbms:-(none)}" > "$out"
             case $project in
-                *builds*) printf 'Exe: %s.exe\n' "$project" >> "$out" ;;
+                *builds* | *serves*) printf 'Exe: %s.exe\n' "$project" >> "$out" ;;
             esac
             for g in $files; do
                 printf '%s: %s\n' "${g%%=*}" "${g#*=}" | tr -s / >> "$out"
@@ -76,6 +78,9 @@ done
 case $stopped$project in
     *builds*)
         printf '#!/bin/sh\necho "not a server" >&2\nexit 3\n' > "$project.exe"
+        chmod +x "$project.exe" ;;
+    *serves*)
+        cp "$(dirname "$0")/app" "$project.exe"
         chmod +x "$project.exe" ;;
 esac
 exit 0
