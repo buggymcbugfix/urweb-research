@@ -1,0 +1,36 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Content-script-type: text/javascript
+Connection: close
+Content-length: 1879
+
+<!DOCTYPE html><html>
+<head><script type="text/javascript" src="/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js"></script>
+<script type="text/javascript" src="/app.D0C7F677E92D262DCF4577025620DA8842E6E76C.js"></script>
+</head><body onunload='unloading=true;;unload()'>
+
+<p>Server side test: test_db 1</p>
+<pre>True</pre>	<script type="text/javascript">active(execD({c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"c",v:"abc"}},x:{c:"c",v:"abc"}},x:{c:"c",v:3}},x:{c:"c",v:"test_db 1"}},x:{c:"c",v:null}}))</script>
+
+
+<p>Server side test: test_db 2</p>
+<pre>True</pre>	<script type="text/javascript">active(execD({c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"c",v:"çãó"}},x:{c:"c",v:"çãó"}},x:{c:"c",v:3}},x:{c:"c",v:"test_db 2"}},x:{c:"c",v:null}}))</script>
+
+
+<p>Server side test: test_db 3</p>
+<pre>True</pre>	<script type="text/javascript">active(execD({c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"c",v:"が"}},x:{c:"c",v:"が"}},x:{c:"c",v:1}},x:{c:"c",v:"test_db 3"}},x:{c:"c",v:null}}))</script>
+
+
+<p>Server side test: test_db 4</p>
+<pre>True</pre>	<script type="text/javascript">active(execD({c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"c",v:"漢"}},x:{c:"c",v:"漢"}},x:{c:"c",v:1}},x:{c:"c",v:"test_db 4"}},x:{c:"c",v:null}}))</script>
+
+
+<p>Server side test: test_db 5</p>
+<pre>True</pre>	<script type="text/javascript">active(execD({c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"c",v:"カ"}},x:{c:"c",v:"カ"}},x:{c:"c",v:1}},x:{c:"c",v:"test_db 5"}},x:{c:"c",v:null}}))</script>
+
+
+<p>Server side test: test_db 6</p>
+<pre>True</pre>	<script type="text/javascript">active(execD({c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"c",v:"وظيفية"}},x:{c:"c",v:"وظيفية"}},x:{c:"c",v:6}},x:{c:"c",v:"test_db 6"}},x:{c:"c",v:null}}))</script>
+
+</body>
+</html>
