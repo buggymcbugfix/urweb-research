@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 102
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: :0:0-0:0: No way, Jose!
+</body></html>

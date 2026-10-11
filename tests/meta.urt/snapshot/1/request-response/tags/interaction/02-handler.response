@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 171
+
+<!DOCTYPE html><html>
+<head>
+<meta content="width=device-width" name="viewport" />
+<title>Testing &lt;meta> tags</title>
+</head>
+<body>
+<p>Did it work?</p>
+</body>
+</html>

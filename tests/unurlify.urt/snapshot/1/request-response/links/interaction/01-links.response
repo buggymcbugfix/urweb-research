@@ -1,0 +1,11 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 282
+
+<!DOCTYPE html><html><head></head><body>
+<a href="/Unurlify/handler/Nil">!</a><br />
+<a href="/Unurlify/whandler/WNil">Nil</a><br />
+<a href="/Unurlify/whandler/Empty">Empty</a><br />
+<a href="/Unurlify/whandler/WCons/1/WCons/0/Empty">True :: False :: Empty</a><br />
+</body></html>

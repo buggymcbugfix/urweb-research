@@ -1,0 +1,33 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 860
+
+<!DOCTYPE html><html><head></head><body>
+<form method="post" action="/Subforms/sub">
+<input type="hidden" name=".s" value="Lines" />
+
+<input type="hidden" name=".i" value="1" />
+<input value="3" type="hidden" name="Num" />
+<p>3: <input type="text" name="Text" /></p>
+<input type="hidden" name=".e" value="1" />
+
+<input type="hidden" name=".i" value="1" />
+<input value="2" type="hidden" name="Num" />
+<p>2: <input type="text" name="Text" /></p>
+<input type="hidden" name=".e" value="1" />
+
+<input type="hidden" name=".i" value="1" />
+<input value="1" type="hidden" name="Num" />
+<p>1: <input type="text" name="Text" /></p>
+<input type="hidden" name=".e" value="1" />
+
+
+
+
+<input type="hidden" name=".e" value="1" />
+<input type="submit" />
+</form>
+<a href="/Subforms/form/4">One more blank</a><br />
+<a href="/Subforms/form/2">One fewer blank</a>
+</body></html>

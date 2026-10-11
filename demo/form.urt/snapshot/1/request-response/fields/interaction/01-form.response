@@ -1,0 +1,15 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 371
+
+<!DOCTYPE html><html><head></head><body>
+<form method="post" action="/Form/handler">
+<table>
+<tr> <th>A:</th> <td><input type="text" name="A" /></td> </tr>
+<tr> <th>B:</th> <td><input type="text" name="B" /></td> </tr>
+<tr> <th>C:</th> <td><input type="checkbox" name="C" /></td> </tr>
+<tr> <th></th> <td><input type="submit" /></td> </tr>
+</table>
+</form>
+</body></html>
