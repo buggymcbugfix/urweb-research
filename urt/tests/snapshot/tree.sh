@@ -165,6 +165,12 @@ cd "$root"
 proj runs serves-start
 snap runs/serves-start.urt/snapshot/1 exitcode
 arun runs/serves-start.urt/snapshot/1/request-response/start
+# A project whose server takes its time over the one request, for a
+# transcript to interrupt.
+proj runs serves-wait
+snap runs/serves-wait.urt/snapshot/1 exitcode
+arun runs/serves-wait.urt/snapshot/1/request-response/wait
+printf 'GET /wait\n' > runs/serves-wait.urt/snapshot/1/request-response/wait/interaction/01.request
 # A request file with CRLF line ends and a continued line.
 proj runs serves-cr
 snap runs/serves-cr.urt/snapshot/1 exitcode

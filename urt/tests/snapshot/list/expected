@@ -39,6 +39,7 @@ runs/good.urt/snapshot/1
 runs/serves-cr.urt/snapshot/1
 runs/serves-odd.urt/snapshot/1
 runs/serves-start.urt/snapshot/1
+runs/serves-wait.urt/snapshot/1
 runs/serves.urt/snapshot/1
 runs/stopped.urt/snapshot/1
 ERROR runs/stray.urt/snapshot/1/request-response/a/cookies.txt does not belong in a run

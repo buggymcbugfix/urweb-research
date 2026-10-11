@@ -1,0 +1,2 @@
+urt snapshot runs/serves-wait & p=$!; sleep 2; kill -HUP $p; wait $p 2>/dev/null; echo "urt: exit $?"
+[ ! -f "$TMPDIR/app.pid" ] || { echo "the server is still running"; kill "$(cat "$TMPDIR/app.pid")"; sleep 1; }
