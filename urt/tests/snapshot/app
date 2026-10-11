@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 #
 # A stand-in for an Ur/Web application with the built-in HTTP server, for
-# urt/check: the stand-in compiler beside this script copies it as
-# PROJECT.exe for a project called *serves*.  It takes the server's
+# urt/check: the stand-in compiler beside this script makes PROJECT.exe
+# run it, for a project called *serves*.  It takes the server's
 # options, says what the server says while it starts, writes the
 # handshake on descriptor 3 as -d3 asks, and answers every request with
 # the request itself -- its number, the request line, then the headers

@@ -8,8 +8,10 @@
 #   a project *builds*     when not stopped early, build PROJECT.exe, which
 #                          is no server and exits 3, and name it in the
 #                          settings dump, as the compiler does
-#   a project *serves*     the same, with PROJECT.exe a copy of the stand-in
-#                          server beside this script, app
+#   a project *serves*     the same, with PROJECT.exe running the stand-in
+#                          server beside this script, app, through the
+#                          python3 on the PATH (the nix sandbox has no
+#                          /usr/bin/env for app's own first line)
 #
 # The settings dump names the files it was asked for, canonicalised as
 # the compiler's OS.Path.mkCanonical would (a doubled slash becomes one),
@@ -81,7 +83,7 @@ if [ -z "$stopped" ]; then
             printf '#!/bin/sh\necho "not a server" >&2\nexit 3\n' > "$project.exe"
             chmod +x "$project.exe" ;;
         *serves*)
-            cp "$(dirname "$0")/app" "$project.exe"
+            printf '#!/bin/sh\nexec python3 '"'"'%s'"'"' "$@"\n' "$(dirname "$0")/app" > "$project.exe"
             chmod +x "$project.exe" ;;
     esac
 fi
