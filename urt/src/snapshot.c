@@ -1166,6 +1166,34 @@ static int send_request(const char *method, const char *url_path, const struct s
     return status;
 }
 
+/* Whether the word at *i of a server's args is, or holds, -t, read as
+ * the server's getopt reads it: the letters of a word after one - are
+ * options, and one that takes a value (the server's are p P a A u t T
+ * m) takes the rest of the word, or the next word if there is none
+ * left, and ends the word; -d takes the rest of the word if any, and
+ * never the next.  *i is moved past a value taken from the next word. */
+static int asks_for_threads(const struct strlist *words, int *i) {
+    const char *w = words->v[*i], *c;
+    if (w[0] != '-' || w[1] == '-' || !w[1]) {
+        return 0;
+    }
+    for (c = w + 1; *c; c++) {
+        if (*c == 't') {
+            return 1;
+        }
+        if (*c == 'd') {
+            return 0;
+        }
+        if (strchr("pPaAuTm", *c)) {
+            if (!c[1] && *i + 1 < words->n) {
+                (*i)++;
+            }
+            return 0;
+        }
+    }
+    return 0;
+}
+
 /* The requests under interaction/, by name (NAME of NAME.request), in
  * the order of their names: that of the bytes, as the help text says,
  * which is not quite the order of the file names, since - sorts before
@@ -1209,7 +1237,7 @@ static int run_ready(const char *run_dir) {
         struct strlist words = { 0, 0, 0 };
         split_words(args, &words);
         for (i = 0; i < words.n; i++) {
-            if (has_prefix(words.v[i], "-t")) {
+            if (asks_for_threads(&words, &i)) {
                 die_later(fmt("%s asks for threads, with %s", path(f), key(words.v[i])),
                           "a run's requests are sent one after the other, so one thread serves them all;",
                           "with more, which one answers is a matter of chance, and the server's output with it",

@@ -56,6 +56,10 @@ ERROR runs/unready.urt/snapshot/1/request-response/threads/args asks for threads
 a run's requests are sent one after the other, so one thread serves them all;
 with more, which one answers is a matter of chance, and the server's output with it
 take -t out
+ERROR runs/unready.urt/snapshot/1/request-response/threads-joined/args asks for threads, with -qt4
+a run's requests are sent one after the other, so one thread serves them all;
+with more, which one answers is a matter of chance, and the server's output with it
+take -t out
 ERROR runs/unready.urt/snapshot/1/request-response/threads-too/args asks for threads, with -t4
 a run's requests are sent one after the other, so one thread serves them all;
 with more, which one answers is a matter of chance, and the server's output with it
