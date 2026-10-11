@@ -1,0 +1,2 @@
+tests/rowdiff/emptyRight/emptyRight.ur:2:20: (to 2:22) syntax error: replacing  MINUSMINUS with  COMMA
+Parse failure
