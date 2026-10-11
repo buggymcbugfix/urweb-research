@@ -44,9 +44,11 @@ struct server { long pid; int port; };
  * args and then the flags that make it listen on a free port of the
  * loopback interface and go to the background once it does.  Its
  * environment is this process's.  stdout and stderr go to the files
- * named.  0 with the server filled in, or -1: the files say why. */
+ * named.  0 with the server filled in, or -1 with what happened in
+ * why: how it exited, what its handshake lacks, or that it said nothing
+ * within ten seconds. */
 int server_start(const char *exe, const struct strlist *args, const char *out_path, const char *err_path,
-                 struct server *s);
+                 struct server *s, char *why, size_t why_size);
 
 /* Stop it and wait until it is gone.  Safe to call twice. */
 void server_stop(struct server *s);
