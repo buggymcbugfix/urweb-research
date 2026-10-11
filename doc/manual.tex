@@ -433,7 +433,8 @@ Compiled applications consult a few environment variables to modify their behavi
   \item \cd{URWEB\_MIN\_HEAP}: the size, in bytes, that each thread's heap starts at, in place of the \texttt{minHeap} directive; a size above the \texttt{heap} limit is refused.  A request that fits in it is never run again for the heap to grow (see \texttt{minHeap})
   \item \cd{URWEB\_SIGFILE\_PATH}: overrides the compiled-in path of the signing key (the \texttt{sigfile} directive), or sets one for an application compiled without
   \item \cd{URWEB\_REPRODUCIBLE\_EPOCH}: for tests, pins the clock that \cd{now} and \cd{CURRENT\_TIMESTAMP} read to the given number of seconds since the epoch; the first request is served at that time and every further request one second later
-  \item \cd{URWEB\_REPRODUCIBLE\_PRNG\_SEED}: for tests, makes \cd{rand} and the passwords of clients pseudo-random numbers that depend on nothing but the given unsigned 64-bit integer, on how many requests arrived before the one that draws them. (NB: so never set this in production, since it makes those passwords predictable!)
+  \item \cd{URWEB\_REPRODUCIBLE\_PRNG\_SEED}: for tests, makes \cd{rand}, the passwords of clients and (on SQLite) \cd{RANDOM} pseudo-random numbers that depend on nothing but the given unsigned 64-bit integer, on how many requests arrived before the one that draws them, and on the number of draws so far in the request. (NB: so never set this in production, since it makes those passwords predictable!)
+  Both are meant for a server with one thread (\texttt{-t 1}): requests served at the same time are numbered, and so timed and given their numbers, in whatever order they happen to arrive, and SQLite's generator is one per process, reset for each request as it begins.
 \end{itemize}
 
 \subsection{A Word of Warning on Heuristic Compilation}
