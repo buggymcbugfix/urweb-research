@@ -287,6 +287,27 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
     return 0;
 }
 
+/* Whether the process is dead but not yet reaped: it is not ours to
+ * reap, and under a PID 1 that reaps no orphans (some containers') it
+ * stays so, answering kill(pid, 0) as if alive.  Linux says in /proc;
+ * elsewhere nothing does, and the wait below runs its course. */
+static int is_zombie(long pid) {
+    char path[64], buf[512], *paren;
+    FILE *f;
+    size_t n;
+
+    snprintf(path, sizeof path, "/proc/%ld/stat", pid);
+    f = fopen(path, "r");
+    if (!f) {
+        return 0;
+    }
+    n = fread(buf, 1, sizeof buf - 1, f);
+    fclose(f);
+    buf[n] = 0;
+    paren = strrchr(buf, ')');      /* the name before it may hold anything */
+    return paren && paren[1] == ' ' && paren[2] == 'Z';
+}
+
 void server_stop(struct server *s) {
     struct timespec nap = { 0, 10 * 1000 * 1000 };
     int i;
@@ -297,7 +318,7 @@ void server_stop(struct server *s) {
     /* Not our child -- it left its parent when it went to the background
      * -- so there is nothing to wait for but its disappearance. */
     kill((pid_t) s->pid, SIGTERM);
-    for (i = 0; i < 500 && kill((pid_t) s->pid, 0) == 0; i++) {
+    for (i = 0; i < 500 && kill((pid_t) s->pid, 0) == 0 && !is_zombie(s->pid); i++) {
         nanosleep(&nap, NULL);
     }
     if (i == 500) {
