@@ -1,13 +1,17 @@
 $ urt snapshot runs/serves
 UPDATED runs/serves.urt/snapshot/1 (exitcode)
+ERROR the application does not start for runs/serves.urt/snapshot/1/request-response/crlf-args
+Unknown command-line option
 UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, interaction/08-dotdot.response, out/db_final.sql) curl failed: 07-quiet
-1 case and 1 run: 2 updated, in T
-exit 0
+1 case and 2 runs: 2 updated, in T
+exit 1
 $ urt snapshot -w runs/serves
 OK runs/serves.urt/snapshot/1
+ERROR the application does not start for runs/serves.urt/snapshot/1/request-response/crlf-args
+Unknown command-line option
 OK runs/serves.urt/snapshot/1/request-response/talk curl failed: 07-quiet
-1 case and 1 run: 2 ok, in T
-exit 0
+1 case and 2 runs: 2 ok, in T
+exit 1
 $ cd runs/serves.urt/snapshot/1/request-response/talk && for f in interaction/*.response interaction/*.stdout interaction/*.stderr interaction/*.sql out/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done
 == interaction/01.response
 HTTP/1.1 200 OK
