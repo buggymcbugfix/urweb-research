@@ -1,0 +1,15 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 364
+
+<!DOCTYPE html><html>
+<head></head><body>
+<form method="post" action="/Endpoints/formbased_handler">
+<label>Your name: <input type="text" name="Nam" /></label>
+<label>Your message: <textarea name="Msg"></textarea></label>
+<label>Delivered on the same day <input type="checkbox" name="Sameday" /></label>
+<input type="submit" value="Send" />
+</form>
+</body>
+</html>

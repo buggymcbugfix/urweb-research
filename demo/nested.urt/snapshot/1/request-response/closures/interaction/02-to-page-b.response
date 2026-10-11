@@ -1,0 +1,18 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 240
+
+<!DOCTYPE html><html>
+<head>
+<title>B</title>
+</head>
+<body>
+<form method="post" action="/Nested/pageC'/Ada">
+Surname:
+<input type="text" name="Surname" />
+<input type="submit" />
+</form>
+<a href="/Nested/pageA">Previous</a>
+</body>
+</html>

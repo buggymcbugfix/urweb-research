@@ -1,0 +1,24 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 527
+
+<!DOCTYPE html><html>
+<head>
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Testing &lt;meta> tags</title>
+</head>
+<body>
+<p>Did it work?</p>
+<form method="post" action="/handler">
+Name: <input type="text" name="Nam" /><br />
+Content: <input type="text" name="Content" /><br />
+<input type="submit" />
+</form>
+<form method="post" action="/handler2">
+Name: <input type="text" name="Nam" /><br />
+Content: <input type="text" name="Content" /><br />
+<input type="submit" />
+</form>
+</body>
+</html>

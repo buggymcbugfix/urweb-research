@@ -1,0 +1,25 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 338
+
+<!DOCTYPE html><html>
+<head>
+<title>A</title>
+</head>
+<body>
+<form method="post" action="/Nested/fromA">
+<table>
+<tr>
+<td>Forename:</td>
+<td><input type="text" name="Forename" /></td>
+</tr>
+<tr>
+<td>Enter a Surname?</td>
+<td><input type="checkbox" name="EnterSurname" /></td>
+</tr>
+</table>
+<input type="submit" />
+</form>
+</body>
+</html>
