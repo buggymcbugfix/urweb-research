@@ -98,15 +98,16 @@ inventory() {
     (cd "$tmp/tree" && find . -type f -exec cksum {} + | LC_ALL=C sort -k3)
 }
 
-# What became of the tree between two inventories.
+# What became of the tree between two inventories.  An app.exe is a copy
+# of the stand-in server, whose size is its own business.
 changes() {
     echo '$ changes'
     awk 'NR == FNR { was[$3] = $1 " " $2; next }
-         { now[$3] = $1 " " $2; size[$3] = $2 }
+         { now[$3] = $1 " " $2; size[$3] = ($3 ~ /\/app\.exe$/) ? "" : " (" $2 " bytes)" }
          END {
              for (p in was) if (!(p in now)) print p "\tremoved"
-             for (p in now) if (!(p in was)) print p "\tadded (" size[p] " bytes)"
-                            else if (now[p] != was[p]) print p "\tchanged (" size[p] " bytes)"
+             for (p in now) if (!(p in was)) print p "\tadded" size[p]
+                            else if (now[p] != was[p]) print p "\tchanged" size[p]
          }' "$1" "$2" | LC_ALL=C sort | awk -F '\t' '{ print $2 ": " $1 }'
 }
 

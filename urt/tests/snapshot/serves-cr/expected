@@ -32,7 +32,7 @@ User-Agent: urt
 x=1&y=2
 exit 0
 $ changes
-added (4531 bytes): ./runs/serves-cr.urt/snapshot/1/app.exe
+added: ./runs/serves-cr.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-cr.urt/snapshot/1/expected/exitcode
 added (147 bytes): ./runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/01.response
 added (228 bytes): ./runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/02-continued.response

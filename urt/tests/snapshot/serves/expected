@@ -130,7 +130,7 @@ COMMIT;
 
 exit 0
 $ changes
-added (4531 bytes): ./runs/serves.urt/snapshot/1/app.exe
+added: ./runs/serves.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves.urt/snapshot/1/expected/exitcode
 added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/crlf-args/interaction/01.response
 added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response

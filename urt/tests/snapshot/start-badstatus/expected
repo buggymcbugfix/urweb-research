@@ -4,5 +4,5 @@ ERROR the application does not start for runs/serves-start.urt/snapshot/1/reques
 1 case and 1 run: 1 updated, in T
 exit 1
 $ changes
-added (4531 bytes): ./runs/serves-start.urt/snapshot/1/app.exe
+added: ./runs/serves-start.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-start.urt/snapshot/1/expected/exitcode
