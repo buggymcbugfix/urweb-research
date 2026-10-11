@@ -1562,10 +1562,6 @@ static void run_case(const char *case_dir, const char *project) {
         sl_free(&runs);
         return;
     }
-    if (runs.n && (!on_path("curl") || !on_path("sqlite3"))) {
-        die(fmt("%s has runs, and they need %s and %s on the PATH", test(case_dir), cmd("curl"), cmd("sqlite3")),
-            "the one to talk to the application, the other to load and dump its database", NULL);
-    }
     n_cases++;
     for (i = 0; i < extra.n; i++) {
         if (!strcmp(extra.v[i], "-stop") || !strcmp(extra.v[i], "-stopQuiet") || !strcmp(extra.v[i], "-tc")) {
@@ -1837,6 +1833,36 @@ static void need_tmp(void) {
     diff_labels = run(probe, "/dev/null", "/dev/null") == 0;
 }
 
+/* The first case among the snapshots that has runs, or NULL: the runs
+ * need curl and sqlite3, and are looked for before anything is done. */
+static const char *first_with_runs(const struct strlist *snaps) {
+    static char found[PATHLEN];
+    struct strlist cases = { 0, 0, 0 };
+    int i, j;
+    for (i = 0; i < snaps->n; i++) {
+        const char *snap = snaps->v[i];
+        if (!has_suffix(snap, ".urt/snapshot")) {
+            sl_push(&cases, snap);
+        } else {
+            struct strlist names = { 0, 0, 0 };
+            list_dir(snap, LS_DIRS, &names);
+            for (j = 0; j < names.n; j++) {
+                sl_push(&cases, fmt("%s/%s", snap, names.v[j]));
+            }
+            sl_free(&names);
+        }
+    }
+    for (i = 0; i < cases.n; i++) {
+        if (is_dir(fmt("%s/request-response", cases.v[i]))) {
+            snprintf(found, sizeof found, "%s", cases.v[i]);
+            sl_free(&cases);
+            return found;
+        }
+    }
+    sl_free(&cases);
+    return NULL;
+}
+
 /* A plain run, --whine or --list over the PATHs, or over "." with none:
  * what the main modes do, and what --create and --edit offer at the end.
  * Returns the exit status. */
@@ -1864,6 +1890,11 @@ static int run_all(int argc, char **argv) {
         return 0;
     }
     if (!opt_list) {
+        const char *with_runs = first_with_runs(&snaps);
+        if (with_runs && (!on_path("curl") || !on_path("sqlite3"))) {
+            die(fmt("%s has runs, and they need %s and %s on the PATH", test(with_runs), cmd("curl"), cmd("sqlite3")),
+                "the one to talk to the application, the other to load and dump its database", NULL);
+        }
         need_tmp();
     }
     started = tenths_now();
