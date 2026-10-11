@@ -453,6 +453,7 @@ void uw_reproducible_init(void);
 void uw_reproducible_request(void);
 void uw_reproducible_attempt(void);
 int uw_reproducible_epoch(int64_t *);
+int uw_reproducible_rand_pinned(void);
 int uw_reproducible_rand(uint64_t *);
 
 // The log of database changes that URWEB_DML_LOG asks for (dmllog.c).  A

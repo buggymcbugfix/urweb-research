@@ -94,6 +94,10 @@ int uw_reproducible_epoch(int64_t *out) {
   return 1;
 }
 
+int uw_reproducible_rand_pinned(void) {
+  return rand_pinned;
+}
+
 int uw_reproducible_rand(uint64_t *out) {
   if (!rand_pinned) { return 0; }
 
