@@ -1,0 +1,1 @@
+POST /Batch/del/1 -H 'Content-type: text/plain'
