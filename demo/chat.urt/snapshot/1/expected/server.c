@@ -569,7 +569,7 @@
   
   /* SQL sequence uw_Chat_Room_s */
    
-  /* SQL table uw_Chat_Room_t keys uw_Client, uw_Id constraints   */
+  /* SQL table uw_Chat_Room_t keys uw_Id, uw_Client constraints   */
    
   /* SQL sequence uw_Chat_s */
    

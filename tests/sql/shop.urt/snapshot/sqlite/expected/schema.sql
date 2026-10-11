@@ -14,7 +14,7 @@ CREATE TABLE uw_Shop_item (
 CREATE TABLE uw_Shop_tag (
     uw_Item integer NOT NULL,
     uw_Tag text NOT NULL,
-    CONSTRAINT uw_Shop_tag_pkey PRIMARY KEY (uw_Tag, uw_Item),
+    CONSTRAINT uw_Shop_tag_pkey PRIMARY KEY (uw_Item, uw_Tag),
     CONSTRAINT uw_Shop_tag_Item FOREIGN KEY (uw_Item) REFERENCES uw_Shop_item (uw_Id)
 );
 

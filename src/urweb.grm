@@ -843,7 +843,7 @@ tnames : tnameW                         (tnameW, [])
        | LPAREN tnames' RPAREN          (tnames')
 
 tnames': tnameW                         (tnameW, [])
-       | tnameW COMMA tnames'           (#1 tnames', tnameW :: #2 tnames')
+       | tnameW COMMA tnames'           (tnameW, #1 tnames' :: #2 tnames')
 
 pmode  : ON pkind prule                 (pkind, prule)
 
