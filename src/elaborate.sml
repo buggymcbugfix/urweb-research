@@ -534,6 +534,18 @@
              ((L'.CConcat (c1', c2'), loc), k,
               D.prove env denv (c1', c2', loc) @ gs1 @ gs2)
          end
+       | L.CDiff (c1, c2) =>
+         (* Only the names of c2 count, so its kind is its own, and no
+          * disjointness is needed. *)
+         let
+             val (c1', k1, gs1) = elabCon (env, denv) c1
+             val (c2', k2, gs2) = elabCon (env, denv) c2
+             val k = (L'.KRecord (kunif env loc), loc)
+         in
+             checkKind env c1' k1 k;
+             checkKind env c2' k2 (L'.KRecord (kunif env loc), loc);
+             ((L'.CDiff (c1', c2'), loc), k, gs1 @ gs2)
+         end
        | L.CMap =>
          let
              val dom = kunif env loc
@@ -679,6 +691,7 @@
 
        | L'.CRecord (k, _) => (L'.KRecord k, loc)
        | L'.CConcat (c, _) => kindof env c
+       | L'.CDiff (c, _) => kindof env c
        | L'.CMap (dom, ran) => mapKind (dom, ran, loc)
 
        | L'.CUnit => (L'.KUnit, loc)
@@ -754,6 +767,7 @@
 
        | L'.CRecord _ => false
        | L'.CConcat _ => false
+       | L'.CDiff _ => false
        | L'.CMap _ => false
 
        | L'.CUnit => true
@@ -1328,6 +1342,13 @@
                           err CScope
                   end
                   handle CantSquish => err (fn _ => TooDeep))
+
+           (* By parts, not as records: a difference that did not compute
+            * is an "other" in a record summary, and those are compared
+            * with consEq, which must not come back here as a record. *)
+           | (L'.CDiff (a1, b1), L'.CDiff (a2, b2)) =>
+             (unifyCons' env loc a1 a2;
+              unifyCons' env loc b1 b2)
 
            | (L'.CRecord _, _) => isRecord ()
            | (_, L'.CRecord _) => isRecord ()
@@ -2119,6 +2140,8 @@ val consEqSimple =
                     ListPair.all (fn ((x1, t1), (x2, t2)) =>
                                      ces env (x1, x2) andalso ces env (t2, t2)) (xts1, xts2)
                   | (L'.CConcat (x1, y1), L'.CConcat (x2, y2)) =>
+                    ces env (x1, x2) andalso ces env (y1, y2)
+                  | (L'.CDiff (x1, y1), L'.CDiff (x2, y2)) =>
                     ces env (x1, x2) andalso ces env (y1, y2)
                   | (L'.CMap _, L'.CMap _) => true
                   | (L'.CUnit, L'.CUnit) => true
@@ -3653,6 +3676,7 @@ and positive self =
 
               | CRecord xcs => List.all (fn (c1, c2) => none c1 andalso none c2) xcs
               | CConcat (c1, c2) => none c1 andalso none c2
+              | CDiff (c1, c2) => none c1 andalso none c2
               | CMap => true
 
               | CUnit => true
@@ -3682,6 +3706,7 @@ and positive self =
 
               | CRecord xcs => List.all (fn (c1, c2) => none c1 andalso pos c2) xcs
               | CConcat (c1, c2) => pos c1 andalso pos c2
+              | CDiff (c1, c2) => pos c1 andalso none c2
               | CMap => true
 
               | CUnit => true
@@ -3797,6 +3822,10 @@ and wildifyStr env (str, sgn) =
                          (case (decompileCon env c1, decompileCon env c2) of
                               (SOME c1, SOME c2) => SOME (L.CConcat (c1, c2), loc)
                             | _ => NONE)
+                       | L'.CDiff (c1, c2) =>
+                         (case (decompileCon env c1, decompileCon env c2) of
+                              (SOME c1, SOME c2) => SOME (L.CDiff (c1, c2), loc)
+                            | _ => NONE)
                        | L'.CUnit => SOME (L.CUnit, loc)
                        | L'.CUnif (nl, _, _, _, ref (L'.Known c)) => decompileCon env (E.mliftConInCon nl c)
 
@@ -3867,6 +3896,8 @@ and wildifyStr env (str, sgn) =
                                                                | _ => false)
                                                             | (L'.CConcat (c1, c2), _) =>
                                                               shouldR c1 orelse shouldR c2
+                                                            | (L'.CDiff (c1, _), _) =>
+                                                              shouldR c1
                                                             | c => false
                                                 in
                                                     case #1 t of

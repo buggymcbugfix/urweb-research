@@ -1,8 +1,42 @@
-tests/rowdiff/closed/closed.ur:3:32: (to 3:34) syntax error: replacing  MINUSMINUS with  COMMA
-tests/rowdiff/closed/closed.ur:4:32: (to 4:34) syntax error: replacing  MINUSMINUS with  COMMA
-tests/rowdiff/closed/closed.ur:5:39: (to 5:41) syntax error: replacing  MINUSMINUS with  COMMA
-tests/rowdiff/closed/closed.ur:6:13: (to 6:15) syntax error: replacing  MINUSMINUS with  COMMA
-tests/rowdiff/closed/closed.ur:7:35: (to 7:37) syntax error: replacing  MINUSMINUS with  COMMA
-tests/rowdiff/closed/closed.ur:8:30: (to 8:32) syntax error: replacing  MINUSMINUS with  LPAREN
-tests/rowdiff/closed/closed.ur:8:38: (to 8:40) syntax error: replacing  MINUSMINUS with  RPAREN
-Parse failure
+tests/rowdiff/closed/closed.ur:3:0: (to 3:49) Error in final record unification
+Can't unify record constructors
+Have:  [A = int]
+Need:  ([A = int, B = string]) -- [B = ()]
+tests/rowdiff/closed/closed.ur:3:0: (to 3:49) Stuck unifying these records after canceling matching pieces:
+Have:  [A = int]
+Need:  ([A = int, B = string]) -- [B = ()]
+tests/rowdiff/closed/closed.ur:4:0: (to 4:57) Error in final record unification
+Can't unify record constructors
+Have:  [A = int]
+Need:  ([A = int, B = string]) -- [B = float]
+tests/rowdiff/closed/closed.ur:4:0: (to 4:57) Stuck unifying these records after canceling matching pieces:
+Have:  [A = int]
+Need:  ([A = int, B = string]) -- [B = float]
+tests/rowdiff/closed/closed.ur:5:0: (to 5:67) Error in final record unification
+Can't unify record constructors
+Have:  ([A = (), B = (), C = ()]) -- [B = (), D = ()]
+Need:  [A = <UNIF:F::Unit>, C = <UNIF:G::Unit>]
+tests/rowdiff/closed/closed.ur:5:0: (to 5:67) Stuck unifying these records after canceling matching pieces:
+Have:  ([A = (), B = (), C = ()]) -- [B = (), D = ()]
+Need:  [A = <UNIF:F::Unit>, C = <UNIF:G::Unit>]
+tests/rowdiff/closed/closed.ur:6:0: (to 6:25) Error in final record unification
+Can't unify record constructors
+Have:  []
+Need:  ([]) -- [A = ()]
+tests/rowdiff/closed/closed.ur:6:0: (to 6:25) Stuck unifying these records after canceling matching pieces:
+Have:  []
+Need:  ([]) -- [A = ()]
+tests/rowdiff/closed/closed.ur:7:0: (to 7:61) Error in final record unification
+Can't unify record constructors
+Have:  [A = int]
+Need:  ([A = int, B = int]) -- [B = (), C = ()]
+tests/rowdiff/closed/closed.ur:7:0: (to 7:61) Stuck unifying these records after canceling matching pieces:
+Have:  [A = int]
+Need:  (([A = int]) ++ [B = int]) -- ([B = ()]) ++ [C = ()]
+tests/rowdiff/closed/closed.ur:8:0: (to 8:50) Error in final record unification
+Can't unify record constructors
+Have:  []
+Need:  (([A = int, B = int]) -- [A = ()]) -- [B = ()]
+tests/rowdiff/closed/closed.ur:8:0: (to 8:50) Stuck unifying these records after canceling matching pieces:
+Have:  []
+Need:  (([A = int, B = int]) -- [A = ()]) -- [B = ()]

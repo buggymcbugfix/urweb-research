@@ -1,5 +1,14 @@
-tests/rowdiff/commute/commute.ur:4:19: (to 4:21) syntax error: replacing  MINUSMINUS with  LPAREN
-tests/rowdiff/commute/commute.ur:4:29: (to 4:31) syntax error: replacing  MINUSMINUS with  RPAREN
-tests/rowdiff/commute/commute.ur:4:47: (to 4:49) syntax error: replacing  MINUSMINUS with  LPAREN
-tests/rowdiff/commute/commute.ur:4:57: (to 4:59) syntax error: replacing  MINUSMINUS with  RPAREN
-Parse failure
+tests/rowdiff/commute/commute.ur:3:9: (to 3:22) Error in final record unification
+Can't unify record constructors
+Have:  [nm1 = ()]
+Need:  [nm2 = ()]
+tests/rowdiff/commute/commute.ur:3:9: (to 3:22) Stuck unifying these records after canceling matching pieces:
+Have:  [nm1 = ()]
+Need:  [nm2 = ()]
+tests/rowdiff/commute/commute.ur:3:9: (to 3:22) Error in final record unification
+Can't unify record constructors
+Have:  [nm2 = ()]
+Need:  [nm1 = ()]
+tests/rowdiff/commute/commute.ur:3:9: (to 3:22) Stuck unifying these records after canceling matching pieces:
+Have:  [nm2 = ()]
+Need:  [nm1 = ()]

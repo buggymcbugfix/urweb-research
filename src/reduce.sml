@@ -378,6 +378,7 @@ fun kindConAndExp (namedC, namedE) =
                       | (_, CRecord (_, [])) => c1
                       | _ => (CConcat (c1, c2), loc)
                 end
+              | CDiff (c1, c2) => (CDiff (con env c1, con env c2), loc)
               | CMap (dom, ran) => (CMap (kind env dom, kind env ran), loc)
 
               | CUnit => all

@@ -395,6 +395,7 @@ fun monoType env =
 
                   | L.CRecord _ => poly ()
                   | L.CConcat _ => poly ()
+                  | L.CDiff _ => poly ()
                   | L.CMap _ => poly ()
                   | L.CUnit => poly ()
 

@@ -162,6 +162,12 @@ fun mapfoldB {kind = fk, con = fc, bind} =
                          S.map2 (mfc ctx c2,
                               fn c2' =>
                                  (CConcat (c1', c2'), loc)))
+              | CDiff (c1, c2) =>
+                S.bind2 (mfc ctx c1,
+                      fn c1' =>
+                         S.map2 (mfc ctx c2,
+                              fn c2' =>
+                                 (CDiff (c1', c2'), loc)))
               | CMap (k1, k2) =>
                 S.bind2 (mfk ctx k1,
                          fn k1' =>

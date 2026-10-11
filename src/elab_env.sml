@@ -564,6 +564,7 @@ fun eqCons (c1, c2) =
                           else
                               raise Unify) xcs1)
       | (CConcat (f1, x1), CConcat (f2, x2)) => (eqCons (f1, f2); eqCons (x1, x2))
+      | (CDiff (f1, x1), CDiff (f2, x2)) => (eqCons (f1, f2); eqCons (x1, x2))
       | (CMap (d1, r1), CMap (d2, r2)) => (unifyKinds (d1, d2); unifyKinds (r1, r2))
 
       | (CUnit, CUnit) => ()
@@ -631,6 +632,7 @@ fun unifyCons (hnorm : con -> con) rs =
                              else
                                  raise Unify) xcs1)
               | (CConcat (f1, x1), CConcat (f2, x2)) => (unify d (f1, f2); unify d (x1, x2))
+              | (CDiff (f1, x1), CDiff (f2, x2)) => (unify d (f1, f2); unify d (x1, x2))
               | (CMap (d1, r1), CMap (d2, r2)) => (unifyKinds (d1, d2); unifyKinds (r1, r2))
 
               | (CUnit, CUnit) => ()
