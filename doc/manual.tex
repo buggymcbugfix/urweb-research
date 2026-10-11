@@ -830,7 +830,7 @@ $$\infer{\Gamma \vdash c_1 \sim c_2}{
   & \forall c'_1 \in C_1, c'_2 \in C_2: \Gamma \vdash c'_1 \sim c'_2
 }
 \quad \infer{\Gamma \vdash X \sim X'}{
-  X \neq X'
+  \textrm{$X$ and $X'$ differ other than in case}
 }$$
 
 $$\infer{\Gamma \vdash c_1 \sim c_2}{
@@ -854,6 +854,8 @@ $$\infer{\Gamma \vdash c \hookrightarrow \{c\}}{}
 \quad \infer{\Gamma \vdash \mt{map} \; f \; c \hookrightarrow C}{
   \Gamma \vdash c \hookrightarrow C
 }$$
+
+Literal field names are compared without regard to case when proving disjointness.  The names $\mt{AB}$ and $\mt{Ab}$ are different, but neither $[\mt{AB}] \sim [\mt{Ab}]$ nor any constraint that decomposes into it can be proved.  A record literal, a concatenation of rows and an instantiation of a disjointness constraint all need such proofs, so no record has two fields whose names differ only in case: $\{\mt{AB} = 1, \mt{Ab} = 2\}$, the type \mbox{$\$([\mt{AB} = \mt{int}] \rc [\mt{Ab} = \mt{int}])$} and the instantiation of a guard $[[nm_1] \sim [nm_2]]$ at $\mt{AB}$ and $\mt{Ab}$ are all rejected.  Field names also become identifiers in generated code, among them SQL column names, which some database systems do not distinguish by case.
 
 \subsection{\label{definitional}Definitional Equality}
 
