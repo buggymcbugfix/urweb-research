@@ -1,0 +1,1 @@
+POST /Batch/allRows -H 'Content-type: text/plain'

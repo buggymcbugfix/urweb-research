@@ -1,0 +1,1 @@
+Fatal error: demo/batch.ur:15:8-16:19: DML step failed: INSERT INTO uw_Batch_t (uw_A, uw_Id) VALUES (?, ?)<br />UNIQUE constraint failed: uw_Batch_t.uw_Id
