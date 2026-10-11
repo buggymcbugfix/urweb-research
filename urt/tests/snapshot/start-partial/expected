@@ -1,7 +1,6 @@
 $ urt snapshot runs/serves-start
 UPDATED runs/serves-start.urt/snapshot/1 (exitcode)
-ERROR the application does not start for runs/serves-start.urt/snapshot/1/request-response/start
-(it said nothing)
+ERROR the application does not start for runs/serves-start.urt/snapshot/1/request-response/start: it exited as if listening, but its handshake names no port
 1 case and 1 run: 1 updated, in T
 exit 1
 $ changes

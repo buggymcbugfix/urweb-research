@@ -82,7 +82,7 @@ FAIL runs/good.urt/snapshot/1 (no application for its 1 run)
 exit 1
 $ urt snapshot runs/builds
 UPDATED runs/builds.urt/snapshot/1 (exitcode)
-ERROR the application does not start for runs/builds.urt/snapshot/1/request-response/1
+ERROR the application does not start for runs/builds.urt/snapshot/1/request-response/1: it exited with status 3 before it was listening
 not a server
 1 case and 1 run: 1 updated, in T
 exit 1

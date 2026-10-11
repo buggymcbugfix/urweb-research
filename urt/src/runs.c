@@ -4,6 +4,7 @@
 
 #define _XOPEN_SOURCE 700
 #define _DARWIN_C_SOURCE
+#include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,17 +221,18 @@ static const char *handshake_value(const char *text, const char *name) {
 }
 
 int server_start(const char *exe, const struct strlist *args, const char *out_path, const char *err_path,
-                 struct server *s) {
+                 struct server *s, char *why, size_t why_size) {
     /* -P: the first free port from -p on, so that runs never collide;
      * -d3: go to the background once listening, and say so on fd 3. */
     static const char *const ours[] = { "-a", "127.0.0.1", "-p", "8000", "-P", "9999", "-d3" };
     struct strlist argv = { 0, 0, 0 };
     char **command, *said;
     const char *v;
-    int i, status, ok;
+    int i, status;
 
     s->pid = 0;
     s->port = 0;
+    *why = 0;
     sl_push(&argv, exe);
     for (i = 0; i < args->n; i++) {
         sl_push(&argv, args->v[i]);
@@ -243,6 +245,7 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
     free(command);
     sl_free(&argv);
     if (!said) {
+        snprintf(why, why_size, "it could not be started: %s", strerror(errno));
         return -1;
     }
     if ((v = handshake_value(said, "pid"))) {
@@ -252,9 +255,25 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
         s->port = atoi(v);
     }
     v = handshake_value(said, "status");
-    ok = status == 0 && v && !strcmp(v, "'OK'") && s->pid > 0 && s->port > 0;
+    /* The one that stays in the foreground exits 0 once the other is
+     * listening, after saying which process and port that is. */
+    if (status >= 128) {
+        snprintf(why, why_size, "it was killed by signal %d before it was listening", status - 128);
+    } else if (status != 0) {
+        snprintf(why, why_size, "it exited with status %d before it was listening", status);
+    } else if (!*said) {
+        snprintf(why, why_size, "it exited as if listening, but said nothing on descriptor 3");
+    } else if (s->pid <= 0) {
+        snprintf(why, why_size, "it exited as if listening, but its handshake names no pid");
+    } else if (s->port <= 0) {
+        snprintf(why, why_size, "it exited as if listening, but its handshake names no port");
+    } else if (!v) {
+        snprintf(why, why_size, "it exited as if listening, but its handshake has no status line");
+    } else if (strcmp(v, "'OK'")) {
+        snprintf(why, why_size, "it exited as if listening, but its handshake says status=%s, not 'OK'", v);
+    }
     free(said);
-    if (!ok) {
+    if (*why) {
         server_stop(s);
         return -1;
     }

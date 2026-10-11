@@ -1076,19 +1076,20 @@ static void settle(const char *run_dir, const char *rel, const char *now, char *
     }
 }
 
-/* The first lines of a file, for an error message. */
-static const char *head_of(const char *file) {
+/* The first lines of a file, for an error message; or nothing if there
+ * is nothing in it, as the message's explanation lines end there. */
+static const char *head_of(const char *file, const char *if_nothing) {
     char *text = is_file(file) ? read_text(file) : NULL;
     const char *r;
     size_t n;
     if (!text) {
-        return "(it said nothing)";
+        return if_nothing;
     }
     n = strlen(text);
     while (n && text[n - 1] == '\n') {
         text[--n] = 0;
     }
-    r = fmt("%.600s", *text ? text : "(it said nothing)");
+    r = *text ? fmt("%.600s", text) : if_nothing;
     free(text);
     return r;
 }
@@ -1279,7 +1280,7 @@ static int run_ready(const char *run_dir) {
  * and compare or record what came of it. */
 static void run_run(const char *run_dir, const char *exe) {
     char rw[PATHLEN], f[PATHLEN], g[PATHLEN], db[PATHLEN], dml[PATHLEN], interaction[PATHLEN];
-    char server_out[PATHLEN], server_err[PATHLEN];
+    char server_out[PATHLEN], server_err[PATHLEN], why[256];
     long out_at = 0, err_at = 0;
     char bad[PATHLEN] = "", changed[PATHLEN] = "", failed[PATHLEN] = "", note[512] = "";
     struct strlist args = { 0, 0, 0 }, files = { 0, 0, 0 }, outputs = { 0, 0, 0 }, diffs = { 0, 0, 0 };
@@ -1314,7 +1315,7 @@ static void run_run(const char *run_dir, const char *exe) {
         load[4] = db;
         if (run_in(load, f, "/dev/null", fmt("%s/sqlite.err", rw)) != 0) {
             bail_if_interrupted();
-            die_later(fmt("%s does not load", path(f)), head_of(fmt("%s/sqlite.err", rw)), NULL);
+            die_later(fmt("%s does not load", path(f)), head_of(fmt("%s/sqlite.err", rw), "(sqlite3 said nothing)"), NULL);
             return;
         }
     }
@@ -1342,9 +1343,9 @@ static void run_run(const char *run_dir, const char *exe) {
 
     join(server_out, rw, "server.stdout");
     join(server_err, rw, "server.stderr");
-    if (server_start(exe, &args, server_out, server_err, &serving) < 0) {
+    if (server_start(exe, &args, server_out, server_err, &serving, why, sizeof why) < 0) {
         bail_if_interrupted();
-        die_later(fmt("the application does not start for %s", test(run_dir)), head_of(server_err), NULL);
+        die_later(fmt("the application does not start for %s: %s", test(run_dir), why), head_of(server_err, NULL), NULL);
         sl_free(&args);
         return;
     }
@@ -1414,7 +1415,7 @@ static void run_run(const char *run_dir, const char *exe) {
         static char *dump[] = { "sqlite3", "-safe", "-batch", NULL, ".dump", NULL };
         dump[3] = db;
         if (run(dump, fmt("%s/out/db_final.sql", rw), fmt("%s/sqlite.err", rw)) != 0) {
-            die_later(fmt("cannot dump the database of %s", test(run_dir)), head_of(fmt("%s/sqlite.err", rw)), NULL);
+            die_later(fmt("cannot dump the database of %s", test(run_dir)), head_of(fmt("%s/sqlite.err", rw), "(sqlite3 said nothing)"), NULL);
         }
     }
     sl_push(&outputs, "out/db_final.sql");
@@ -1657,7 +1658,7 @@ static void run_case(const char *case_dir, const char *project) {
         }
         if (no_exe) {
             join(f, work, "stderr.txt");
-            printf("    %s\n", info(head_of(f)));
+            printf("    %s\n", info(head_of(f, "(it said nothing)")));
         }
         putchar('\n');
         at_blank = 1;
