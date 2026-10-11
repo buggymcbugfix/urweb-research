@@ -129,6 +129,68 @@ mkdir -p runs/stray.urt/snapshot/1/request-response/a/out/more
 : > runs/stray.urt/snapshot/1/request-response/a/out/startup.stdout
 : > runs/stray.urt/snapshot/1/request-response/a/out/shutdown.stderr
 mkdir -p runs/stray.urt/snapshot/1/request-response/b.c/interaction
+# A project the stand-in compiler builds the stand-in server for: its run
+# gets as far as answers, and the answers show what was sent.
+proj runs serves
+snap runs/serves.urt/snapshot/1 exitcode
+arun runs/serves.urt/snapshot/1/request-response/talk
+cd runs/serves.urt/snapshot/1/request-response/talk
+printf 'CREATE TABLE t (id INTEGER);\n' > db.sql
+cd interaction
+printf "POST /add -d 'name=kettle' -d 'price=12' -b 'visitor=somebody' -H 'Accept: text/html'\n" > 02-fields.request
+printf "GET /debug\n" > 03-debug.request
+printf "GET /err\n" > 04-err.request
+printf "GET /dml\n" > 05-dml.request
+printf 'GET /a-b\n' > 06.request
+printf 'GET /a\n' > 06-a.request
+printf 'GET /quiet\n' > 07-quiet.request
+printf 'GET /a/../b\n' > 08-dotdot.request
+printf 'POST /backslash -d x\\' > 09-backslash.request
+cd "$root"
+arun runs/serves.urt/snapshot/1/request-response/crlf-args
+printf -- '-q\r\n' > runs/serves.urt/snapshot/1/request-response/crlf-args/args
+# A second run, to show that runs share nothing: its server counts from one.
+arun runs/serves.urt/snapshot/1/request-response/second
+# Requests the parser should not let through, each sent as it stands.
+proj runs serves-odd
+snap runs/serves-odd.urt/snapshot/1 exitcode
+arun runs/serves-odd.urt/snapshot/1/request-response/odd
+cd runs/serves-odd.urt/snapshot/1/request-response/odd/interaction
+printf '"" /empty-method\n' > 02-no-method.request
+printf 'GET /nul\0 -d x=1\n' > 03-nul.request
+printf "GET /host -H 'Host : elsewhere'\n" > 04-host-blank.request
+printf "GET /host -H ' Host: elsewhere'\n" > 05-host-indented.request
+printf "GET /host -H 'X-A: 1\nHost: elsewhere'\n" > 06-host-injected.request
+printf 'GET /fragment#part\n' > 07-fragment.request
+printf 'GET /nameless\n' > .request
+cd "$root"
+# A project whose server is made to fail at the start, by APP_MODE.
+proj runs serves-start
+snap runs/serves-start.urt/snapshot/1 exitcode
+arun runs/serves-start.urt/snapshot/1/request-response/start
+# A project whose server takes its time over the one request, for a
+# transcript to interrupt.
+proj runs serves-wait
+snap runs/serves-wait.urt/snapshot/1 exitcode
+arun runs/serves-wait.urt/snapshot/1/request-response/wait
+printf 'GET /wait\n' > runs/serves-wait.urt/snapshot/1/request-response/wait/interaction/01.request
+# A project whose server exits after the second request, and one whose
+# server overwrites its database.
+proj runs serves-dies
+snap runs/serves-dies.urt/snapshot/1 exitcode
+arun runs/serves-dies.urt/snapshot/1/request-response/dies
+printf 'GET /die\n' > runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.request
+printf 'GET /after\n' > runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.request
+proj runs serves-corrupts
+snap runs/serves-corrupts.urt/snapshot/1 exitcode
+arun runs/serves-corrupts.urt/snapshot/1/request-response/corrupts
+printf 'CREATE TABLE t (id INTEGER);\nINSERT INTO t VALUES (1);\n' > runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/db.sql
+printf 'GET /corrupt\n' > runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/interaction/02-corrupt.request
+# A request file with CRLF line ends and a continued line.
+proj runs serves-cr
+snap runs/serves-cr.urt/snapshot/1 exitcode
+arun runs/serves-cr.urt/snapshot/1/request-response/continued
+printf 'POST /fields -d "x=1" \\\r\n  -d "y=2"\r\n' > runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/02-continued.request
 proj runs unready
 snap runs/unready.urt/snapshot/1 exitcode
 arun runs/unready.urt/snapshot/1/request-response/a

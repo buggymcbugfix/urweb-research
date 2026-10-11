@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+#
+# A stand-in for an Ur/Web application with the built-in HTTP server, for
+# urt/check: the stand-in compiler beside this script makes PROJECT.exe
+# run it, for a project called *serves*.  It takes the server's
+# options, says what the server says while it starts, writes the
+# handshake on descriptor 3 as -d3 asks, and answers every request with
+# the request itself -- its number, the request line, then the headers
+# sorted, then the body -- so that a transcript shows what urt sent, and
+# in what order.  Some paths make it do what an application might:
+#
+#   /debug     a line on stdout, as `debug` prints
+#   /err       a line on stderr, as a fatal error is reported
+#   /dml       a statement appended to $URWEB_DML_LOG, as a DML would be
+#   /wait      an answer after 4 seconds, long enough to be interrupted
+#   /slow      an answer after 40 seconds, longer than curl waits
+#   /quiet     no answer at all: the connection is closed
+#   /die       an answer, and then the server exits
+#   /corrupt   an answer, after the database ($URWEB_SQLITE_DB_PATH) has
+#              been overwritten with garbage
+#
+# APP_PIDFILE names a file that the process that serves writes its pid
+# to, and removes when it is stopped, for a transcript to see whether it
+# was; and APP_MODE makes it misbehave at the start:
+#
+#   exit1      exit 1 before anything, with a line on stderr
+#   badstatus  a handshake with status='FAIL'
+#   partial    a handshake cut off after "port="
+#   hang       no handshake, ever, and no exit; SIGTERM is ignored
+#
+# Modelled on the fake server of the review of this feature (session
+# 01CM2Am54aGdbWc48fTDkDUR).
+
+import getopt
+import os
+import signal
+import socket
+import sys
+import time
+
+mode = os.environ.get("APP_MODE", "")
+if mode == "exit1":
+    sys.stderr.write("app: refusing to start\n")
+    sys.exit(1)
+if mode == "hang":
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    while True:
+        signal.pause()
+
+# The real server's options; a wrong one is refused as it refuses it.
+try:
+    opts, rest = getopt.gnu_getopt(sys.argv[1:], "hp:P:a:A:u:t:kqT:m:d:")
+except getopt.GetoptError:
+    sys.stderr.write("Unknown command-line option\n")
+    sys.exit(1)
+port, upper, addr, fd = 8080, 0, "0.0.0.0", -1
+for o, v in opts:
+    if o == "-p":
+        port = int(v)
+    elif o == "-P":
+        upper = int(v)
+    elif o == "-a":
+        addr = v
+    elif o == "-d":
+        fd = int(v)
+
+s = socket.socket()
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+p = port
+while True:
+    try:
+        s.bind((addr, p))
+        break
+    except OSError:
+        p += 1
+        if not upper or p > upper:
+            sys.stderr.write("No free port found\n")
+            sys.exit(1)
+s.listen(5)
+sys.stdout.write("Starting the Ur/Web native HTTP server, which is intended for use\n"
+                 "ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,\n"
+                 "behind a production-quality HTTP server, for a real deployment.\n\n")
+sys.stdout.flush()
+
+# The pid file is written by the process that serves, and removed by it
+# when it is stopped; the handler is set before the fork, so that no
+# SIGTERM arrives between the writing and the setting.
+pidfile = os.environ.get("APP_PIDFILE")
+if pidfile:
+    def stopped(*args):
+        try:
+            os.unlink(pidfile)
+        except OSError:
+            pass
+        os._exit(0)
+    signal.signal(signal.SIGTERM, stopped)
+
+if fd >= 0:
+    child = os.fork()
+    if child > 0:
+        if mode == "partial":
+            os.write(fd, ("pid=%d\nport=" % child).encode())
+        elif mode == "badstatus":
+            os.write(fd, ("pid=%d\nport=%d\nstatus='FAIL'\n" % (child, p)).encode())
+        else:
+            os.write(fd, ("pid=%d\nport=%d\nstatus='OK'\n" % (child, p)).encode())
+        os.close(fd)
+        os._exit(0)
+    os.close(fd)
+if pidfile:
+    with open(pidfile, "w") as f:
+        f.write("%d\n" % os.getpid())
+sys.stdout.write("Listening on port %d....\n" % p)
+sys.stdout.flush()
+
+served = 0
+while True:
+    c, _ = s.accept()
+    served += 1
+    data = b""
+    while b"\r\n\r\n" not in data:
+        d = c.recv(65536)
+        if not d:
+            break
+        data += d
+    head, _, body = data.partition(b"\r\n\r\n")
+    lines = head.split(b"\r\n")
+    length = 0
+    for line in lines[1:]:
+        if line.lower().startswith(b"content-length:"):
+            length = int(line.split(b":", 1)[1])
+    while len(body) < length:
+        d = c.recv(65536)
+        if not d:
+            break
+        body += d
+    request = lines[0].decode("latin-1")
+    sys.stdout.write("Accepted connection.\nServing URI %s\n" % request)
+    sys.stdout.flush()
+    path = request.split(" ")[1] if " " in request else ""
+    if path == "/debug":
+        sys.stdout.write("debug: a line from the handler\n")
+        sys.stdout.flush()
+    if path == "/err":
+        sys.stderr.write("Fatal error: the handler failed\n")
+        sys.stderr.flush()
+    if path == "/dml" and os.environ.get("URWEB_DML_LOG"):
+        with open(os.environ["URWEB_DML_LOG"], "a") as log:
+            log.write("INSERT INTO t VALUES (1);\n")
+    if path == "/wait":
+        time.sleep(4)
+    if path == "/slow":
+        time.sleep(40)
+    if path == "/quiet":
+        c.close()
+        continue
+    if path == "/corrupt" and os.environ.get("URWEB_SQLITE_DB_PATH"):
+        with open(os.environ["URWEB_SQLITE_DB_PATH"], "wb") as db:
+            db.write(b"not a database " * 64)
+    echo = b"%d: " % served + lines[0] + b"\n" + b"\n".join(sorted(lines[1:])) + b"\n\n" + body
+    c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+              % len(echo) + echo)
+    c.close()
+    if path == "/die":
+        os._exit(0)

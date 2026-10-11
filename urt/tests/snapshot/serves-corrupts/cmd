@@ -1,0 +1,4 @@
+urt snapshot runs/serves-corrupts
+cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql
+urt snapshot runs/serves-corrupts
+cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql

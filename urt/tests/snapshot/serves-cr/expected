@@ -1,0 +1,38 @@
+$ urt snapshot runs/serves-cr
+UPDATED runs/serves-cr.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-cr.urt/snapshot/1/request-response/continued (interaction/01.response, interaction/02-continued.response)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ cd runs/serves-cr.urt/snapshot/1/request-response/continued && for f in interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
+== interaction/01.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 63
+Connection: close
+
+1: GET / HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/02-continued.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 143
+Connection: close
+
+2: POST /fields HTTP/1.1
+Accept: */*
+Content-Length: 7
+Content-Type: application/x-www-form-urlencoded
+Host: localhost
+User-Agent: urt
+
+x=1&y=2
+exit 0
+$ changes
+added: ./runs/serves-cr.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-cr.urt/snapshot/1/expected/exitcode
+added (147 bytes): ./runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/01.response
+added (228 bytes): ./runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/02-continued.response

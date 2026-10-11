@@ -106,10 +106,10 @@ incomplete case is a failure, a group without what it needs (python3,
 the formatter, the compiler) an error.
 
     snapshot   `urt snapshot` held to the transcripts under tests/snapshot,
-               on a fixture tree with a stand-in compiler; of the runs of
-               an application, that covers what is noticed before there
-               has to be one (the layout, the requests, --create-run)
-    pty        the same on a pseudo-terminal (tests/pty; needs python3)
+               on a fixture tree with a stand-in compiler and, for the
+               runs, a stand-in server (tests/snapshot/app, python3) that
+               answers every request with the request it got
+    pty        the same on a pseudo-terminal (tests/pty; python3 too)
     fmt        `urt format`: tests/format/NAME.in.ur must format to
                NAME.out.ur, and that to itself
     fmt-demo   the same for every program under demo/, linked into
