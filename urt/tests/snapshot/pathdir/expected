@@ -1,0 +1,11 @@
+$ mkdir -p pathdir/curl
+exit 0
+$ PATH="$PWD/pathdir:$(dirname "$(command -v urt)"):$(dirname "$(command -v sqlite3)"):$(dirname "$(command -v python3)"):$(dirname "$(command -v cp)")" urt snapshot runs/serves-wait
+UPDATED runs/serves-wait.urt/snapshot/1 (exitcode)
+ERROR runs/serves-wait.urt/snapshot/1/request-response/wait/interaction/01.request could not be sent: curl could not be run (exit 127)
+the server may have died, or be hung
+1 case and 1 run: 1 updated, in T
+exit 1
+$ changes
+added: ./runs/serves-wait.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-wait.urt/snapshot/1/expected/exitcode

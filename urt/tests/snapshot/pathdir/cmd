@@ -1,0 +1,2 @@
+mkdir -p pathdir/curl
+PATH="$PWD/pathdir:$(dirname "$(command -v urt)"):$(dirname "$(command -v sqlite3)"):$(dirname "$(command -v python3)"):$(dirname "$(command -v cp)")" urt snapshot runs/serves-wait
