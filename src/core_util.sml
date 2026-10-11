@@ -239,6 +239,51 @@ fun compare ((c1, _), (c2, _)) =
 
       | (TKFun (_, c1), TKFun (_, c2)) => compare (c1, c2)
 
+fun diff norm (c1 : con, c2 : con, loc) =
+    let
+        fun sameName (x, y) =
+            case (#1 x, #1 y) of
+                (CName s1, CName s2) => SOME (s1 = s2)
+              | (CRel n1, CRel n2) => if n1 = n2 then SOME true else NONE
+              | (CNamed n1, CNamed n2) => if n1 = n2 then SOME true else NONE
+              | (CFfi p1, CFfi p2) => if p1 = p2 then SOME true else NONE
+              | _ => NONE
+    in
+        case (#1 c1, #1 c2) of
+            (CRecord (_, []), _) => c1
+          | (_, CRecord (_, [])) => c1
+          | (_, CConcat (b1, b2)) => norm (CDiff ((CDiff (c1, b1), loc), b2), loc)
+          | (CConcat (a1, a2), _) => norm (CConcat ((CDiff (a1, c2), loc), (CDiff (a2, c2), loc)), loc)
+          | (CRecord (k, xcs), CRecord (_, ycs)) =>
+            let
+                fun fate (x, _) =
+                    let
+                        val ds = map (fn (y, _) => sameName (x, y)) ycs
+                    in
+                        if List.exists (fn d => d = SOME true) ds then
+                            SOME false
+                        else if List.all (fn d => d = SOME false) ds then
+                            SOME true
+                        else
+                            NONE
+                    end
+
+                val fates = map (fn xc => (xc, fate xc)) xcs
+                val kept = List.mapPartial (fn (xc, SOME true) => SOME xc | _ => NONE) fates
+                val unknown = List.mapPartial (fn (xc, NONE) => SOME xc | _ => NONE) fates
+            in
+                if List.null unknown then
+                    (CRecord (k, kept), loc)
+                else if length unknown = length xcs then
+                    (CDiff (c1, c2), loc)
+                else
+                    norm (CConcat ((CRecord (k, kept), loc),
+                                   (CDiff ((CRecord (k, unknown), loc), c2), loc)), loc)
+            end
+          | (_, CApp ((CApp ((CMap _, _), _), _), b)) => norm (CDiff (c1, b), loc)
+          | _ => (CDiff (c1, c2), loc)
+    end
+
 datatype binder =
          RelK of string
        | RelC of string * kind
