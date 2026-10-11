@@ -1,0 +1,2 @@
+tests/rowdiff/cutField/cutField.ur:2:32: (to 2:34) syntax error: replacing  MINUSMINUS with  COMMA
+Parse failure

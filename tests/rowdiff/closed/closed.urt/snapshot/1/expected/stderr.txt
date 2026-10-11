@@ -1,0 +1,8 @@
+tests/rowdiff/closed/closed.ur:3:32: (to 3:34) syntax error: replacing  MINUSMINUS with  COMMA
+tests/rowdiff/closed/closed.ur:4:32: (to 4:34) syntax error: replacing  MINUSMINUS with  COMMA
+tests/rowdiff/closed/closed.ur:5:39: (to 5:41) syntax error: replacing  MINUSMINUS with  COMMA
+tests/rowdiff/closed/closed.ur:6:13: (to 6:15) syntax error: replacing  MINUSMINUS with  COMMA
+tests/rowdiff/closed/closed.ur:7:35: (to 7:37) syntax error: replacing  MINUSMINUS with  COMMA
+tests/rowdiff/closed/closed.ur:8:30: (to 8:32) syntax error: replacing  MINUSMINUS with  LPAREN
+tests/rowdiff/closed/closed.ur:8:38: (to 8:40) syntax error: replacing  MINUSMINUS with  RPAREN
+Parse failure
