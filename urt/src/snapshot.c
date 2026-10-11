@@ -1105,6 +1105,7 @@ static int send_request(const char *method, const char *url_path, const struct s
     sl_push(&argv, "-sS");
     sl_push(&argv, "-i");
     sl_push(&argv, "-g");               /* [] and {} in a path are just that */
+    sl_push(&argv, "--path-as-is");     /* and so are . and .. */
     sl_push(&argv, "--noproxy");
     sl_push(&argv, "*");
     sl_push(&argv, "--max-time");

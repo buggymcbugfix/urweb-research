@@ -102,10 +102,10 @@ curl: (52) Empty reply from server
 == interaction/08-dotdot.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 64
+Content-Length: 69
 Connection: close
 
-9: GET /b HTTP/1.1
+9: GET /a/../b HTTP/1.1
 Accept: */*
 Host: localhost
 User-Agent: urt
@@ -141,5 +141,5 @@ added (26 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction
 added (148 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06-a.response
 added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06.response
 added (35 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/07-quiet.response
-added (148 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/08-dotdot.response
+added (153 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/08-dotdot.response
 added (81 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/out/db_final.sql
