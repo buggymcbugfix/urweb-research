@@ -1,0 +1,39 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 1216
+
+<!DOCTYPE html><html>
+<head></head><body>
+<a href="/Utf8/substrings">substrings</a>
+<a href="/Utf8/strlens">strlens</a>
+<a href="/Utf8/strlenGens">strlenGens</a>
+<a href="/Utf8/strcats">strcats</a>
+<a href="/Utf8/strsubs">strsubs</a>
+<a href="/Utf8/strsuffixs">strsuffixs</a>
+<a href="/Utf8/strchrs">strchrs</a>
+<a href="/Utf8/strindexs">strindexs</a>
+<a href="/Utf8/strsindexs">strsindexs</a>
+<a href="/Utf8/strcspns">strcspns</a>
+<a href="/Utf8/str1s">str1s</a>
+<a href="/Utf8/isalnums">isalnums</a>
+<a href="/Utf8/isalphas">isalphas</a>
+<a href="/Utf8/isblanks">isblanks</a>
+<a href="/Utf8/iscntrls">iscntrls</a>
+<a href="/Utf8/isdigits">isdigits</a>
+<a href="/Utf8/isgraphs">isgraphs</a>
+<a href="/Utf8/islowers">islowers</a>
+<a href="/Utf8/isprints">isprints</a>
+<a href="/Utf8/ispuncts">ispuncts</a>
+<a href="/Utf8/isspaces">isspaces</a>
+<a href="/Utf8/isuppers">isuppers</a>
+<a href="/Utf8/isxdigits">isxdigits</a>
+<a href="/Utf8/tolowers">tolowers</a>
+<a href="/Utf8/touppers">touppers</a>
+<a href="/Utf8/ord_and_chrs">ord_and_chrs</a>
+<a href="/Utf8/test_ords">test ord</a>
+<a href="/Utf8/highencode">highencode</a>
+<a href="/Utf8/test_db">test_db</a>
+<a href="/Utf8/test_post">test_post</a>
+</body>
+</html>
