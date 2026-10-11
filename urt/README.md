@@ -54,8 +54,9 @@ Not there yet:
   cannot hold `-t` for the same reason: it buys nothing here, and with
   more threads than one the server's output says which of them answered,
   which is a matter of chance.
-- A request is a method, a path, fields (`-d`) and cookies (`-b`).  No
-  other headers, and no uploads: curl draws a multipart boundary at
+- A request is a method, a path, fields (`-d`), cookies (`-b`) and
+  headers (`-H`, but not `Host` or `User-Agent`, which every request
+  gets from urt).  No uploads: curl draws a multipart boundary at
   random.
 - Only SQLite: the other databases neither start from a file nor follow
   the pinned clock, and `URWEB_DML_LOG` is not implemented for them.
