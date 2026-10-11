@@ -1,40 +1,11 @@
 $ urt snapshot runs/serves-dies
 UPDATED runs/serves-dies.urt/snapshot/1 (exitcode)
-UPDATED runs/serves-dies.urt/snapshot/1/request-response/dies (interaction/01.response, interaction/02-die.response, interaction/03-after.response) curl failed: 03-after
-1 case and 1 run: 2 updated, in T
-exit 0
+ERROR runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.request could not be sent: curl could not connect (exit 7)
+the server may have died, or be hung
+1 case and 1 run: 1 updated, in T
+exit 1
 $ cd runs/serves-dies.urt/snapshot/1/request-response/dies && for f in interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
-== interaction/01.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 63
-Connection: close
-
-1: GET / HTTP/1.1
-Accept: */*
-Host: localhost
-User-Agent: urt
-
-
-== interaction/02-die.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 66
-Connection: close
-
-2: GET /die HTTP/1.1
-Accept: */*
-Host: localhost
-User-Agent: urt
-
-
-== interaction/03-after.response
-curl: (7) Failed to connect to 127.0.0.1:#### after 0 ms: Could not connect to server
-
 exit 0
 $ changes
 added: ./runs/serves-dies.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-dies.urt/snapshot/1/expected/exitcode
-added (147 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/01.response
-added (150 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.response
-added (86 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.response

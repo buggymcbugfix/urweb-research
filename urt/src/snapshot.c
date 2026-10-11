@@ -1094,6 +1094,20 @@ static const char *head_of(const char *file, const char *if_nothing) {
     return r;
 }
 
+/* What a status of curl's means when it is one that says the request
+ * never reached a server, and so is nothing to record; NULL for the
+ * others, where what curl said is the record of what the server did. */
+static const char *never_sent(int status) {
+    switch (status) {
+    case 2: return "curl refused its command line";
+    case 6: return "curl could not resolve the host";
+    case 7: return "curl could not connect";
+    case 28: return "curl waited 30 seconds for the whole answer and gave up";
+    case 127: return "curl could not be run";
+    default: return NULL;
+    }
+}
+
 /* Send one request, the response into a file.  Returns curl's status. */
 static int send_request(const char *method, const char *url_path, const struct strlist *options, int port,
                         const char *response) {
@@ -1375,7 +1389,13 @@ static void run_run(const char *run_dir, const char *exe) {
         if (!text || parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
             die_later(fmt("%s: %s", path(f), text ? err : strerror(errno)), NULL);
         } else {
-            if (send_request(method, url_path, &options, serving.port, fmt("%s/interaction/%s.response", rw, name)) != 0) {
+            int status = send_request(method, url_path, &options, serving.port, fmt("%s/interaction/%s.response", rw, name));
+            if (never_sent(status)) {
+                /* The run ends here, and nothing of it is recorded: the
+                 * requests after this one count on it. */
+                die_later(fmt("%s could not be sent: %s (exit %d)", path(f), never_sent(status), status),
+                          "the server may have died, or be hung", head_of(server_err, NULL), NULL);
+            } else if (status != 0) {
                 list_add(failed, sizeof failed, name);
             }
             sl_push(&outputs, fmt("interaction/%s.response", name));
@@ -1415,7 +1435,11 @@ static void run_run(const char *run_dir, const char *exe) {
         static char *dump[] = { "sqlite3", "-safe", "-batch", NULL, ".dump", NULL };
         dump[3] = db;
         if (run(dump, fmt("%s/out/db_final.sql", rw), fmt("%s/sqlite.err", rw)) != 0) {
+            /* The run failed, then, and nothing of it is recorded. */
             die_later(fmt("cannot dump the database of %s", test(run_dir)), head_of(fmt("%s/sqlite.err", rw), "(sqlite3 said nothing)"), NULL);
+            sl_free(&files);
+            sl_free(&outputs);
+            return;
         }
     }
     sl_push(&outputs, "out/db_final.sql");
