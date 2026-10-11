@@ -142,7 +142,8 @@ static const char usage_text[] =
     "into the case as app.exe, where it stays, to be started by hand if need be.\n"
     "A run's args cannot hold -t: its requests are sent one after the other, and\n"
     "with more threads than one it is a matter of chance which of them answers.\n"
-    "Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
+    "Nor --, after which the server would ignore the flags urt adds (the address,\n"
+    "the port range, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
     "\n"
     "Nothing else may be under snapshot/, bar a README.md beside the cases or in\n"
     "one, or beside the runs or in one: a file this program would not read is\n"
@@ -1252,7 +1253,13 @@ static int run_ready(const char *run_dir) {
         struct strlist words = { 0, 0, 0 };
         split_words(args, &words);
         for (i = 0; i < words.n; i++) {
-            if (asks_for_threads(&words, &i)) {
+            if (!strcmp(words.v[i], "--")) {
+                /* After it the server takes no options, ours included. */
+                die_later(fmt("%s ends the options with %s", path(f), key("--")),
+                          "the flags urt adds after a run's args -- the address, the port range and -d3, for the",
+                          "handshake -- would be ignored, and the server would listen where it likes and never say so",
+                          fmt("take %s out", key("--")), NULL);
+            } else if (asks_for_threads(&words, &i)) {
                 die_later(fmt("%s asks for threads, with %s", path(f), key(words.v[i])),
                           "a run's requests are sent one after the other, so one thread serves them all;",
                           "with more, which one answers is a matter of chance, and the server's output with it",
