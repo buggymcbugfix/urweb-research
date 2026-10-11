@@ -1394,7 +1394,8 @@ static void run_run(const char *run_dir, const char *exe) {
                 /* The run ends here, and nothing of it is recorded: the
                  * requests after this one count on it. */
                 die_later(fmt("%s could not be sent: %s (exit %d)", path(f), never_sent(status), status),
-                          "the server may have died, or be hung", head_of(server_err, NULL), NULL);
+                          status == 7 || status == 28 ? "the server may have died, or be hung" : NULL,
+                          head_of(server_err, NULL), NULL);
             } else if (status != 0) {
                 list_add(failed, sizeof failed, name);
             }

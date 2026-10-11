@@ -529,7 +529,9 @@ static const char *argv0 = "";
 
 void fs_set_argv0(const char *a) { argv0 = a; }
 
-/* The first executable called name on the PATH, into dst; 0 if none. */
+/* The first program called name on the PATH, into dst; 0 if none.  A
+ * program: a regular file that may be executed, since access(X_OK) is
+ * as true of a directory that may be searched. */
 static int find_on_path(const char *name, char *dst) {
     const char *p = getenv("PATH"), *colon;
     if (!p) {
@@ -540,7 +542,8 @@ static int find_on_path(const char *name, char *dst) {
         if (!colon) {
             colon = p + strlen(p);
         }
-        if (colon > p && snprintf(dst, PATHLEN, "%.*s/%s", (int) (colon - p), p, name) < PATHLEN && can_exec(dst)) {
+        if (colon > p && snprintf(dst, PATHLEN, "%.*s/%s", (int) (colon - p), p, name) < PATHLEN
+            && is_file(dst) && can_exec(dst)) {
             return 1;
         }
         if (!*colon) {
