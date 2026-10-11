@@ -1,0 +1,1 @@
+Fatal error: tests/tryDml.ur:5:4-13:2: DML step failed: INSERT INTO uw_TryDml_t (uw_Id) VALUES (0)<br />UNIQUE constraint failed: uw_TryDml_t.uw_Id

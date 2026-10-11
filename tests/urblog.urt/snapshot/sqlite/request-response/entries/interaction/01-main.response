@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 97
+
+<!DOCTYPE html><html>
+<head>
+<title>UrBlog</title>
+</head>
+<body>
+<h1>UrBlog</h1>
+</body>
+</html>
