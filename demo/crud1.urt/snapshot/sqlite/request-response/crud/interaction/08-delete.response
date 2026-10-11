@@ -1,0 +1,40 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 612
+
+<!DOCTYPE html><html><head></head><body>
+<p>The deed is done.</p>
+
+<table border="1">
+<tr>
+<th>ID</th>
+<th>A</th>
+<th>B</th>
+<th>C</th>
+<th>D</th>
+</tr>
+
+<tr>
+<td>1</td>
+<td>11</td>
+<td>eleven</td>
+<td>11.5</td>
+<td>False</td>
+<td>
+<a href="/Crud1/upd/1">[Update]</a>
+<a href="/Crud1/confirm/1">[Delete]</a>
+</td>
+</tr>
+
+</table>
+<br /><hr /><br />
+<form method="post" action="/Crud1/create">
+<p> A: <input type="text" name="A" /></p>
+<p> B: <input type="text" name="B" /></p>
+<p> C: <input type="text" name="C" /></p>
+<p> D: <input type="checkbox" name="D" /></p>
+<input type="submit" />
+</form>
+
+</body></html>

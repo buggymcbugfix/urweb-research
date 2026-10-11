@@ -1,0 +1,23 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 507
+
+<!DOCTYPE html><html><head></head><body>
+<table>
+<tr> <th>Id</th> <th>Name</th> <th>Parent</th> </tr>
+<tr>
+<td>1</td>
+<td>root</td>
+<td>NULL</td>
+</tr>
+</table>
+<form method="post" action="/Constraints/add">
+<table>
+<tr> <th>Id:</th> <td><input type="text" name="Id" /></td> </tr>
+<tr> <th>Name:</th> <td><input type="text" name="Nam" /></td> </tr>
+<tr> <th>Parent:</th> <td><input type="text" name="Parent" /></td> </tr>
+<tr> <th></th> <td><input type="submit" /></td> </tr>
+</table>
+</form>
+</body></html>

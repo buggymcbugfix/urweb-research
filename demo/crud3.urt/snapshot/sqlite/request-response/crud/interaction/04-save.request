@@ -1,0 +1,1 @@
+POST /Crud3/save/1 -d .b=Text -d A=good -d B=bye -d .e=1

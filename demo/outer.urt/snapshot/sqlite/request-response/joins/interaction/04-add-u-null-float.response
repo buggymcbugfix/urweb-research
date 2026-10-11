@@ -1,0 +1,32 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 701
+
+<!DOCTYPE html><html><head></head><body>
+<table><tr>
+<td>1</td>
+<td>one</td>
+<td>11</td>
+<td>eleven</td>
+<td></td>
+</tr><tr>
+<td>1</td>
+<td>one</td>
+<td>10</td>
+<td>ten</td>
+<td>1.25</td>
+</tr><tr>
+<td>2</td>
+<td>two</td>
+<td></td>
+<td></td>
+<td></td>
+</tr></table>
+<form method="post" action="/Outer/addT">Insert into t: <input size="5" type="text" name="Id" /> <input size="5" type="text" name="B" />
+<input type="submit" /></form>
+<form method="post" action="/Outer/addU">
+Insert into u: <input size="5" type="text" name="Id" /> <input size="5" type="text" name="Link" /> <input size="5" type="text" name="C" />
+<input size="5" type="text" name="D" /> <input type="submit" />
+</form>
+</body></html>

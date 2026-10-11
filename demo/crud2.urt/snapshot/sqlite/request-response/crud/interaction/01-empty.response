@@ -1,0 +1,30 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 434
+
+<!DOCTYPE html><html><head>
+<title>Are you ready?</title>
+</head><body>
+<h1>Are you ready?</h1>
+
+<table border="1">
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Ready</th>
+</tr>
+
+</table>
+<br /><hr /><br />
+<form method="post" action="/Crud2/create">
+<p> Name: <input type="text" name="Name" /></p>
+<p> Ready: <select name="Ready">
+<option>Ready</option>
+<option>Not ready</option>
+</select>
+</p>
+<input type="submit" />
+</form>
+
+</body></html>

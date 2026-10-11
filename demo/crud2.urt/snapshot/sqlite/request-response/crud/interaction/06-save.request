@@ -1,0 +1,1 @@
+POST /Crud2/save/2 -d Name=Bob -d Ready=Ready

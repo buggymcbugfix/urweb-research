@@ -1,0 +1,1 @@
+POST /Crud1/create -d A=x -d B=bad -d C=1
