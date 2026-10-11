@@ -222,6 +222,8 @@ arun runs/unready.urt/snapshot/1/request-response/threads-too
 printf -- '-q -t4\n' > runs/unready.urt/snapshot/1/request-response/threads-too/args
 arun runs/unready.urt/snapshot/1/request-response/threads-joined
 printf -- '-qt4\n' > runs/unready.urt/snapshot/1/request-response/threads-joined/args
+arun runs/unready.urt/snapshot/1/request-response/dashes
+printf -- '-q --\n' > runs/unready.urt/snapshot/1/request-response/dashes/args
 # A case that cannot be named stops the run, so it comes last of all.
 proj zz badname
 snap zz/badname.urt/snapshot/c.d exitcode
