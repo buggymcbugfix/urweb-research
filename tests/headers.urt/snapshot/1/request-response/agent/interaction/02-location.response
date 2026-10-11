@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Location: http://www.google.com/
+Connection: close
+Content-length: 41
+
+<!DOCTYPE html><html><head></head></html>

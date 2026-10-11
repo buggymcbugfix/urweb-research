@@ -1,0 +1,1 @@
+POST /Cookie/delete -b 'Cookie/c=hello+world/1.5/42' -d ''

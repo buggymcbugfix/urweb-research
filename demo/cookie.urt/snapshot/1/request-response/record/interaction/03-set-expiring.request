@@ -1,0 +1,1 @@
+POST /Cookie/setExp -d 'A=later' -d B=2.25 -d C=7

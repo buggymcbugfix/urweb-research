@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 239
+
+<!DOCTYPE html><html><head></head><body>
+<a href="http://en.wikipedia.org/wiki/Wikipedia:About">Learn</a>
+<br />
+<form method="post" action="/Url/readersChoice"><input type="text" name="Url" /> <input type="submit" /></form>
+</body></html>

@@ -1,0 +1,1 @@
+POST /Cookie/set -d 'A=hello world' -d B=1.5 -d C=42

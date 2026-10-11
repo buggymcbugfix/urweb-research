@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 195
+
+<!DOCTYPE html><html><head></head><body>
+<a href="/Redirect/other">Go there</a><br />
+<a href="/Redirect/further">Go also there</a><br />
+<a href="/Redirect/failing">Fail there</a>
+</body></html>
