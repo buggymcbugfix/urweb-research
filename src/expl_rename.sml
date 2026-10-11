@@ -81,6 +81,7 @@ fun renameCon st (all as (c, loc)) =
       | CName _ => all
       | CRecord (k, xcs) => (CRecord (k, map (fn (x, c) => (renameCon st x, renameCon st c)) xcs), loc)
       | CConcat (c1, c2) => (CConcat (renameCon st c1, renameCon st c2), loc)
+      | CDiff (c1, c2) => (CDiff (renameCon st c1, renameCon st c2), loc)
       | CMap _ => all
       | CUnit => all
       | CTuple cs => (CTuple (map (renameCon st) cs), loc)

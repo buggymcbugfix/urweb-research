@@ -1,2 +1,14 @@
-tests/rowdiff/cutField/cutField.ur:2:32: (to 2:34) syntax error: replacing  MINUSMINUS with  COMMA
-Parse failure
+tests/rowdiff/cutField/cutField.ur:2:0: (to 2:49) Error in final record unification
+Can't unify record constructors
+Have:  [A = int]
+Need:  ([A = int, B = string]) -- [B = ()]
+tests/rowdiff/cutField/cutField.ur:2:0: (to 2:49) Stuck unifying these records after canceling matching pieces:
+Have:  [A = int]
+Need:  ([A = int, B = string]) -- [B = ()]
+tests/rowdiff/cutField/cutField.ur:3:8: (to 3:9) Error in final record unification
+Can't unify record constructors
+Have:  [A = int]
+Need:  <UNIF:D::{Type}> ++ [B = <UNIF:B::Type>]
+tests/rowdiff/cutField/cutField.ur:3:8: (to 3:9) Stuck unifying these records after canceling matching pieces:
+Have:  [A = int]
+Need:  ([B = <UNIF:B::Type>]) ++ <UNIF:D::{Type}>

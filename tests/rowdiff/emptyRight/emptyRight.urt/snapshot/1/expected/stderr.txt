@@ -1,2 +1,7 @@
-tests/rowdiff/emptyRight/emptyRight.ur:2:20: (to 2:22) syntax error: replacing  MINUSMINUS with  COMMA
-Parse failure
+tests/rowdiff/emptyRight/emptyRight.ur:2:0: (to 2:36) Error in final record unification
+Can't unify record constructors
+Have:  [A = int]
+Need:  ([A = int]) -- []
+tests/rowdiff/emptyRight/emptyRight.ur:2:0: (to 2:36) Stuck unifying these records after canceling matching pieces:
+Have:  [A = int]
+Need:  ([A = int]) -- []

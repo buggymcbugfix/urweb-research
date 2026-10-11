@@ -73,6 +73,7 @@ fun con ((c1, loc), (c2, _)) =
           | (CName x, CName y) => str "CName" loc (x, y)
           | (CRecord xs, CRecord ys) => list "CRecord" loc (fn ((a, b), (c, d)) => (con (a, c); con (b, d))) (xs, ys)
           | (CConcat (a, b), CConcat (c, d)) => (con (a, c); con (b, d))
+          | (CDiff (a, b), CDiff (c, d)) => (con (a, c); con (b, d))
           | (CMap, CMap) => ()
           | (CUnit, CUnit) => ()
           | (CTuple xs, CTuple ys) => list "CTuple" loc con (xs, ys)

@@ -149,6 +149,11 @@ fun p_con' par (c, _) =
                                               string "++",
                                               space,
                                               p_con c2])
+      | CDiff (c1, c2) => parenIf par (box [p_con' true c1,
+                                            space,
+                                            string "--",
+                                            space,
+                                            p_con c2])
       | CMap => string "map"
 
       | CUnit => string "()"
