@@ -145,6 +145,24 @@ printf 'GET /a-b\n' > 06.request
 printf 'GET /a\n' > 06-a.request
 printf 'GET /quiet\n' > 07-quiet.request
 cd "$root"
+# Requests the parser should not let through, each sent as it stands.
+proj runs serves-odd
+snap runs/serves-odd.urt/snapshot/1 exitcode
+arun runs/serves-odd.urt/snapshot/1/request-response/odd
+cd runs/serves-odd.urt/snapshot/1/request-response/odd/interaction
+printf '"" /empty-method\n' > 02-no-method.request
+printf 'GET /nul\0 -d x=1\n' > 03-nul.request
+printf "GET /host -H 'Host : elsewhere'\n" > 04-host-blank.request
+printf "GET /host -H ' Host: elsewhere'\n" > 05-host-indented.request
+printf "GET /host -H 'X-A: 1\nHost: elsewhere'\n" > 06-host-injected.request
+printf 'GET /fragment#part\n' > 07-fragment.request
+printf 'GET /nameless\n' > .request
+cd "$root"
+# A request file with CRLF line ends and a continued line.
+proj runs serves-cr
+snap runs/serves-cr.urt/snapshot/1 exitcode
+arun runs/serves-cr.urt/snapshot/1/request-response/continued
+printf 'POST /fields -d "x=1" \\\r\n  -d "y=2"\r\n' > runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/02-continued.request
 proj runs unready
 snap runs/unready.urt/snapshot/1 exitcode
 arun runs/unready.urt/snapshot/1/request-response/a

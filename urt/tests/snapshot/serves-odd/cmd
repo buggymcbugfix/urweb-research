@@ -1,0 +1,2 @@
+urt snapshot runs/serves-odd
+cd runs/serves-odd.urt/snapshot/1/request-response/odd && for f in interaction/*.response interaction/.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done

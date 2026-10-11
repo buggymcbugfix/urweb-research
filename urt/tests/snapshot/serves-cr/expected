@@ -1,0 +1,7 @@
+$ urt snapshot runs/serves-cr
+ERROR runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/02-continued.request: '' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)
+0 cases, in T
+exit 1
+$ cd runs/serves-cr.urt/snapshot/1/request-response/continued && for f in interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
+exit 0
+$ changes
