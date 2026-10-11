@@ -10,8 +10,8 @@ CREATE TABLE uw_shop_item (
 
 CREATE TABLE uw_shop_tag (
     uw_item bigint NOT NULL,
-    uw_tag varchar(255) NOT NULL,
-    CONSTRAINT uw_shop_tag_pkey PRIMARY KEY (uw_tag(255), uw_item(255)),
+    uw_tag longtext NOT NULL,
+    CONSTRAINT uw_shop_tag_pkey PRIMARY KEY (uw_item, uw_tag),
     CONSTRAINT uw_shop_tag_Item FOREIGN KEY (uw_item) REFERENCES uw_shop_item (uw_id)
 );
 

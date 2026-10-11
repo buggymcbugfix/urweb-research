@@ -24,8 +24,8 @@ database dbname=test
       sequence s
        
        table t : [#Id = int, #Client = client, #Channel = channel M.t] keys
-        Basis.primary_key [#Client] [[#Id = (_ :: Type)]] ! !
-         {Client = _, Id = _} constraints Basis.no_constraint
+        Basis.primary_key [#Id] [[#Client = (_ :: Type)]] ! !
+         {Id = _, Client = _} constraints Basis.no_constraint
        con topic :: _ = int
        val inj : sql_injectable topic = _
        val create = nextval s
