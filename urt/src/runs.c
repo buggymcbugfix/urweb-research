@@ -40,7 +40,10 @@ static int shell_words(const char *s, struct strlist *out, char *err, size_t err
             quote = *s;
             in_word = 1;
         } else if (*s == '\\' && s[1]) {
-            if (*++s != '\n') {         /* a continued line is just a blank */
+            /* A continued line is just a blank, with CRLF line ends too. */
+            if (s[1] == '\r' && s[2] == '\n') {
+                s += 2;
+            } else if (*++s != '\n') {
                 *w++ = *s;
                 in_word = 1;
             }
