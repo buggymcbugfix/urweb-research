@@ -4,4 +4,12 @@ $ PATH="$PWD/pathdir:$(dirname "$(command -v urt)"):$(dirname "$(command -v sqli
 ERROR runs/serves-wait.urt/snapshot/1 has runs, and they need curl and sqlite3 on the PATH
 the one to talk to the application, the other to load and dump its database
 exit 2
+$ PATH="$PWD/pathdir:$(dirname "$(command -v urt)"):$(dirname "$(command -v sqlite3)"):$(dirname "$(command -v python3)"):$(dirname "$(command -v cp)")" urt snapshot hello runs/serves-wait
+UPDATED hello.urt/snapshot/1 (exitcode, settings.txt, stdout.txt)
+ERROR runs/serves-wait.urt/snapshot/1 has runs, and they need curl and sqlite3 on the PATH
+the one to talk to the application, the other to load and dump its database
+exit 2
 $ changes
+changed (2 bytes): ./hello.urt/snapshot/1/expected/exitcode
+changed (60 bytes): ./hello.urt/snapshot/1/expected/settings.txt
+changed (67 bytes): ./hello.urt/snapshot/1/expected/stdout.txt
