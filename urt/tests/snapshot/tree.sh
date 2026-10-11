@@ -144,6 +144,7 @@ printf "GET /dml\n" > 05-dml.request
 printf 'GET /a-b\n' > 06.request
 printf 'GET /a\n' > 06-a.request
 printf 'GET /quiet\n' > 07-quiet.request
+printf 'GET /a/../b\n' > 08-dotdot.request
 cd "$root"
 # Requests the parser should not let through, each sent as it stands.
 proj runs serves-odd

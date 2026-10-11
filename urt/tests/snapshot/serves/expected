@@ -1,6 +1,6 @@
 $ urt snapshot runs/serves
 UPDATED runs/serves.urt/snapshot/1 (exitcode)
-UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, out/db_final.sql) curl failed: 07-quiet
+UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, interaction/08-dotdot.response, out/db_final.sql) curl failed: 07-quiet
 1 case and 1 run: 2 updated, in T
 exit 0
 $ urt snapshot -w runs/serves
@@ -99,6 +99,18 @@ User-Agent: urt
 == interaction/07-quiet.response
 curl: (52) Empty reply from server
 
+== interaction/08-dotdot.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 64
+Connection: close
+
+9: GET /b HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
 == interaction/03-debug.stdout
 debug: a line from the handler
 
@@ -129,4 +141,5 @@ added (26 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction
 added (148 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06-a.response
 added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06.response
 added (35 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/07-quiet.response
+added (148 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/08-dotdot.response
 added (81 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/out/db_final.sql
