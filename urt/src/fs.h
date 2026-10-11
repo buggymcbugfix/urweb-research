@@ -109,7 +109,7 @@ int on_path(const char *name);
 /* Remembers argv[0], for program_dir. */
 void fs_set_argv0(const char *argv0);
 
-/* Set when SIGINT or SIGTERM arrived; run() returns and the caller
+/* Set when SIGINT, SIGTERM, SIGHUP or SIGQUIT arrived; run() returns and the caller
  * decides. */
 extern volatile int fs_interrupted;
 void fs_catch_signals(void);

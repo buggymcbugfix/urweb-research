@@ -3,7 +3,6 @@ UPDATED runs/serves-wait.urt/snapshot/1 (exitcode)
 urt: exit 129
 exit 0
 $ [ ! -f "$TMPDIR/app.pid" ] || { echo "the server is still running"; kill "$(cat "$TMPDIR/app.pid")"; sleep 1; }
-the server is still running
 exit 0
 $ changes
 added: ./runs/serves-wait.urt/snapshot/1/app.exe
