@@ -310,9 +310,10 @@ static void find_compiler(const char *named) {
     split_words(flags ? flags : "-boot -noEmacs", &urweb_flags);
 }
 
-/* A case name is letters, digits, _ and -, and nothing else. */
+/* A case name is letters, digits, _ and -, and nothing else, and does not
+ * start with -: on a command line that would be an option. */
 static int valid_case_name(const char *s) {
-    if (!*s) {
+    if (!*s || *s == '-') {
         return 0;
     }
     for (; *s; s++) {
@@ -428,7 +429,7 @@ static int layout_run(const char *e, const char *rest) {
                       "beside the run directories there can be a README.md, nothing else", NULL);
         } else if (!valid_case_name(part[0])) {
             die_later(fmt("%s is not a name for a run", path(e)),
-                      "the name of a run is letters, digits, _ and -, and nothing else", NULL);
+                      "the name of a run is letters, digits, _ and -, and nothing else, not starting with -", NULL);
             return 1;
         }
     } else if (n == 2 && (!strcmp(part[1], "args") || !strcmp(part[1], "secret") || !strcmp(part[1], "db.sql"))) {
@@ -558,7 +559,7 @@ static int layout(const char *urt_dir, const char *snap) {
                       "delete it, or move it where it goes", NULL);
         } else if (!valid_case_name(rel)) {
             die(fmt("%s is not a case name", path(e)),
-                "a case name is letters, digits, _ and -, and nothing else",
+                "a case name is letters, digits, _ and -, and nothing else, not starting with -",
                 "rename it", NULL);
         }
     }
@@ -2041,7 +2042,7 @@ static int create(int argc, char **argv) {
             strip_suffix(c, "/");
             if (!valid_case_name(c)) {
                 die(fmt("'%s' cannot name a case", c),
-                    "a case name is letters, digits, _ and -, and nothing else", NULL);
+                    "a case name is letters, digits, _ and -, and nothing else, not starting with -", NULL);
             }
             if (!strcmp(c, "expected") || !strcmp(c, "args") || !strcmp(c, "README.md")) {
                 die(fmt("'%s' cannot name a case", c),
@@ -2327,7 +2328,7 @@ static int create_run(int argc, char **argv) {
         snprintf(r, sizeof r, "%s", argv[i]);
         strip_suffix(r, "/");
         if (!valid_case_name(r) || !strcmp(r, "README.md")) {
-            die(fmt("'%s' cannot name a run", r), "the name of a run is letters, digits, _ and -, and nothing else", NULL);
+            die(fmt("'%s' cannot name a run", r), "the name of a run is letters, digits, _ and -, and nothing else, not starting with -", NULL);
         }
         join(d, rr, r);
         if (exists(d)) {

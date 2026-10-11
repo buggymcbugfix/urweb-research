@@ -26,7 +26,7 @@ a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAM
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run
-the name of a run is letters, digits, _ and -, and nothing else
+the name of a run is letters, digits, _ and -, and nothing else, not starting with -
 ERROR runs/stray.urt/snapshot/1/request-response/notes.txt does not belong among the runs
 beside the run directories there can be a README.md, nothing else
 0 cases, in T
@@ -99,7 +99,7 @@ delete it first if you meant to start again
 exit 2
 $ urt snapshot --create-run runs/good.urt/snapshot/1 second a.b
 ERROR 'a.b' cannot name a run
-the name of a run is letters, digits, _ and -, and nothing else
+the name of a run is letters, digits, _ and -, and nothing else, not starting with -
 exit 2
 $ urt snapshot --create-run shop
 ERROR shop holds 3 cases; name the one the run is for

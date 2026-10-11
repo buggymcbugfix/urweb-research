@@ -32,9 +32,9 @@ a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAM
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run
-the name of a run is letters, digits, _ and -, and nothing else
+the name of a run is letters, digits, _ and -, and nothing else, not starting with -
 ERROR runs/stray.urt/snapshot/1/request-response/b.c-x is not a name for a run
-the name of a run is letters, digits, _ and -, and nothing else
+the name of a run is letters, digits, _ and -, and nothing else, not starting with -
 ERROR runs/stray.urt/snapshot/1/request-response/notes.txt does not belong among the runs
 beside the run directories there can be a README.md, nothing else
 0 cases, in T

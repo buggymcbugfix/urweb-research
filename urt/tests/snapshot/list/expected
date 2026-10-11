@@ -64,7 +64,7 @@ a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAM
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run
-the name of a run is letters, digits, _ and -, and nothing else
+the name of a run is letters, digits, _ and -, and nothing else, not starting with -
 ERROR runs/stray.urt/snapshot/1/request-response/notes.txt does not belong among the runs
 beside the run directories there can be a README.md, nothing else
 runs/unready.urt/snapshot/1
@@ -77,7 +77,7 @@ ERROR sub/orphan.urt/snapshot is named for a project 'orphan' that is not beside
 expected sub/orphan.urp or sub/orphan.ur
 write the project's name in sub/orphan.urt/project if it goes by another
 ERROR zz/badname.urt/snapshot/c.d is not a case name
-a case name is letters, digits, _ and -, and nothing else
+a case name is letters, digits, _ and -, and nothing else, not starting with -
 rename it
 exit 2
 $ urt snapshot -l sub
