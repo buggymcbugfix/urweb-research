@@ -17,7 +17,8 @@
  *   POST /Shop/add
  *       -d 'name=kettle'        --data: one field of the body
  *       -d 'price=12'
- *       -b 'visitor=somebody'   --cookie: a cookie, NAME=VALUE
+ *       -b 'visitor=somebody'   --cookie: a cookie, NAME=VALUE; several
+ *                               go in one Cookie header, joined by "; "
  *       -H 'Accept: text/html'  --header: a header, NAME: VALUE
  *
  * Words are split as a shell would: blanks and newlines separate, '...'

@@ -1092,7 +1092,7 @@ static const char *head_of(const char *file) {
 static int send_request(const char *method, const char *url_path, const struct strlist *options, int port,
                         const char *response) {
     struct strlist argv = { 0, 0, 0 };
-    char err[PATHLEN], **command;
+    char err[PATHLEN], **command, *cookies = NULL;
     int i, status;
 
     sl_push(&argv, "curl");
@@ -1110,8 +1110,29 @@ static int send_request(const char *method, const char *url_path, const struct s
     sl_push(&argv, "Host: localhost");
     sl_push(&argv, "-X");
     sl_push(&argv, method);
-    for (i = 0; i < options->n; i++) {
-        sl_push(&argv, options->v[i]);
+    /* Several cookies go as one -b, joined here: curl joins them itself
+     * otherwise, with "; " or with ";" by its version, and the bytes
+     * sent are what the responses answer to. */
+    for (i = 0; i + 1 < options->n; i += 2) {
+        if (!strcmp(options->v[i], "-b")) {
+            const char *v = options->v[i + 1];
+            if (cookies) {
+                char *joined = xmalloc(strlen(cookies) + strlen(v) + 3);
+                sprintf(joined, "%s; %s", cookies, v);
+                free(cookies);
+                cookies = joined;
+            } else {
+                cookies = xstrdup(v);
+            }
+        } else {
+            sl_push(&argv, options->v[i]);
+            sl_push(&argv, options->v[i + 1]);
+        }
+    }
+    if (cookies) {
+        sl_push(&argv, "-b");
+        sl_push(&argv, cookies);
+        free(cookies);
     }
     sl_push(&argv, fmt("http://127.0.0.1:%d%s", port, url_path));
 
