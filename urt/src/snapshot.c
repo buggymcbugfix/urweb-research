@@ -96,11 +96,16 @@ static const char usage_text[] =
     "                  |   |-- 01-add.request  what to send\n"
     "                  |   |-- 01-add.response what came back, as `curl -i` prints it\n"
     "                  |   |-- 01-add.sql      what that changed in the database, if anything\n"
+    "                  |   |-- 01-add.stdout   what the server printed meanwhile, if anything\n"
+    "                  |   |-- 01-add.stderr\n"
     "                  |   |-- 02-pay.request\n"
     "                  |   `-- 02-pay.response\n"
     "                  `-- out/\n"
-    "                      |-- stdout          what the server printed\n"
-    "                      |-- stderr\n"
+    "                      |-- startup.sql     what the application did before the first\n"
+    "                      |-- startup.stdout  request (task initialize), if anything\n"
+    "                      |-- startup.stderr\n"
+    "                      |-- shutdown.stdout what it printed after the last, if anything\n"
+    "                      |-- shutdown.stderr\n"
     "                      `-- db_final.sql    the database it left behind\n"
     "\n"
     "A request is a method, a path, and then fields (-d), cookies (-b) and headers\n"
@@ -111,6 +116,10 @@ static const char usage_text[] =
     "      -d 'price=12'\n"
     "      -b 'visitor=somebody'\n"
     "      -H 'Accept: text/html'\n"
+    "\n"
+    "What the server prints for a request goes beside its response, and only if\n"
+    "there is any: its own lines about connections and requests are dropped, the\n"
+    "program's debug output and the runtime's errors are kept.\n"
     "\n"
     "Runs share nothing.  Each has its own database -- SQLite, so the case's args\n"
     "need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows\n"
@@ -432,7 +441,8 @@ static int layout_run(const char *e, const char *rest) {
     } else if (n == 3 && !strcmp(part[1], "interaction") && is_file(e) && has_suffix(part[2], ".request")) {
         ;
     } else if (n == 3 && !strcmp(part[1], "interaction") && is_file(e)
-               && (has_suffix(part[2], ".response") || has_suffix(part[2], ".sql"))) {
+               && (has_suffix(part[2], ".response") || has_suffix(part[2], ".sql")
+                   || has_suffix(part[2], ".stdout") || has_suffix(part[2], ".stderr"))) {
         char request[PATHLEN + 8];
         snprintf(request, sizeof request, "%s", e);
         strcpy(strrchr(request, '.'), ".request");
@@ -441,12 +451,15 @@ static int layout_run(const char *e, const char *rest) {
                       fmt("there is no %s; delete the one, or write the other", path(request)), NULL);
         }
     } else if (n == 3 && !strcmp(part[1], "out") && is_file(e)
-               && (!strcmp(part[2], "stdout") || !strcmp(part[2], "stderr") || !strcmp(part[2], "db_final.sql"))) {
+               && (!strcmp(part[2], "startup.sql") || !strcmp(part[2], "startup.stdout") || !strcmp(part[2], "startup.stderr")
+                   || !strcmp(part[2], "shutdown.stdout") || !strcmp(part[2], "shutdown.stderr")
+                   || !strcmp(part[2], "db_final.sql"))) {
         ;
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
-                  "a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql",
-                  "under interaction/; stdout, stderr and db_final.sql under out/", NULL);
+                  "a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout",
+                  "and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,",
+                  "shutdown.stderr and db_final.sql under out/", NULL);
         return is_dir(e);
     }
     return 0;
@@ -825,9 +838,15 @@ static void show_diff(const char *file) {
  * its own database, loaded from db.sql; its own signing key, secret;
  * its own flags, args -- and sent the requests under interaction/ one
  * after the other, in the order of their names.  What is kept is every
- * response, what each request changed in the database (NAME.sql, only if
- * it did), and under out/ what the server printed and the database it
- * left behind.
+ * response, and beside it what the request changed in the database
+ * (NAME.sql) and what the server printed meanwhile (NAME.stdout,
+ * NAME.stderr), each only if there was anything; under out/ the same
+ * for what the application did before the first request (startup.*,
+ * the initialize task's statements among them) and printed after the
+ * last (shutdown.*), and the database it left behind.  The server's
+ * own chatter about each connection and request is dropped, as are the
+ * lines of its start: what the requests made the application say is
+ * what is left.
  *
  * For the same requests to get the same answers, the application's clock
  * and its random numbers are pinned (URWEB_REPRODUCIBLE_*, see
@@ -906,7 +925,9 @@ static void exe_of(const char *settings, char *exe) {
  *
  * Returns 0 when the line is to be dropped.  The banner ends in a blank
  * line, which goes only there: *after_banner says that its last line has
- * just been seen. */
+ * just been seen.  The server's lines about each connection and request
+ * ("Accepted connection.", "Serving URI ...", "Processed request for
+ * messages ...") go the same way: they narrate what the runner did. */
 static int keep_server_line(const char *line, int *after_banner) {
     static const char *const start[] = {
         "Database connection initialized.\n",
@@ -917,7 +938,8 @@ static int keep_server_line(const char *line, int *after_banner) {
     int was_after = *after_banner;
     size_t i;
 
-    *after_banner = !strcmp(line, banner_end);
+    /* The .msgs line ends in a blank one as well. */
+    *after_banner = !strcmp(line, banner_end) || has_prefix(line, "Processed request for messages by client ");
     if (*after_banner || (was_after && !strcmp(line, "\n"))) {
         return 0;
     }
@@ -927,32 +949,72 @@ static int keep_server_line(const char *line, int *after_banner) {
         }
     }
     return !has_prefix(line, "Forking to PID ") && !has_prefix(line, "Listening on port ")
-        && !has_prefix(line, "Error triggers unlimited retry: Couldn't allocate new ");
+        && !has_prefix(line, "Error triggers unlimited retry: Couldn't allocate new ")
+        && strcmp(line, "Accepted connection.\n") != 0 && !has_prefix(line, "Handling connection with thread #")
+        && !has_prefix(line, "Serving URI ");
 }
 
 /* One output of a run, from -> to, with the scratch directory taken out
  * of it as for the artifacts.  A response can be anything, so lines are
- * written by their length, and one that holds a NUL is left as it is. */
-static void normalise_run(const char *name, const char *from, const char *to) {
+ * written by their length, and one that holds a NUL is left as it is.
+ * Returns how many bytes were written. */
+static long normalise_run(const char *name, const char *from, const char *to) {
     FILE *in = fopen(from, "rb"), *out = fopen(to, "wb");
     char *line = NULL;
     size_t cap = 0;
     ssize_t n;
-    int is_stdout = !strcmp(name, "out/stdout"), after_banner = 0;
+    long written = 0;
+    int is_stdout = has_suffix(name, ".stdout"), after_banner = 0;
     if (!in || !out) {
         die(fmt("cannot normalise %s: %s", path(from), strerror(errno)), NULL);
     }
     while ((n = getline(&line, &cap, in)) > 0) {
         if (memchr(line, 0, (size_t) n)) {
             fwrite(line, 1, (size_t) n, out);
+            written += n;
             continue;
         }
         strip_work(line);
         if (!is_stdout || keep_server_line(line, &after_banner)) {
             fputs(line, out);
+            written += (long) strlen(line);
         }
     }
     free(line);
+    fclose(in);
+    if (fclose(out) != 0) {
+        die(fmt("cannot write %s: %s", path(to), strerror(errno)), NULL);
+    }
+    return written;
+}
+
+/* What a stream of the server's holds since the last cut, into a file of
+ * its own; nothing, and there is no file.  *at is where the last cut was,
+ * and is moved to the end.  The server writes the stream itself, so this
+ * reads what is there rather than what it was handed. */
+static void cut_output(const char *stream, long *at, const char *to) {
+    FILE *in = fopen(stream, "rb"), *out;
+    char buf[8192];
+    size_t n;
+    long end = 0;
+
+    if (!in) {
+        die(fmt("cannot read %s: %s", path(stream), strerror(errno)), NULL);
+    }
+    if (fseek(in, 0, SEEK_END) < 0 || (end = ftell(in)) < 0) {
+        die(fmt("cannot read %s: %s", path(stream), strerror(errno)), NULL);
+    }
+    if (end <= *at) {
+        fclose(in);
+        return;
+    }
+    if (fseek(in, *at, SEEK_SET) < 0 || !(out = fopen(to, "wb"))) {
+        die(fmt("cannot write %s: %s", path(to), strerror(errno)), NULL);
+    }
+    while (*at < end && (n = fread(buf, 1, sizeof buf, in)) > 0) {
+        fwrite(buf, 1, n, out);
+        *at += (long) n;
+    }
     fclose(in);
     if (fclose(out) != 0) {
         die(fmt("cannot write %s: %s", path(to), strerror(errno)), NULL);
@@ -968,8 +1030,10 @@ static void settle(const char *run_dir, const char *rel, const char *now, char *
     char want[PATHLEN], clean[PATHLEN], d[PATHLEN];
     join(want, run_dir, rel);
     pathf(clean, "%s.now", now);
-    if (exists(now)) {
-        normalise_run(rel, now, clean);
+    if (exists(now) && normalise_run(rel, now, clean) == 0
+        && (has_suffix(rel, ".stdout") || has_suffix(rel, ".stderr"))) {
+        /* The server printed nothing for this, or nothing worth keeping. */
+        unlink(clean);
     }
     if (opt_check) {
         pathf(d, "%s.diff", now);
@@ -1117,6 +1181,8 @@ static int run_ready(const char *run_dir) {
  * and compare or record what came of it. */
 static void run_run(const char *run_dir, const char *exe) {
     char rw[PATHLEN], f[PATHLEN], g[PATHLEN], db[PATHLEN], dml[PATHLEN], interaction[PATHLEN];
+    char server_out[PATHLEN], server_err[PATHLEN];
+    long out_at = 0, err_at = 0;
     char bad[PATHLEN] = "", changed[PATHLEN] = "", failed[PATHLEN] = "", note[512] = "";
     struct strlist args = { 0, 0, 0 }, files = { 0, 0, 0 }, outputs = { 0, 0, 0 }, diffs = { 0, 0, 0 };
     char *text;
@@ -1174,14 +1240,26 @@ static void run_run(const char *run_dir, const char *exe) {
     }
     free(text);
 
-    if (server_start(exe, &args, fmt("%s/out/stdout", rw), fmt("%s/out/stderr", rw), &serving) < 0) {
+    join(server_out, rw, "server.stdout");
+    join(server_err, rw, "server.stderr");
+    if (server_start(exe, &args, server_out, server_err, &serving) < 0) {
         bail_if_interrupted();
-        die_later(fmt("the application does not start for %s", test(run_dir)),
-                  head_of(fmt("%s/out/stderr", rw)), NULL);
+        die_later(fmt("the application does not start for %s", test(run_dir)), head_of(server_err), NULL);
         sl_free(&args);
         return;
     }
     sl_free(&args);
+
+    /* What the application did before the first request: the initialize
+     * task's statements, and what it printed while starting. */
+    if (exists(dml) && rename(dml, fmt("%s/out/startup.sql", rw)) < 0) {
+        die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
+    }
+    sl_push(&outputs, "out/startup.sql");
+    cut_output(server_out, &out_at, fmt("%s/out/startup.stdout", rw));
+    cut_output(server_err, &err_at, fmt("%s/out/startup.stderr", rw));
+    sl_push(&outputs, "out/startup.stdout");
+    sl_push(&outputs, "out/startup.stderr");
 
     /* The requests, in the order of their names.  One that cannot be read
      * ends the run: those after it count on what it would have done. */
@@ -1213,6 +1291,12 @@ static void run_run(const char *run_dir, const char *exe) {
                 die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
             }
             sl_push(&outputs, fmt("interaction/%s.sql", name));
+            /* Likewise what it printed: the server flushes every line as
+             * it goes, and all of a request's come before its answer. */
+            cut_output(server_out, &out_at, fmt("%s/interaction/%s.stdout", rw, name));
+            cut_output(server_err, &err_at, fmt("%s/interaction/%s.stderr", rw, name));
+            sl_push(&outputs, fmt("interaction/%s.stdout", name));
+            sl_push(&outputs, fmt("interaction/%s.stderr", name));
         }
         free(text);
         sl_free(&options);
@@ -1228,8 +1312,10 @@ static void run_run(const char *run_dir, const char *exe) {
         return;
     }
 
-    sl_push(&outputs, "out/stdout");
-    sl_push(&outputs, "out/stderr");
+    cut_output(server_out, &out_at, fmt("%s/out/shutdown.stdout", rw));
+    cut_output(server_err, &err_at, fmt("%s/out/shutdown.stderr", rw));
+    sl_push(&outputs, "out/shutdown.stdout");
+    sl_push(&outputs, "out/shutdown.stderr");
     if (has_db) {
         static char *dump[] = { "sqlite3", "-batch", NULL, ".dump", NULL };
         dump[2] = db;

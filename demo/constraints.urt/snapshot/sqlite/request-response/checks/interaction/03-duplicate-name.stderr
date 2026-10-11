@@ -1,0 +1,1 @@
+Fatal error: demo/constraints.ur:33:4-38:11: DML step failed: INSERT INTO uw_Constraints_t (uw_Id, uw_Nam, uw_Parent) VALUES (?, ?, ?)<br />UNIQUE constraint failed: uw_Constraints_t.uw_Nam
