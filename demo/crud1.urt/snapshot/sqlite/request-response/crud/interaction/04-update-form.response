@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 343
+
+<!DOCTYPE html><html><head></head><body><form method="post" action="/Crud1/save/1">
+<p> A: <input value="1" type="text" name="A" /></p>
+<p> B: <input value="one" type="text" name="B" /></p>
+<p> C: <input value="1.5" type="text" name="C" /></p>
+<p> D: <input checked type="checkbox" name="D" /></p>
+<input type="submit" />
+</form></body></html>

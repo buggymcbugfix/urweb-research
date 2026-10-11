@@ -1,0 +1,1 @@
+POST /Crud1/save/1 -d A=11 -d B=eleven -d C=11.5

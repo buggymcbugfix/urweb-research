@@ -1,0 +1,1 @@
+POST /Outer/addT -d Id=2 -d B=two

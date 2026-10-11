@@ -1,0 +1,48 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 671
+
+<!DOCTYPE html><html><head></head><body>
+<p>Saved!</p>
+
+<table border="1">
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Ready</th>
+</tr>
+
+<tr>
+<td>1</td>
+<td>Ada</td>
+<td>Ready!</td>
+<td>
+<a href="/Crud2/upd/1">[Update]</a>
+<a href="/Crud2/confirm/1">[Delete]</a>
+</td>
+</tr>
+
+<tr>
+<td>2</td>
+<td>Bob</td>
+<td>Ready!</td>
+<td>
+<a href="/Crud2/upd/2">[Update]</a>
+<a href="/Crud2/confirm/2">[Delete]</a>
+</td>
+</tr>
+
+</table>
+<br /><hr /><br />
+<form method="post" action="/Crud2/create">
+<p> Name: <input type="text" name="Name" /></p>
+<p> Ready: <select name="Ready">
+<option>Ready</option>
+<option>Not ready</option>
+</select>
+</p>
+<input type="submit" />
+</form>
+
+</body></html>

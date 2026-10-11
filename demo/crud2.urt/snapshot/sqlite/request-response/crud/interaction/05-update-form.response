@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 296
+
+<!DOCTYPE html><html><head></head><body><form method="post" action="/Crud2/save/2">
+<p> Name: <input value="Bob" type="text" name="Name" /></p>
+<p> Ready: <select name="Ready">
+<option>Ready</option>
+<option selected>Not ready</option>
+</select>
+</p>
+<input type="submit" />
+</form></body></html>

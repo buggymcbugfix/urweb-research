@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 235
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: demo/constraints.ur:33:4-38:11: DML step failed: INSERT INTO uw_Constraints_t (uw_Id, uw_Nam, uw_Parent) VALUES (?, ?, ?)<br />FOREIGN KEY constraint failed
+</body></html>

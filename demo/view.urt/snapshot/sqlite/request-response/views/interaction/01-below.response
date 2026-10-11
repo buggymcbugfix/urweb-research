@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 224
+
+<!DOCTYPE html><html><head></head><body>
+<h2>T</h2>
+<ul><li>5</li></ul>
+<h2>V</h2>
+<ul></ul>
+
+<br />
+<form method="post" action="/View/ins">Insert: <input type="text" name="A" /> <input type="submit" /></form>
+</body></html>

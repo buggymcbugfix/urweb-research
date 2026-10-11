@@ -1,0 +1,55 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 1223
+
+<!DOCTYPE html><html><head></head><body>
+<ul>
+<li> #1: root <form method="post" action="/Tree/del/1"><input type="submit" value="Delete" /></form>
+<form method="post" action="/Tree/add/Some/1">
+Add child: <input type="text" name="Nam" /> <input type="submit" />
+</form>
+</li>
+<li>
+<ul>
+
+<li> #2: child <form method="post" action="/Tree/del/2"><input type="submit" value="Delete" /></form>
+<form method="post" action="/Tree/add/Some/2">
+Add child: <input type="text" name="Nam" /> <input type="submit" />
+</form>
+</li>
+<li>
+<ul>
+
+<li> #3: grandchild <form method="post" action="/Tree/del/3"><input type="submit" value="Delete" /></form>
+<form method="post" action="/Tree/add/Some/3">
+Add child: <input type="text" name="Nam" /> <input type="submit" />
+</form>
+</li>
+<li>
+<ul>
+
+</ul>
+</li>
+
+</ul>
+</li>
+
+<li> #4: sibling <form method="post" action="/Tree/del/4"><input type="submit" value="Delete" /></form>
+<form method="post" action="/Tree/add/Some/4">
+Add child: <input type="text" name="Nam" /> <input type="submit" />
+</form>
+</li>
+<li>
+<ul>
+
+</ul>
+</li>
+
+</ul>
+</li>
+</ul>
+<form method="post" action="/Tree/add/None">
+Add a top-level node: <input type="text" name="Nam" /> <input type="submit" />
+</form>
+</body></html>

@@ -1,0 +1,1 @@
+POST /Outer/addU -d Id=10 -d Link=1 -d C=ten -d D=1.25
