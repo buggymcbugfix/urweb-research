@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 
 #include "runs.h"
@@ -68,6 +69,20 @@ static int shell_words(const char *s, struct strlist *out, char *err, size_t err
     return 0;
 }
 
+/* 0 if the header named by the first n characters of v is one urt sets
+ * itself for every request, else 1.  Header names are case-insensitive. */
+static int fixed_header(const char *v, size_t n) {
+    const char *fixed[] = { "Host", "User-Agent" };
+    size_t i;
+
+    for (i = 0; i < sizeof fixed / sizeof *fixed; i++) {
+        if (strlen(fixed[i]) == n && !strncasecmp(v, fixed[i], n)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 int parse_request(const char *text, char *method, size_t method_size, char *url_path, size_t path_size,
                   struct strlist *options, char *err, size_t err_size) {
     struct strlist words = { 0, 0, 0 };
@@ -95,8 +110,9 @@ int parse_request(const char *text, char *method, size_t method_size, char *url_
         const char *o = words.v[i], *v = i + 1 < words.n ? words.v[i + 1] : NULL;
         int is_data = !strcmp(o, "-d") || !strcmp(o, "--data");
         int is_cookie = !strcmp(o, "-b") || !strcmp(o, "--cookie");
-        if (!is_data && !is_cookie) {
-            snprintf(err, err_size, "'%s' is not taken here; the options are -d (--data) and -b (--cookie)", o);
+        int is_header = !strcmp(o, "-H") || !strcmp(o, "--header");
+        if (!is_data && !is_cookie && !is_header) {
+            snprintf(err, err_size, "'%s' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)", o);
             goto out;
         }
         if (!v) {
@@ -111,7 +127,24 @@ int parse_request(const char *text, char *method, size_t method_size, char *url_
             snprintf(err, err_size, "-b '%s' would read a file; a cookie is NAME=VALUE", v);
             goto out;
         }
-        sl_push(options, is_data ? "-d" : "-b");
+        if (is_header) {
+            /* curl takes NAME: VALUE, NAME; for an empty value, NAME: for
+             * none of curl's own, and @FILE for a file of them. */
+            size_t n = strcspn(v, ":;");
+            if (v[0] == '@') {
+                snprintf(err, err_size, "-H '%s' would read a file; write out the headers to be sent", v);
+                goto out;
+            }
+            if (n == 0 || !v[n]) {
+                snprintf(err, err_size, "-H '%s' is not a header; a header is NAME: VALUE", v);
+                goto out;
+            }
+            if (!fixed_header(v, n)) {
+                snprintf(err, err_size, "-H '%s' would change what urt sends with every request: the host is localhost, the user agent is urt", v);
+                goto out;
+            }
+        }
+        sl_push(options, is_data ? "-d" : is_cookie ? "-b" : "-H");
         sl_push(options, v);
     }
     r = 0;

@@ -134,11 +134,16 @@ cd runs/unready.urt/snapshot/1/request-response/a/interaction
 printf 'get /\n' > 01.request
 printf 'GET\n' > 02.request
 printf 'GET main\n' > 03.request
-printf 'GET /main -H "Accept: text/plain"\n' > 04.request
+printf 'GET /main -X POST\n' > 04.request
 printf 'POST /main -d\n' > 05.request
 printf 'POST /main -d @body\n' > 06.request
 printf 'POST /main -b cookies.txt\n' > 07.request
 printf "POST /main -d 'never closed\n" > 08.request
+printf 'GET /main -H @headers\n' > 09.request
+printf 'GET /main -H Accept\n' > 10.request
+printf 'GET /main -H "host: elsewhere"\n' > 11.request
+printf 'GET /main -H "User-Agent: me"\n' > 12.request
+printf 'GET /main -H "Accept: text/plain" -H "If-Modified-Since: Thu, 01 Jan 1970 00:00:00 GMT"\n' > 13.request
 cd "$root"
 arun runs/unready.urt/snapshot/1/request-response/threads
 printf -- '-t 4\n' > runs/unready.urt/snapshot/1/request-response/threads/args
