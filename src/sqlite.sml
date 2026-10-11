@@ -160,11 +160,23 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
 
              (* SQLite asks its VFS for the time, which is where
-              * CURRENT_TIMESTAMP comes from; when the runtime's clock is
-              * pinned (reproducible.c), a copy of the default VFS that
-              * reads that clock takes its place, so that what is stored
-              * agrees with [now].  In milliseconds since noon on 24
-              * November 4714 BC, or days as a double for an old VFS. *)
+              * CURRENT_TIMESTAMP comes from, and for the seed of its own
+              * random number generator, which is where RANDOM comes from.
+              * When the runtime's clock or its random numbers are pinned
+              * (reproducible.c), a copy of the default VFS that reads the
+              * pinned clock, or the pinned numbers, takes its place, so
+              * that what is stored agrees with [now] and the order of
+              * RANDOM is that of [rand].  The time is in milliseconds
+              * since noon on 24 November 4714 BC, or days as a double for
+              * an old VFS.
+              *
+              * SQLite seeds its generator once and then runs on; reset,
+              * it seeds again on the next draw, from the VFS, and so from
+              * the numbers of the attempt that draws rather than from
+              * every RANDOM drawn since the server started, or from what
+              * an extension drew when the connection was opened.  The
+              * runtime resets it at the start of every attempt, through
+              * the hook. *)
              string "static sqlite3_vfs uw_pinned_vfs;",
              newline,
              newline,
@@ -196,20 +208,62 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              string "}",
              newline,
              newline,
+             string "static int uw_pinned_randomness(sqlite3_vfs *vfs, int n, char *out) {",
+             newline,
+             box [string "uint64_t r;",
+                  newline,
+                  string "int i;",
+                  newline,
+                  string "(void)vfs;",
+                  newline,
+                  string "for (i = 0; i < n; i += sizeof r) {",
+                  newline,
+                  box [string "uw_reproducible_rand(&r);",
+                       newline,
+                       string "memcpy(out + i, &r, n - i < (int)sizeof r ? n - i : (int)sizeof r);",
+                       newline],
+                  string "}",
+                  newline,
+                  string "return n;",
+                  newline],
+             string "}",
+             newline,
+             newline,
+             string "static void uw_forget_seed(void) {",
+             newline,
+             box [string "sqlite3_randomness(0, NULL);",
+                  newline],
+             string "}",
+             newline,
+             newline,
 
              string "static void uw_client_init(void) {",
              newline,
              box [string "int64_t t;",
                   newline,
-                  string "if (uw_reproducible_epoch(&t)) {",
+                  string "int pin_clock = uw_reproducible_epoch(&t), pin_rand = uw_reproducible_rand_pinned();",
+                  newline,
+                  string "if (pin_clock || pin_rand) {",
                   newline,
                   box [string "uw_pinned_vfs = *sqlite3_vfs_find(NULL);",
                        newline,
-                       string "uw_pinned_vfs.zName = \"urweb-pinned-clock\";",
+                       string "uw_pinned_vfs.zName = \"urweb-pinned\";",
                        newline,
-                       string "uw_pinned_vfs.xCurrentTime = uw_pinned_clock;",
+                       string "if (pin_clock) {",
                        newline,
-                       string "if (uw_pinned_vfs.iVersion >= 2) { uw_pinned_vfs.xCurrentTimeInt64 = uw_pinned_clock_int64; }",
+                       box [string "uw_pinned_vfs.xCurrentTime = uw_pinned_clock;",
+                            newline,
+                            string "if (uw_pinned_vfs.iVersion >= 2) { uw_pinned_vfs.xCurrentTimeInt64 = uw_pinned_clock_int64; }",
+                            newline],
+                       string "}",
+                       newline,
+                       string "if (pin_rand) {",
+                       newline,
+                       box [string "uw_pinned_vfs.xRandomness = uw_pinned_randomness;",
+                            newline,
+                            string "uw_reproducible_on_attempt(uw_forget_seed);",
+                            newline],
+                       string "}",
                        newline,
                        string "sqlite3_vfs_register(&uw_pinned_vfs, 1);",
                        newline],

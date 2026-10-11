@@ -6,3 +6,4 @@ CREATE TABLE uw_Random_t (
 );
 
 INSERT INTO uw_Random_t VALUES (1);
+INSERT INTO uw_Random_t VALUES (2), (3), (4), (5);
