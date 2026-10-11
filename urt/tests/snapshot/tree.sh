@@ -171,6 +171,18 @@ proj runs serves-wait
 snap runs/serves-wait.urt/snapshot/1 exitcode
 arun runs/serves-wait.urt/snapshot/1/request-response/wait
 printf 'GET /wait\n' > runs/serves-wait.urt/snapshot/1/request-response/wait/interaction/01.request
+# A project whose server exits after the second request, and one whose
+# server overwrites its database.
+proj runs serves-dies
+snap runs/serves-dies.urt/snapshot/1 exitcode
+arun runs/serves-dies.urt/snapshot/1/request-response/dies
+printf 'GET /die\n' > runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.request
+printf 'GET /after\n' > runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.request
+proj runs serves-corrupts
+snap runs/serves-corrupts.urt/snapshot/1 exitcode
+arun runs/serves-corrupts.urt/snapshot/1/request-response/corrupts
+printf 'CREATE TABLE t (id INTEGER);\nINSERT INTO t VALUES (1);\n' > runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/db.sql
+printf 'GET /corrupt\n' > runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/interaction/02-corrupt.request
 # A request file with CRLF line ends and a continued line.
 proj runs serves-cr
 snap runs/serves-cr.urt/snapshot/1 exitcode

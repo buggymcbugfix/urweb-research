@@ -36,7 +36,9 @@ broken/twins.urt/snapshot/two
 hello.urt/snapshot/1
 runs/builds.urt/snapshot/1
 runs/good.urt/snapshot/1
+runs/serves-corrupts.urt/snapshot/1
 runs/serves-cr.urt/snapshot/1
+runs/serves-dies.urt/snapshot/1
 runs/serves-odd.urt/snapshot/1
 runs/serves-start.urt/snapshot/1
 runs/serves-wait.urt/snapshot/1

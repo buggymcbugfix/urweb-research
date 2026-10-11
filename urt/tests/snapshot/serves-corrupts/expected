@@ -1,0 +1,32 @@
+$ urt snapshot runs/serves-corrupts
+UPDATED runs/serves-corrupts.urt/snapshot/1 (exitcode)
+ERROR cannot dump the database of runs/serves-corrupts.urt/snapshot/1/request-response/corrupts
+sql error: file is not a database (26)
+UPDATED runs/serves-corrupts.urt/snapshot/1/request-response/corrupts (interaction/01.response, interaction/02-corrupt.response, out/db_final.sql)
+1 case and 1 run: 2 updated, in T
+exit 1
+$ cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+/**** ERROR: (26) file is not a database *****/
+ROLLBACK; -- due to errors
+exit 0
+$ urt snapshot runs/serves-corrupts
+OK runs/serves-corrupts.urt/snapshot/1
+ERROR cannot dump the database of runs/serves-corrupts.urt/snapshot/1/request-response/corrupts
+sql error: file is not a database (26)
+OK runs/serves-corrupts.urt/snapshot/1/request-response/corrupts
+1 case and 1 run: 2 ok, in T
+exit 1
+$ cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+/**** ERROR: (26) file is not a database *****/
+ROLLBACK; -- due to errors
+exit 0
+$ changes
+added: ./runs/serves-corrupts.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-corrupts.urt/snapshot/1/expected/exitcode
+added (147 bytes): ./runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/interaction/01.response
+added (154 bytes): ./runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/interaction/02-corrupt.response
+added (119 bytes): ./runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql

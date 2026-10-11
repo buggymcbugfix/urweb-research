@@ -15,6 +15,9 @@
 #   /wait      an answer after 4 seconds, long enough to be interrupted
 #   /slow      an answer after 40 seconds, longer than curl waits
 #   /quiet     no answer at all: the connection is closed
+#   /die       an answer, and then the server exits
+#   /corrupt   an answer, after the database ($URWEB_SQLITE_DB_PATH) has
+#              been overwritten with garbage
 #
 # APP_PIDFILE names a file that the process that serves writes its pid
 # to, and removes when it is stopped, for a transcript to see whether it
@@ -141,7 +144,12 @@ while True:
     if path == "/quiet":
         c.close()
         continue
+    if path == "/corrupt" and os.environ.get("URWEB_SQLITE_DB_PATH"):
+        with open(os.environ["URWEB_SQLITE_DB_PATH"], "wb") as db:
+            db.write(b"not a database " * 64)
     echo = b"%d: " % served + lines[0] + b"\n" + b"\n".join(sorted(lines[1:])) + b"\n\n" + body
     c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
               % len(echo) + echo)
     c.close()
+    if path == "/die":
+        os._exit(0)
