@@ -129,7 +129,7 @@ compiler builds it where the project has it built, and from there it is moved
 into the case as app.exe, where it stays, to be started by hand if need be.
 A run's args cannot hold -t: its requests are sent one after the other, and
 with more threads than one it is a matter of chance which of them answers.
-Runs need curl and sqlite3 on the PATH.
+Runs need curl and sqlite3 (3.37 or later) on the PATH.
 
 Nothing else may be under snapshot/, bar a README.md beside the cases or in
 one, or beside the runs or in one: a file this program would not read is

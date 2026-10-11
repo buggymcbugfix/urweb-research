@@ -35,7 +35,9 @@ application is
 built where the project has it built and then moved into the case, as
 `app.exe` beside `expected/`, where it stays: git ignores it, and it is
 there to start by hand when a run needs looking into.  Runs need `curl`
-and `sqlite3` on the PATH; the compiler's `nix-shell` and package have
+and `sqlite3` (3.37 or later: db.sql is loaded, and the database
+dumped, in its safe mode, where no dot-command reaches outside the
+database) on the PATH; the compiler's `nix-shell` and package have
 both.
 
 Not there yet:

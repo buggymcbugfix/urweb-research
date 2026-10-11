@@ -138,7 +138,7 @@ static const char usage_text[] =
     "into the case as app.exe, where it stays, to be started by hand if need be.\n"
     "A run's args cannot hold -t: its requests are sent one after the other, and\n"
     "with more threads than one it is a matter of chance which of them answers.\n"
-    "Runs need curl and sqlite3 on the PATH.\n"
+    "Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
     "\n"
     "Nothing else may be under snapshot/, bar a README.md beside the cases or in\n"
     "one, or beside the runs or in one: a file this program would not read is\n"
@@ -1246,8 +1246,10 @@ static void run_run(const char *run_dir, const char *exe) {
     join(db, rw, "db");
     has_db = is_file(f);
     if (has_db) {
-        static char *load[] = { "sqlite3", "-batch", "-bail", NULL, NULL };
-        load[3] = db;
+        /* -safe: a seed is SQL, and runs no dot-command that reaches
+         * outside the database (.shell, .output, .read) and no ATTACH. */
+        static char *load[] = { "sqlite3", "-safe", "-batch", "-bail", NULL, NULL };
+        load[4] = db;
         if (run_in(load, f, "/dev/null", fmt("%s/sqlite.err", rw)) != 0) {
             bail_if_interrupted();
             die_later(fmt("%s does not load", path(f)), head_of(fmt("%s/sqlite.err", rw)), NULL);
@@ -1353,8 +1355,8 @@ static void run_run(const char *run_dir, const char *exe) {
     sl_push(&outputs, "out/shutdown.stdout");
     sl_push(&outputs, "out/shutdown.stderr");
     if (has_db) {
-        static char *dump[] = { "sqlite3", "-batch", NULL, ".dump", NULL };
-        dump[2] = db;
+        static char *dump[] = { "sqlite3", "-safe", "-batch", NULL, ".dump", NULL };
+        dump[3] = db;
         if (run(dump, fmt("%s/out/db_final.sql", rw), fmt("%s/sqlite.err", rw)) != 0) {
             die_later(fmt("cannot dump the database of %s", test(run_dir)), head_of(fmt("%s/sqlite.err", rw)), NULL);
         }
