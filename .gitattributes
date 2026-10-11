@@ -1,1 +1,2 @@
-**/*.urt/** linguist-generated
+**/*.urt/** linguist-generated -text -whitespace
+urt/tests/** -text whitespace=cr-at-eol
