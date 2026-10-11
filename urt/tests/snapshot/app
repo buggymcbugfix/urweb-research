@@ -26,7 +26,7 @@
 #   exit1      exit 1 before anything, with a line on stderr
 #   badstatus  a handshake with status='FAIL'
 #   partial    a handshake cut off after "port="
-#   hang       no handshake, ever, and no exit
+#   hang       no handshake, ever, and no exit; SIGTERM is ignored
 #
 # Modelled on the fake server of the review of this feature (session
 # 01CM2Am54aGdbWc48fTDkDUR).
@@ -43,7 +43,9 @@ if mode == "exit1":
     sys.stderr.write("app: refusing to start\n")
     sys.exit(1)
 if mode == "hang":
-    signal.pause()
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    while True:
+        signal.pause()
 
 # The real server's options; a wrong one is refused as it refuses it.
 try:

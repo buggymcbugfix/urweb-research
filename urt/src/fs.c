@@ -440,7 +440,7 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
 }
 
 char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int seconds, int *status) {
-    int fds[2], st, timed_out = 0;
+    int fds[2], st, timed_out = 0, reaped = 0;
     pid_t pid;
     char *text;
     size_t len = 0, cap = 256;
@@ -507,10 +507,27 @@ char *run_fd3(char *const argv[], const char *out_path, const char *err_path, in
     close(fds[0]);
     if (timed_out || fs_interrupted) {
         /* Our child, so it can be waited for; what it may have forked
-         * cannot, and whoever knows its pid stops it. */
+         * cannot, and whoever knows its pid stops it.  It gets a second
+         * to go on SIGTERM, then SIGKILL, which it cannot ignore. */
+        struct timespec nap = { 0, 10 * 1000 * 1000 };
+        int i;
         kill(pid, SIGTERM);
+        for (i = 0; i < 100; i++) {
+            pid_t w = waitpid(pid, &st, WNOHANG);
+            if (w == pid) {
+                reaped = 1;
+                break;
+            }
+            if (w < 0 && errno != EINTR) {
+                break;
+            }
+            nanosleep(&nap, NULL);
+        }
+        if (!reaped) {
+            kill(pid, SIGKILL);
+        }
     }
-    while (waitpid(pid, &st, 0) < 0) {
+    while (!reaped && waitpid(pid, &st, 0) < 0) {
         if (errno != EINTR) {
             st = 127 << 8;
             break;
