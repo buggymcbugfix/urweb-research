@@ -1,0 +1,23 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 547
+
+<!DOCTYPE html><html><head></head><body>
+<h1>Current Channels</h1>
+<table>
+<tr> <th>ID</th> <th>Title</th> <th>#Subscribers</th> </tr>
+<tr>
+<td>1</td>
+<td>general</td>
+<td>2</td>
+<td><form method="post" action="/Chat/chat/1"><input type="submit" value="Enter" /></form></td>
+<td><form method="post" action="/Chat/delete/1"><input type="submit" value="Delete" /></form></td>
+</tr>
+</table>
+<h1>New Channel</h1>
+<form method="post" action="/Chat/create">
+Title: <input type="text" name="Title" /><br />
+<input type="submit" />
+</form>
+</body></html>

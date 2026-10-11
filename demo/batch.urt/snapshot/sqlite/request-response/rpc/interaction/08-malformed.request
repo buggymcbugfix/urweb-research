@@ -1,0 +1,1 @@
+POST /Batch/doBatch/bogus -H 'Content-type: text/plain'
