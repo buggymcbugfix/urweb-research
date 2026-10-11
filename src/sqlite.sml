@@ -168,7 +168,15 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
               * that what is stored agrees with [now] and the order of
               * RANDOM is that of [rand].  The time is in milliseconds
               * since noon on 24 November 4714 BC, or days as a double for
-              * an old VFS. *)
+              * an old VFS.
+              *
+              * SQLite seeds its generator once and then runs on; reset,
+              * it seeds again on the next draw, from the VFS, and so from
+              * the numbers of the attempt that draws rather than from
+              * every RANDOM drawn since the server started, or from what
+              * an extension drew when the connection was opened.  The
+              * runtime resets it at the start of every attempt, through
+              * the hook. *)
              string "static sqlite3_vfs uw_pinned_vfs;",
              newline,
              newline,
@@ -221,6 +229,13 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              string "}",
              newline,
              newline,
+             string "static void uw_forget_seed(void) {",
+             newline,
+             box [string "sqlite3_randomness(0, NULL);",
+                  newline],
+             string "}",
+             newline,
+             newline,
 
              string "static void uw_client_init(void) {",
              newline,
@@ -242,7 +257,13 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                             newline],
                        string "}",
                        newline,
-                       string "if (pin_rand) { uw_pinned_vfs.xRandomness = uw_pinned_randomness; }",
+                       string "if (pin_rand) {",
+                       newline,
+                       box [string "uw_pinned_vfs.xRandomness = uw_pinned_randomness;",
+                            newline,
+                            string "uw_reproducible_on_attempt(uw_forget_seed);",
+                            newline],
+                       string "}",
                        newline,
                        string "sqlite3_vfs_register(&uw_pinned_vfs, 1);",
                        newline],
@@ -462,13 +483,6 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              string "static int uw_db_begin(uw_context ctx, int could_write) {",
              newline,
              string "uw_conn *conn = uw_get_db(ctx);",
-             newline,
-             newline,
-             (* SQLite seeds its generator once and then runs on; reset,
-              * it seeds again on the next draw, from the VFS, and so from
-              * this request's numbers rather than from every RANDOM drawn
-              * since the server started. *)
-             string "if (uw_reproducible_rand_pinned()) { sqlite3_randomness(0, NULL); }",
              newline,
              newline,
              string "if (sqlite3_exec(conn->conn, \"BEGIN\", NULL, NULL, NULL) == SQLITE_OK)",

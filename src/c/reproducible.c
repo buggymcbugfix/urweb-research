@@ -30,6 +30,8 @@ static _Thread_local uint64_t my_request = 0;
 static _Thread_local uint64_t my_rand_state;
 static _Thread_local int my_rand_started = 0;
 
+static void (*attempt_hook)(void) = NULL;
+
 static int env_integer(const char *name, uint64_t *out) {
   char *s = getenv(name), *end;
   if (!s) { return 0; }
@@ -75,12 +77,24 @@ void uw_reproducible_request(void) {
   my_request = __atomic_add_fetch(&requests, 1, __ATOMIC_SEQ_CST);
 }
 
+// What a database backend has to do at the start of every attempt while the
+// numbers are pinned, so that what it draws from its own generator depends on
+// the attempt alone: SQLite seeds its generator once, from the VFS, and runs on
+// from there, so it is made to forget its seed and draw a fresh one from the
+// attempt's numbers.  The generator is one per process, which is one more
+// reason to pin the numbers only with a single thread.
+void uw_reproducible_on_attempt(void (*hook)(void)) {
+  attempt_hook = hook;
+}
+
 // Called right at the beginning of every attempt at handling a request, to make
 // sure every potential retry of the request gets the same random numbers.
 void uw_reproducible_attempt(void) {
   uint64_t state = seed + (my_request - 1) * 0x9e3779b97f4a7c15;
   my_rand_state = splitmix64(&state);
   my_rand_started = 1;
+
+  if (rand_pinned && attempt_hook) { attempt_hook(); }
 }
 
 // The pinned time into *out, or 0 if the time is not pinned.

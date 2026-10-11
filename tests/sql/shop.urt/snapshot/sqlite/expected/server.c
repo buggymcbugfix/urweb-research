@@ -46,6 +46,10 @@
      return n;
      }
     
+    static void uw_forget_seed(void) {
+    sqlite3_randomness(0, NULL);
+     }
+    
     static void uw_client_init(void) {
     int64_t t;
      int pin_clock = uw_reproducible_epoch(&t), pin_rand = uw_reproducible_rand_pinned();
@@ -56,7 +60,10 @@
       uw_pinned_vfs.xCurrentTime = uw_pinned_clock;
        if (uw_pinned_vfs.iVersion >= 2) { uw_pinned_vfs.xCurrentTimeInt64 = uw_pinned_clock_int64; }
        }
-      if (pin_rand) { uw_pinned_vfs.xRandomness = uw_pinned_randomness; }
+      if (pin_rand) {
+      uw_pinned_vfs.xRandomness = uw_pinned_randomness;
+       uw_reproducible_on_attempt(uw_forget_seed);
+       }
       sqlite3_vfs_register(&uw_pinned_vfs, 1);
       }
      uw_sqlfmtInt = "%lld%n";
@@ -278,8 +285,6 @@
     
     static int uw_db_begin(uw_context ctx, int could_write) {
     uw_conn *conn = uw_get_db(ctx);
-    
-    if (uw_reproducible_rand_pinned()) { sqlite3_randomness(0, NULL); }
     
     if (sqlite3_exec(conn->conn, "BEGIN", NULL, NULL, NULL) == SQLITE_OK)
     return 0;
