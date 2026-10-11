@@ -223,6 +223,11 @@ fun p_con' par env (c, _) =
                                               string "++",
                                               space,
                                               p_con env c2])
+      | CDiff (c1, c2) => parenIf par (box [p_con' true env c1,
+                                            space,
+                                            string "--",
+                                            space,
+                                            p_con env c2])
       | CMap _ => string "map"
 
       | CUnit => string "()"

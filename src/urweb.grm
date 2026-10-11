@@ -1049,6 +1049,7 @@ cexp   : capps                          (capps)
        | CSYMBOL KARROW cexp            (TKFun (CSYMBOL, cexp), s (CSYMBOLleft, cexpright))
 
        | cexp PLUSPLUS cexp             (CConcat (cexp1, cexp2), s (cexp1left, cexp1right))
+       | cexp MINUSMINUS cexp           (CDiff (cexp1, cexp2), s (cexp1left, cexp2right))
 
        | FN cargs DARROW cexp           (#1 (cargs (cexp, (KWild, s (FNleft, cexpright)))))
        | LBRACK cexp TWIDDLE cexp RBRACK DARROW cexp (TDisjoint (cexp1, cexp2, cexp3), s (LBRACKleft, cexp3right))

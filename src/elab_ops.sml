@@ -499,6 +499,7 @@ fun reduceCon env (cAll as (c, loc)) =
               | ((CRecord (k, xcs1), loc), (CConcat ((CRecord (_, xcs2), _), c2'), _)) => (CConcat ((CRecord (k, xcs1 @ xcs2), loc), c2'), loc)
               | _ => (CConcat (c1, c2), loc)
         end
+      | CDiff (c1, c2) => (CDiff (reduceCon env c1, reduceCon env c2), loc)
       | CMap _ => cAll
 
       | CUnit => cAll

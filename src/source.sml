@@ -66,6 +66,7 @@ datatype con' =
 
        | CRecord of (con * con) list
        | CConcat of con * con
+       | CDiff of con * con
        | CMap
 
        | CUnit

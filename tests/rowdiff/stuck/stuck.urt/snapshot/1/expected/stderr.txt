@@ -1,2 +1,7 @@
-tests/rowdiff/stuck/stuck.ur:2:35: (to 2:37) syntax error: replacing  MINUSMINUS with  COMMA
-Parse failure
+tests/rowdiff/stuck/stuck.ur:2:6: (to 2:19) Unification failure
+Expression:  fn r :: {Type} => fn x : $r => x
+  Have con:  r :: {Type} -> $r -> $r
+  Need con:  r :: {Type} -> $r -> $(r -- [A = ()])
+Incompatible constructors
+Have:  r
+Need:  r -- [A = ()]

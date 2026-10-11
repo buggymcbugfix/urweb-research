@@ -214,6 +214,7 @@ fun con env (all as (c, loc)) =
                | (_, CRecord (_, [])) => c1
                | _ => (CConcat (c1, c2), loc)
          end
+       | CDiff (c1, c2) => (CDiff (con env c1, con env c2), loc)
        | CMap _ => all
 
        | CUnit => all
