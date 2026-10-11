@@ -3,29 +3,25 @@ exit 0
 $ : > hello.urt/snapshot/2147483647/expected/exitcode
 exit 0
 $ urt snapshot -c hello
-CREATED hello.urt/snapshot/-2147483648 (args, and 10 empty artifacts under expected/)
+CREATED hello.urt/snapshot/2147483648 (args, and 10 empty artifacts under expected/)
 delete what this project has no opinion about, then run urt snapshot to fill in the rest
 exit 0
 $ mkdir -p runs/good.urt/snapshot/1/request-response/9223372036854775807/interaction
 exit 0
 $ urt snapshot --create-run runs/good
-CREATED runs/good.urt/snapshot/1/request-response/0 (args, secret, db.sql, interaction/01.request)
-write the requests under interaction/, then run urt snapshot runs/good.urt/snapshot/1 to fill in the rest
-exit 0
+ERROR runs/good.urt/snapshot/1/request-response/9223372036854775807 is in the way of the next number
+there is no number after it: name the new one
+exit 2
 $ changes
-added (0 bytes): ./hello.urt/snapshot/-2147483648/args
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/client.js
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/endpoints.json
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/exitcode
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/parsetree.ur
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/schema.sql
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/server.c
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/settings.txt
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/stderr.txt
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/stdout.txt
-added (0 bytes): ./hello.urt/snapshot/-2147483648/expected/typecheck.urs
 added (0 bytes): ./hello.urt/snapshot/2147483647/expected/exitcode
-added (0 bytes): ./runs/good.urt/snapshot/1/request-response/0/args
-added (40 bytes): ./runs/good.urt/snapshot/1/request-response/0/db.sql
-added (6 bytes): ./runs/good.urt/snapshot/1/request-response/0/interaction/01.request
-added (17 bytes): ./runs/good.urt/snapshot/1/request-response/0/secret
+added (0 bytes): ./hello.urt/snapshot/2147483648/args
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/client.js
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/endpoints.json
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/exitcode
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/parsetree.ur
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/schema.sql
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/server.c
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/settings.txt
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/stderr.txt
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/stdout.txt
+added (0 bytes): ./hello.urt/snapshot/2147483648/expected/typecheck.urs

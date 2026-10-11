@@ -16,6 +16,7 @@
 #define _XOPEN_SOURCE 700
 #define _DARWIN_C_SOURCE
 #include <errno.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1942,20 +1943,29 @@ static void only_project_here(char *project) {
     strcpy(project, found);
 }
 
-/* The next number for a case: one more than the highest of the cases
- * that are numbers, or 1. */
-static int next_number(const char *snap) {
+/* The next number for a case (or a run) under snap: one more than the
+ * highest of the names there that are numbers, or 1.  A name that is a
+ * number too large for a long is not counted as one; the largest long is
+ * refused as a name. */
+static long next_number(const char *snap) {
     struct strlist names = { 0, 0, 0 };
-    int i, highest = 0;
+    long highest = 0;
+    int i;
     list_dir(snap, LS_DIRS, &names);
     for (i = 0; i < names.n; i++) {
         char *end;
-        long n = strtol(names.v[i], &end, 10);
-        if (*names.v[i] && !*end && n > highest) {
-            highest = (int) n;
+        long n;
+        errno = 0;
+        n = strtol(names.v[i], &end, 10);
+        if (*names.v[i] && !*end && errno == 0 && n > highest) {
+            highest = n;
         }
     }
     sl_free(&names);
+    if (highest == LONG_MAX) {
+        die(fmt("%s is in the way of the next number", path(fmt("%s/%ld", snap, highest))),
+            "there is no number after it: name the new one", NULL);
+    }
     return highest + 1;
 }
 
@@ -2001,7 +2011,7 @@ static int create(int argc, char **argv) {
     }
 
     if (argc == 0) {
-        pathf(d, "%s/%d", snap, next_number(snap));
+        pathf(d, "%s/%ld", snap, next_number(snap));
         sl_push(&cases, d);
     } else {
         for (i = 0; i < argc; i++) {
@@ -2288,7 +2298,7 @@ static int create_run(int argc, char **argv) {
         die(fmt("%s is in the way, and it is not a directory", path(rr)), NULL);
     }
     if (argc <= 1) {
-        pathf(d, "%s/%d", rr, next_number(rr));
+        pathf(d, "%s/%ld", rr, next_number(rr));
         sl_push(&runs, d);
     }
     for (i = 1; i < argc; i++) {
