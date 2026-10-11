@@ -1,0 +1,1 @@
+GET /Cookie/main -b 'Cookie/c=hello/notafloat/42'

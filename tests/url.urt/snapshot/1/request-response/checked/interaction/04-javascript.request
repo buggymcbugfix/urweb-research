@@ -1,0 +1,1 @@
+POST /Url/readersChoice -d 'Url=javascript%3Aalert(1)'
