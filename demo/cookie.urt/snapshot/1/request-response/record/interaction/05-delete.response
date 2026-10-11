@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Set-Cookie: Cookie/c=; path=/; expires=Sat, 01-Jan-2011 00:00:00 GMT
+Connection: close
+Content-length: 56
+
+<!DOCTYPE html><html>Cookie cleared.<head></head></html>

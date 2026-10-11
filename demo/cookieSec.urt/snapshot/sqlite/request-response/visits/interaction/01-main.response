@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 478
+
+<!DOCTYPE html><html><head></head><body>
+Cookie: <br />
+<table>
+<tr><th>User</th> <th>Last Visit</th></tr>
+
+</table>
+<h2>Set cookie value</h2>
+<form method="post" action="/CookieSec/set"><input type="text" name="User" /> <input type="submit" /></form>
+<h2>Record your visit</h2>
+<form method="post" action="/CookieSec/imHere"><input type="hidden" name="Sig" value="DB59E95E0D7E6F68C1DD705803A1396D7DC4F674236BF9F4DACDAE420D13F608" /><input type="submit" /></form>
+</body></html>

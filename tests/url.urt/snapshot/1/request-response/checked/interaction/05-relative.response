@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 78
+
+<!DOCTYPE html><html><head></head><body>
+I can't do that, Dave.
+</body></html>

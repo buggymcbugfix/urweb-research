@@ -1,0 +1,22 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 535
+
+<!DOCTYPE html><html><head></head><body>
+No cookie set.
+<br /><br />
+<form method="post" action="/Cookie/set">
+A: <input type="text" name="A" /><br />
+B: <input type="text" name="B" /><br />
+C: <input type="text" name="C" /><br />
+<input type="submit" />
+</form><br />
+<form method="post" action="/Cookie/setExp">
+<b>Version that expires on November 6, 2012:</b><br />
+A: <input type="text" name="A" /><br />
+B: <input type="text" name="B" /><br />
+C: <input type="text" name="C" /><br />
+<input type="submit" />
+</form>
+</body></html>
