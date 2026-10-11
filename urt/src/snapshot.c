@@ -1161,6 +1161,28 @@ static int send_request(const char *method, const char *url_path, const struct s
     return status;
 }
 
+/* The requests under interaction/, by name (NAME of NAME.request), in
+ * the order of their names: that of the bytes, as the help text says,
+ * which is not quite the order of the file names, since - sorts before
+ * the . of the suffix. */
+static void requests_of(const char *interaction, struct strlist *names) {
+    struct strlist files = { 0, 0, 0 };
+    char name[PATHLEN];
+    int i;
+    if (is_dir(interaction)) {
+        list_dir(interaction, LS_FILES, &files);
+    }
+    for (i = 0; i < files.n; i++) {
+        if (has_suffix(files.v[i], ".request")) {
+            snprintf(name, sizeof name, "%s", files.v[i]);
+            strip_suffix(name, ".request");
+            sl_push(names, name);
+        }
+    }
+    sl_free(&files);
+    sl_sort(names);
+}
+
 /* Whether a run has what it takes -- a secret, args that leave the
  * threads alone, and requests that can be read -- which is looked into
  * before the compiler is kept busy. */
@@ -1194,14 +1216,11 @@ static int run_ready(const char *run_dir) {
     }
 
     join(interaction, run_dir, "interaction");
-    list_dir(interaction, LS_FILES, &files);
+    requests_of(interaction, &files);
     for (i = 0; i < files.n; i++) {
         char method[32], url_path[PATHLEN], err[256], *text;
         struct strlist options = { 0, 0, 0 };
-        if (!has_suffix(files.v[i], ".request")) {
-            continue;
-        }
-        join(f, interaction, files.v[i]);
+        pathf(f, "%s/%s.request", interaction, files.v[i]);
         text = read_text(f);
         if (!text || parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
             die_later(fmt("%s: %s", path(f), text ? err : strerror(errno)), NULL);
@@ -1302,18 +1321,12 @@ static void run_run(const char *run_dir, const char *exe) {
     /* The requests, in the order of their names.  One that cannot be read
      * ends the run: those after it count on what it would have done. */
     join(interaction, run_dir, "interaction");
-    if (is_dir(interaction)) {
-        list_dir(interaction, LS_FILES, &files);
-    }
+    requests_of(interaction, &files);
     for (i = 0; i < files.n && report_problems == before; i++) {
-        char method[32], url_path[PATHLEN], err[256], name[PATHLEN];
+        char method[32], url_path[PATHLEN], err[256];
         struct strlist options = { 0, 0, 0 };
-        if (!has_suffix(files.v[i], ".request")) {
-            continue;
-        }
-        snprintf(name, sizeof name, "%s", files.v[i]);
-        strip_suffix(name, ".request");
-        join(f, interaction, files.v[i]);
+        const char *name = files.v[i];
+        pathf(f, "%s/%s.request", interaction, name);
         text = read_text(f);
         if (!text || parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
             die_later(fmt("%s: %s", path(f), text ? err : strerror(errno)), NULL);

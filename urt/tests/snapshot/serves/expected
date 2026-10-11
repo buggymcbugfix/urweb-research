@@ -78,7 +78,7 @@ Content-Type: text/plain
 Content-Length: 64
 Connection: close
 
-6: GET /a HTTP/1.1
+7: GET /a HTTP/1.1
 Accept: */*
 Host: localhost
 User-Agent: urt
@@ -90,7 +90,7 @@ Content-Type: text/plain
 Content-Length: 66
 Connection: close
 
-7: GET /a-b HTTP/1.1
+6: GET /a-b HTTP/1.1
 Accept: */*
 Host: localhost
 User-Agent: urt
