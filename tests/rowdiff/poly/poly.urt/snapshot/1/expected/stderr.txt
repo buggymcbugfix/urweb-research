@@ -1,0 +1,3 @@
+tests/rowdiff/poly/poly.ur:3:32: (to 3:34) syntax error: replacing  MINUSMINUS with  LPAREN
+tests/rowdiff/poly/poly.ur:3:47: (to 3:49) syntax error: replacing  MINUSMINUS with  RPAREN
+Parse failure
