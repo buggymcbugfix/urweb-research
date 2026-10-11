@@ -107,7 +107,7 @@ UPDATED broken/nocase.urt/snapshot/a (exitcode)
 exit 0
 $ urt snapshot -l zz
 ERROR zz/badname.urt/snapshot/c.d is not a case name
-a case name is letters, digits, _ and -, and nothing else
+a case name is letters, digits, _ and -, and nothing else, not starting with -
 rename it
 exit 2
 $ changes

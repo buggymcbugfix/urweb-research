@@ -1,0 +1,19 @@
+$ urt snapshot -c shop -- -x
+ERROR '--' cannot name a case
+a case name is letters, digits, _ and -, and nothing else, not starting with -
+exit 2
+$ urt snapshot --create-run runs/good -- -y
+ERROR '--' cannot name a run
+the name of a run is letters, digits, _ and -, and nothing else, not starting with -
+exit 2
+$ mkdir -p hello.urt/snapshot/-z/expected
+exit 0
+$ : > hello.urt/snapshot/-z/expected/exitcode
+exit 0
+$ urt snapshot -w hello
+ERROR hello.urt/snapshot/-z is not a case name
+a case name is letters, digits, _ and -, and nothing else, not starting with -
+rename it
+exit 2
+$ changes
+added (0 bytes): ./hello.urt/snapshot/-z/expected/exitcode

@@ -1,0 +1,4 @@
+mkdir -p runs/stray.urt/snapshot/1/request-response/b.c-x/interaction
+: > runs/stray.urt/snapshot/1/request-response/b.c/interaction/junk
+: > runs/stray.urt/snapshot/1/request-response/b.c-x/interaction/junk
+urt snapshot -w runs/stray

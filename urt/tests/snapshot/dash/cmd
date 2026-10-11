@@ -1,0 +1,5 @@
+urt snapshot -c shop -- -x
+urt snapshot --create-run runs/good -- -y
+mkdir -p hello.urt/snapshot/-z/expected
+: > hello.urt/snapshot/-z/expected/exitcode
+urt snapshot -w hello
