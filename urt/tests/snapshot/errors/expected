@@ -88,11 +88,16 @@ requests, one after the other in the order of their names:
                   |   |-- 01-add.request  what to send
                   |   |-- 01-add.response what came back, as `curl -i` prints it
                   |   |-- 01-add.sql      what that changed in the database, if anything
+                  |   |-- 01-add.stdout   what the server printed meanwhile, if anything
+                  |   |-- 01-add.stderr
                   |   |-- 02-pay.request
                   |   `-- 02-pay.response
                   `-- out/
-                      |-- stdout          what the server printed
-                      |-- stderr
+                      |-- startup.sql     what the application did before the first
+                      |-- startup.stdout  request (task initialize), if anything
+                      |-- startup.stderr
+                      |-- shutdown.stdout what it printed after the last, if anything
+                      |-- shutdown.stderr
                       `-- db_final.sql    the database it left behind
 
 A request is a method, a path, and then fields (-d), cookies (-b) and headers
@@ -107,6 +112,10 @@ A request is a method, a path, and then fields (-d), cookies (-b) and headers
 It is sent as it stands, so it says all of it: a path has what it cannot carry
 (a blank, a #, a control character) percent-encoded, a header or cookie holds
 no line break, and nothing is read from a file (-d @file, -b file, -H @file).
+
+What the server prints for a request goes beside its response, and only if
+there is any: its own lines about connections and requests are dropped, the
+program's debug output and the runtime's errors are kept.
 
 Runs share nothing.  Each has its own database -- SQLite, so the case's args
 need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows

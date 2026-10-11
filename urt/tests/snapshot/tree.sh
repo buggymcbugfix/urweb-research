@@ -120,11 +120,14 @@ arun runs/stray.urt/snapshot/1/request-response/a
 : > runs/stray.urt/snapshot/1/request-response/a/cookies.txt
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/02.response
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql
+: > runs/stray.urt/snapshot/1/request-response/a/interaction/04.stderr
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/notes
 mkdir -p runs/stray.urt/snapshot/1/request-response/a/out/more
 : > runs/stray.urt/snapshot/1/request-response/a/out/more/stdout
 : > runs/stray.urt/snapshot/1/request-response/a/out/log
 : > runs/stray.urt/snapshot/1/request-response/a/out/stdout
+: > runs/stray.urt/snapshot/1/request-response/a/out/startup.stdout
+: > runs/stray.urt/snapshot/1/request-response/a/out/shutdown.stderr
 mkdir -p runs/stray.urt/snapshot/1/request-response/b.c/interaction
 proj runs unready
 snap runs/unready.urt/snapshot/1 exitcode

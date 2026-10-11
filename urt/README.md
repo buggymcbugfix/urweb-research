@@ -16,9 +16,14 @@ A case can go on to run the application it compiles and snapshot what it
 answers: the runs under `request-response/`, each with its own database
 (SQLite, from `db.sql`), signing key (`secret`) and flags (`args`), and the
 requests to send under `interaction/`.  Kept are the responses as `curl -i`
-prints them, what each request changed in the database (`NAME.sql`, from
-the application's `URWEB_DML_LOG`), what the server printed and the
-database it left behind.  The application's clock and random numbers are
+prints them, and beside each what the request changed in the database
+(`NAME.sql`, from the application's `URWEB_DML_LOG`) and what the server
+printed meanwhile (`NAME.stdout`, `NAME.stderr`), each only if there was
+anything; under `out/`, what the application did before the first
+request (`startup.sql`, `startup.stdout`, `startup.stderr`: a `task
+initialize` shows here) and printed after the last (`shutdown.stdout`,
+`shutdown.stderr`), and the database it left behind (`db_final.sql`).
+The application's clock and random numbers are
 pinned through its environment (`URWEB_REPRODUCIBLE_EPOCH`,
 `URWEB_REPRODUCIBLE_PRNG_SEED`; see `src/c/reproducible.c` in the
 compiler's tree), and its heap starts at 256 MiB (`URWEB_MIN_HEAP`), so
@@ -47,7 +52,7 @@ Not there yet:
   whether that happens is the libc's business.  Responses and the database do not show it,
   but what the handler prints with `debug` does: once per attempt.  The
   cure is an allocator that grows the heap in place; until then, such a
-  handler's `out/stdout` is not worth snapshotting.
+  handler's `NAME.stdout` is not worth snapshotting.
 - Requests are sent one after the other.  Sent at the same time they
   would be numbered, and so timed and given their random numbers, in the
   order they happen to arrive; nothing can pin that.  A run's `args`

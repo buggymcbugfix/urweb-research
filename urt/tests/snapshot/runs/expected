@@ -1,20 +1,30 @@
 $ urt snapshot -w runs/stray
 ERROR runs/stray.urt/snapshot/1/request-response/a/cookies.txt does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
-under interaction/; stdout, stderr and db_final.sql under out/
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
+shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/02.response answers no request
 there is no runs/stray.urt/snapshot/1/request-response/a/interaction/02.request; delete the one, or write the other
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql answers no request
 there is no runs/stray.urt/snapshot/1/request-response/a/interaction/03.request; delete the one, or write the other
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/04.stderr answers no request
+there is no runs/stray.urt/snapshot/1/request-response/a/interaction/04.request; delete the one, or write the other
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/notes does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
-under interaction/; stdout, stderr and db_final.sql under out/
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
+shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/log does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
-under interaction/; stdout, stderr and db_final.sql under out/
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
+shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/more does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response and NAME.sql
-under interaction/; stdout, stderr and db_final.sql under out/
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
+shutdown.stderr and db_final.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/out/stdout does not belong in a run
+a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
+shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run
 the name of a run is letters, digits, _ and -, and nothing else
 ERROR runs/stray.urt/snapshot/1/request-response/notes.txt does not belong among the runs
@@ -82,7 +92,7 @@ FAIL runs/good.urt/snapshot/1 (no application for its 1 run)
 exit 1
 $ urt snapshot runs/builds
 UPDATED runs/builds.urt/snapshot/1 (exitcode)
-ERROR the application does not start for runs/builds.urt/snapshot/1/request-response/1
+ERROR the application does not start for runs/builds.urt/snapshot/1/request-response/1: it exited with status 3 before it was listening
 not a server
 1 case and 1 run: 1 updated, in T
 exit 1

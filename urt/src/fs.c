@@ -8,6 +8,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -437,12 +438,13 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
     return 127;
 }
 
-char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int *status) {
-    int fds[2], st;
+char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int seconds, int *status) {
+    int fds[2], st, timed_out = 0, reaped = 0;
     pid_t pid;
     char *text;
     size_t len = 0, cap = 256;
     ssize_t n;
+    long deadline = tenths_now() + seconds * 10L;
 
     fflush(stdout);
     fflush(stderr);
@@ -471,11 +473,25 @@ char *run_fd3(char *const argv[], const char *out_path, const char *err_path, in
     close(fds[1]);
     text = xmalloc(cap);
     for (;;) {
+        struct pollfd pfd = { fds[0], POLLIN, 0 };
+        long left = deadline - tenths_now();
+        int ready;
         if (len + 1 >= cap) {
             char *bigger = xmalloc(cap *= 2);
             memcpy(bigger, text, len);
             free(text);
             text = bigger;
+        }
+        ready = poll(&pfd, 1, left > 0 ? (int) (left * 100) : 0);
+        if (ready < 0 && errno == EINTR && !fs_interrupted) {
+            continue;
+        }
+        if (ready == 0) {
+            timed_out = 1;
+            break;
+        }
+        if (ready < 0) {
+            break;
         }
         n = read(fds[0], text + len, cap - len - 1);
         if (n < 0 && errno == EINTR && !fs_interrupted) {
@@ -488,13 +504,35 @@ char *run_fd3(char *const argv[], const char *out_path, const char *err_path, in
     }
     text[len] = 0;
     close(fds[0]);
-    while (waitpid(pid, &st, 0) < 0) {
+    if (timed_out || fs_interrupted) {
+        /* Our child, so it can be waited for; what it may have forked
+         * cannot, and whoever knows its pid stops it.  It gets a second
+         * to go on SIGTERM, then SIGKILL, which it cannot ignore. */
+        struct timespec nap = { 0, 10 * 1000 * 1000 };
+        int i;
+        kill(pid, SIGTERM);
+        for (i = 0; i < 100; i++) {
+            pid_t w = waitpid(pid, &st, WNOHANG);
+            if (w == pid) {
+                reaped = 1;
+                break;
+            }
+            if (w < 0 && errno != EINTR) {
+                break;
+            }
+            nanosleep(&nap, NULL);
+        }
+        if (!reaped) {
+            kill(pid, SIGKILL);
+        }
+    }
+    while (!reaped && waitpid(pid, &st, 0) < 0) {
         if (errno != EINTR) {
             st = 127 << 8;
             break;
         }
     }
-    *status = WIFEXITED(st) ? WEXITSTATUS(st) : WIFSIGNALED(st) ? 128 + WTERMSIG(st) : 127;
+    *status = timed_out ? -1 : WIFEXITED(st) ? WEXITSTATUS(st) : WIFSIGNALED(st) ? 128 + WTERMSIG(st) : 127;
     return text;
 }
 
@@ -507,7 +545,9 @@ static const char *argv0 = "";
 
 void fs_set_argv0(const char *a) { argv0 = a; }
 
-/* The first executable called name on the PATH, into dst; 0 if none. */
+/* The first program called name on the PATH, into dst; 0 if none.  A
+ * program: a regular file that may be executed, since access(X_OK) is
+ * as true of a directory that may be searched. */
 static int find_on_path(const char *name, char *dst) {
     const char *p = getenv("PATH"), *colon;
     if (!p) {
@@ -518,7 +558,8 @@ static int find_on_path(const char *name, char *dst) {
         if (!colon) {
             colon = p + strlen(p);
         }
-        if (colon > p && snprintf(dst, PATHLEN, "%.*s/%s", (int) (colon - p), p, name) < PATHLEN && can_exec(dst)) {
+        if (colon > p && snprintf(dst, PATHLEN, "%.*s/%s", (int) (colon - p), p, name) < PATHLEN
+            && is_file(dst) && can_exec(dst)) {
             return 1;
         }
         if (!*colon) {
