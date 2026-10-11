@@ -161,6 +161,10 @@ printf "GET /host -H 'X-A: 1\nHost: elsewhere'\n" > 06-host-injected.request
 printf 'GET /fragment#part\n' > 07-fragment.request
 printf 'GET /nameless\n' > .request
 cd "$root"
+# A project whose server is made to fail at the start, by APP_MODE.
+proj runs serves-start
+snap runs/serves-start.urt/snapshot/1 exitcode
+arun runs/serves-start.urt/snapshot/1/request-response/start
 # A request file with CRLF line ends and a continued line.
 proj runs serves-cr
 snap runs/serves-cr.urt/snapshot/1 exitcode
