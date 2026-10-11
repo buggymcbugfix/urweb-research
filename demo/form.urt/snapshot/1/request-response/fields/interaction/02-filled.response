@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 189
+
+<!DOCTYPE html><html><head></head><body>
+<table>
+<tr> <th>A:</th> <td>hello</td> </tr>
+<tr> <th>B:</th> <td>two words</td> </tr>
+<tr> <th>C:</th> <td>True</td> </tr>
+</table>
+</body></html>

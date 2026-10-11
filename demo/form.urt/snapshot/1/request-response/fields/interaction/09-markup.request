@@ -1,0 +1,1 @@
+POST /Form/handler -d 'A=<b>bold<%2Fb>%26amp;' -d 'B="quoted" %26 co'

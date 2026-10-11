@@ -1,0 +1,1 @@
+POST /Form/handler -d 'A=http://host/path' -d 'B=x:y/z'

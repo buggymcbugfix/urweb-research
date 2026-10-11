@@ -1,0 +1,14 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 130
+
+<!DOCTYPE html><html>
+<head>
+<title>C</title>
+</head>
+<body>
+<p>Hello Ada</p>
+<a href="/Nested/pageA">Previous</a>
+</body>
+</html>

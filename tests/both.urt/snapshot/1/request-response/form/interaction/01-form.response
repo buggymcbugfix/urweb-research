@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 167
+
+<!DOCTYPE html><html>
+<head></head><body>
+<form method="post" action="/Both/handler">
+<input type="text" name="Text" />
+<input type="submit" />
+</form>
+</body>
+</html>
