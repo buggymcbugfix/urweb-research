@@ -154,6 +154,83 @@ fun reset () = (identity := 0;
                 distribute := 0;
                 fuse := 0)
 
+(* Row difference c1 -- c2, for hnormCon and reduceCon.  These are the
+ * equations of the row-difference sketch in Featherweight Ur
+ * (urweb-research PR 16, the Eq_Diff_* rules) that need no disjointness,
+ * applied left to right:
+ *
+ *   [] -- c == []                   c -- [] == c
+ *   [n = c1] -- [n = c2] == []      [X1 = c1] -- [X2 = c2] == [X1 = c1]  (X1 <> X2)
+ *   (a ++ b) -- c == (a -- c) ++ (b -- c)
+ *   c -- (a ++ b) == (c -- a) -- b
+ *   c -- map f b == c -- b          map f (a -- b) == map f a -- b  (callers)
+ *
+ * c1 and c2 come normalized by norm, which also normalizes the result and
+ * field names.  A field is taken away when its name is the same as one on
+ * the right, kept when it is a literal different from every literal on
+ * the right, and otherwise left in a difference.  The ninth equation,
+ * c1 -- c2 == c1 for c1 ~ c2, needs the disjointness facts and is not
+ * here.  Literal names are compared exactly. *)
+fun diffCon norm (c1 : con, c2 : con, loc) =
+    let
+        fun sameName (x, y) =
+            case (#1 (norm x), #1 (norm y)) of
+                (CName s1, CName s2) => SOME (s1 = s2)
+              | (CRel n1, CRel n2) => if n1 = n2 then SOME true else NONE
+              | (CNamed n1, CNamed n2) => if n1 = n2 then SOME true else NONE
+              | (CModProj (m1, ms1, x1), CModProj (m2, ms2, x2)) =>
+                if m1 = m2 andalso ms1 = ms2 andalso x1 = x2 then SOME true else NONE
+              | _ => NONE
+
+        fun mapArg c =
+            case #1 c of
+                CApp (m, b) =>
+                (case #1 (norm m) of
+                     CApp (m', _) =>
+                     (case #1 (norm m') of
+                          CMap _ => SOME b
+                        | _ => NONE)
+                   | _ => NONE)
+              | _ => NONE
+    in
+        case (#1 c1, #1 c2) of
+            (CRecord (_, []), _) => c1
+          | (_, CRecord (_, [])) => c1
+          | (_, CConcat (b1, b2)) => norm (CDiff ((CDiff (c1, b1), loc), b2), loc)
+          | (CConcat (a1, a2), _) => norm (CConcat ((CDiff (a1, c2), loc), (CDiff (a2, c2), loc)), loc)
+          | (CRecord (k, xcs), CRecord (_, ycs)) =>
+            let
+                (* SOME true: kept, SOME false: taken away, NONE: not known *)
+                fun fate (x, _) =
+                    let
+                        val ds = map (fn (y, _) => sameName (x, y)) ycs
+                    in
+                        if List.exists (fn d => d = SOME true) ds then
+                            SOME false
+                        else if List.all (fn d => d = SOME false) ds then
+                            SOME true
+                        else
+                            NONE
+                    end
+
+                val fates = map (fn xc => (xc, fate xc)) xcs
+                val kept = List.mapPartial (fn (xc, SOME true) => SOME xc | _ => NONE) fates
+                val unknown = List.mapPartial (fn (xc, NONE) => SOME xc | _ => NONE) fates
+            in
+                if List.null unknown then
+                    (CRecord (k, kept), loc)
+                else if length unknown = length xcs then
+                    (CDiff (c1, c2), loc)
+                else
+                    norm (CConcat ((CRecord (k, kept), loc),
+                                   (CDiff ((CRecord (k, unknown), loc), c2), loc)), loc)
+            end
+          | _ =>
+            case mapArg c2 of
+                SOME b => norm (CDiff (c1, b), loc)
+              | NONE => (CDiff (c1, c2), loc)
+    end
+
 fun hnormCon env (cAll as (c, loc)) =
     case c of
         CUnif (nl, _, _, _, ref (Known c)) => (#1 (hnormCon env (E.mliftConInCon nl c)), loc)
@@ -222,6 +299,7 @@ fun hnormCon env (cAll as (c, loc)) =
                                        (CConcat ((CRecord (k2, [(x, (CApp (f, c), loc))]), loc),
                                                  (CApp (c1, rest''), loc)), loc)
                           end
+                        | CDiff (a, b) => hnormCon env (CDiff ((CApp (c1, a), loc), b), loc)
                         | _ =>
                           let
                               fun unconstraint c =
@@ -317,6 +395,8 @@ fun hnormCon env (cAll as (c, loc)) =
            | (c1', (CRecord (_, []), _)) => c1'
            | (c1', c2') => (CConcat (c1', c2'), loc))
 
+      | CDiff (c1, c2) => diffCon (hnormCon env) (hnormCon env c1, hnormCon env c2, loc)
+
       | CProj (c, n) =>
         (case hnormCon env c of
              (CTuple cs, _) => hnormCon env (List.nth (cs, n - 1))
@@ -382,6 +462,7 @@ fun reduceCon env (cAll as (c, loc)) =
                                            (CConcat ((CRecord (k2, [(x, (CApp (f, c), loc))]), loc),
                                                      (CApp (c1, rest''), loc)), loc)
                              end
+                           | CDiff (a, b) => reduceCon env (CDiff ((CApp (c1, a), loc), b), loc)
                            | _ =>
                              let
                                  fun unconstraint c =
@@ -499,7 +580,7 @@ fun reduceCon env (cAll as (c, loc)) =
               | ((CRecord (k, xcs1), loc), (CConcat ((CRecord (_, xcs2), _), c2'), _)) => (CConcat ((CRecord (k, xcs1 @ xcs2), loc), c2'), loc)
               | _ => (CConcat (c1, c2), loc)
         end
-      | CDiff (c1, c2) => (CDiff (reduceCon env c1, reduceCon env c2), loc)
+      | CDiff (c1, c2) => diffCon (reduceCon env) (reduceCon env c1, reduceCon env c2, loc)
       | CMap _ => cAll
 
       | CUnit => cAll
