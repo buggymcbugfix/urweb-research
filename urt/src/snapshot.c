@@ -118,6 +118,10 @@ static const char usage_text[] =
     "      -b 'visitor=somebody'\n"
     "      -H 'Accept: text/html'\n"
     "\n"
+    "It is sent as it stands, so it says all of it: a path has what it cannot carry\n"
+    "(a blank, a #, a control character) percent-encoded, a header or cookie holds\n"
+    "no line break, and nothing is read from a file (-d @file, -b file, -H @file).\n"
+    "\n"
     "What the server prints for a request goes beside its response, and only if\n"
     "there is any: its own lines about connections and requests are dropped, the\n"
     "program's debug output and the runtime's errors are kept.\n"
@@ -1221,9 +1225,19 @@ static int run_ready(const char *run_dir) {
         char method[32], url_path[PATHLEN], err[256], *text;
         struct strlist options = { 0, 0, 0 };
         pathf(f, "%s/%s.request", interaction, files.v[i]);
+        if (!*files.v[i]) {
+            die_later(fmt("%s has no name", path(f)),
+                      "a request is NAME.request, and NAME is what its answer is filed under", NULL);
+            continue;
+        }
         text = read_text(f);
-        if (!text || parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
-            die_later(fmt("%s: %s", path(f), text ? err : strerror(errno)), NULL);
+        if (!text) {
+            die_later(fmt("%s: %s", path(f), strerror(errno)), NULL);
+        } else if ((long) strlen(text) != file_size(f)) {
+            /* Read as a string, it would end at the NUL and not say so. */
+            die_later(fmt("%s holds a NUL byte", path(f)), "a request is text", NULL);
+        } else if (parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
+            die_later(fmt("%s: %s", path(f), err), NULL);
         }
         free(text);
         sl_free(&options);

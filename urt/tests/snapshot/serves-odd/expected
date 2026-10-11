@@ -1,110 +1,16 @@
 $ urt snapshot runs/serves-odd
-UPDATED runs/serves-odd.urt/snapshot/1 (exitcode)
-UPDATED runs/serves-odd.urt/snapshot/1/request-response/odd (interaction/.response, interaction/01.response, interaction/02-no-method.response, interaction/03-nul.response, interaction/04-host-blank.response, interaction/05-host-indented.response, interaction/06-host-injected.response, interaction/07-fragment.response) curl failed: 02-no-method
-1 case and 1 run: 2 updated, in T
-exit 0
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/.request has no name
+a request is NAME.request, and NAME is what its answer is filed under
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/02-no-method.request: '' is not a method; a request starts with one, as in: GET /Shop/main
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/03-nul.request holds a NUL byte
+a request is text
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/04-host-blank.request: -H 'Host : elsewhere' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/05-host-indented.request: -H ' Host: elsewhere' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/06-host-injected.request: -H 'X-A: 1
+Host: elsewhere' holds a control character; it goes in a header line, which can hold none
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/07-fragment.request: '/fragment#part' cannot be sent as a path: a # starts a fragment, which never leaves the client, and a blank or a control character has to be percent-encoded
+0 cases, in T
+exit 1
 $ cd runs/serves-odd.urt/snapshot/1/request-response/odd && for f in interaction/*.response interaction/.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
-== interaction/01.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 63
-Connection: close
-
-2: GET / HTTP/1.1
-Accept: */*
-Host: localhost
-User-Agent: urt
-
-
-== interaction/02-no-method.response
-curl: option -X: blank argument where content is expected
-curl: try 'curl --help' for more information
-
-== interaction/03-nul.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 66
-Connection: close
-
-3: GET /nul HTTP/1.1
-Accept: */*
-Host: localhost
-User-Agent: urt
-
-
-== interaction/04-host-blank.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 84
-Connection: close
-
-4: GET /host HTTP/1.1
-Accept: */*
-Host : elsewhere
-Host: localhost
-User-Agent: urt
-
-
-== interaction/05-host-indented.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 84
-Connection: close
-
-5: GET /host HTTP/1.1
- Host: elsewhere
-Accept: */*
-Host: localhost
-User-Agent: urt
-
-
-== interaction/06-host-injected.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 90
-Connection: close
-
-6: GET /host HTTP/1.1
-Accept: */*
-Host: localhost
-User-Agent: urt
-X-A: 1
-Host: elsewhere
-
-
-== interaction/07-fragment.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 71
-Connection: close
-
-7: GET /fragment HTTP/1.1
-Accept: */*
-Host: localhost
-User-Agent: urt
-
-
-== interaction/.response
-HTTP/1.1 200 OK
-Content-Type: text/plain
-Content-Length: 71
-Connection: close
-
-1: GET /nameless HTTP/1.1
-Accept: */*
-Host: localhost
-User-Agent: urt
-
-
 exit 0
 $ changes
-added (4531 bytes): ./runs/serves-odd.urt/snapshot/1/app.exe
-changed (2 bytes): ./runs/serves-odd.urt/snapshot/1/expected/exitcode
-added (155 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/.response
-added (147 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/01.response
-added (103 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/02-no-method.response
-added (150 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/03-nul.response
-added (168 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/04-host-blank.response
-added (168 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/05-host-indented.response
-added (174 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/06-host-injected.response
-added (155 bytes): ./runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/07-fragment.response

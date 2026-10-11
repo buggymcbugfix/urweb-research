@@ -26,7 +26,10 @@
  * takes the next character as it is.  Nothing is expanded, and curl's
  * own escapes from the command line (-d @file, -b file, -H @file) are
  * refused: a request says what is sent, all of it.  So are the headers
- * urt sets for every request, Host and User-Agent.
+ * urt sets for every request, Host and User-Agent, under any spelling
+ * of the name; a header or cookie with a control character in it, which
+ * could not go in one header line; and a path with a blank, a control
+ * character or a # in it, since curl would send something else.
  *
  * 0, with the method, the path and the options as curl takes them
  * ("-d", "name=kettle", ...); or -1 with the complaint in err. */

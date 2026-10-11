@@ -83,6 +83,33 @@ static int fixed_header(const char *v, size_t n) {
     return 1;
 }
 
+/* The name of the header v, NAME: VALUE or NAME; with the blanks around
+ * it dropped: its start into *name and its length returned, 0 for none. */
+static size_t header_name(const char *v, const char **name) {
+    size_t n = strcspn(v, ":;");
+    const char *s = v, *e = v + n;
+
+    while (s < e && (*s == ' ' || *s == '\t')) {
+        s++;
+    }
+    while (e > s && (e[-1] == ' ' || e[-1] == '\t')) {
+        e--;
+    }
+    *name = s;
+    return v[n] ? (size_t) (e - s) : 0;
+}
+
+/* Whether s holds a byte that cannot go in a header line, or a path:
+ * a control character, CR and LF among them. */
+static int has_control(const char *s) {
+    for (; *s; s++) {
+        if ((unsigned char) *s < 0x20 || *s == 0x7f) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int parse_request(const char *text, char *method, size_t method_size, char *url_path, size_t path_size,
                   struct strlist *options, char *err, size_t err_size) {
     struct strlist words = { 0, 0, 0 };
@@ -95,12 +122,18 @@ int parse_request(const char *text, char *method, size_t method_size, char *url_
         snprintf(err, err_size, "expected a method and a path, as in: GET /Shop/main");
         goto out;
     }
-    if (strspn(words.v[0], "ABCDEFGHIJKLMNOPQRSTUVWXYZ") != strlen(words.v[0]) || strlen(words.v[0]) >= method_size) {
+    if (!*words.v[0] || strspn(words.v[0], "ABCDEFGHIJKLMNOPQRSTUVWXYZ") != strlen(words.v[0])
+        || strlen(words.v[0]) >= method_size) {
         snprintf(err, err_size, "'%s' is not a method; a request starts with one, as in: GET /Shop/main", words.v[0]);
         goto out;
     }
     if (words.v[1][0] != '/' || strlen(words.v[1]) >= path_size) {
         snprintf(err, err_size, "'%s' is not a path; the method is followed by one, starting with /", words.v[1]);
+        goto out;
+    }
+    if (strchr(words.v[1], '#') || strchr(words.v[1], ' ') || has_control(words.v[1])) {
+        snprintf(err, err_size, "'%s' cannot be sent as a path: a # starts a fragment, which never leaves the client,"
+                 " and a blank or a control character has to be percent-encoded", words.v[1]);
         goto out;
     }
     snprintf(method, method_size, "%s", words.v[0]);
@@ -127,19 +160,25 @@ int parse_request(const char *text, char *method, size_t method_size, char *url_
             snprintf(err, err_size, "-b '%s' would read a file; a cookie is NAME=VALUE", v);
             goto out;
         }
+        if ((is_cookie || is_header) && has_control(v)) {
+            snprintf(err, err_size, "%s '%s' holds a control character; it goes in a header line, which can hold none",
+                     o, v);
+            goto out;
+        }
         if (is_header) {
             /* curl takes NAME: VALUE, NAME; for an empty value, NAME: for
              * none of curl's own, and @FILE for a file of them. */
-            size_t n = strcspn(v, ":;");
+            const char *name;
+            size_t n = header_name(v, &name);
             if (v[0] == '@') {
                 snprintf(err, err_size, "-H '%s' would read a file; write out the headers to be sent", v);
                 goto out;
             }
-            if (n == 0 || !v[n]) {
+            if (n == 0 || memchr(name, ' ', n) || memchr(name, '\t', n)) {
                 snprintf(err, err_size, "-H '%s' is not a header; a header is NAME: VALUE", v);
                 goto out;
             }
-            if (!fixed_header(v, n)) {
+            if (!fixed_header(name, n)) {
                 snprintf(err, err_size, "-H '%s' would change what urt sends with every request: the host is localhost, the user agent is urt", v);
                 goto out;
             }

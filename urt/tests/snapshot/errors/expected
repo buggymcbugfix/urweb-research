@@ -109,6 +109,10 @@ A request is a method, a path, and then fields (-d), cookies (-b) and headers
       -b 'visitor=somebody'
       -H 'Accept: text/html'
 
+It is sent as it stands, so it says all of it: a path has what it cannot carry
+(a blank, a #, a control character) percent-encoded, a header or cookie holds
+no line break, and nothing is read from a file (-d @file, -b file, -H @file).
+
 What the server prints for a request goes beside its response, and only if
 there is any: its own lines about connections and requests are dropped, the
 program's debug output and the runtime's errors are kept.
