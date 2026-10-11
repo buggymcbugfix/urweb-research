@@ -33,11 +33,21 @@ the key the application signs with: any 16 bytes or more, such as the line 'secr
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/01.request: 'get' is not a method; a request starts with one, as in: GET /Shop/main
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/02.request: expected a method and a path, as in: GET /Shop/main
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/03.request: 'main' is not a path; the method is followed by one, starting with /
-ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/04.request: '-H' is not taken here; the options are -d (--data) and -b (--cookie)
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/04.request: '-X' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/05.request: -d lacks its value
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/06.request: -d '@body' would send a file; write out what is to be sent
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/07.request: -b 'cookies.txt' would read a file; a cookie is NAME=VALUE
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/08.request: a ' is never closed
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/09.request: -H '@headers' would read a file; write out the headers to be sent
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/10.request: -H 'Accept' is not a header; a header is NAME: VALUE
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/11.request: -H 'host: elsewhere' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/12.request: -H 'User-Agent: me' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/14.request: -H 'Host:' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/15.request: -H 'User-Agent;' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/16.request: expected a method and a path, as in: GET /Shop/main
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/17.request: '#' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/18.request: 'extra' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/19.request: a " is never closed
 ERROR runs/unready.urt/snapshot/1/request-response/dashes/args ends the options with --
 the flags urt adds after a run's args -- the address, the port range and -d3, for the
 handshake -- would be ignored, and the server would listen where it likes and never say so

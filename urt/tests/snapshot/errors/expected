@@ -95,13 +95,18 @@ requests, one after the other in the order of their names:
                       |-- stderr
                       `-- db_final.sql    the database it left behind
 
-A request is a method, a path, and then fields (-d) and cookies (-b) in curl's
-spelling, quoted as for a shell; nothing else is taken:
+A request is a method, a path, and then fields (-d), cookies (-b) and headers
+(-H) in curl's spelling, quoted as for a shell; nothing else is taken:
 
   POST /Shop/add
       -d 'name=kettle'
       -d 'price=12'
       -b 'visitor=somebody'
+      -H 'Accept: text/html'
+
+It is sent as it stands, so it says all of it: a path has what it cannot carry
+(a blank, a #, a control character) percent-encoded, a header or cookie holds
+no line break, and nothing is read from a file (-d @file, -b file, -H @file).
 
 Runs share nothing.  Each has its own database -- SQLite, so the case's args
 need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows

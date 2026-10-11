@@ -51,6 +51,7 @@ int has_prefix(const char *s, const char *prefix);
 int is_file(const char *p);    /* a regular file, symlinks followed, like test -f */
 int is_dir(const char *p);     /* a directory, symlinks followed, like test -d */
 int exists(const char *p);     /* like test -e */
+long file_size(const char *p); /* in bytes, or -1 */
 int can_exec(const char *p);   /* like test -x */
 
 /* The whole file, NUL-terminated, malloc'd; NULL when it cannot be read. */
