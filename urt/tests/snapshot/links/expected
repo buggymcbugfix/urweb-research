@@ -3,15 +3,12 @@ exit 0
 $ ln -s ../../../../../../../hello.ur runs/good.urt/snapshot/1/request-response/first/interaction/03-linked.request
 exit 0
 $ urt snapshot -w runs/good
-
-FAIL runs/good.urt/snapshot/1 (exitcode; no application for its 1 run)
-    --- runs/good.urt/snapshot/1/expected/exitcode
-    +++ runs/good.urt/snapshot/1/expected/exitcode (now)
-    @@ -0,0 +1 @@
-    +0
-    (it said nothing)
-
-1 case: 1 failed, in T
+ERROR runs/good.urt/snapshot/1/request-response/first/interaction/03-linked.request is a symbolic link
+a snapshot is plain files and directories; nothing in it is read through a link
+copy what it points at into its place, or delete it
+ERROR runs/good.urt/snapshot/1/request-response/second is a symbolic link
+a snapshot is plain files and directories; nothing in it is read through a link
+copy what it points at into its place, or delete it
+0 cases, in T
 exit 1
 $ changes
-removed: ./runs/good.urt/snapshot/1/app.exe

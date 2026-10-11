@@ -508,6 +508,15 @@ static int layout(const char *urt_dir, const char *snap) {
             continue; /* under something already refused */
         }
         join(e, snap, rel);
+        /* A link is judged by what it points at, and then listed as
+         * neither file nor directory, so a linked run or request would
+         * pass and be left out without a word. */
+        if (is_link(e)) {
+            die_later(fmt("%s is a symbolic link", path(e)),
+                      "a snapshot is plain files and directories; nothing in it is read through a link",
+                      "copy what it points at into its place, or delete it", NULL);
+            continue;
+        }
         if ((rr = strstr(rel, "/request-response")) && rr == strchr(rel, '/') && (!rr[17] || rr[17] == '/')) {
             if (layout_run(e, rr + 17)) {
                 pathf(skip, "%s/", rel);

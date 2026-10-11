@@ -139,6 +139,7 @@ int has_prefix(const char *s, const char *prefix) {
 int is_file(const char *p) { struct stat st; return stat(p, &st) == 0 && S_ISREG(st.st_mode); }
 int is_dir(const char *p)  { struct stat st; return stat(p, &st) == 0 && S_ISDIR(st.st_mode); }
 int exists(const char *p)  { struct stat st; return lstat(p, &st) == 0 || stat(p, &st) == 0; }
+int is_link(const char *p) { struct stat st; return lstat(p, &st) == 0 && S_ISLNK(st.st_mode); }
 int can_exec(const char *p) { return access(p, X_OK) == 0; }
 
 char *read_text(const char *p) {
