@@ -3,7 +3,7 @@
 # The checks of the toolbox, in groups:
 #
 #   snapshot     `urt snapshot` on a fixture tree with a stand-in compiler
-#                and a stand-in server (needs python3)
+#                and a stand-in server (needs python3, curl and sqlite3)
 #   pty          the same on a pseudo-terminal
 #   fmt          `urt format` on the cases under tests/format
 #   fmt-demo     `urt format` on the programs under demo/, which are linked
@@ -177,6 +177,9 @@ transcript() {
 
 group_snapshot() {
     command -v python3 > /dev/null 2>&1 || { echo "$me: the snapshot cases need python3, for the stand-in server" >&2; exit 2; }
+    for p in curl sqlite3; do
+        command -v $p > /dev/null 2>&1 || { echo "$me: the snapshot cases need $p, for the runs" >&2; exit 2; }
+    done
     for d in "$fixture"/*; do
         name=${d#"$here/tests/"}
         case ${d##*/} in
