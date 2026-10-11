@@ -122,7 +122,7 @@ int make_tmpdir(char *dst);
 /* Wall-clock time in tenths of a second, from some fixed point. */
 long tenths_now(void);
 
-/* s split at spaces, tabs and newlines, empties dropped: the shell's word
+/* s split at spaces, tabs, CRs and newlines, empties dropped: the shell's word
  * splitting of an unquoted variable. */
 void split_words(const char *s, struct strlist *out);
 

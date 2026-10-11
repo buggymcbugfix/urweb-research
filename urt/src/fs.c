@@ -578,7 +578,7 @@ long tenths_now(void) {
 
 void split_words(const char *s, struct strlist *out) {
     char *copy = xstrdup(s), *tok, *save = NULL;
-    for (tok = strtok_r(copy, " \t\n", &save); tok; tok = strtok_r(NULL, " \t\n", &save)) {
+    for (tok = strtok_r(copy, " \t\r\n", &save); tok; tok = strtok_r(NULL, " \t\r\n", &save)) {
         sl_push(out, tok);
     }
     free(copy);
