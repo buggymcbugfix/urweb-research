@@ -1,0 +1,5 @@
+mkdir -p hello.urt/snapshot/2147483647/expected
+: > hello.urt/snapshot/2147483647/expected/exitcode
+urt snapshot -c hello
+mkdir -p runs/good.urt/snapshot/1/request-response/9223372036854775807/interaction
+urt snapshot --create-run runs/good

@@ -1,0 +1,3 @@
+ln -s first runs/good.urt/snapshot/1/request-response/second
+ln -s ../../../../../../../hello.ur runs/good.urt/snapshot/1/request-response/first/interaction/03-linked.request
+urt snapshot -w runs/good

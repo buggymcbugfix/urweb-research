@@ -28,7 +28,7 @@ delete it first if you meant to start again
 exit 2
 $ urt snapshot -c shop a.b
 ERROR 'a.b' cannot name a case
-a case name is letters, digits, _ and -, and nothing else
+a case name is letters, digits, _ and -, and nothing else, not starting with -
 exit 2
 $ urt snapshot -c shop expected
 ERROR 'expected' cannot name a case

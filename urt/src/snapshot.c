@@ -16,6 +16,7 @@
 #define _XOPEN_SOURCE 700
 #define _DARWIN_C_SOURCE
 #include <errno.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -314,9 +315,10 @@ static void find_compiler(const char *named) {
     split_words(flags ? flags : "-boot -noEmacs", &urweb_flags);
 }
 
-/* A case name is letters, digits, _ and -, and nothing else. */
+/* A case name is letters, digits, _ and -, and nothing else, and does not
+ * start with -: on a command line that would be an option. */
 static int valid_case_name(const char *s) {
-    if (!*s) {
+    if (!*s || *s == '-') {
         return 0;
     }
     for (; *s; s++) {
@@ -432,7 +434,7 @@ static int layout_run(const char *e, const char *rest) {
                       "beside the run directories there can be a README.md, nothing else", NULL);
         } else if (!valid_case_name(part[0])) {
             die_later(fmt("%s is not a name for a run", path(e)),
-                      "the name of a run is letters, digits, _ and -, and nothing else", NULL);
+                      "the name of a run is letters, digits, _ and -, and nothing else, not starting with -", NULL);
             return 1;
         }
     } else if (n == 2 && (!strcmp(part[1], "args") || !strcmp(part[1], "secret") || !strcmp(part[1], "db.sql"))) {
@@ -482,9 +484,9 @@ static int layout_run(const char *e, const char *rest) {
  * it holds, and a stray one is reported once, by its own name.  Returns 1
  * if all is well; the snapshot is left alone otherwise. */
 static int layout(const char *urt_dir, const char *snap) {
-    struct strlist tree = { 0, 0, 0 };
-    char e[PATHLEN], skip[PATHLEN] = "";
-    int before = report_problems, i;
+    struct strlist tree = { 0, 0, 0 }, refused = { 0, 0, 0 };
+    char e[PATHLEN];
+    int before = report_problems, i, j;
 
     list_dir(urt_dir, LS_ALL, &tree);
     for (i = 0; i < tree.n; i++) {
@@ -509,13 +511,25 @@ static int layout(const char *urt_dir, const char *snap) {
     walk(snap, &tree);
     for (i = 0; i < tree.n; i++) {
         const char *rel = tree.v[i], *rr;
-        if (*skip && has_prefix(rel, skip)) {
+        for (j = 0; j < refused.n && !has_prefix(rel, refused.v[j]); j++) {
+            ;
+        }
+        if (j < refused.n) {
             continue; /* under something already refused */
         }
         join(e, snap, rel);
+        /* A link is judged by what it points at, and then listed as
+         * neither file nor directory, so a linked run or request would
+         * pass and be left out without a word. */
+        if (is_link(e)) {
+            die_later(fmt("%s is a symbolic link", path(e)),
+                      "a snapshot is plain files and directories; nothing in it is read through a link",
+                      "copy what it points at into its place, or delete it", NULL);
+            continue;
+        }
         if ((rr = strstr(rel, "/request-response")) && rr == strchr(rel, '/') && (!rr[17] || rr[17] == '/')) {
             if (layout_run(e, rr + 17)) {
-                pathf(skip, "%s/", rel);
+                sl_push(&refused, fmt("%s/", rel));
             }
         } else if (!strcmp(rel, "README.md") || has_suffix(rel, "/README.md") || has_suffix(rel, "/args")) {
             if (!is_file(e)) {
@@ -543,18 +557,19 @@ static int layout(const char *urt_dir, const char *snap) {
             die_later(fmt("%s is not in a case", path(e)),
                       "every snapshot is a named case now: move args and expected/ into one",
                       fmt("such as %s", path(fmt("%s/1", snap))), NULL);
-            pathf(skip, "%s/", rel);
+            sl_push(&refused, fmt("%s/", rel));
         } else if (!is_dir(e)) {
             die_later(fmt("%s does not belong in a snapshot", path(e)),
                       "beside the case directories there can be a README.md, nothing else",
                       "delete it, or move it where it goes", NULL);
         } else if (!valid_case_name(rel)) {
             die(fmt("%s is not a case name", path(e)),
-                "a case name is letters, digits, _ and -, and nothing else",
+                "a case name is letters, digits, _ and -, and nothing else, not starting with -",
                 "rename it", NULL);
         }
     }
     sl_free(&tree);
+    sl_free(&refused);
     return report_problems == before;
 }
 
@@ -2072,20 +2087,29 @@ static void only_project_here(char *project) {
     strcpy(project, found);
 }
 
-/* The next number for a case: one more than the highest of the cases
- * that are numbers, or 1. */
-static int next_number(const char *snap) {
+/* The next number for a case (or a run) under snap: one more than the
+ * highest of the names there that are numbers, or 1.  A name that is a
+ * number too large for a long is not counted as one; the largest long is
+ * refused as a name. */
+static long next_number(const char *snap) {
     struct strlist names = { 0, 0, 0 };
-    int i, highest = 0;
+    long highest = 0;
+    int i;
     list_dir(snap, LS_DIRS, &names);
     for (i = 0; i < names.n; i++) {
         char *end;
-        long n = strtol(names.v[i], &end, 10);
-        if (*names.v[i] && !*end && n > highest) {
-            highest = (int) n;
+        long n;
+        errno = 0;
+        n = strtol(names.v[i], &end, 10);
+        if (*names.v[i] && !*end && errno == 0 && n > highest) {
+            highest = n;
         }
     }
     sl_free(&names);
+    if (highest == LONG_MAX) {
+        die(fmt("%s is in the way of the next number", path(fmt("%s/%ld", snap, highest))),
+            "there is no number after it: name the new one", NULL);
+    }
     return highest + 1;
 }
 
@@ -2131,7 +2155,7 @@ static int create(int argc, char **argv) {
     }
 
     if (argc == 0) {
-        pathf(d, "%s/%d", snap, next_number(snap));
+        pathf(d, "%s/%ld", snap, next_number(snap));
         sl_push(&cases, d);
     } else {
         for (i = 0; i < argc; i++) {
@@ -2140,7 +2164,7 @@ static int create(int argc, char **argv) {
             strip_suffix(c, "/");
             if (!valid_case_name(c)) {
                 die(fmt("'%s' cannot name a case", c),
-                    "a case name is letters, digits, _ and -, and nothing else", NULL);
+                    "a case name is letters, digits, _ and -, and nothing else, not starting with -", NULL);
             }
             if (!strcmp(c, "expected") || !strcmp(c, "args") || !strcmp(c, "README.md")) {
                 die(fmt("'%s' cannot name a case", c),
@@ -2418,7 +2442,7 @@ static int create_run(int argc, char **argv) {
         die(fmt("%s is in the way, and it is not a directory", path(rr)), NULL);
     }
     if (argc <= 1) {
-        pathf(d, "%s/%d", rr, next_number(rr));
+        pathf(d, "%s/%ld", rr, next_number(rr));
         sl_push(&runs, d);
     }
     for (i = 1; i < argc; i++) {
@@ -2426,7 +2450,7 @@ static int create_run(int argc, char **argv) {
         snprintf(r, sizeof r, "%s", argv[i]);
         strip_suffix(r, "/");
         if (!valid_case_name(r) || !strcmp(r, "README.md")) {
-            die(fmt("'%s' cannot name a run", r), "the name of a run is letters, digits, _ and -, and nothing else", NULL);
+            die(fmt("'%s' cannot name a run", r), "the name of a run is letters, digits, _ and -, and nothing else, not starting with -", NULL);
         }
         join(d, rr, r);
         if (exists(d)) {
