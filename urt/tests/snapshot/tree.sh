@@ -145,9 +145,12 @@ printf 'GET /a-b\n' > 06.request
 printf 'GET /a\n' > 06-a.request
 printf 'GET /quiet\n' > 07-quiet.request
 printf 'GET /a/../b\n' > 08-dotdot.request
+printf 'POST /backslash -d x\\' > 09-backslash.request
 cd "$root"
 arun runs/serves.urt/snapshot/1/request-response/crlf-args
 printf -- '-q\r\n' > runs/serves.urt/snapshot/1/request-response/crlf-args/args
+# A second run, to show that runs share nothing: its server counts from one.
+arun runs/serves.urt/snapshot/1/request-response/second
 # Requests the parser should not let through, each sent as it stands.
 proj runs serves-odd
 snap runs/serves-odd.urt/snapshot/1 exitcode
@@ -206,6 +209,12 @@ printf 'GET /main -H Accept\n' > 10.request
 printf 'GET /main -H "host: elsewhere"\n' > 11.request
 printf 'GET /main -H "User-Agent: me"\n' > 12.request
 printf 'GET /main -H "Accept: text/plain" -H "If-Modified-Since: Thu, 01 Jan 1970 00:00:00 GMT"\n' > 13.request
+printf 'GET /main -H "Host:"\n' > 14.request
+printf "GET /main -H 'User-Agent;'\n" > 15.request
+: > 16.request
+printf 'GET /main # not a comment\n' > 17.request
+printf 'GET /main -d a=1 extra\n' > 18.request
+printf 'GET /main -d "a=1' > 19.request
 cd "$root"
 arun runs/unready.urt/snapshot/1/request-response/threads
 printf -- '-t 4\n' > runs/unready.urt/snapshot/1/request-response/threads/args

@@ -52,6 +52,12 @@ ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/09.request: -H 
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/10.request: -H 'Accept' is not a header; a header is NAME: VALUE
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/11.request: -H 'host: elsewhere' would change what urt sends with every request: the host is localhost, the user agent is urt
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/12.request: -H 'User-Agent: me' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/14.request: -H 'Host:' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/15.request: -H 'User-Agent;' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/16.request: expected a method and a path, as in: GET /Shop/main
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/17.request: '#' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/18.request: 'extra' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)
+ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/19.request: a " is never closed
 ERROR runs/unready.urt/snapshot/1/request-response/threads/args asks for threads, with -t
 a run's requests are sent one after the other, so one thread serves them all;
 with more, which one answers is a matter of chance, and the server's output with it

@@ -1,1 +1,2 @@
 APP_MODE=partial
+APP_PIDFILE=$TMPDIR/app.pid

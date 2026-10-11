@@ -82,6 +82,19 @@ sys.stdout.write("Starting the Ur/Web native HTTP server, which is intended for 
                  "behind a production-quality HTTP server, for a real deployment.\n\n")
 sys.stdout.flush()
 
+# The pid file is written by the process that serves, and removed by it
+# when it is stopped; the handler is set before the fork, so that no
+# SIGTERM arrives between the writing and the setting.
+pidfile = os.environ.get("APP_PIDFILE")
+if pidfile:
+    def stopped(*args):
+        try:
+            os.unlink(pidfile)
+        except OSError:
+            pass
+        os._exit(0)
+    signal.signal(signal.SIGTERM, stopped)
+
 if fd >= 0:
     child = os.fork()
     if child > 0:
@@ -94,16 +107,11 @@ if fd >= 0:
         os.close(fd)
         os._exit(0)
     os.close(fd)
+if pidfile:
+    with open(pidfile, "w") as f:
+        f.write("%d\n" % os.getpid())
 sys.stdout.write("Listening on port %d....\n" % p)
 sys.stdout.flush()
-if os.environ.get("APP_PIDFILE"):
-    with open(os.environ["APP_PIDFILE"], "w") as f:
-        f.write("%d\n" % os.getpid())
-
-    def stopped(*args):
-        os.unlink(os.environ["APP_PIDFILE"])
-        os._exit(0)
-    signal.signal(signal.SIGTERM, stopped)
 
 served = 0
 while True:

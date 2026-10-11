@@ -3,6 +3,9 @@ UPDATED runs/serves-start.urt/snapshot/1 (exitcode)
 ERROR the application does not start for runs/serves-start.urt/snapshot/1/request-response/start: it exited as if listening, but its handshake says status='FAIL', not 'OK'
 1 case and 1 run: 1 updated, in T
 exit 1
+$ [ ! -f "$TMPDIR/app.pid" ] && echo "no server left"
+no server left
+exit 0
 $ changes
 added: ./runs/serves-start.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-start.urt/snapshot/1/expected/exitcode

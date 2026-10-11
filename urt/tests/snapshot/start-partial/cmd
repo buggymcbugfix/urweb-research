@@ -1,1 +1,2 @@
 urt snapshot runs/serves-start
+[ ! -f "$TMPDIR/app.pid" ] && echo "no server left"

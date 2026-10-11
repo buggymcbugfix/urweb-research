@@ -1,14 +1,16 @@
 $ urt snapshot runs/serves
 UPDATED runs/serves.urt/snapshot/1 (exitcode)
 UPDATED runs/serves.urt/snapshot/1/request-response/crlf-args (interaction/01.response)
-UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, interaction/08-dotdot.response, out/db_final.sql) curl failed: 07-quiet
-1 case and 2 runs: 3 updated, in T
+UPDATED runs/serves.urt/snapshot/1/request-response/second (interaction/01.response)
+UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, interaction/08-dotdot.response, interaction/09-backslash.response, out/db_final.sql) curl failed: 07-quiet
+1 case and 3 runs: 4 updated, in T
 exit 0
 $ urt snapshot -w runs/serves
 OK runs/serves.urt/snapshot/1
 OK runs/serves.urt/snapshot/1/request-response/crlf-args
+OK runs/serves.urt/snapshot/1/request-response/second
 OK runs/serves.urt/snapshot/1/request-response/talk curl failed: 07-quiet
-1 case and 2 runs: 3 ok, in T
+1 case and 3 runs: 4 ok, in T
 exit 0
 $ cd runs/serves.urt/snapshot/1/request-response/talk && for f in interaction/*.response interaction/*.stdout interaction/*.stderr interaction/*.sql out/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done
 == interaction/01.response
@@ -113,6 +115,20 @@ Host: localhost
 User-Agent: urt
 
 
+== interaction/09-backslash.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 142
+Connection: close
+
+10: POST /backslash HTTP/1.1
+Accept: */*
+Content-Length: 2
+Content-Type: application/x-www-form-urlencoded
+Host: localhost
+User-Agent: urt
+
+x\
 == interaction/03-debug.stdout
 debug: a line from the handler
 
@@ -129,20 +145,100 @@ CREATE TABLE t (id INTEGER);
 COMMIT;
 
 exit 0
+$ tr -d '\r' < runs/serves.urt/snapshot/1/request-response/second/interaction/01.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 63
+Connection: close
+
+1: GET / HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+exit 0
+$ printf 'GET /other\n' > runs/serves.urt/snapshot/1/request-response/talk/interaction/01.request
+exit 0
+$ o=$(mktemp); s=0; urt snapshot -w runs/serves > "$o" 2>&1 || s=$?; tr -d '\r' < "$o" | sed 's/ *$//'; rm -f "$o"; exit $s
+OK runs/serves.urt/snapshot/1
+OK runs/serves.urt/snapshot/1/request-response/crlf-args
+OK runs/serves.urt/snapshot/1/request-response/second
+
+FAIL runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response) curl failed: 07-quiet
+    --- runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response
+    +++ runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response (now)
+    @@ -1,9 +1,9 @@
+     HTTP/1.1 200 OK
+     Content-Type: text/plain
+    -Content-Length: 63
+    +Content-Length: 68
+     Connection: close
+
+    -1: GET / HTTP/1.1
+    +1: GET /other HTTP/1.1
+     Accept: */*
+     Host: localhost
+     User-Agent: urt
+
+1 case and 3 runs: 3 ok, 1 failed, in T
+exit 1
+$ urt snapshot runs/serves
+OK runs/serves.urt/snapshot/1
+OK runs/serves.urt/snapshot/1/request-response/crlf-args
+OK runs/serves.urt/snapshot/1/request-response/second
+UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response) curl failed: 07-quiet
+1 case and 3 runs: 3 ok, 1 updated, in T
+exit 0
+$ urt snapshot -w runs/serves
+OK runs/serves.urt/snapshot/1
+OK runs/serves.urt/snapshot/1/request-response/crlf-args
+OK runs/serves.urt/snapshot/1/request-response/second
+OK runs/serves.urt/snapshot/1/request-response/talk curl failed: 07-quiet
+1 case and 3 runs: 4 ok, in T
+exit 0
+$ printf 'GET /main\n' > runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.request
+exit 0
+$ urt snapshot runs/serves
+OK runs/serves.urt/snapshot/1
+OK runs/serves.urt/snapshot/1/request-response/crlf-args
+OK runs/serves.urt/snapshot/1/request-response/second
+UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/05-dml.response, -interaction/05-dml.sql) curl failed: 07-quiet
+1 case and 3 runs: 3 ok, 1 updated, in T
+exit 0
+$ urt snapshot -w runs/serves
+OK runs/serves.urt/snapshot/1
+OK runs/serves.urt/snapshot/1/request-response/crlf-args
+OK runs/serves.urt/snapshot/1/request-response/second
+OK runs/serves.urt/snapshot/1/request-response/talk curl failed: 07-quiet
+1 case and 3 runs: 4 ok, in T
+exit 0
+$ rm runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request
+exit 0
+$ urt snapshot -w runs/serves
+ERROR runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.response answers no request
+there is no runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request; delete the one, or write the other
+ERROR runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.stderr answers no request
+there is no runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request; delete the one, or write the other
+0 cases, in T
+exit 1
 $ changes
 added: ./runs/serves.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves.urt/snapshot/1/expected/exitcode
 added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/crlf-args/interaction/01.response
-added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response
+added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/second/interaction/01.response
+changed (11 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.request
+added (152 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response
 added (270 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/02-fields.response
 added (152 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/03-debug.response
 added (31 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/03-debug.stdout
+removed: ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request
 added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.response
 added (32 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.stderr
-added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.response
-added (26 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.sql
+changed (10 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.request
+added (151 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.response
 added (148 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06-a.response
 added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06.response
 added (35 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/07-quiet.response
 added (153 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/08-dotdot.response
+added (227 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/09-backslash.response
 added (81 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/out/db_final.sql

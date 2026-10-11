@@ -1,1 +1,2 @@
 APP_MODE=exit1
+APP_PIDFILE=$TMPDIR/app.pid

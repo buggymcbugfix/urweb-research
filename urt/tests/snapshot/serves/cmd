@@ -1,3 +1,13 @@
 urt snapshot runs/serves
 urt snapshot -w runs/serves
 cd runs/serves.urt/snapshot/1/request-response/talk && for f in interaction/*.response interaction/*.stdout interaction/*.stderr interaction/*.sql out/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done
+tr -d '\r' < runs/serves.urt/snapshot/1/request-response/second/interaction/01.response
+printf 'GET /other\n' > runs/serves.urt/snapshot/1/request-response/talk/interaction/01.request
+o=$(mktemp); s=0; urt snapshot -w runs/serves > "$o" 2>&1 || s=$?; tr -d '\r' < "$o" | sed 's/ *$//'; rm -f "$o"; exit $s
+urt snapshot runs/serves
+urt snapshot -w runs/serves
+printf 'GET /main\n' > runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.request
+urt snapshot runs/serves
+urt snapshot -w runs/serves
+rm runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request
+urt snapshot -w runs/serves
