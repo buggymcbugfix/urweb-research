@@ -97,8 +97,11 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
 /* The same as run(), for a program that reports on descriptor 3, as a
  * server started with -d3 does: what it and its offspring wrote there,
  * malloc'd, once all of them have closed it and the program itself has
- * exited, with its status in *status; NULL if it could not be started. */
-char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int *status);
+ * exited, with its status in *status; NULL if it could not be started.
+ * If the descriptor is not closed within the seconds given, what was
+ * written so far comes back with *status = -1, and the program has
+ * been killed (its offspring, if it has any by then, has not). */
+char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int seconds, int *status);
 
 /* Whether the PATH has a program of that name. */
 int on_path(const char *name);

@@ -198,6 +198,11 @@ out:
 
 /* --------------------------------------------------------------- servers */
 
+/* How long a server gets to say it is listening.  The real one has its
+ * database to open and its initialize task to run first; a hung one
+ * would otherwise hang the run for good. */
+#define START_SECONDS 10
+
 /* The value of NAME= in the handshake a server writes to descriptor 3
  * (pid=..., port=..., status='OK', a line each), or NULL. */
 static const char *handshake_value(const char *text, const char *name) {
@@ -241,7 +246,7 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
         sl_push(&argv, ours[i]);
     }
     command = sl_argv(&argv);
-    said = run_fd3(command, out_path, err_path, &status);
+    said = run_fd3(command, out_path, err_path, START_SECONDS, &status);
     free(command);
     sl_free(&argv);
     if (!said) {
@@ -257,7 +262,9 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
     v = handshake_value(said, "status");
     /* The one that stays in the foreground exits 0 once the other is
      * listening, after saying which process and port that is. */
-    if (status >= 128) {
+    if (status < 0) {
+        snprintf(why, why_size, "it did not say it was listening within %d seconds", START_SECONDS);
+    } else if (status >= 128) {
         snprintf(why, why_size, "it was killed by signal %d before it was listening", status - 128);
     } else if (status != 0) {
         snprintf(why, why_size, "it exited with status %d before it was listening", status);
