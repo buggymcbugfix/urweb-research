@@ -1,0 +1,2 @@
+urt snapshot runs/serves-cr
+cd runs/serves-cr.urt/snapshot/1/request-response/continued && for f in interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done

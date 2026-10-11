@@ -1,0 +1,2 @@
+APP_MODE=hang
+APP_PIDFILE=$TMPDIR/app.pid

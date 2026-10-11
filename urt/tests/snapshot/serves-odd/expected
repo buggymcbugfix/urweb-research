@@ -1,0 +1,16 @@
+$ urt snapshot runs/serves-odd
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/.request has no name
+a request is NAME.request, and NAME is what its answer is filed under
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/02-no-method.request: '' is not a method; a request starts with one, as in: GET /Shop/main
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/03-nul.request holds a NUL byte
+a request is text
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/04-host-blank.request: -H 'Host : elsewhere' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/05-host-indented.request: -H ' Host: elsewhere' would change what urt sends with every request: the host is localhost, the user agent is urt
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/06-host-injected.request: -H 'X-A: 1
+Host: elsewhere' holds a control character; it goes in a header line, which can hold none
+ERROR runs/serves-odd.urt/snapshot/1/request-response/odd/interaction/07-fragment.request: '/fragment#part' cannot be sent as a path: a # starts a fragment, which never leaves the client, and a blank or a control character has to be percent-encoded
+0 cases, in T
+exit 1
+$ cd runs/serves-odd.urt/snapshot/1/request-response/odd && for f in interaction/*.response interaction/.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
+exit 0
+$ changes

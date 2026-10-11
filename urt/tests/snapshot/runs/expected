@@ -144,7 +144,7 @@ added (0 bytes): ./hello.urt/snapshot/1/request-response/nodb/args
 added (40 bytes): ./hello.urt/snapshot/1/request-response/nodb/db.sql
 added (6 bytes): ./hello.urt/snapshot/1/request-response/nodb/interaction/01.request
 added (17 bytes): ./hello.urt/snapshot/1/request-response/nodb/secret
-added (41 bytes): ./runs/builds.urt/snapshot/1/app.exe
+added: ./runs/builds.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/builds.urt/snapshot/1/expected/exitcode
 removed: ./runs/good.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/good.urt/snapshot/1/expected/exitcode
