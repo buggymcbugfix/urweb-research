@@ -1,0 +1,1 @@
+POST /insert -d N=0.1

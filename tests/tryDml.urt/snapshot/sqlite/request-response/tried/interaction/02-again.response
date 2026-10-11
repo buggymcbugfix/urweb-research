@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 213
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/tryDml.ur:5:4-13:2: DML step failed: INSERT INTO uw_TryDml_t (uw_Id) VALUES (0)<br />UNIQUE constraint failed: uw_TryDml_t.uw_Id
+</body></html>
