@@ -477,9 +477,9 @@ static int layout_run(const char *e, const char *rest) {
  * it holds, and a stray one is reported once, by its own name.  Returns 1
  * if all is well; the snapshot is left alone otherwise. */
 static int layout(const char *urt_dir, const char *snap) {
-    struct strlist tree = { 0, 0, 0 };
-    char e[PATHLEN], skip[PATHLEN] = "";
-    int before = report_problems, i;
+    struct strlist tree = { 0, 0, 0 }, refused = { 0, 0, 0 };
+    char e[PATHLEN];
+    int before = report_problems, i, j;
 
     list_dir(urt_dir, LS_ALL, &tree);
     for (i = 0; i < tree.n; i++) {
@@ -504,7 +504,10 @@ static int layout(const char *urt_dir, const char *snap) {
     walk(snap, &tree);
     for (i = 0; i < tree.n; i++) {
         const char *rel = tree.v[i], *rr;
-        if (*skip && has_prefix(rel, skip)) {
+        for (j = 0; j < refused.n && !has_prefix(rel, refused.v[j]); j++) {
+            ;
+        }
+        if (j < refused.n) {
             continue; /* under something already refused */
         }
         join(e, snap, rel);
@@ -519,7 +522,7 @@ static int layout(const char *urt_dir, const char *snap) {
         }
         if ((rr = strstr(rel, "/request-response")) && rr == strchr(rel, '/') && (!rr[17] || rr[17] == '/')) {
             if (layout_run(e, rr + 17)) {
-                pathf(skip, "%s/", rel);
+                sl_push(&refused, fmt("%s/", rel));
             }
         } else if (!strcmp(rel, "README.md") || has_suffix(rel, "/README.md") || has_suffix(rel, "/args")) {
             if (!is_file(e)) {
@@ -547,7 +550,7 @@ static int layout(const char *urt_dir, const char *snap) {
             die_later(fmt("%s is not in a case", path(e)),
                       "every snapshot is a named case now: move args and expected/ into one",
                       fmt("such as %s", path(fmt("%s/1", snap))), NULL);
-            pathf(skip, "%s/", rel);
+            sl_push(&refused, fmt("%s/", rel));
         } else if (!is_dir(e)) {
             die_later(fmt("%s does not belong in a snapshot", path(e)),
                       "beside the case directories there can be a README.md, nothing else",
@@ -559,6 +562,7 @@ static int layout(const char *urt_dir, const char *snap) {
         }
     }
     sl_free(&tree);
+    sl_free(&refused);
     return report_problems == before;
 }
 
