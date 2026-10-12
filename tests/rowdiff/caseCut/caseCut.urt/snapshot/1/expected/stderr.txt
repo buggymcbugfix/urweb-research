@@ -1,0 +1,7 @@
+tests/rowdiff/caseCut/caseCut.ur:3:0: (to 3:61) Error in final record unification
+Can't unify record constructors
+Have:  [Ab = string]
+Need:  [AB = int, Ab = string]
+tests/rowdiff/caseCut/caseCut.ur:3:0: (to 3:61) Stuck unifying these records after canceling matching pieces:
+Have:  []
+Need:  [AB = int]

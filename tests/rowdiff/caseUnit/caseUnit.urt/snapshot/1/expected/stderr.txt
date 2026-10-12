@@ -1,0 +1,7 @@
+tests/rowdiff/caseUnit/caseUnit.ur:9:6: (to 9:22) Error in final record unification
+Can't unify record constructors
+Have:  [AB = ()]
+Need:  [Ab = ()]
+tests/rowdiff/caseUnit/caseUnit.ur:9:6: (to 9:22) Stuck unifying these records after canceling matching pieces:
+Have:  [AB = ()]
+Need:  [Ab = ()]
