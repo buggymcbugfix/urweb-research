@@ -231,8 +231,8 @@ fun oneRun args =
                     SOME "enable static linking"),
               ("stop", ONE ("<phase>", Compiler.setStop),
                     SOME "stop compilation after <phase>, printing what it produced"),
-              ("stopQuiet", ONE ("<phase>", Compiler.setStopQuiet),
-                    SOME "stop compilation after <phase>, printing nothing"),
+              ("quiet", call_true Compiler.setQuiet,
+                    SOME "print nothing on stdout; errors still go to stderr"),
               ("saveSettings", ONE ("<file>", Compiler.setSaveSettings),
                     SOME "output the merged project settings as <file>"),
               ("saveParsetree", ONE ("<file>", Compiler.setSaveParsetree),
@@ -290,6 +290,7 @@ fun oneRun args =
                                 " only one is allowed.\nSpecified projects: "^
                                 String.concatWith ", " files)
     in
+        Compiler.quietly (fn () =>
         case (!css, !demo, !tutorial) of
             (true, _, _) =>
             (case Compiler.run Compiler.toCss job of
@@ -325,7 +326,7 @@ fun oneRun args =
                 (if Compiler.compile job then
                      OS.Process.success
                  else
-                     OS.Process.failure)
+                     OS.Process.failure))
     end handle Code n => n
 
 fun send (sock, s) =
@@ -340,8 +341,8 @@ fun send (sock, s) =
 
 fun startDaemon () =
     if OS.FileSys.access (socket, []) then
-        (print ("It looks like a daemon is already listening in this directory,\n"
-                ^ "though it's possible a daemon died without cleaning up its socket.\n");
+        (TextIO.output (TextIO.stdErr, "It looks like a daemon is already listening in this directory,\n"
+                                       ^ "though it's possible a daemon died without cleaning up its socket.\n");
          OS.Process.exit OS.Process.failure)
     else case Posix.Process.fork () of
              SOME _ => ()

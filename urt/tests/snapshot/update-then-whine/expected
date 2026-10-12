@@ -32,7 +32,7 @@ $ cat sub/deep.urt/snapshot/1/expected/server.c sub/deep.urt/snapshot/1/expected
  static char jsapp[] = "";
 // from sub/deep.c
 int main(void) { return 0; }
-urweb -saveJs client.js -endpoints endpoints.json -saveParsetree parsetree.ur -saveC server.c -saveTypecheck typecheck.urs -stopQuiet checknest sub/deep
+urweb -saveJs client.js -endpoints endpoints.json -saveParsetree parsetree.ur -saveC server.c -saveTypecheck typecheck.urs -stop checknest -quiet sub/deep
 epoch=0
 exit 0
 $ changes
@@ -40,7 +40,7 @@ changed (2 bytes): ./broken/stopper.urt/snapshot/1/expected/exitcode
 changed (41 bytes): ./broken/stopper.urt/snapshot/1/expected/stdout.txt
 changed (2 bytes): ./hello.urt/snapshot/1/expected/exitcode
 changed (60 bytes): ./hello.urt/snapshot/1/expected/settings.txt
-changed (67 bytes): ./hello.urt/snapshot/1/expected/stdout.txt
+changed (69 bytes): ./hello.urt/snapshot/1/expected/stdout.txt
 changed (2 bytes): ./shop.urt/snapshot/mysql/expected/exitcode
 changed (38 bytes): ./shop.urt/snapshot/mysql/expected/schema.sql
 changed (2 bytes): ./shop.urt/snapshot/postgres/expected/exitcode
@@ -52,7 +52,7 @@ changed (19 bytes): ./sub/deep.urt/snapshot/1/expected/endpoints.json
 changed (2 bytes): ./sub/deep.urt/snapshot/1/expected/exitcode
 changed (29 bytes): ./sub/deep.urt/snapshot/1/expected/parsetree.ur
 changed (267 bytes): ./sub/deep.urt/snapshot/1/expected/server.c
-changed (161 bytes): ./sub/deep.urt/snapshot/1/expected/stdout.txt
+changed (163 bytes): ./sub/deep.urt/snapshot/1/expected/stdout.txt
 changed (36 bytes): ./sub/deep.urt/snapshot/1/expected/typecheck.urs
 changed (2 bytes): ./sub/demo/merging.urt/snapshot/1/expected/exitcode
-changed (60 bytes): ./sub/demo/merging.urt/snapshot/1/expected/stdout.txt
+changed (62 bytes): ./sub/demo/merging.urt/snapshot/1/expected/stdout.txt

@@ -554,7 +554,7 @@ removed: ./hello.urt/snapshot/1/expected/stdout.txt
 removed: ./shop.urt/snapshot/mysql/expected/exitcode
 changed (38 bytes): ./shop.urt/snapshot/mysql/expected/schema.sql
 added (75 bytes): ./shop.urt/snapshot/mysql/expected/settings.txt
-added (92 bytes): ./shop.urt/snapshot/mysql/expected/stdout.txt
+added (94 bytes): ./shop.urt/snapshot/mysql/expected/stdout.txt
 removed: ./shop.urt/snapshot/postgres/expected/exitcode
 removed: ./shop.urt/snapshot/sqlite/expected/schema.sql
 added (0 bytes): ./shop.urt/snapshot/sqlite/expected/stdout.txt

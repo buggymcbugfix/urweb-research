@@ -1020,9 +1020,9 @@ fun buildable (e, loc) =
                 val (_, hs, _) = !hyps
             in
                 ErrorMsg.errorAt loc "The information flow policy may be violated here.";
-                Print.prefaces "Situation" [("User learns", p_exp e),
-                                            ("Hypotheses", Print.p_list p_atom hs),
-                                            ("E-graph", Cc.p_database db)]
+                Print.eprefaces "Situation" [("User learns", p_exp e),
+                                             ("Hypotheses", Print.p_list p_atom hs),
+                                             ("E-graph", Cc.p_database db)]
             end
     end
 
@@ -1073,8 +1073,8 @@ fun doable pols (loc : ErrorMsg.span) =
                 val (_, hs, _) = !hyps
             in
                 ErrorMsg.errorAt loc "The database update policy may be violated here.";
-                Print.prefaces "Situation" [("Hypotheses", Print.p_list p_atom hs)(*,
-                                            ("E-graph", Cc.p_database db)*)]
+                Print.eprefaces "Situation" [("Hypotheses", Print.p_list p_atom hs)(*,
+                                             ("E-graph", Cc.p_database db)*)]
             end
     end
 
@@ -1250,7 +1250,7 @@ type 'a doQuery = {
 fun doQuery (arg : 'a doQuery) (e as (_, loc)) =
     let
         fun default () = (ErrorMsg.errorAt loc "Information flow checker can't parse SQL query";
-                          Print.preface ("Query", MonoPrint.p_exp MonoEnv.empty e))
+                          Print.epreface ("Query", MonoPrint.p_exp MonoEnv.empty e))
     in
         case parse query e of
             NONE => default ()
@@ -1497,7 +1497,7 @@ fun evalExp env (e as (_, loc)) k =
           | EApp (e1, e2) =>
             let
                 fun adefault () = (ErrorMsg.errorAt loc "Excessively fancy function call";
-                                   Print.preface ("Call", MonoPrint.p_exp MonoEnv.empty e);
+                                   Print.epreface ("Call", MonoPrint.p_exp MonoEnv.empty e);
                                    default ())
 
                 fun doArgs (e, args) =
@@ -1669,8 +1669,8 @@ fun evalExp env (e as (_, loc)) k =
                               end)
           | EDml (e, _) =>
             (case parse dml e of
-                 NONE => (print ("Warning: Information flow checker can't parse DML command at "
-                                 ^ ErrorMsg.spanToString loc ^ "\n");
+                 NONE => (TextIO.output (TextIO.stdErr, "Warning: Information flow checker can't parse DML command at "
+                                                        ^ ErrorMsg.spanToString loc ^ "\n");
                           default ())
                | SOME d =>
                  case d of

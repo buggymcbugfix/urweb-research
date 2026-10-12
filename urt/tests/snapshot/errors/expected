@@ -127,10 +127,10 @@ UTC; its heap starts at 256 MiB, so that no handler is run a second time
 for the heap to grow; every request is for the host 'localhost', from the
 user agent 'urt'.
 
-A case with runs is compiled all the way, so its args cannot hold -stop,
--stopQuiet or -tc, and it fails if that does not give an application.  The
-compiler builds it where the project has it built, and from there it is moved
-into the case as app.exe, where it stays, to be started by hand if need be.
+A case with runs is compiled all the way, so its args cannot hold -stop or
+-tc, and it fails if that does not give an application.  The compiler builds
+it where the project has it built, and from there it is moved into the case
+as app.exe, where it stays, to be started by hand if need be.
 A run's args cannot hold -t: its requests are sent one after the other, and
 with more threads than one it is a matter of chance which of them answers.
 Nor --, after which the server would ignore the flags urt adds (the address,

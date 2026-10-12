@@ -221,7 +221,8 @@ signature COMPILER = sig
     val moduleOf : string -> string
 
     val setStop : string -> unit
-    val setStopQuiet : string -> unit
+    val setQuiet : bool -> unit
+    val quietly : (unit -> 'a) -> 'a
 
     val setSaveSettings : string -> unit
     val setSaveParsetree : string -> unit

@@ -14,7 +14,7 @@ FAIL hello.urt/snapshot/1 (exitcode, settings.txt, stdout.txt)
     --- hello.urt/snapshot/1/expected/stdout.txt
     +++ hello.urt/snapshot/1/expected/stdout.txt (now)
     @@ -0,0 +1,2 @@
-    +urweb -saveSettings settings.txt -stopQuiet parseJob hello
+    +urweb -saveSettings settings.txt -stop parseJob -quiet hello
     +epoch=0
 
 FAIL sub/deep.urt/snapshot/1 (client.js, endpoints.json, exitcode, parsetree.ur, server.c, stdout.txt, typecheck.urs)
@@ -49,7 +49,7 @@ FAIL sub/deep.urt/snapshot/1 (client.js, endpoints.json, exitcode, parsetree.ur,
     --- sub/deep.urt/snapshot/1/expected/stdout.txt
     +++ sub/deep.urt/snapshot/1/expected/stdout.txt (now)
     @@ -0,0 +1,2 @@
-    +urweb -saveJs client.js -endpoints endpoints.json -saveParsetree parsetree.ur -saveC server.c -saveTypecheck typecheck.urs -stopQuiet checknest sub/deep
+    +urweb -saveJs client.js -endpoints endpoints.json -saveParsetree parsetree.ur -saveC server.c -saveTypecheck typecheck.urs -stop checknest -quiet sub/deep
     +epoch=0
     --- sub/deep.urt/snapshot/1/expected/typecheck.urs
     +++ sub/deep.urt/snapshot/1/expected/typecheck.urs (now)

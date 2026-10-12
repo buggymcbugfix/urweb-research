@@ -136,10 +136,10 @@ static const char usage_text[] =
     "for the heap to grow; every request is for the host 'localhost', from the\n"
     "user agent 'urt'.\n"
     "\n"
-    "A case with runs is compiled all the way, so its args cannot hold -stop,\n"
-    "-stopQuiet or -tc, and it fails if that does not give an application.  The\n"
-    "compiler builds it where the project has it built, and from there it is moved\n"
-    "into the case as app.exe, where it stays, to be started by hand if need be.\n"
+    "A case with runs is compiled all the way, so its args cannot hold -stop or\n"
+    "-tc, and it fails if that does not give an application.  The compiler builds\n"
+    "it where the project has it built, and from there it is moved into the case\n"
+    "as app.exe, where it stays, to be started by hand if need be.\n"
     "A run's args cannot hold -t: its requests are sent one after the other, and\n"
     "with more threads than one it is a matter of chance which of them answers.\n"
     "Nor --, after which the server would ignore the flags urt adds (the address,\n"
@@ -907,7 +907,7 @@ static const char *no_application(const struct strlist *extra) {
     int i;
     for (i = 0; i < extra->n; i++) {
         const char *a = extra->v[i];
-        if (!strcmp(a, "-stop") || !strcmp(a, "-stopQuiet") || !strcmp(a, "-tc")) {
+        if (!strcmp(a, "-stop") || !strcmp(a, "-tc")) {
             return a;
         }
     }
@@ -1571,7 +1571,7 @@ static void run_case(const char *case_dir, const char *project) {
     }
     n_cases++;
     for (i = 0; i < extra.n; i++) {
-        if (!strcmp(extra.v[i], "-stop") || !strcmp(extra.v[i], "-stopQuiet") || !strcmp(extra.v[i], "-tc")) {
+        if (!strcmp(extra.v[i], "-stop") || !strcmp(extra.v[i], "-tc")) {
             own_stop = 1;
         }
     }
@@ -1592,8 +1592,9 @@ static void run_case(const char *case_dir, const char *project) {
             sl_push(&argv, settings);
         }
     } else if (!own_stop) {
-        sl_push(&argv, "-stopQuiet");
+        sl_push(&argv, "-stop");
         sl_push(&argv, stop);
+        sl_push(&argv, "-quiet");
     }
     for (i = 0; i < extra.n; i++) {
         sl_push(&argv, extra.v[i]);
@@ -2394,11 +2395,12 @@ static int schema_of(const char *case_dir, const char *project, const char *sche
     }
     free(args);
     for (i = 0; i < extra.n; i++) {
-        own_stop |= !strcmp(extra.v[i], "-stop") || !strcmp(extra.v[i], "-stopQuiet") || !strcmp(extra.v[i], "-tc");
+        own_stop |= !strcmp(extra.v[i], "-stop") || !strcmp(extra.v[i], "-tc");
     }
     if (!own_stop) {
-        sl_push(&argv, "-stopQuiet");
+        sl_push(&argv, "-stop");
         sl_push(&argv, artifact_named("schema.sql")->phase);
+        sl_push(&argv, "-quiet");
     }
     for (i = 0; i < extra.n; i++) {
         sl_push(&argv, extra.v[i]);

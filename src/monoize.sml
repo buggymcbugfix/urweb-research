@@ -3328,7 +3328,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                             ((L'.EStrcat (ts,
                                           strH (" type=\"" ^ typ ^ "\" name=\"" ^ name ^ "\" />")), loc), fm)
                         end
-                      | _ => (Print.prefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
+                      | _ => (Print.eprefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
                               raise Fail "No name passed to input tag")
 
                 fun normal (tag, extra) =
@@ -3580,7 +3580,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                            str name,
                                            str "\")</script>"],
                                    fm))
-                           | _ => (Print.prefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
+                           | _ => (Print.eprefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
                                    raise Fail "No name passed to textbox tag"))
                       | "password" => input "password"
                       | "email" => input "email"
@@ -3609,7 +3609,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                                             strH "</textarea>"), loc)),
                                    loc), fm)
                              end
-                           | _ => (Print.prefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
+                           | _ => (Print.eprefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
                                    raise Fail "No name passed to ltextarea tag"))
 
                       | "checkbox" => input "checkbox"
@@ -3619,7 +3619,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
 			(case targs of
                              [_, (L.CName name, _)] =>
                              monoExp (env, St.setRadioGroup (st, name), fm) xml
-                           | _ => (Print.prefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
+                           | _ => (Print.eprefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
                                    raise Fail "No name passed to radio tag"))
                       | "radioOption" =>
 			(case St.radioGroup st of
@@ -3643,7 +3643,7 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                    loc),
 				  fm)
                              end
-                           | _ => (Print.prefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
+                           | _ => (Print.eprefaces "Targs" (map (fn t => ("T", CorePrint.p_con env t)) targs);
                                    raise Fail "No name passed to lselect tag"))
 
                       | "ctextbox" => cinput ("text", "inp")

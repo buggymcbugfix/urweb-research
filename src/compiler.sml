@@ -93,12 +93,35 @@ val doIflow = ref false
 
 val doDumpSource = ref (fn () => ())
 
+(* [-stop PHASE] ends the compilation after PHASE, successfully, and prints
+ * what the phase produced on stdout. *)
 val stop = ref (NONE : string option)
 fun setStop s = stop := SOME s
+val stopped = ref false
 
-val stopQuiet = ref (NONE : string option) (* Like [-stop], but silent and successful *)
-fun setStopQuiet s = stopQuiet := SOME s
-val stoppedQuietly = ref false
+(* [-quiet]: nothing on stdout.  Diagnostics go to stderr and are not
+ * affected.  Done at the file descriptor, so that it holds for every print
+ * and for the C compiler run underneath, without each of them asking. *)
+val quiet = ref false
+fun setQuiet b = quiet := b
+
+fun quietly f =
+    if not (!quiet) then
+        f ()
+    else
+        let
+            val () = TextIO.flushOut TextIO.stdOut
+            val saved = Posix.IO.dup Posix.FileSys.stdout
+            val null = Posix.FileSys.openf ("/dev/null", Posix.FileSys.O_WRONLY, Posix.FileSys.O.flags [])
+            val () = (Posix.IO.dup2 {old = null, new = Posix.FileSys.stdout};
+                      Posix.IO.close null)
+            fun restore () = (TextIO.flushOut TextIO.stdOut;
+                              Posix.IO.dup2 {old = saved, new = Posix.FileSys.stdout};
+                              Posix.IO.close saved)
+        in
+            (f () before restore ())
+            handle ex => (restore (); raise ex)
+        end
 
 val saveFiles = ref ([] : (string * string) list)
 fun saveAfter phase fname = saveFiles := (phase, fname) :: !saveFiles
@@ -111,8 +134,8 @@ fun setSaveTypecheck fname = saveTypecheck := SOME fname
 val sqlFile = ref (NONE : string option)
 fun resetPhaseFlags () =
     (stop := NONE;
-     stopQuiet := NONE;
-     stoppedQuietly := false;
+     stopped := false;
+     quiet := false;
      saveFiles := [];
      saveTypecheck := NONE;
      sqlFile := NONE)
@@ -149,12 +172,10 @@ fun transform (ph : ('src, 'dst) phase) name = {
                       (case List.find (fn (ph', _) => ph' = name) (!saveFiles) of
                            NONE => ()
                          | SOME (_, fname) => saveDoc fname (#print ph v);
-                       if !stopQuiet = SOME name then
-                           (stoppedQuietly := true;
-                            NONE)
-                       else if !stop = SOME name then
-                           (Print.eprint (#print ph v);
-                            ErrorMsg.error ("\nStopped compilation after phase " ^ name);
+                       if !stop = SOME name then
+                           (Print.print (#print ph v);
+                            print "\n";
+                            stopped := true;
                             NONE)
                        else
                            (if !dumpSource then
@@ -1365,8 +1386,8 @@ val parse = {
                                                  (case SM.find (used, x) of
                                                       SOME loc =>
                                                       (ErrorMsg.error ("Duplicate top-level module name " ^ x);
-                                                       Print.prefaces "Files" [("Previous", Print.PD.string (ErrorMsg.spanToString loc)),
-                                                                               ("Current", Print.PD.string (ErrorMsg.spanToString (#2 d)))];
+                                                       Print.eprefaces "Files" [("Previous", Print.PD.string (ErrorMsg.spanToString loc)),
+                                                                                ("Current", Print.PD.string (ErrorMsg.spanToString (#2 d)))];
                                                        used)
                                                     | NONE =>
                                                       SM.insert (used, x, #2 d))
@@ -1865,13 +1886,13 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
         system compile andalso system link
     end
 
-fun compile job =
+fun compile job = quietly (fn () =>
     let
         val _ = warnedLibDirectives := SS.empty
-        val _ = stoppedQuietly := false
+        val _ = stopped := false
     in
         case run toChecknest job of
-            NONE => !stoppedQuietly
+            NONE => !stopped
           | SOME file =>
             let
                 val job = valOf (run (transform parseUrp "parseUrp") job)
@@ -1922,7 +1943,7 @@ fun compile job =
                 end
                 handle ex => (((cleanup ()) handle _ => ()); raise ex)
             end
-    end
+    end)
 
 fun compiler job =
     if compile job then

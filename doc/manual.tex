@@ -388,6 +388,8 @@ fastcgi.server = (
   \item \texttt{static}: This protocol may be used to generate static web pages from Ur/Web code.  The output executable expects a single command-line argument, giving the URI of a page to generate.  For instance, this argument might be \cd{/main}, in which case a static HTTP response for that page will be written to stdout.
   \end{itemize}
 
+\item \texttt{-quiet}: Print nothing on stdout.  Errors and warnings go to stderr and are still printed.  With \texttt{-stop}, this is for when only the exit status, or what was saved on the way (\texttt{-saveSettings}, \texttt{-saveC}, \ldots), is wanted.
+
 \item \texttt{-root Name PATH}: Trigger an alternate module convention for all source files found in directory \texttt{PATH} or any of its subdirectories.  Any file \texttt{PATH/foo.ur} defines a module \texttt{Name.Foo} instead of the usual \texttt{Foo}.  Any file \texttt{PATH/subdir/foo.ur} defines a module \texttt{Name.Subdir.Foo}, and so on for arbitrary nesting of subdirectories.
 
 \item \texttt{-sigfile PATH}: Same as the \texttt{sigfile} directive in \texttt{.urp} files
@@ -396,9 +398,7 @@ fastcgi.server = (
 
 \item \texttt{-static}: Link the runtime system statically.  The default is to link against dynamic libraries.
 
-\item \texttt{-stop PHASE}: Stop compilation after the named phase, print the intermediate program to stderr and exit nonzero.  This flag is mainly useful for debugging the Ur/Web compiler itself.
-
-\item \texttt{-stopQuiet PHASE}: Like \texttt{-stop}, but doesn't print the intermediate output and exits zero.
+\item \texttt{-stop PHASE}: Stop compilation after the named phase and print the intermediate program to stdout.  Stopping is not a failure: the exit status is zero unless there were errors.  This flag is mainly useful for debugging the Ur/Web compiler itself.
 \end{itemize}
 
 There is an additional convenience method for invoking \texttt{urweb}.  If the main argument is \texttt{FOO}, and \texttt{FOO.ur} exists but \texttt{FOO.urp} doesn't, then the invocation is interpreted as if called on a \texttt{.urp} file containing \texttt{FOO} as its only main entry, with an additional \texttt{rewrite all FOO/*} directive.

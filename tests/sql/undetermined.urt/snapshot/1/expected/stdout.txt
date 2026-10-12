@@ -1,7 +1,0 @@
-Undetermined constraint
-e: 
-{C =
-  "CHECK " ^
-   FFI(Basis.checkString("(uw_Id < " ^
-                          FFI(Basis.sqlifyInt(FFI(Basis.strlen("abcdefg"))))
-                           ^ ")"))}

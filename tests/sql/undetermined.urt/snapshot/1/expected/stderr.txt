@@ -1,1 +1,8 @@
 tests/sql/undetermined.ur:7:2: (to 7:35) Constraint has not been fully determined
+Undetermined constraint
+e: 
+{C =
+  "CHECK " ^
+   FFI(Basis.checkString("(uw_Id < " ^
+                          FFI(Basis.sqlifyInt(FFI(Basis.strlen("abcdefg"))))
+                           ^ ")"))}

@@ -303,7 +303,7 @@ fun cifyExp (eAll as (e, loc), sm) =
                 ((L'.EApp (f, es), loc), sm)
             end
           | L.EAbs _ => (ErrorMsg.errorAt loc "Anonymous function remains at code generation";
-                         Print.prefaces' [("Function", MonoPrint.p_exp MonoEnv.empty eAll)];
+                         Print.eprefaces' [("Function", MonoPrint.p_exp MonoEnv.empty eAll)];
                          (dummye, sm))
 
           | L.EUnop (s, e1) =>
@@ -634,15 +634,15 @@ fun cifyDecl ((d, loc), sm) =
                   | L.ERecord [(x, (L.EPrim (Prim.String (_, v)), _), _)] => [(x, v)]
                   | L.EStrcat (e1, e2) => flatten e1 @ flatten e2
                   | _ => (ErrorMsg.errorAt loc "Constraint has not been fully determined";
-                          Print.prefaces "Undetermined constraint"
-                                         [("e", MonoPrint.p_exp MonoEnv.empty e)];
+                          Print.eprefaces "Undetermined constraint"
+                                          [("e", MonoPrint.p_exp MonoEnv.empty e)];
                           [])
 
             val pe = case #1 pe of
                          L.EPrim (Prim.String (_, s)) => s
                        | _ => (ErrorMsg.errorAt loc "Primary key has not been fully determined";
-                               Print.prefaces "Undetermined constraint"
-                                              [("e", MonoPrint.p_exp MonoEnv.empty pe)];
+                               Print.eprefaces "Undetermined constraint"
+                                               [("e", MonoPrint.p_exp MonoEnv.empty pe)];
                                "")
         in
             (SOME (L'.DTable (s, xts, pe, flatten ce), loc), NONE, sm)
@@ -664,15 +664,15 @@ fun cifyDecl ((d, loc), sm) =
                   | L.ERecord [(x, (L.EPrim (Prim.String (_, v)), _), _)] => [(x, v)]
                   | L.EStrcat (e1, e2) => flatten e1 @ flatten e2
                   | _ => (ErrorMsg.errorAt loc "Constraint has not been fully determined";
-                          Print.prefaces "Undetermined constraint"
-                                         [("e", MonoPrint.p_exp MonoEnv.empty e)];
+                          Print.eprefaces "Undetermined constraint"
+                                          [("e", MonoPrint.p_exp MonoEnv.empty e)];
                           [])
 
             val e = case #1 e of
                         L.EPrim (Prim.String (_, s)) => s
                       | _ => (ErrorMsg.errorAt loc "VIEW query has not been fully determined";
-                              Print.prefaces "Undetermined VIEW query"
-                                             [("e", MonoPrint.p_exp MonoEnv.empty e)];
+                              Print.eprefaces "Undetermined VIEW query"
+                                              [("e", MonoPrint.p_exp MonoEnv.empty e)];
                               "")
         in
             (SOME (L'.DView (s, xts, e), loc), NONE, sm)

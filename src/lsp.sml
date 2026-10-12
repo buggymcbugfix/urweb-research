@@ -126,9 +126,9 @@ fun addSgnToEnv (env: ElabEnv.env) (sgn: Source.sgn_item list) (fileName: string
         val () = case gs of
                      [] => ()
                    | _ => (app (fn (_, env, _, c1, c2) =>
-                                   Print.prefaces "Unresolved"
-                                                  [("c1", ElabPrint.p_con env c1),
-                                                   ("c2", ElabPrint.p_con env c2)]) gs;
+                                   Print.eprefaces "Unresolved"
+                                                   [("c1", ElabPrint.p_con env c1),
+                                                    ("c2", ElabPrint.p_con env c2)]) gs;
                            raise Fail ("Unresolved disjointness constraints in " ^ moduleName ^ " at " ^ fileName)) (* TODO Not sure if this is needed for all signatures or only for Basis *)
         val (env', n) = ElabEnv.pushStrNamed env moduleName sgn
         val (_, env') = if addUnprefixed

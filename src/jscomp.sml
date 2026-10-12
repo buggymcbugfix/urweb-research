@@ -293,9 +293,9 @@ fun process (file : file) =
                      end)
 
               | _ => (if !explainEmbed then
-                          Print.prefaces "Can't embed" [("loc", Print.PD.string (ErrorMsg.spanToString loc)),
-                                                        ("e", MonoPrint.p_exp MonoEnv.empty e),
-                                                        ("t", MonoPrint.p_typ MonoEnv.empty t)]
+                          Print.eprefaces "Can't embed" [("loc", Print.PD.string (ErrorMsg.spanToString loc)),
+                                                         ("e", MonoPrint.p_exp MonoEnv.empty e),
+                                                         ("t", MonoPrint.p_typ MonoEnv.empty t)]
                       else
                           ();
                       raise CantEmbed t)
@@ -416,7 +416,7 @@ fun process (file : file) =
                      end)
 
               | _ => (EM.errorAt loc "Don't know how to unurlify type in JavaScript";
-                      Print.prefaces "Can't unurlify" [("t", MonoPrint.p_typ MonoEnv.empty t)];
+                      Print.eprefaces "Can't unurlify" [("t", MonoPrint.p_typ MonoEnv.empty t)];
                       ("ERROR", st))
 
         fun padWith (ch, s, len) =
@@ -447,7 +447,7 @@ fun process (file : file) =
 
                         fun unsupported s =
                             (EM.errorAt loc (s ^ " in code to be compiled to JavaScript[2]");
-                             Print.preface ("Code", MonoPrint.p_exp MonoEnv.empty e);
+                             Print.epreface ("Code", MonoPrint.p_exp MonoEnv.empty e);
                              (str "ERROR", st))
 
                         val strcat = strcat loc
@@ -548,7 +548,7 @@ fun process (file : file) =
                               | EStrcat (e1, e2) => deStrcat level e1 ^ deStrcat level e2
                               | EFfiApp ("Basis", "jsifyString", [(e, _)]) => "\"" ^ deStrcat (level + 1) e ^ "\""
                               | _ => (ErrorMsg.errorAt loc "Unexpected non-constant JavaScript code";
-                                      Print.prefaces "deStrcat" [("e", MonoPrint.p_exp MonoEnv.empty all)];
+                                      Print.eprefaces "deStrcat" [("e", MonoPrint.p_exp MonoEnv.empty all)];
                                       "")
 
                         val quoteExp = quoteExp loc

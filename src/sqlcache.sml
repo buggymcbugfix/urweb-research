@@ -1599,7 +1599,7 @@ fun addFlushing ((file, {tableToIndices, indexToInvalInfo, ffiInfo, ...} : state
             in
                 case inval of
                     (* TODO: fail more gracefully. *)
-                    NONE => (Print.preface ("DML", MonoPrint.p_exp MonoEnv.empty dmlText);
+                    NONE => (Print.epreface ("DML", MonoPrint.p_exp MonoEnv.empty dmlText);
                              raise Fail "Sqlcache: addFlushing (b)")
                   | SOME invs => sequence (flushes invs @ [dmlExp])
             end

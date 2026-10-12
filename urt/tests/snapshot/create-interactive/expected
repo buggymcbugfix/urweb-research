@@ -277,7 +277,7 @@ exit 0
 $ changes
 added (0 bytes): ./lonely.urt/snapshot/1/args
 added (0 bytes): ./lonely.urt/snapshot/1/expected/stderr.txt
-added (41 bytes): ./lonely.urt/snapshot/1/expected/stdout.txt
+added (43 bytes): ./lonely.urt/snapshot/1/expected/stdout.txt
 added (0 bytes): ./lonely.urt/snapshot/2/args
 added (0 bytes): ./lonely.urt/snapshot/2/expected/client.js
 added (0 bytes): ./lonely.urt/snapshot/2/expected/endpoints.json

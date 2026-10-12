@@ -254,14 +254,14 @@ fun doUr fname =
                 val (befor, after) = Substring.position "<body>" s
             in
                 if Substring.isEmpty after then
-                    print ("Bad output for " ^ fname ^ "! [1]\n")
+                    TextIO.output (TextIO.stdErr, "Bad output for " ^ fname ^ "! [1]\n")
                 else
                     let
                         val after = Substring.slice (after, 6, NONE)
                         val (befor, after) = Substring.position "</body>" after
                     in
                         if Substring.isEmpty after then
-                            print ("Bad output for " ^ fname ^ "! [2]\n")
+                            TextIO.output (TextIO.stdErr, "Bad output for " ^ fname ^ "! [2]\n")
                         else
                             let
                                 val outf = TextIO.openOut "/tmp/final.ur"

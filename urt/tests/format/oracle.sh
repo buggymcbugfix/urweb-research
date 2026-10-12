@@ -40,10 +40,10 @@ ok=0 failed=0
 
 # parse SIDE: the compiler's parse of the project under $tmp/SIDE, as it
 # prints it, into $tmp/SIDE.raw, and with the positions stripped into
-# $tmp/SIDE.dump
+# $tmp/SIDE.dump; what it complained about into $tmp/SIDE.err
 parse() {
     # shellcheck disable=SC2086 # the flags are words
-    (cd "$tmp/$1" && "$URWEB" $UFLAGS -stop parse "$m" > /dev/null 2> "$tmp/$1.raw")
+    (cd "$tmp/$1" && "$URWEB" $UFLAGS -stop parse "$m" > "$tmp/$1.raw" 2> "$tmp/$1.err")
     sed -E 's#^[^ ]+:[0-9]+:[0-9]+: \(to [0-9]+:[0-9]+\) ##' "$tmp/$1.raw" > "$tmp/$1.dump"
 }
 
@@ -75,8 +75,8 @@ for f in "$@"; do
     # the compiler must accept the input as it is
     cp "$f" "$tmp/a/$b"
     parse a
-    if grep -q '^Parse failure$' "$tmp/a.raw"; then
-        fail "the compiler rejects the input: $(grep -m1 -E ':[0-9]+:[0-9]+: ' "$tmp/a.raw")"
+    if grep -q '^Parse failure$' "$tmp/a.err"; then
+        fail "the compiler rejects the input: $(grep -m1 -E ':[0-9]+:[0-9]+: ' "$tmp/a.err")"
         continue
     fi
     if ! "$FMT" "$f" > "$tmp/formatted.$ext" 2> "$tmp/fmt.err"; then
