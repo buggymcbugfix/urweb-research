@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 188
+
+<!DOCTYPE html><html><head></head><body>
+<a href="/Urlify_char/show1/a">a</a>
+<a href="/Urlify_char/show1/.C3.A9">e-acute</a>
+<a href="/Urlify_char/show1/.E2.82.AC">euro</a>
+</body></html>

@@ -1,0 +1,5 @@
+allow url /Urlify_char/*
+safeGet Urlify_char/main
+safeGet Urlify_char/show1
+
+urlify_char
