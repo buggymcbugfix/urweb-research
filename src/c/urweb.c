@@ -4153,7 +4153,7 @@ static int envVar_format(const char *s) {
 }
 
 uw_Basis_string uw_Basis_checkResponseHeader(uw_context ctx, uw_Basis_string s) {
-  if (!envVar_format(s))
+  if (!mime_format(s))
     return NULL;
 
   if (ctx->app->check_responseHeader(s))
@@ -4173,7 +4173,7 @@ uw_Basis_string uw_Basis_blessEnvVar(uw_context ctx, uw_Basis_string s) {
 }
 
 uw_Basis_string uw_Basis_checkEnvVar(uw_context ctx, uw_Basis_string s) {
-  if (!mime_format(s))
+  if (!envVar_format(s))
     return NULL;
 
   if (ctx->app->check_envVar(s))

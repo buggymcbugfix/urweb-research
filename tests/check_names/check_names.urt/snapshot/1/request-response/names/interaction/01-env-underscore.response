@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 73
+Content-length: 72
 
-<!DOCTYPE html><html><head></head><body>env TEST_VAR: False</body></html>
+<!DOCTYPE html><html><head></head><body>env TEST_VAR: True</body></html>
