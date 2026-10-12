@@ -1,0 +1,13 @@
+tests/rowdiff/interComm/interComm.ur:9:6: (to 9:20) Unification failure
+Expression: 
+fn s1 :: {Unit} =>
+ fn s2 :: {Unit} => fn x : M.tag (s1 -- s1 -- s2) => x
+  Have con: 
+s1 :: {Unit} ->
+ s2 :: {Unit} -> (M.tag (s1 -- s1 -- s2)) -> M.tag (s1 -- s1 -- s2)
+  Need con: 
+s1 :: {Unit} ->
+ s2 :: {Unit} -> (M.tag (s1 -- s1 -- s2)) -> M.tag (s2 -- s2 -- s1)
+Incompatible constructors
+Have:  s1
+Need:  s2

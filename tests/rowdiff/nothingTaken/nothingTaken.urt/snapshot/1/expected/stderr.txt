@@ -1,0 +1,9 @@
+tests/rowdiff/nothingTaken/nothingTaken.ur:2:6: (to 2:19) Unification failure
+Expression: 
+fn r :: {Type} => fn s :: {Type} => fn x : $(r -- s -- r) => x
+  Have con: 
+r :: {Type} -> s :: {Type} -> $(r -- s -- r) -> $(r -- s -- r)
+  Need con:  r :: {Type} -> s :: {Type} -> $(r -- s -- r) -> $r
+Incompatible constructors
+Have:  r -- s -- r
+Need:  r
