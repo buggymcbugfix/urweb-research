@@ -308,6 +308,10 @@ static int is_zombie(long pid) {
     return paren && paren[1] == ' ' && paren[2] == 'Z';
 }
 
+int server_alive(const struct server *s) {
+    return s->pid > 0 && kill((pid_t) s->pid, 0) == 0 && !is_zombie(s->pid);
+}
+
 void server_stop(struct server *s) {
     struct timespec nap = { 0, 10 * 1000 * 1000 };
     int i;

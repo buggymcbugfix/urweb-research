@@ -1,0 +1,9 @@
+$ urt snapshot runs/serves-later-bad
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/02-both is a request and a wait
+a step is the one or the other; what it leads to is filed under its name
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/03-no-until.wait: a wait is 'until TEXT', TEXT being what the server is to print
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/04-nothing.wait: a wait is 'until TEXT', TEXT being what the server is to print
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/05-two.wait: a wait is one line
+0 cases, in T
+exit 1
+$ changes

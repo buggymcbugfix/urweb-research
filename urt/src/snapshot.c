@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "commands.h"
@@ -102,7 +103,9 @@ static const char usage_text[] =
     "                  |   |-- 01-add.stdout   what the server printed meanwhile, if anything\n"
     "                  |   |-- 01-add.stderr\n"
     "                  |   |-- 02-pay.request\n"
-    "                  |   `-- 02-pay.response\n"
+    "                  |   |-- 02-pay.response\n"
+    "                  |   |-- 03-mail.wait    a line to wait for the server to print\n"
+    "                  |   `-- 03-mail.stdout  what it printed meanwhile, as for a request\n"
     "                  `-- out/\n"
     "                      |-- startup.sql     what the application did before the first\n"
     "                      |-- startup.stdout  request (task initialize), if anything\n"
@@ -127,6 +130,22 @@ static const char usage_text[] =
     "What the server prints for a request goes beside its response, and only if\n"
     "there is any: its own lines about connections and requests are dropped, the\n"
     "program's debug output and the runtime's errors are kept.\n"
+    "\n"
+    "A step can wait instead of send, for what the application does on its own\n"
+    "(a task periodic): NAME.wait holds one line,\n"
+    "\n"
+    "  until still running\n"
+    "\n"
+    "and the run goes on once the server has printed a line holding the text after\n"
+    "'until', on stdout or stderr, since the step before ended.  What it printed and\n"
+    "what the database saw meanwhile go under NAME, as for a request (NAME.stdout,\n"
+    "NAME.stderr, NAME.sql); there is no response.  A wait lasts as long as it takes,\n"
+    "not a set time, so that what is recorded does not depend on the machine; if\n"
+    "the line has not come within 30 seconds, or the server is gone, the run fails.\n"
+    "A wait that comes first takes what the server printed while starting as well,\n"
+    "which then is not under out/: a task starts with the server, and whether its\n"
+    "first lines come before the server says it is listening or after is a matter\n"
+    "of chance.\n"
     "\n"
     "Runs share nothing.  Each has its own database -- SQLite, so the case's args\n"
     "need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows\n"
@@ -454,15 +473,18 @@ static int layout_run(const char *e, const char *rest) {
         if (!is_dir(e)) {
             die_later(fmt("%s should be a directory", path(e)), NULL);
         }
-    } else if (n == 3 && !strcmp(part[1], "interaction") && is_file(e) && has_suffix(part[2], ".request")) {
+    } else if (n == 3 && !strcmp(part[1], "interaction") && is_file(e)
+               && (has_suffix(part[2], ".request") || has_suffix(part[2], ".wait"))) {
         ;
     } else if (n == 3 && !strcmp(part[1], "interaction") && is_file(e)
                && (has_suffix(part[2], ".response") || has_suffix(part[2], ".sql")
                    || has_suffix(part[2], ".stdout") || has_suffix(part[2], ".stderr"))) {
-        char request[PATHLEN + 8];
+        char request[PATHLEN + 8], wait[PATHLEN + 8];
         snprintf(request, sizeof request, "%s", e);
         strcpy(strrchr(request, '.'), ".request");
-        if (!is_file(request)) {
+        snprintf(wait, sizeof wait, "%s", e);
+        strcpy(strrchr(wait, '.'), ".wait");
+        if (has_suffix(part[2], ".response") ? !is_file(request) : !is_file(request) && !is_file(wait)) {
             die_later(fmt("%s answers no request", path(e)),
                       fmt("there is no %s; delete the one, or write the other", path(request)), NULL);
         }
@@ -473,8 +495,8 @@ static int layout_run(const char *e, const char *rest) {
         ;
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
-                  "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout",
-                  "and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,",
+                  "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.sql,",
+                  "NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,",
                   "shutdown.stderr and db_final.sql under out/", NULL);
         return is_dir(e);
     }
@@ -1304,11 +1326,12 @@ static int asks_for_threads(const struct strlist *words, int *i) {
     return 0;
 }
 
-/* The requests under interaction/, by name (NAME of NAME.request), in
- * the order of their names: that of the bytes, as the help text says,
- * which is not quite the order of the file names, since - sorts before
- * the . of the suffix. */
-static void requests_of(const char *interaction, struct strlist *names) {
+/* The steps under interaction/, requests and waits, by name (NAME of
+ * NAME.request or NAME.wait), in the order of their names: that of the
+ * bytes, as the help text says, which is not quite the order of the file
+ * names, since - sorts before the . of the suffix.  A name that is both
+ * comes twice, for run_ready to refuse. */
+static void steps_of(const char *interaction, struct strlist *names) {
     struct strlist files = { 0, 0, 0 };
     char name[PATHLEN];
     int i;
@@ -1316,14 +1339,91 @@ static void requests_of(const char *interaction, struct strlist *names) {
         list_dir(interaction, LS_FILES, &files);
     }
     for (i = 0; i < files.n; i++) {
-        if (has_suffix(files.v[i], ".request")) {
+        if (has_suffix(files.v[i], ".request") || has_suffix(files.v[i], ".wait")) {
             snprintf(name, sizeof name, "%s", files.v[i]);
             strip_suffix(name, ".request");
+            strip_suffix(name, ".wait");
             sl_push(names, name);
         }
     }
     sl_free(&files);
     sl_sort(names);
+}
+
+#define WAIT_SECONDS 30     /* as long as curl gives a request */
+
+/* A wait file's text: one line, "until TEXT", with TEXT not empty; TEXT
+ * into what.  0, or -1 with the complaint in err. */
+static int parse_wait(const char *text, char *what, size_t what_size, char *err, size_t err_size) {
+    size_t n = strlen(text);
+    if (n && text[n - 1] == '\n') {
+        n--;
+    }
+    if (n && text[n - 1] == '\r') {
+        n--;
+    }
+    if (memchr(text, '\n', n) || memchr(text, '\r', n)) {
+        snprintf(err, err_size, "a wait is one line");
+        return -1;
+    }
+    if (n < 7 || strncmp(text, "until ", 6) != 0) {
+        snprintf(err, err_size, "a wait is 'until TEXT', TEXT being what the server is to print");
+        return -1;
+    }
+    if (n - 6 >= what_size) {
+        snprintf(err, err_size, "the text to wait for is too long");
+        return -1;
+    }
+    memcpy(what, text + 6, n - 6);
+    what[n - 6] = 0;
+    return 0;
+}
+
+/* Whether stream holds, from byte from on, a whole line in which what
+ * occurs. */
+static int printed_line_with(const char *stream, long from, const char *what) {
+    FILE *in = fopen(stream, "rb");
+    char *line = NULL;
+    size_t cap = 0;
+    ssize_t n;
+    int found = 0;
+    if (!in) {
+        return 0;
+    }
+    if (fseek(in, from, SEEK_SET) == 0) {
+        while (!found && (n = getline(&line, &cap, in)) > 0) {
+            found = line[n - 1] == '\n' && strstr(line, what) != NULL;
+        }
+    }
+    free(line);
+    fclose(in);
+    return found;
+}
+
+/* Wait for the server to print a line holding what, on either stream,
+ * after where the last step's output was cut: 0 once it has, 1 if it
+ * has not within WAIT_SECONDS, 2 if the server is gone first, 3 if this
+ * program is interrupted. */
+static int wait_for(const char *what, const char *out, long out_at, const char *err, long err_at,
+                    const struct server *s) {
+    struct timespec nap = { 0, 50 * 1000 * 1000 };
+    long deadline = tenths_now() + WAIT_SECONDS * 10L;
+    for (;;) {
+        if (printed_line_with(out, out_at, what) || printed_line_with(err, err_at, what)) {
+            return 0;
+        }
+        if (fs_interrupted) {
+            return 3;
+        }
+        if (!server_alive(s)) {
+            /* What it printed before it went is in the files by now. */
+            return printed_line_with(out, out_at, what) || printed_line_with(err, err_at, what) ? 0 : 2;
+        }
+        if (tenths_now() >= deadline) {
+            return 1;
+        }
+        nanosleep(&nap, NULL);
+    }
 }
 
 /* Whether a run has what it takes -- a secret, args that leave the
@@ -1373,14 +1473,26 @@ static int run_ready(const char *run_dir) {
     }
 
     join(interaction, run_dir, "interaction");
-    requests_of(interaction, &files);
+    steps_of(interaction, &files);
     for (i = 0; i < files.n; i++) {
-        char method[32], url_path[PATHLEN], err[256], *text;
+        char method[32], url_path[PATHLEN], err[256], what[1024], *text;
         struct strlist options = { 0, 0, 0 };
-        pathf(f, "%s/%s.request", interaction, files.v[i]);
+        int is_wait;
+        pathf(f, "%s/%s.wait", interaction, files.v[i]);
+        is_wait = is_file(f);
+        if (i + 1 < files.n && !strcmp(files.v[i], files.v[i + 1])) {
+            die_later(fmt("%s is a request and a wait", path(fmt("%s/%s", interaction, files.v[i]))),
+                      "a step is the one or the other; what it leads to is filed under its name", NULL);
+            i++;
+            continue;
+        }
+        if (!is_wait) {
+            pathf(f, "%s/%s.request", interaction, files.v[i]);
+        }
         if (!*files.v[i]) {
             die_later(fmt("%s has no name", path(f)),
-                      "a request is NAME.request, and NAME is what its answer is filed under", NULL);
+                      is_wait ? "a wait is NAME.wait, and NAME is what the server printed meanwhile is filed under"
+                              : "a request is NAME.request, and NAME is what its answer is filed under", NULL);
             continue;
         }
         text = read_text(f);
@@ -1388,8 +1500,9 @@ static int run_ready(const char *run_dir) {
             die_later(fmt("%s: %s", path(f), strerror(errno)), NULL);
         } else if ((long) strlen(text) != file_size(f)) {
             /* Read as a string, it would end at the NUL and not say so. */
-            die_later(fmt("%s holds a NUL byte", path(f)), "a request is text", NULL);
-        } else if (parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
+            die_later(fmt("%s holds a NUL byte", path(f)), is_wait ? "a wait is text" : "a request is text", NULL);
+        } else if (is_wait ? parse_wait(text, what, sizeof what, err, sizeof err) < 0
+                           : parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
             die_later(fmt("%s: %s", path(f), err), NULL);
         }
         free(text);
@@ -1501,24 +1614,61 @@ static void run_run(const char *run_dir, const char *exe) {
     sl_free(&args);
 
     /* What the application did before the first request: the initialize
-     * task's statements, and what it printed while starting. */
-    if (exists(dml) && rename(dml, fmt("%s/out/startup.sql", rw)) < 0) {
-        die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
+     * task's statements, and what it printed while starting.  When the
+     * first step is a wait, all of that goes with the wait instead: the
+     * tasks it waits for start with the server, and whether their first
+     * lines come before the handshake or after it is the scheduler's
+     * business. */
+    join(interaction, run_dir, "interaction");
+    steps_of(interaction, &files);
+    if (!(files.n && is_file(fmt("%s/%s.wait", interaction, files.v[0])))) {
+        if (exists(dml) && rename(dml, fmt("%s/out/startup.sql", rw)) < 0) {
+            die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
+        }
+        cut_output(server_out, &out_at, fmt("%s/out/startup.stdout", rw));
+        cut_output(server_err, &err_at, fmt("%s/out/startup.stderr", rw));
     }
     sl_push(&outputs, "out/startup.sql");
-    cut_output(server_out, &out_at, fmt("%s/out/startup.stdout", rw));
-    cut_output(server_err, &err_at, fmt("%s/out/startup.stderr", rw));
     sl_push(&outputs, "out/startup.stdout");
     sl_push(&outputs, "out/startup.stderr");
 
-    /* The requests, in the order of their names.  One that cannot be read
-     * ends the run: those after it count on what it would have done. */
-    join(interaction, run_dir, "interaction");
-    requests_of(interaction, &files);
+    /* The steps, in the order of their names.  One that cannot be read, or
+     * a wait for what never comes, ends the run: those after it count on
+     * what it would have done. */
     for (i = 0; i < files.n && report_problems == before; i++) {
-        char method[32], url_path[PATHLEN], err[256];
+        char method[32], url_path[PATHLEN], err[256], what[1024];
         struct strlist options = { 0, 0, 0 };
         const char *name = files.v[i];
+        pathf(f, "%s/%s.wait", interaction, name);
+        if (is_file(f)) {
+            int got;
+            text = read_text(f);
+            if (!text || parse_wait(text, what, sizeof what, err, sizeof err) < 0) {
+                die_later(fmt("%s: %s", path(f), text ? err : strerror(errno)), NULL);
+            } else if ((got = wait_for(what, server_out, out_at, server_err, err_at, &serving)) != 0) {
+                if (got == 1) {
+                    die_later(fmt("%s: the server did not print %s within %d seconds", path(f), key(what), WAIT_SECONDS),
+                              head_of(server_err, NULL), NULL);
+                } else if (got == 2) {
+                    die_later(fmt("%s: the server was gone before it printed %s", path(f), key(what)),
+                              head_of(server_err, NULL), NULL);
+                }
+            } else {
+                if (exists(dml) && rename(dml, fmt("%s/interaction/%s.sql", rw, name)) < 0) {
+                    die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
+                }
+                sl_push(&outputs, fmt("interaction/%s.sql", name));
+                cut_output(server_out, &out_at, fmt("%s/interaction/%s.stdout", rw, name));
+                cut_output(server_err, &err_at, fmt("%s/interaction/%s.stderr", rw, name));
+                sl_push(&outputs, fmt("interaction/%s.stdout", name));
+                sl_push(&outputs, fmt("interaction/%s.stderr", name));
+            }
+            free(text);
+            if (fs_interrupted) {
+                break;
+            }
+            continue;
+        }
         pathf(f, "%s/%s.request", interaction, name);
         text = read_text(f);
         if (!text || parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {

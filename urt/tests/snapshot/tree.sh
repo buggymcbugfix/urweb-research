@@ -211,6 +211,36 @@ snap runs/serves-env-bad.urt/snapshot/1 exitcode
 arun runs/serves-env-bad.urt/snapshot/1/request-response/bad
 printf 'TZ=Europe/Berlin\nno assignment\n1APP=x\nAPP_TWICE=1\nAPP_TWICE=2\n' \
     > runs/serves-env-bad.urt/snapshot/1/request-response/bad/env
+# A project whose server does something a while after a request, which a
+# run waits for; one with waits that cannot be read; and one whose server
+# is gone before what is waited for comes.
+proj runs serves-later
+snap runs/serves-later.urt/snapshot/1 exitcode
+arun runs/serves-later.urt/snapshot/1/request-response/task
+cd runs/serves-later.urt/snapshot/1/request-response/task/interaction
+printf 'GET /later\n' > 01.request
+printf 'until a line from a task\r\n' > 02-task.wait
+printf 'GET /after\n' > 03-after.request
+cd "$root"
+arun runs/serves-later.urt/snapshot/1/request-response/first
+rm runs/serves-later.urt/snapshot/1/request-response/first/interaction/01.request
+printf 'APP_LATER=1\n' > runs/serves-later.urt/snapshot/1/request-response/first/env
+printf 'until a line from a task\n' > runs/serves-later.urt/snapshot/1/request-response/first/interaction/01-task.wait
+proj runs serves-later-bad
+snap runs/serves-later-bad.urt/snapshot/1 exitcode
+arun runs/serves-later-bad.urt/snapshot/1/request-response/bad
+cd runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction
+printf 'GET /later\n' > 02-both.request
+printf 'until a line from a task\n' > 02-both.wait
+printf 'for a second\n' > 03-no-until.wait
+printf 'until \n' > 04-nothing.wait
+printf 'until one\nuntil two\n' > 05-two.wait
+cd "$root"
+proj runs serves-gone
+snap runs/serves-gone.urt/snapshot/1 exitcode
+arun runs/serves-gone.urt/snapshot/1/request-response/gone
+printf 'GET /die\n' > runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/02-die.request
+printf 'until never\n' > runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/03-never.wait
 proj runs unready
 snap runs/unready.urt/snapshot/1 exitcode
 arun runs/unready.urt/snapshot/1/request-response/a
