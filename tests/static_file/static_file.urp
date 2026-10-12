@@ -1,0 +1,8 @@
+mimeTypes mime.types
+file /hello.txt hello.txt
+file /img/dot.png dot.png
+file /data data.bin
+allow url /Static_file/main
+safeGet Static_file/main
+
+static_file
