@@ -1,0 +1,10 @@
+tests/rowdiff/guardLeft/guardLeft.ur:2:95: (to 2:101) Couldn't prove field name disjointness
+    Con 1:  r -- [A = ()]
+    Con 2:  s
+Hnormed 1:  r -- [A = ()]
+Hnormed 2:  s
+tests/rowdiff/guardLeft/guardLeft.ur:2:75: (to 2:92) Couldn't prove field name disjointness
+    Con 1:  r -- [A = ()]
+    Con 2:  s
+Hnormed 1:  r -- [A = ()]
+Hnormed 2:  s

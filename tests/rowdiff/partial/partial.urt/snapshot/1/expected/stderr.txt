@@ -1,0 +1,5 @@
+tests/rowdiff/partial/partial.ur:3:84: (to 3:90) Couldn't prove field name disjointness
+    Con 1:  r -- (a -- b)
+    Con 2:  a
+Hnormed 1:  r -- (a -- b)
+Hnormed 2:  a
