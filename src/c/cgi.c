@@ -123,6 +123,7 @@ int main(int argc, char *argv[]) {
   uw_set_headers(ctx, get_header, NULL);
   uw_set_env(ctx, get_env, NULL);
   uw_request_init(&uw_application, &ls);
+  uw_request_start_threads(&uw_application, &ls);
 
   body[body_pos] = 0;
   rr = uw_request(rc, ctx, method, path, query_string, body, body_pos,

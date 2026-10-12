@@ -161,8 +161,6 @@ int pthread_create_big(pthread_t *outThread, void *foo, void *threadFunc, void *
 void uw_request_init(uw_app *app, uw_loggers* ls) {
   uw_context ctx;
   failure_kind fk;
-  uw_periodic *ps;
-  int id;
   char *stackSize_s;
 
   uw_logger log_debug = ls->log_debug;
@@ -180,15 +178,6 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
 
   uw_global_init();
   uw_app_init(app);
-
-  {
-    pthread_t thread;
-    
-    if (uw_time_max && pthread_create_big(&thread, NULL, ticker, NULL)) {
-      fprintf(stderr, "Error creating ticker thread\n");
-      exit(1);
-    }
-  }
 
   ctx = uw_request_new_context(0, app, ls);
 
@@ -208,6 +197,24 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
   }
 
   uw_free(ctx);
+}
+
+// The threads that run for the life of the process: the ticker, and one per
+// periodic task.  Separate from uw_request_init so that a server which forks
+// to daemonize can do so in between: fork() carries only the calling thread,
+// so threads created before it are lost in the child.
+void uw_request_start_threads(uw_app *app, uw_loggers *ls) {
+  uw_periodic *ps;
+  int id;
+
+  {
+    pthread_t thread;
+
+    if (uw_time_max && pthread_create_big(&thread, NULL, ticker, NULL)) {
+      fprintf(stderr, "Error creating ticker thread\n");
+      exit(1);
+    }
+  }
 
   id = 1;
   for (ps = app->periodics; ps->callback; ++ps) {
@@ -217,12 +224,12 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
     arg->ls = ls;
     arg->pdic = *ps;
     arg->app = app;
-    
+
     if (pthread_create_big(&thread, NULL, periodic_loop, arg)) {
       fprintf(stderr, "Error creating periodic thread\n");
       exit(1);
     }
-  }  
+  }
 }
 
 
