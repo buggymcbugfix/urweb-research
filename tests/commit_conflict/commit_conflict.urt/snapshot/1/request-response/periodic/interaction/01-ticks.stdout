@@ -1,0 +1,3 @@
+attempt 1, in transaction True, rows now 1
+attempt 2, in transaction True, rows now 1
+after the attempts
