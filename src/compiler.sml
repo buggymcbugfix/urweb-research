@@ -1829,11 +1829,41 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
                   else
                       " -O3"
 
-        val compile = (Settings.getCCompiler ()) ^ " " ^ Config.ccArgs ^ " " ^ Config.pthreadCflags ^ " -Wimplicit -Werror -Wno-unused-value"
-                      ^ opt ^ " -I " ^ !Settings.configInclude
-		      ^ " " ^ !Settings.configIcuIncludes
-                      ^ " " ^ #compile proto
-                      ^ " -c " ^ escapeFilename cname ^ " -o " ^ escapeFilename oname
+        val extra = (if profile then " -pg" else "") ^ (if debug then " -g" else "")
+
+        fun compileOne (cname, oname) =
+            (Settings.getCCompiler ()) ^ " " ^ Config.ccArgs ^ " " ^ Config.pthreadCflags ^ " -Wimplicit -Werror -Wno-unused-value"
+            ^ opt ^ " -I " ^ !Settings.configInclude
+            ^ " " ^ !Settings.configIcuIncludes
+            ^ " " ^ #compile proto
+            ^ " -c " ^ escapeFilename cname ^ " -o " ^ escapeFilename oname
+            ^ extra
+
+        val compile = compileOne (cname, oname)
+
+        (* A C source among the files to link (link FOO.c) is compiled here,
+         * by the command that compiles the generated C, so that it finds
+         * urweb.h and its includes wherever this compiler has them; its
+         * object goes beside the generated one and is linked in its place.
+         * A file named twice is compiled once. *)
+        val link' = rev (#1 (foldl (fn (s, (acc, set)) =>
+                                       if StringSet.member (set, s) then
+                                           (acc, set)
+                                       else
+                                           (s :: acc, StringSet.add (set, s)))
+                                   ([], StringSet.empty) link'))
+        val sources = #1 (foldr (fn (s, (acc, n)) =>
+                                    if String.isSuffix ".c" s andalso not (String.isPrefix "-" s) then
+                                        ((s, OS.Path.joinDirFile {dir = OS.Path.dir oname,
+                                                                  file = "link" ^ Int.toString n ^ "_"
+                                                                         ^ OS.Path.base (OS.Path.file s) ^ ".o"})
+                                         :: acc, n + 1)
+                                    else
+                                        (acc, n))
+                                ([], 0) link')
+        fun linked s = case List.find (fn (s', _) => s' = s) sources of
+                           SOME (_, obj) => escapeFilename obj
+                         | NONE => s
 
         fun concatArgs (a1, a2) =
             if CharVector.all Char.isSpace a1 then
@@ -1854,26 +1884,9 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
         val link = linker
                    ^ " " ^ escapeFilename oname ^ " " ^ lib ^ " -lm " ^ ssl ^ " " ^ libs ^ " -o " ^ escapeFilename ename
 
-        val (compile, link) =
-            if profile then
-                (compile ^ " -pg", link ^ " -pg")
-            else
-                (compile, link)
+        val link = link ^ extra
 
-        val (compile, link) =
-            if debug then
-                (compile ^ " -g", link ^ " -g")
-            else
-                (compile, link)
-
-        val link = #1 (foldl
-            (fn (s, (link, set)) =>
-              if StringSet.member (set, s) then
-                (link, set)
-              else
-                ((link ^ " " ^ s), StringSet.add (set, s)))
-            (link, StringSet.empty)
-            link')
+        val link = foldl (fn (s, link) => link ^ " " ^ linked s) link link'
 
         fun system s =
             (if debug then
@@ -1883,7 +1896,9 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
              OS.Process.isSuccess (OS.Process.system s))
     in
         !beforeC ();
-        system compile andalso system link
+        system compile
+        andalso List.all (fn (s, obj) => system (compileOne (s, obj))) sources
+        andalso system link
     end
 
 fun compile job = quietly (fn () =>

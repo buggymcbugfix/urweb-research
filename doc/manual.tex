@@ -187,7 +187,7 @@ Here is the complete list of directive forms.  ``FFI'' stands for ``foreign func
   \item \texttt{time}: maximum running time of a single page request, in units of approximately 0.1 seconds
   \item \texttt{transactionals}: maximum number of custom transactional actions (e.g., sending an e-mail) that may be run in a single page generation
   \end{itemize}
-\item \texttt{link FILENAME} adds \texttt{FILENAME} to the list of files to be passed to the linker at the end of compilation.  This is most useful for importing extra libraries needed by new FFI modules.
+\item \texttt{link FILENAME} adds \texttt{FILENAME} to the list of files to be passed to the linker at the end of compilation.  This is most useful for importing extra libraries needed by new FFI modules.  A C source file (\texttt{FILENAME} ending in \texttt{.c}) is first compiled by the command that compiles the generated C, so that it finds \texttt{urweb.h}, and the object is linked in its place.
 \item \texttt{linker CMD} sets \texttt{CMD} as the command line prefix to use for linking C object files.  The command line will be completed with a space-separated list of \texttt{.o} and \texttt{.a} files, \texttt{-L} and \texttt{-l} flags, and finally with a \texttt{-o} flag to set the location where the executable should be written.
 \item \texttt{mimeTypes PATH} sets the name of the file from which the MIME-type database is read, as a substitute for the usual \texttt{/etc/mime.types} on UNIX systems.  It should come before any \texttt{file} directive, since those look up MIME types as they are read.
 \item \texttt{minHeap NUMBYTES} sets the initial size for thread-local heaps used in handling requests.  These heaps grow automatically as needed (up to any maximum set with \texttt{limit}), but each regrow requires restarting the request handling process.
@@ -2522,7 +2522,7 @@ It is most convenient to encapsulate an FFI binding with a new \texttt{.urp} fil
 \item \texttt{include FILE} requests inclusion of a C header file.
 \item \texttt{jsFile FILE} requests inclusion of a JavaScript source file.
 \item \texttt{jsFunc Module.ident=name} gives a mapping from an Ur name for a value to a JavaScript name.
-\item \texttt{link FILE} requests that \texttt{FILE} be linked into applications.  It should be a C object or library archive file, and you are responsible for generating it with your own build process.
+\item \texttt{link FILE} requests that \texttt{FILE} be linked into applications.  It should be a C object or library archive file, which you are responsible for generating with your own build process, or a C source file ending in \texttt{.c}, which the compiler compiles with the flags it uses for the C it generates.
 \item \texttt{script URL} requests inclusion of a JavaScript source file within application HTML.
 \item \texttt{serverOnly Module.ident} registers a value as being allowed only in server-side code.
 \end{itemize}
