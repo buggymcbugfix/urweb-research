@@ -165,6 +165,11 @@ val proved = ref 0
 fun reset () = (ElabOps.reset ();
                 proved := 0)
 
+(* The parts of a row, each with the pieces taken away from it.  A part of
+ * c1 in c1 -- c2 has no more names than it had, less those of c2: it is
+ * disjoint from whatever it was disjoint from, and from every piece of c2
+ * that is whole, i.e. not itself under a difference (r -- (a -- b) may
+ * still share names with a). *)
 fun decomposeRow env c =
     let
         val loc = #2 c
@@ -183,49 +188,66 @@ fun decomposeRow env c =
                   | _ => (c, [])
             end
 
-        fun decomposeName (c, acc) =
+        fun decomposeName (c, taken, acc) =
             let
                 val (cAll as (c, _), ns) = decomposeProj c
             in
                 case c of
-                    CName s => Piece (NameC s, ns) :: acc
-                  | CRel n => Piece (NameR n, ns) :: acc
-                  | CNamed n => Piece (NameN n, ns) :: acc
-                  | CModProj (m1, ms, x) => Piece (NameM (m1, ms, x), ns) :: acc
-                  | _ => Unknown cAll :: acc
+                    CName s => (Piece (NameC s, ns), taken) :: acc
+                  | CRel n => (Piece (NameR n, ns), taken) :: acc
+                  | CNamed n => (Piece (NameN n, ns), taken) :: acc
+                  | CModProj (m1, ms, x) => (Piece (NameM (m1, ms, x), ns), taken) :: acc
+                  | _ => (Unknown cAll, taken) :: acc
             end
 
-        fun decomposeRow' (c, acc) =
+        fun decomposeRow' (c, taken, acc) =
             let
                 fun default () =
                     let
                         val (cAll as (c, _), ns) = decomposeProj c
                     in
                         case c of
-                            CRecord (_, xcs) => foldl (fn ((x, _), acc) => decomposeName (x, acc)) acc xcs
-                          | CConcat (c1, c2) => decomposeRow' (c1, decomposeRow' (c2, acc))
-                          | CRel n => Piece (RowR n, ns) :: acc
-                          | CNamed n => Piece (RowN n, ns) :: acc
-                          | CModProj (m1, ms, x) => Piece (RowM (m1, ms, x), ns) :: acc
-                          | _ => Unknown cAll :: acc
+                            CRecord (_, xcs) => foldl (fn ((x, _), acc) => decomposeName (x, taken, acc)) acc xcs
+                          | CConcat (c1, c2) => decomposeRow' (c1, taken, decomposeRow' (c2, taken, acc))
+                          | CRel n => (Piece (RowR n, ns), taken) :: acc
+                          | CNamed n => (Piece (RowN n, ns), taken) :: acc
+                          | CModProj (m1, ms, x) => (Piece (RowM (m1, ms, x), ns), taken) :: acc
+                          | _ => (Unknown cAll, taken) :: acc
                     end
             in
                 case #1 (hnormCon env c) of
                     CApp (
                     (CApp ((CMap _, _), _), _),
-                    r) => decomposeRow' (r, acc)
+                    r) => decomposeRow' (r, taken, acc)
+                  | CDiff (c1, c2) =>
+                    let
+                        val whole = List.mapPartial (fn (Piece p, []) => SOME p | _ => NONE)
+                                                    (decomposeRow' (c2, [], []))
+                    in
+                        decomposeRow' (c1, whole @ taken, acc)
+                    end
                   | _ => default ()
             end
     in
-        decomposeRow' (c, [])
+        decomposeRow' (c, [], [])
     end
+
+(* Whether p is among the pieces taken away; a literal name goes with its
+ * other spellings, as CDiff takes it away. *)
+fun takenAway (taken, p) =
+    List.exists (fn q =>
+                    case (q, p) of
+                        ((NameC s1, ns1), (NameC s2, ns2)) => lowercase s1 = lowercase s2 andalso ns1 = ns2
+                      | _ => q = p) taken
 
 and assert env denv (c1, c2) =
     let
         val ps1 = decomposeRow env c1
         val ps2 = decomposeRow env c2
 
-        val unUnknown = List.mapPartial (fn Unknown _ => NONE | Piece p => SOME p)
+        (* What holds of a difference says nothing of its left operand's
+         * pieces, so those count as unknown. *)
+        val unUnknown = List.mapPartial (fn (Piece p, []) => SOME p | _ => NONE)
         val ps1 = unUnknown ps1
         val ps2 = unUnknown ps2
 
@@ -256,8 +278,8 @@ and prove env denv (c1, c2, loc) =
         val ps1 = decomposeRow env c1
         val ps2 = decomposeRow env c2
 
-        val hasUnknown = List.exists (fn Unknown _ => true | _ => false)
-        val unUnknown = List.mapPartial (fn Unknown _ => NONE | Piece p => SOME p)
+        val hasUnknown = List.exists (fn (Unknown _, _) => true | _ => false)
+        val unUnknown = List.mapPartial (fn (Piece p, taken) => SOME (p, taken) | _ => NONE)
     in
         if (hasUnknown ps1 andalso not (List.null ps2))
            orelse (hasUnknown ps2 andalso not (List.null ps1)) then
@@ -272,9 +294,11 @@ and prove env denv (c1, c2, loc) =
                 print "Pieces2:\n";
                 app pp ps2;*)
 
-                foldl (fn (p1, rem) =>
-                          foldl (fn (p2, rem) =>
-                                    if prove1 denv (p1, p2) then
+                foldl (fn ((p1, taken1), rem) =>
+                          foldl (fn ((p2, taken2), rem) =>
+                                    if takenAway (taken1, p2)
+                                       orelse takenAway (taken2, p1)
+                                       orelse prove1 denv (p1, p2) then
                                         rem
                                     else
                                         (loc, env, denv, pieceToRow (p1, loc), pieceToRow (p2, loc)) :: rem) rem ps2)
