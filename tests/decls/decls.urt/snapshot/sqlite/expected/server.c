@@ -940,6 +940,9 @@
   return uw_Basis_makeSigString(ctx, r);
   }
  
+ static uw_served_file uw_served_files[] = {
+ {NULL, NULL, 0, NULL}};
+ 
  static void uw_handle(uw_context ctx, char *request) {
  uw_Basis_string ims = uw_Basis_requestHeader(ctx, "If-modified-since");
  if (ims && !strcmp(ims, "Thu, 01 Jan 1970 00:00:00 GMT")) {
@@ -965,6 +968,7 @@
     return;
     }
    
+ if (uw_serve_file(ctx, request, "Thu, 01 Jan 1970 00:00:00 GMT")) return;
  
  if (!strncmp(request, "/Decls/main", 11) && (request[11] == 0 || request[11] == '/')) {
   request += 11;
@@ -1191,5 +1195,7 @@
                                                      my_periodics,
                                                                   "%c",
                                                                        1,
-                                                                         NULL};
+                                                                         NULL,
+                                                                              
+                            uw_served_files};
  

@@ -283,6 +283,9 @@ __attribute__((noreturn)) void uw_return_blob(struct uw_context *, uw_Basis_blob
 __attribute__((noreturn)) void uw_return_blob_from_page(struct uw_context *, uw_Basis_string mimeType);
 __attribute__((noreturn)) void uw_redirect(struct uw_context *, uw_Basis_string url);
 void uw_replace_page(struct uw_context *, const char *data, size_t size);
+// The response for a request that names one of the application's served
+// files, with the Last-Modified given; 0 when the request names none.
+int uw_serve_file(struct uw_context *, const char *request, const char *last_modified);
 
 uw_Basis_time uw_Basis_now(struct uw_context *);
 uw_Basis_time uw_Basis_addSeconds(struct uw_context *, uw_Basis_time, uw_Basis_int);

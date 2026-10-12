@@ -77,6 +77,14 @@
   return uw_Basis_makeSigString(ctx, r);
   }
  
+ static uw_served_file uw_served_files[] = {
+ {"/data", NULL, 14, "\x6E\x6F\x74\x20\x74\x65\x78\x74\x3A\x20\x00\x01\x02\x0A"},
+  
+  {"/hello.txt", "text/plain", 14, "\x48\x65\x6C\x6C\x6F\x2C\x20\x77\x6F\x72\x6C\x64\x21\x0A"},
+  
+  {"/img/dot.png", "image/png", 69, "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A\x00\x00\x00\x0D\x49\x48\x44\x52\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90\x77\x53\xDE\x00\x00\x00\x0C\x49\x44\x41\x54\x78\x9C\x63\xF8\xCF\xC0\x00\x00\x03\x01\x01\x00\xC9\xFE\x92\xEF\x00\x00\x00\x00\x49\x45\x4E\x44\xAE\x42\x60\x82"},
+  {NULL, NULL, 0, NULL}};
+ 
  static void uw_handle(uw_context ctx, char *request) {
  uw_Basis_string ims = uw_Basis_requestHeader(ctx, "If-modified-since");
  if (ims && !strcmp(ims, "Thu, 01 Jan 1970 00:00:00 GMT")) {
@@ -86,34 +94,8 @@
   }
  
  
- if (!strcmp(request, "/data")) {
-  uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
-   uw_write_header(ctx, "Content-Length: 14\r\n");
-   uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
-   uw_replace_page(ctx, "\x6E\x6F\x74\x20\x74\x65\x78\x74\x3A\x20\x00\x01\x02\x0A", 14);
-   return;
-   };
-  
-  
-  if (!strcmp(request, "/hello.txt")) {
-   uw_write_header(ctx, "Content-Type: text/plain\r\n");
-    uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
-    uw_write_header(ctx, "Content-Length: 14\r\n");
-    uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
-    uw_replace_page(ctx, "\x48\x65\x6C\x6C\x6F\x2C\x20\x77\x6F\x72\x6C\x64\x21\x0A", 14);
-    return;
-    };
-   
-  
-  if (!strcmp(request, "/img/dot.png")) {
-   uw_write_header(ctx, "Content-Type: image/png\r\n");
-    uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
-    uw_write_header(ctx, "Content-Length: 69\r\n");
-    uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
-    uw_replace_page(ctx, "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A\x00\x00\x00\x0D\x49\x48\x44\x52\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90\x77\x53\xDE\x00\x00\x00\x0C\x49\x44\x41\x54\x78\x9C\x63\xF8\xCF\xC0\x00\x00\x03\x01\x01\x00\xC9\xFE\x92\xEF\x00\x00\x00\x00\x49\x45\x4E\x44\xAE\x42\x60\x82", 69);
-    return;
-    };
-   
+ if (uw_serve_file(ctx, request, "Thu, 01 Jan 1970 00:00:00 GMT")) return;
+ 
  if (!strncmp(request, "/Static_file/main", 17) && (request[17] == 0 || request[17] == '/')) {
   request += 17;
   if (*request == '/') ++request;
@@ -174,5 +156,7 @@
                                               my_periodics,
                                                            "%c",
                                                                 1,
-                                                                  NULL};
+                                                                  NULL,
+                                                                       
+                           uw_served_files};
  
