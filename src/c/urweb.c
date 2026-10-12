@@ -3809,6 +3809,11 @@ int uw_commit(uw_context ctx) {
           if (ctx->transactionals[i].free)
             ctx->transactionals[i].free(ctx->transactionals[i].data, 1);
 
+        // The database has ended the transaction.  A retry has to BEGIN again,
+        // which uw_ensure_transaction does only while this is clear, and the
+        // retry of a request resets with uw_reset_keep_request, which leaves it.
+        ctx->transaction_started = 0;
+
         return 1;
       }
 
