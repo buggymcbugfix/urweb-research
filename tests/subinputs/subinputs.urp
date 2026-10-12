@@ -1,0 +1,5 @@
+allow url /Subinputs/*
+safeGet Subinputs/main
+
+$/list
+subinputs

@@ -1,0 +1,22 @@
+POST /Subinputs/handle -d .s=Lines \
+    -d .i=1 -d Num=20 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=19 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=18 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=17 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=16 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=15 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=14 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=13 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=12 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=11 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=10 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=9 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=8 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=7 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=6 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=5 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=4 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=3 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=2 -d Text=t -d .e=1 \
+    -d .i=1 -d Num=1 -d Text=t -d .e=1 \
+    -d .e=1
