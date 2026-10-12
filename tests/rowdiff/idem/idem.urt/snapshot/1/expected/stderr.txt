@@ -1,0 +1,11 @@
+tests/rowdiff/idem/idem.ur:2:6: (to 2:19) Unification failure
+Expression: 
+fn r :: {Type} => fn x : $((r -- [A = ()]) -- [A = ()]) => x
+  Have con: 
+r :: {Type} ->
+ $((r -- [A = ()]) -- [A = ()]) -> $((r -- [A = ()]) -- [A = ()])
+  Need con: 
+r :: {Type} -> $((r -- [A = ()]) -- [A = ()]) -> $(r -- [A = ()])
+Incompatible constructors
+Have:  r -- [A = ()]
+Need:  r

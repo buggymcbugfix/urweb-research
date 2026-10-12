@@ -1,0 +1,7 @@
+tests/rowdiff/self/self.ur:2:6: (to 2:19) Error in final record unification
+Can't unify record constructors
+Have:  r -- r
+Need:  []
+tests/rowdiff/self/self.ur:2:6: (to 2:19) Stuck unifying these records after canceling matching pieces:
+Have:  r -- r
+Need:  []
