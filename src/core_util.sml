@@ -241,9 +241,11 @@ fun compare ((c1, _), (c2, _)) =
 
 fun diff norm (c1 : con, c2 : con, loc) =
     let
+        val lower = CharVector.map Char.toLower
+
         fun sameName (x, y) =
             case (#1 x, #1 y) of
-                (CName s1, CName s2) => SOME (s1 = s2)
+                (CName s1, CName s2) => SOME (lower s1 = lower s2)
               | (CRel n1, CRel n2) => if n1 = n2 then SOME true else NONE
               | (CNamed n1, CNamed n2) => if n1 = n2 then SOME true else NONE
               | (CFfi p1, CFfi p2) => if p1 = p2 then SOME true else NONE

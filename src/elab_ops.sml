@@ -170,12 +170,17 @@ fun reset () = (identity := 0;
  * the right, kept when it is a literal different from every literal on
  * the right, and otherwise left in a difference.  The ninth equation,
  * c1 -- c2 == c1 for c1 ~ c2, needs the disjointness facts and is not
- * here.  Literal names are compared exactly. *)
+ * here.  Literal names are compared up to case, as Disjoint compares them,
+ * so that taking away Ab takes away AB as well: otherwise
+ * (r -- [Ab]) ++ [Ab = t] at r = [AB = u] would make a record with two
+ * fields the disjointness check keeps apart everywhere else. *)
 fun diffCon norm (c1 : con, c2 : con, loc) =
     let
+        val lower = CharVector.map Char.toLower
+
         fun sameName (x, y) =
             case (#1 (norm x), #1 (norm y)) of
-                (CName s1, CName s2) => SOME (s1 = s2)
+                (CName s1, CName s2) => SOME (lower s1 = lower s2)
               | (CRel n1, CRel n2) => if n1 = n2 then SOME true else NONE
               | (CNamed n1, CNamed n2) => if n1 = n2 then SOME true else NONE
               | (CModProj (m1, ms1, x1), CModProj (m2, ms2, x2)) =>
