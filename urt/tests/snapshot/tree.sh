@@ -191,6 +191,26 @@ proj runs serves-cr
 snap runs/serves-cr.urt/snapshot/1 exitcode
 arun runs/serves-cr.urt/snapshot/1/request-response/continued
 printf 'POST /fields -d "x=1" \\\r\n  -d "y=2"\r\n' > runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/02-continued.request
+# A project with a run that has an environment of its own, which the
+# stand-in server reports back, and a run after it that has none; and one
+# whose env says what it may not.
+proj runs serves-env
+snap runs/serves-env.urt/snapshot/1 exitcode
+arun runs/serves-env.urt/snapshot/1/request-response/env
+cd runs/serves-env.urt/snapshot/1/request-response/env
+printf '# the greeting, then nothing\n\nAPP_GREETING=hello, run\r\nAPP_EMPTY=\n' > env
+printf 'GET /env/APP_GREETING\n' > interaction/01.request
+printf 'GET /env/APP_EMPTY\n' > interaction/02.request
+printf 'GET /env/APP_OUTSIDE\n' > interaction/03.request
+cd "$root"
+arun runs/serves-env.urt/snapshot/1/request-response/plain
+printf 'GET /env/APP_GREETING\n' > runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.request
+printf 'GET /env/APP_EMPTY\n' > runs/serves-env.urt/snapshot/1/request-response/plain/interaction/02.request
+proj runs serves-env-bad
+snap runs/serves-env-bad.urt/snapshot/1 exitcode
+arun runs/serves-env-bad.urt/snapshot/1/request-response/bad
+printf 'TZ=Europe/Berlin\nno assignment\n1APP=x\nAPP_TWICE=1\nAPP_TWICE=2\n' \
+    > runs/serves-env-bad.urt/snapshot/1/request-response/bad/env
 proj runs unready
 snap runs/unready.urt/snapshot/1 exitcode
 arun runs/unready.urt/snapshot/1/request-response/a

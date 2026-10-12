@@ -14,8 +14,8 @@ The compiler is the one `URWEB` names, or else the in-tree build,
 
 A case can go on to run the application it compiles and snapshot what it
 answers: the runs under `request-response/`, each with its own database
-(SQLite, from `db.sql`), signing key (`secret`) and flags (`args`), and the
-requests to send under `interaction/`.  Kept are the responses as `curl -i`
+(SQLite, from `db.sql`), signing key (`secret`), flags (`args`) and
+environment (`env`), and the requests to send under `interaction/`.  Kept are the responses as `curl -i`
 prints them, and beside each what the request changed in the database
 (`NAME.sql`, from the application's `URWEB_DML_LOG`) and what the server
 printed meanwhile (`NAME.stdout`, `NAME.stderr`), each only if there was

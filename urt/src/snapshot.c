@@ -15,6 +15,7 @@
  * one).  _DARWIN_C_SOURCE means nothing anywhere else. */
 #define _XOPEN_SOURCE 700
 #define _DARWIN_C_SOURCE
+#include <ctype.h>
 #include <errno.h>
 #include <limits.h>
 #include <signal.h>
@@ -91,6 +92,7 @@ static const char usage_text[] =
     "          `-- request-response/\n"
     "              `-- checkout/               a run; named like a case\n"
     "                  |-- args                extra flags for the application, if any\n"
+    "                  |-- env                 its environment, NAME=value a line, if any\n"
     "                  |-- secret              the key it signs with: 16 bytes or more\n"
     "                  |-- db.sql              the database it starts from, if it uses one\n"
     "                  |-- interaction/\n"
@@ -135,6 +137,12 @@ static const char usage_text[] =
     "UTC; its heap starts at 256 MiB, so that no handler is run a second time\n"
     "for the heap to grow; every request is for the host 'localhost', from the\n"
     "user agent 'urt'.\n"
+    "\n"
+    "A run's env adds to the application's environment, NAME=value a line, the\n"
+    "value taken as written; blank lines and lines starting with # are skipped.\n"
+    "What urt sets itself for the above cannot be set there: URWEB_SIGFILE_PATH,\n"
+    "URWEB_SQLITE_DB_PATH, URWEB_DML_LOG, URWEB_REPRODUCIBLE_EPOCH,\n"
+    "URWEB_REPRODUCIBLE_PRNG_SEED, URWEB_MIN_HEAP and TZ.\n"
     "\n"
     "A case with runs is compiled all the way, so its args cannot hold -stop or\n"
     "-tc, and it fails if that does not give an application.  The compiler builds\n"
@@ -437,7 +445,8 @@ static int layout_run(const char *e, const char *rest) {
                       "the name of a run is letters, digits, _ and -, and nothing else, not starting with -", NULL);
             return 1;
         }
-    } else if (n == 2 && (!strcmp(part[1], "args") || !strcmp(part[1], "secret") || !strcmp(part[1], "db.sql"))) {
+    } else if (n == 2 && (!strcmp(part[1], "args") || !strcmp(part[1], "secret") || !strcmp(part[1], "db.sql")
+                          || !strcmp(part[1], "env"))) {
         if (!is_file(e)) {
             die_later(fmt("%s should be a file", path(e)), NULL);
         }
@@ -464,7 +473,7 @@ static int layout_run(const char *e, const char *rest) {
         ;
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
-                  "a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout",
+                  "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout",
                   "and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,",
                   "shutdown.stderr and db_final.sql under out/", NULL);
         return is_dir(e);
@@ -885,6 +894,91 @@ static void show_diff(const char *file) {
 #define RUN_SEED "0"
 #define RUN_MIN_HEAP "268435456"    /* 256 MiB */
 
+/* What urt sets in the application's environment itself, above and in
+ * run_run, and a run's env therefore cannot. */
+static const char *const run_env_reserved[] = {
+    "URWEB_SIGFILE_PATH", "URWEB_SQLITE_DB_PATH", "URWEB_DML_LOG", "URWEB_REPRODUCIBLE_EPOCH",
+    "URWEB_REPRODUCIBLE_PRNG_SEED", "URWEB_MIN_HEAP", "TZ",
+};
+
+/* Whether s can name an environment variable: letters, digits and _, not
+ * starting with a digit, as the shell has it. */
+static int valid_env_name(const char *s) {
+    if (!*s || isdigit((unsigned char) *s)) {
+        return 0;
+    }
+    for (; *s; s++) {
+        if (!isalnum((unsigned char) *s) && *s != '_') {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* A run's env file f, NAME=value a line, into names and values: blank
+ * lines and lines starting with # are skipped, a line may end in CRLF, and
+ * the value is the rest of the line as it stands.  What is wrong with it
+ * is complained about, and then -1. */
+static int read_run_env(const char *f, struct strlist *names, struct strlist *values) {
+    char *text = read_text(f), *line, *next, *eq;
+    int lineno = 0, before = report_problems;
+    size_t i, n;
+    if (!text) {
+        die_later(fmt("%s: %s", path(f), strerror(errno)), NULL);
+        return -1;
+    }
+    if ((long) strlen(text) != file_size(f)) {
+        die_later(fmt("%s holds a NUL byte", path(f)), "an env file is text", NULL);
+        free(text);
+        return -1;
+    }
+    for (line = text; *line; line = next) {
+        lineno++;
+        next = strchr(line, '\n');
+        if (next) {
+            *next++ = 0;
+        } else {
+            next = line + strlen(line);
+        }
+        n = strlen(line);
+        if (n && line[n - 1] == '\r') {
+            line[--n] = 0;
+        }
+        if (!n || line[0] == '#') {
+            continue;
+        }
+        eq = strchr(line, '=');
+        if (!eq) {
+            die_later(fmt("%s:%d is not NAME=value", path(f), lineno), NULL);
+            continue;
+        }
+        *eq = 0;
+        if (!valid_env_name(line)) {
+            die_later(fmt("%s:%d: %s cannot name an environment variable", path(f), lineno, key(line)),
+                      "a name is letters, digits and _, not starting with a digit", NULL);
+            continue;
+        }
+        for (i = 0; i < sizeof run_env_reserved / sizeof run_env_reserved[0]; i++) {
+            if (!strcmp(line, run_env_reserved[i])) {
+                die_later(fmt("%s:%d sets %s, which urt sets itself", path(f), lineno, key(line)),
+                          "it is part of what makes a run repeat, or of what urt reads back", NULL);
+                break;
+            }
+        }
+        if (i < sizeof run_env_reserved / sizeof run_env_reserved[0]) {
+            continue;
+        }
+        if (sl_has(names, line)) {
+            die_later(fmt("%s:%d sets %s a second time", path(f), lineno, key(line)), NULL);
+            continue;
+        }
+        sl_push(names, line);
+        sl_push(values, eq + 1);
+    }
+    free(text);
+    return report_problems == before ? 0 : -1;
+}
+
 /* The runs of a case, as paths, sorted. */
 static void runs_of(const char *case_dir, struct strlist *runs) {
     struct strlist names = { 0, 0, 0 };
@@ -1270,6 +1364,14 @@ static int run_ready(const char *run_dir) {
         free(args);
     }
 
+    join(f, run_dir, "env");
+    if (is_file(f)) {
+        struct strlist names = { 0, 0, 0 }, values = { 0, 0, 0 };
+        read_run_env(f, &names, &values);
+        sl_free(&names);
+        sl_free(&values);
+    }
+
     join(interaction, run_dir, "interaction");
     requests_of(interaction, &files);
     for (i = 0; i < files.n; i++) {
@@ -1305,8 +1407,9 @@ static void run_run(const char *run_dir, const char *exe) {
     long out_at = 0, err_at = 0;
     char bad[PATHLEN] = "", changed[PATHLEN] = "", failed[PATHLEN] = "", note[512] = "";
     struct strlist args = { 0, 0, 0 }, files = { 0, 0, 0 }, outputs = { 0, 0, 0 }, diffs = { 0, 0, 0 };
-    char *text;
-    int i, has_db, before = report_problems;
+    struct strlist env_names = { 0, 0, 0 }, env_values = { 0, 0, 0 };
+    char *text, **env_saved;
+    int i, has_db, started, before = report_problems;
     long t0 = tenths_now();
 
     /* The outputs land under rw as they are laid out under the run. */
@@ -1362,9 +1465,34 @@ static void run_run(const char *run_dir, const char *exe) {
     }
     free(text);
 
+    /* The run's own environment, for the server only: what was there
+     * before is put back once it has started, for the next run. */
+    join(f, run_dir, "env");
+    if (is_file(f)) {
+        read_run_env(f, &env_names, &env_values);  /* run_ready has seen that it reads */
+    }
+    env_saved = xmalloc(sizeof *env_saved * (size_t) (env_names.n + 1));
+    for (i = 0; i < env_names.n; i++) {
+        const char *old = getenv(env_names.v[i]);
+        env_saved[i] = old ? xstrdup(old) : NULL;
+        setenv(env_names.v[i], env_values.v[i], 1);
+    }
+
     join(server_out, rw, "server.stdout");
     join(server_err, rw, "server.stderr");
-    if (server_start(exe, &args, server_out, server_err, &serving, why, sizeof why) < 0) {
+    started = server_start(exe, &args, server_out, server_err, &serving, why, sizeof why);
+    for (i = 0; i < env_names.n; i++) {
+        if (env_saved[i]) {
+            setenv(env_names.v[i], env_saved[i], 1);
+            free(env_saved[i]);
+        } else {
+            unsetenv(env_names.v[i]);
+        }
+    }
+    free(env_saved);
+    sl_free(&env_names);
+    sl_free(&env_values);
+    if (started < 0) {
         bail_if_interrupted();
         die_later(fmt("the application does not start for %s: %s", test(run_dir), why), head_of(server_err, NULL), NULL);
         sl_free(&args);
