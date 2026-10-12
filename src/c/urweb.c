@@ -2352,10 +2352,19 @@ uw_Basis_char uw_Basis_unurlifyChar(uw_context ctx, char **s) {
   r = ctx->heap.front;
   ctx->heap.front = uw_unurlifyString_to(0, ctx, ctx->heap.front, *s);
   *s = new_s;
-  if (strlen(r) == 1)
-    return r[0];
-  else
-    uw_error(ctx, FATAL, "Unurlified character is multiple characters long");
+  {
+    // The bytes are UTF-8, as urlifyChar_w wrote them: exactly one
+    // well-formed character is one char.
+    int32_t i = 0, n = strlen(r);
+    UChar32 c;
+
+    if (n > 0) {
+      U8_NEXT(r, i, n, c);
+      if (c >= 0 && i == n)
+        return c;
+    }
+  }
+  uw_error(ctx, FATAL, "Unurlified character is not exactly one character");
 }
 
 uw_Basis_unit uw_Basis_unurlifyUnit(uw_context ctx, char **s) {

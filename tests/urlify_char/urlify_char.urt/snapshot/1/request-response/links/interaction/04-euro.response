@@ -1,7 +1,6 @@
-HTTP/1.1 500 Internal Server Error
-Content-type: text/html
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 127
+Content-length: 57
 
-<html><head><title>Fatal Error</title></head><body>Fatal error: Unurlified character is multiple characters long
-</body></html>
+<!DOCTYPE html><html><head></head><body>€</body></html>
