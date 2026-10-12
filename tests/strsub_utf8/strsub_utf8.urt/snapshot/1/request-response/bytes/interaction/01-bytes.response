@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 141
+
+<!DOCTYPE html><html><head></head><body>
+<p>97 -61 -87</p>
+<a href="/Strsub_utf8/show1/.FF.BF.BF.83">first byte of e-acute</a>
+</body></html>
