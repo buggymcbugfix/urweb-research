@@ -80,6 +80,9 @@ $(SRC)/elab_env.sml
 $(SRC)/elab_print.sig
 $(SRC)/elab_print.sml
 
+$(SRC)/name_sets.sig
+$(SRC)/name_sets.sml
+
 $(SRC)/elab_ops.sig
 $(SRC)/elab_ops.sml
 

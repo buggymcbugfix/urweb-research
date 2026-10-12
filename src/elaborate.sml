@@ -812,6 +812,60 @@
 
  val reducedSummaries = ref (NONE : (Print.PD.pp_desc * Print.PD.pp_desc) option)
 
+ (* The names of a row of any kind, as a set for NameSets: a literal field
+  * name is a literal; a name or a row that is not taken apart is an atom.
+  * map keeps the names of its argument. *)
+ fun nameSet env c =
+     let
+         fun mapArg c =
+             case #1 c of
+                 L'.CApp (m, r) =>
+                 (case #1 (hnormCon env m) of
+                      L'.CApp (m', _) =>
+                      (case #1 (hnormCon env m') of
+                           L'.CMap _ => SOME r
+                         | _ => NONE)
+                    | _ => NONE)
+               | _ => NONE
+     in
+         case hnormCon env c of
+             (L'.CRecord (_, xcs), _) =>
+             foldl (fn ((x, _), s) =>
+                       NameSets.Union (s, case hnormCon env x of
+                                              (L'.CName x', _) => NameSets.Lit x'
+                                            | x' => NameSets.Atom x'))
+                   NameSets.Empty xcs
+           | (L'.CConcat (c1, c2), _) => NameSets.Union (nameSet env c1, nameSet env c2)
+           | (L'.CDiff (c1, c2), _) => NameSets.Diff (nameSet env c1, nameSet env c2)
+           | c' => (case mapArg c' of
+                        SOME r => nameSet env r
+                      | NONE => NameSets.Atom c')
+     end
+
+ (* Whether two atoms are the same constructor, by looking only: no
+  * unification, so that comparing changes nothing.  What it does not
+  * recognize counts as different, which to NameSets means independent and
+  * can only make it answer "not equal". *)
+ fun sameAtom env (c1, c2) =
+     case (#1 (hnormCon env c1), #1 (hnormCon env c2)) of
+         (L'.CRel n1, L'.CRel n2) => n1 = n2
+       | (L'.CNamed n1, L'.CNamed n2) => n1 = n2
+       | (L'.CModProj (m1, ms1, x1), L'.CModProj (m2, ms2, x2)) =>
+         m1 = m2 andalso ms1 = ms2 andalso x1 = x2
+       | (L'.CUnif (nl1, _, _, _, r1), L'.CUnif (nl2, _, _, _, r2)) => nl1 = nl2 andalso r1 = r2
+       | (L'.CName x1, L'.CName x2) => x1 = x2
+       | (L'.CApp (f1, a1), L'.CApp (f2, a2)) => sameAtom env (f1, f2) andalso sameAtom env (a1, a2)
+       | _ => false
+
+ fun sameNames env (s1, s2) = NameSets.equal (sameAtom env) (s1, s2)
+
+ fun isUnitRow env c =
+     case hnormKind (kindof env c) of
+         (L'.KRecord k, _) => (case hnormKind k of
+                                   (L'.KUnit, _) => true
+                                 | _ => false)
+       | _ => false
+
  fun unifyRecordCons env (loc, c1, c2) =
      let
          fun rkindof c =
@@ -834,7 +888,14 @@
          val r2 = recordSummary env c2
      in
          unifyKinds env k1 k2;
-         unifySummaries env (loc, k1, r1, r2)
+         (* At {Unit} a row is a set of names, and equality is decided. *)
+         if (case hnormKind k1 of
+                 (L'.KUnit, _) => true
+               | _ => false)
+            andalso sameNames env (nameSet env c1, nameSet env c2) then
+             ()
+         else
+             unifySummaries env (loc, k1, r1, r2)
      end
 
  and normalizeRecordSummary env (r : record_summary) =
@@ -859,6 +920,20 @@
                  end
                | (L'.CUnif (nl, _, _, _, ref (L'.Known c)), _) => recordSummary env (E.mliftConInCon nl c)
                | c' as (L'.CUnif (0, _, _, _, r), _) => {fields = [], unifs = [(c', r)], others = []}
+               | c' as (L'.CDiff (b, _), _) =>
+                 (* A difference that takes away all of its left operand's
+                  * names is empty, and one that takes away none is its
+                  * left operand; otherwise it is an "other". *)
+                 let
+                     val ns = nameSet env c'
+                 in
+                     if NameSets.empty (sameAtom env) ns then
+                         {fields = [], unifs = [], others = []}
+                     else if sameNames env (ns, nameSet env b) then
+                         recordSummary env b
+                     else
+                         {fields = [], unifs = [], others = [c']}
+                 end
                | c' => {fields = [], unifs = [], others = [c']}
      in
          sum
@@ -1190,6 +1265,18 @@
      let
          fun err f = raise CUnify' (env, f (c1All, c2All))
 
+         fun diffAgainst (d, c) =
+             if isUnitRow env d andalso sameNames env (nameSet env d, nameSet env c) then
+                 ()
+             else
+                 case hnormCon env d of
+                     (L'.CDiff (a, _), _) =>
+                     if sameNames env (nameSet env d, nameSet env a) then
+                         unifyCons' env loc a c
+                     else
+                         err CIncompatible
+                   | _ => err CIncompatible
+
          fun projSpecial1 (c1, n1, onFail) =
              let
                  fun trySnd () =
@@ -1343,12 +1430,35 @@
                   end
                   handle CantSquish => err (fn _ => TooDeep))
 
-           (* By parts, not as records: a difference that did not compute
-            * is an "other" in a record summary, and those are compared
-            * with consEq, which must not come back here as a record. *)
-           | (L'.CDiff (a1, b1), L'.CDiff (a2, b2)) =>
-             (unifyCons' env loc a1 a2;
-              unifyCons' env loc b1 b2)
+           (* Not as records: a difference that did not compute is an
+            * "other" in a record summary, and those are compared with
+            * consEq, which must not come back here as a record.  At {Unit}
+            * equality of sets is decided; otherwise the left operands
+            * unify and the names taken from them have to be the same,
+            * or, failing that, the right operands unify one by one. *)
+           | (L'.CDiff _, L'.CDiff _) =>
+             if isUnitRow env c1All
+                andalso sameNames env (nameSet env c1All, nameSet env c2All) then
+                 ()
+             else
+                 let
+                     fun flatten (c, rs) =
+                         case hnormCon env c of
+                             (L'.CDiff (a, b), _) => flatten (a, b :: rs)
+                           | c' => (c', rs)
+                     val (a1, rs1) = flatten (c1All, [])
+                     val (a2, rs2) = flatten (c2All, [])
+                     fun left rs = foldl (fn (r, s) => NameSets.Diff (s, nameSet env r))
+                                         (nameSet env a1) rs
+                 in
+                     unifyCons' env loc a1 a2;
+                     if sameNames env (left rs1, left rs2) then
+                         ()
+                     else if length rs1 = length rs2 then
+                         ListPair.app (fn (r1, r2) => unifyCons' env loc r1 r2) (rs1, rs2)
+                     else
+                         err CIncompatible
+                 end
 
            | (L'.CRecord _, _) => isRecord ()
            | (_, L'.CRecord _) => isRecord ()
@@ -1454,6 +1564,12 @@
               unifyCons' env loc c1 c2)
            | (L'.TKFun (x, c1), L'.TKFun (_, c2)) =>
              unifyCons' (E.pushKRel env x) loc c1 c2
+
+           (* A difference against a row that is neither a difference nor a
+            * record: equal as sets at {Unit}, or, if it takes nothing away,
+            * its left operand against the row. *)
+           | (L'.CDiff _, _) => diffAgainst (c1All, c2All)
+           | (_, L'.CDiff _) => diffAgainst (c2All, c1All)
 
            | _ => err CIncompatible)(*;
         eprefaces "/unifyCons''" [("c1", p_con env c1All),
