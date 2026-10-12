@@ -123,12 +123,15 @@ static void *periodic_loop(void *data) {
       if (r == SUCCESS) {
         uw_commit(ctx);
         if (uw_has_error(ctx)) {
-          // An error from a transactional's commit callback, after the
-          // database committed: a side effect that failed (a message that
-          // could not be sent, say).  There is nothing to roll back; the
-          // callback's own transactionals have been freed by uw_commit.
-          ls->log_error(ld, "Fatal error in periodic task, after commit: %s\n", uw_error_message(ctx));
+          // Either COMMIT itself failed (a lock held past the busy timeout,
+          // say) and the transaction may still be open, or a transactional's
+          // commit callback failed after the database committed.  uw_commit
+          // has freed the transactionals either way; an open transaction is
+          // rolled back, so that the next tick can begin its own.
+          ls->log_error(ld, "Fatal error in periodic task, at or after commit: %s\n", uw_error_message(ctx));
           uw_reset_keep_error_message(ctx);
+          if (try_rollback(ctx, 0, ld, ls->log_error))
+            ls->log_error(ld, "Periodic task continues after the failed rollback\n");
         }
         break;
       }
