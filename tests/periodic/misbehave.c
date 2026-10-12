@@ -42,3 +42,24 @@ uw_unit uw_Misbehave_fatalWithoutTransaction(uw_context ctx, uw_Basis_string msg
   sqlite3_exec(db, "COMMIT", NULL, NULL, NULL);
   uw_error(ctx, FATAL, "%s", msg);
 }
+
+static sqlite3_stmt *pending = NULL;
+
+uw_unit uw_Misbehave_pendingWrite(uw_context ctx) {
+  sqlite3 *db = *(sqlite3 **)uw_get_db(ctx);
+  if (sqlite3_prepare_v2(db, "INSERT INTO uw_Periodic_stuck (uw_N) VALUES (99) RETURNING uw_N", -1, &pending, NULL) != SQLITE_OK)
+    uw_error(ctx, FATAL, "pendingWrite: %s", sqlite3_errmsg(db));
+  if (sqlite3_step(pending) != SQLITE_ROW)
+    uw_error(ctx, FATAL, "pendingWrite: no row: %s", sqlite3_errmsg(db));
+  return uw_unit_v;
+}
+
+
+uw_unit uw_Misbehave_finishPendingWrite(uw_context ctx) {
+  (void)ctx;
+  if (pending) {
+    sqlite3_finalize(pending);
+    pending = NULL;
+  }
+  return uw_unit_v;
+}
