@@ -153,7 +153,13 @@ fun p_con' par (c, _) =
                                             space,
                                             string "--",
                                             space,
-                                            p_con c2])
+                                            (* -- groups to the left, so an
+                                             * operator on the right needs
+                                             * parentheses. *)
+                                            case #1 c2 of
+                                                CConcat _ => p_con' true c2
+                                              | CDiff _ => p_con' true c2
+                                              | _ => p_con c2])
       | CMap => string "map"
 
       | CUnit => string "()"
