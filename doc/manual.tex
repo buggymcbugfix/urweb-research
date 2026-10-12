@@ -1567,6 +1567,12 @@ $$\begin{array}{l}
   \mt{val} \; \mt{fileData} : \mt{file} \to \mt{blob}
 \end{array}$$
 
+A file that a \texttt{file} directive of the project file serves, and so makes public, can be read by the program, too, by the path it is served at; the contents are those baked into the executable: its name is the path's last segment, its MIME type is the directive's (the empty string when none is known), and its data is the file's contents as of compile time.  $\mt{blessServedFile}$ fails on a path nothing serves, at compile time when the path is a literal; $\mt{checkServedFile}$ gives $\mt{None}$ instead.
+$$\begin{array}{l}
+  \mt{val} \; \mt{blessServedFile} : \mt{string} \to \mt{file} \\
+  \mt{val} \; \mt{checkServedFile} : \mt{string} \to \mt{option} \; \mt{file}
+\end{array}$$
+
 It is also possible to get HTTP request headers and environment variables, and set HTTP response headers, using abstract types similar to the one for URLs.
 
 $$\begin{array}{l}

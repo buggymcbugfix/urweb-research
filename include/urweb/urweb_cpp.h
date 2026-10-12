@@ -267,6 +267,10 @@ uw_Basis_string uw_Basis_sigString(struct uw_context *, uw_unit);
 uw_Basis_string uw_Basis_fileName(struct uw_context *, uw_Basis_file);
 uw_Basis_string uw_Basis_fileMimeType(struct uw_context *, uw_Basis_file);
 uw_Basis_blob uw_Basis_fileData(struct uw_context *, uw_Basis_file);
+// The file a `file` directive serves at this path; checkServedFile gives
+// NULL (None) for a path nothing serves, blessServedFile fails on it.
+uw_Basis_file uw_Basis_blessServedFile(struct uw_context *, uw_Basis_string);
+uw_Basis_file *uw_Basis_checkServedFile(struct uw_context *, uw_Basis_string);
 uw_Basis_int uw_Basis_blobSize(struct uw_context *, uw_Basis_blob);
 uw_Basis_blob uw_Basis_textBlob(struct uw_context *, uw_Basis_string);
 uw_Basis_string uw_Basis_textOfBlob(struct uw_context *, uw_Basis_blob);

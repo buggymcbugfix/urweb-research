@@ -162,6 +162,7 @@ fun unAs s =
     end
 
 fun checkUrl s = CharVector.all Char.isGraph s andalso Settings.checkUrl s
+fun isServedFile s = List.exists (fn r => #Uri r = s) (Settings.listFiles ())
 val checkData = CharVector.all (fn ch => Char.isAlphaNum ch
                                          orelse ch = #"_"
                                          orelse ch = #"-")
@@ -573,6 +574,21 @@ fun exp e =
              ESome ((TFfi ("Basis", "string"), loc), (se, loc))
          else
              ENone (TFfi ("Basis", "string"), loc))
+      | EFfiApp ("Basis", "blessServedFile", [((EPrim (Prim.String (_, s)), loc), _)]) =>
+        if isServedFile s then
+            e
+        else
+            (* Reported once: the optimizer runs several times, so what it
+               would report again is replaced by an error expression. *)
+            (ErrorMsg.errorAt loc ("No file directive serves " ^ s ^ ", passed to 'blessServedFile'");
+             EError ((EPrim (Prim.String (Prim.Normal, "No file directive serves " ^ s)), loc),
+                     (TFfi ("Basis", "file"), loc)))
+      | EFfiApp ("Basis", "checkServedFile", [((EPrim (Prim.String (_, s)), loc), _)]) =>
+        (* The file itself is the runtime's to give; only a miss is known here. *)
+        (if isServedFile s then
+             e
+         else
+             ENone (TFfi ("Basis", "file"), loc))
       | EFfiApp ("Basis", "atom", [((se as EPrim (Prim.String (_, s)), loc), _)]) =>
         (if checkAtom s then
              ()
