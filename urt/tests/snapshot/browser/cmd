@@ -3,7 +3,9 @@ urt snapshot runs/webunready
 urt snapshot runs/web
 urt snapshot -w runs/web
 urt snapshot --screenshot runs/web
+urt snapshot --record runs/web
 urt snapshot --screenshot --create-browser-run runs/web
+urt snapshot --record --edit runs/web
 urt snapshot --create-browser-run runs/web
 urt snapshot --create-browser-run runs/web.urt/snapshot/1 second a.b
 urt snapshot --create-browser-run shop.urt/snapshot/sqlite

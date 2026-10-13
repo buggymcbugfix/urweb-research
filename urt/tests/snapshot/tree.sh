@@ -341,7 +341,8 @@ brun runs/web.urt/snapshot/1/browser/first
 printf "user.1: fill 'input[name=name]' 'tea kettle'\nuser.1: click 'text=Add'\nbob.1: open /\nbob.1: wait 'text=1 item'\n" \
     > runs/web.urt/snapshot/1/browser/first/interaction/02-add.step
 printf 'In a browser.\n' > runs/web.urt/snapshot/1/browser/first/README.md
-mkdir -p runs/web.urt/snapshot/1/browser/first/screenshots/old
+mkdir -p runs/web.urt/snapshot/1/browser/first/screenshots/old runs/web.urt/snapshot/1/browser/first/recordings
+: > runs/web.urt/snapshot/1/browser/first/recordings/user.1.chromium.webm
 : > runs/web.urt/snapshot/1/browser/first/screenshots/01.user.1.chromium.png
 : > runs/web.urt/snapshot/1/browser/first/screenshots/old/anything
 proj runs webstray
@@ -351,6 +352,7 @@ brun runs/webstray.urt/snapshot/1/browser/a
 : > runs/webstray.urt/snapshot/1/browser/a/shot.png
 : > runs/webstray.urt/snapshot/1/browser/a/a.b.context
 : > runs/webstray.urt/snapshot/1/browser/a/screenshots
+: > runs/webstray.urt/snapshot/1/browser/a/recordings
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.html
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.response
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.png

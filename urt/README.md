@@ -116,7 +116,12 @@ every tab after every step as well, the whole page as the engine draws
 it, into the run's `screenshots/` as `NAME.USER.TAB.ENGINE.png`: for
 looking at when a record wants explaining, not for comparing, since no
 two engines draw alike; git ignores the directory, and the records are
-the same with and without.  Every run is driven through three
+the same with and without.  `urt snapshot --record` films every tab
+from its opening to its closing, into the run's `recordings/` as
+`USER.TAB.ENGINE.webm`, a pointer drawn in since a headless engine
+draws none, with a `USER.TAB.ENGINE.vtt` beside it, a cue per action
+saying the step, the action and the page's time, and an `index.html`
+that plays them with their cues; the same rules.  Every run is driven through three
 engines, Chromium, Firefox and WebKit (an `engines` file in the run
 names fewer), by `urt-browse` beside `urt`, through Playwright for
 Python: `urt snapshot` starts the application as for a request-response

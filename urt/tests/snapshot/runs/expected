@@ -147,7 +147,7 @@ expected a project (-w.urp), its snapshots (-w.urt/snapshot),
 one case (-w.urt/snapshot/CASE), or a directory to search for snapshots
 exit 2
 $ urt snapshot -w --create-run hello
-ERROR --create-run goes with neither --whine, --list nor --screenshot
+ERROR --create-run goes with neither --whine, --list, --screenshot nor --record
 exit 2
 $ changes
 added (0 bytes): ./hello.urt/snapshot/1/request-response/nodb/args
