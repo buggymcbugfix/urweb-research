@@ -386,10 +386,30 @@ static int n_cases = 0, n_runs = 0, n_ok = 0, n_bad = 0, n_changed = 0, n_skippe
 static long started;
 static struct server serving;             /* the application now running, if any */
 
+/* The browser drivers, one per engine (the order of engines[]), started
+ * at the first browser run that needs each and kept for the rest: a
+ * browser takes seconds to start, a run's contexts a moment.  Their
+ * stderr accumulates under tmp; driver_err_at[i] is where the run
+ * underway began in it. */
+static struct child drivers[3];
+static int driver_up[3];
+static long driver_err_at[3];
+
+static void drivers_stop(void) {
+    int i;
+    for (i = 0; i < 3; i++) {
+        if (driver_up[i]) {
+            child_stop(&drivers[i]);
+            driver_up[i] = 0;
+        }
+    }
+}
+
 /* The scratch directory goes with us, whichever way we leave, and so
- * does a server we started. */
+ * do a server we started and the browsers. */
 static void cleanup(void) {
     server_stop(&serving);
+    drivers_stop();
     if (*tmp) {
         rm_rf(tmp);
     }
@@ -2073,6 +2093,7 @@ struct browsing {
     const char *run_dir, *rw, *dml, *server_out, *server_err;
     long *out_at, *err_at;
     struct strlist *outputs;
+    int steps;              /* how many the driver reported done, or failed */
     char stopped[PATHLEN];  /* the step that could not be done, if one */
 };
 
@@ -2085,6 +2106,7 @@ static void on_browse_line(const char *line, void *data) {
         return;
     }
     name = line + 5;
+    b->steps++;
     if (exists(b->dml) && rename(b->dml, fmt("%s/interaction/%s.dml.sql", b->rw, name)) < 0) {
         die(fmt("cannot move %s: %s", path(b->dml), strerror(errno)), NULL);
     }
@@ -2094,6 +2116,69 @@ static void on_browse_line(const char *line, void *data) {
     if (fail) {
         snprintf(b->stopped, sizeof b->stopped, "%s", name);
     }
+}
+
+/* The place of an engine in engines[]; -1 for none. */
+static int engine_index(const char *engine) {
+    int i;
+    for (i = 0; engines[i]; i++) {
+        if (!strcmp(engine, engines[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/* Under tmp rather than work, which goes with every case. */
+static const char *driver_err_path(int ei) {
+    return fmt("%s/browse-%s.stderr", tmp, engines[ei]);
+}
+
+/* The driver for an engine, started if it is not running: urt-browse
+ * --serve, which keeps the browser and takes a run per line.  NULL, with
+ * the problem reported, if it cannot be started. */
+static struct child *driver_for(int ei) {
+    char browser[PATHLEN];
+    char *argv[8];
+    int n = 0;
+    if (driver_up[ei]) {
+        return &drivers[ei];
+    }
+    find_browser(browser);                  /* run_ready has seen it */
+    argv[n++] = browser;
+    argv[n++] = "--serve";
+    argv[n++] = "--engine";
+    argv[n++] = (char *) engines[ei];
+    argv[n++] = "--epoch";
+    argv[n++] = RUN_TIME;
+    argv[n] = NULL;
+    if (child_start(argv, driver_err_path(ei), &drivers[ei]) < 0) {
+        die_later(fmt("cannot start %s for %s: %s", path("urt-browse"), engines[ei], strerror(errno)), NULL);
+        return NULL;
+    }
+    driver_up[ei] = 1;
+    driver_err_at[ei] = 0;
+    return &drivers[ei];
+}
+
+/* s quoted for a shell, and for the driver, which splits a line as one. */
+static const char *shell_quoted(const char *s) {
+    char *b = xmalloc(strlen(s) * 4 + 3), *q = b;
+    const char *r;
+    *q++ = '\'';
+    for (r = s; *r; r++) {
+        if (*r == '\'') {
+            memcpy(q, "'\\''", 4);
+            q += 4;
+        } else {
+            *q++ = *r;
+        }
+    }
+    *q++ = '\'';
+    *q = 0;
+    r = fmt("%s", b);
+    free(b);
+    return r;
 }
 
 /* One start of the application exe, into rw: its own database, loaded
@@ -2228,31 +2313,33 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
         /* The driver takes the steps from the run and leaves the records
          * under rw, saying after each step that it has; the server's
          * output is cut on those lines, as after a request. */
-        struct browsing b = { run_dir, rw, dml, server_out, server_err, &out_at, &err_at, outputs, "" };
-        struct strlist argv = { 0, 0, 0 };
-        char browser[PATHLEN], browse_err[PATHLEN], **command;
-        int status;
-        find_browser(browser);              /* run_ready has seen it */
+        struct browsing b = { run_dir, rw, dml, server_out, server_err, &out_at, &err_at, outputs, 0, "" };
+        char browse_err[PATHLEN];
+        struct child *d;
+        int ei = engine_index(engine), done = 0;
         join(browse_err, rw, "browse.stderr");
-        sl_push(&argv, browser);
-        sl_push(&argv, "--engine");
-        sl_push(&argv, engine);
-        sl_push(&argv, "--epoch");
-        sl_push(&argv, RUN_TIME);
-        sl_push(&argv, fmt("http://127.0.0.1:%d", serving.port));
-        sl_push(&argv, run_dir);
-        sl_push(&argv, fmt("%s/interaction", rw));
-        command = sl_argv(&argv);
-        status = run_lines(command, browse_err, on_browse_line, &b);
-        free(command);
-        sl_free(&argv);
+        d = driver_for(ei);
+        if (d) {
+            done = child_say(d, fmt("run %s %s %s\n", shell_quoted(fmt("http://127.0.0.1:%d", serving.port)),
+                                     shell_quoted(run_dir), shell_quoted(fmt("%s/interaction", rw)))) == 0
+                   && child_lines(d, "done", on_browse_line, &b);
+        }
+        /* What the driver said to stderr during this run, beside the run's
+         * records, where head_of finds it. */
+        cut_output(driver_err_path(ei), &driver_err_at[ei], -1, browse_err);
         if (*b.stopped) {
             /* The driver ends the run at the step it could not do. */
             strcpy(stopped, b.stopped);
             stale_after(run_dir, rw, RUN_BROWSER, stopped, outputs);
-        } else if (status != 0 && !fs_interrupted) {
+        } else if (!fs_interrupted && (!done || !b.steps)) {
             die_later(fmt("%s does not run %s for %s", path("urt-browse"), engine, test(run_dir)),
                       head_of(browse_err, "(it said nothing)"), NULL);
+        }
+        if (!done && d) {
+            /* The driver is gone, or not to be trusted; the next run
+             * starts it afresh. */
+            child_stop(d);
+            driver_up[ei] = 0;
         }
     }
     /* The steps of a request-response run, requests and waits, in the

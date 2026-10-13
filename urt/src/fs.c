@@ -622,6 +622,152 @@ int run_lines(char *const argv[], const char *err_path, void (*fn)(const char *l
     return 127;
 }
 
+int child_start(char *const argv[], const char *err_path, struct child *c) {
+    int to[2], from[2];
+    pid_t pid;
+
+    fflush(stdout);
+    fflush(stderr);
+    if (pipe(to) < 0) {
+        return -1;
+    }
+    if (pipe(from) < 0) {
+        close(to[0]);
+        close(to[1]);
+        return -1;
+    }
+    pid = fork();
+    if (pid < 0) {
+        close(to[0]);
+        close(to[1]);
+        close(from[0]);
+        close(from[1]);
+        return -1;
+    }
+    if (pid == 0) {
+        int f;
+        close(to[1]);
+        close(from[0]);
+        if (err_path) {
+            /* Appended: the file serves every run the program does. */
+            f = open(err_path, O_WRONLY | O_CREAT | O_APPEND, 0666);
+            if (f < 0 || dup2(f, STDERR_FILENO) < 0) {
+                _exit(127);
+            }
+            close(f);
+        }
+        if (dup2(to[0], STDIN_FILENO) < 0 || dup2(from[1], STDOUT_FILENO) < 0) {
+            _exit(127);
+        }
+        close(to[0]);
+        close(from[1]);
+        execvp(argv[0], argv);
+        _exit(127);
+    }
+    close(to[0]);
+    close(from[1]);
+    c->pid = pid;
+    c->to = to[1];
+    c->from = from[0];
+    c->cap = 4096;
+    c->buf = xmalloc(c->cap);
+    c->len = 0;
+    return 0;
+}
+
+int child_say(struct child *c, const char *line) {
+    size_t n = strlen(line), done = 0;
+    while (done < n) {
+        ssize_t w = write(c->to, line + done, n - done);
+        if (w < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            return -1;
+        }
+        done += (size_t) w;
+    }
+    return 0;
+}
+
+int child_lines(struct child *c, const char *until, void (*fn)(const char *line, void *data), void *data) {
+    int told = 0;
+    char *nl;
+    ssize_t n;
+
+    for (;;) {
+        /* Whole lines go out as they come; a partial one waits. */
+        while ((nl = memchr(c->buf, '\n', c->len))) {
+            int last;
+            *nl = 0;
+            last = !strcmp(c->buf, until);
+            if (!last) {
+                fn(c->buf, data);
+            }
+            c->len -= (size_t) (nl + 1 - c->buf);
+            memmove(c->buf, nl + 1, c->len + 1);
+            if (last) {
+                return 1;
+            }
+        }
+        if (c->len + 1 >= c->cap) {
+            char *bigger = xmalloc(c->cap *= 2);
+            memcpy(bigger, c->buf, c->len);
+            free(c->buf);
+            c->buf = bigger;
+        }
+        n = read(c->from, c->buf + c->len, c->cap - c->len - 1);
+        if (n < 0 && errno == EINTR) {
+            if (fs_interrupted && !told) {
+                kill(c->pid, SIGTERM);
+                told = 1;
+            }
+            continue;
+        }
+        if (n <= 0) {
+            if (c->len) {
+                c->buf[c->len] = 0;
+                fn(c->buf, data);
+                c->len = 0;
+            }
+            return 0;
+        }
+        c->len += (size_t) n;
+        c->buf[c->len] = 0;
+    }
+}
+
+void child_stop(struct child *c) {
+    struct timespec nap = { 0, 10 * 1000 * 1000 };
+    int st, i, w = 0;
+
+    if (c->pid <= 0) {
+        return;
+    }
+    /* Its stdin ending is its cue to leave; a second for that, then
+     * SIGTERM, then SIGKILL. */
+    close(c->to);
+    close(c->from);
+    for (i = 0; i < 200 && w == 0; i++) {
+        w = waitpid(c->pid, &st, WNOHANG);
+        if (w == 0) {
+            if (i == 100) {
+                kill(c->pid, SIGTERM);
+            }
+            nanosleep(&nap, NULL);
+        }
+    }
+    if (w == 0) {
+        kill(c->pid, SIGKILL);
+        while (waitpid(c->pid, &st, 0) < 0 && errno == EINTR) {
+            ;
+        }
+    }
+    free(c->buf);
+    c->buf = NULL;
+    c->pid = 0;
+}
+
 /* The path comes back canonical -- no doubled or trailing slashes, no
  * symlinks -- because the compiler prints the paths it is given after
  * OS.Path.mkCanonical, and what it prints has to match what we strip.

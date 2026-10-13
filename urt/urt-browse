@@ -5,6 +5,7 @@ Playwright for Python.
 
     urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS]
                [--timeout SECONDS] URL RUN OUT
+    urt-browse --serve [the same options]
     urt-browse --check RUN
 
 URL is where the application listens (http://127.0.0.1:8000); RUN a run's
@@ -41,7 +42,10 @@ the dialogs, the console and the error only if there was anything.  After
 each step a line 'step NAME' is printed, once every page has settled: no
 request open but the /.msgs poll, and a turn of the pages' timers gone
 by with nothing new.  A step that cannot be done prints 'fail NAME' and
-ends the run; 'done' ends it otherwise.  With --check, the step and
+ends the run; 'done' ends it otherwise.  With --serve, the browser is
+started once and a run is done for every line 'run URL RUN OUT' read
+from stdin, quoted as for a shell, reported the same way up to its
+'done'; the browser goes when stdin ends.  With --check, the step and
 context files are read and nothing is run: what is wrong with them is
 printed, a line each, and the exit status is 1 if anything was.
 
@@ -481,16 +485,21 @@ class Tab:
 
 
 class Driver:
-    def __init__(self, args, playwright_error, setups):
-        """args has where the application is and where the records go;
-        setups how the users' browsers are set up (their contexts, by
-        user)."""
+    def __init__(self, args, playwright_error, setups=None):
         self.args = args
         self.PlaywrightError = playwright_error
         self.epoch = args.epoch
-        self.base = args.url.rstrip('/')
+        self.browser = None
+        self.begin(args.url, args.run, args.out, setups or {})
+
+    def begin(self, url, run_dir, out, setups):
+        """The state of one run: where the application is, where the
+        records go, how the users' browsers are set up (their contexts,
+        by user), and nothing from a run before."""
+        self.base = url.rstrip('/')
         self.origin = re.sub(r'^https?://', '', self.base)
-        self.out = args.out
+        self.run_dir = run_dir
+        self.out = out
         self.setups = setups
         self.step = None
         self.open_requests = {}     # request -> (step, label, index)
@@ -810,51 +819,101 @@ class Driver:
 
     # ------------------------------------------------------------------ run
 
-    def run(self, steps, sync_playwright):
-        """One run through the browser: the steps, each reported as it is
-        done; 'done' ends it.  Returns the exit status: 1 if a step could
-        not be done."""
-        os.makedirs(self.out, exist_ok=True)
-        with sync_playwright() as p:
+    def launch(self, p):
+        """The engine, started once; a failure is said plainly, since what
+        urt shows of this is the first lines, and a traceback's are the
+        least telling."""
+        try:
             if self.args.engine == 'chromium':
                 # Chromium keeps renderer memory under /dev/shm unless told
                 # not to, and a build sandbox (nix's) has next to none
                 # there, which closes the page before the first step.
-                browser = p.chromium.launch(args=['--disable-dev-shm-usage'])
+                self.browser = p.chromium.launch(args=['--disable-dev-shm-usage'])
             elif self.args.engine == 'firefox':
                 # Firefox fetches a page's favicon from outside the page,
                 # where Playwright does not see it; the server would, and
                 # its clock would tick once more than for the others.
-                browser = p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False})
+                self.browser = p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False})
             else:
-                browser = p.webkit.launch()
-            self.browser = browser
-            ok = True
-            for name, actions in steps:
-                self.step = Step(name)
-                error = None
-                try:
-                    for n, label, verb, rest in actions:
-                        self.act(label, verb, rest)
-                        self.settle()
+                self.browser = p.webkit.launch()
+        except self.PlaywrightError as e:
+            print('%s does not start: %s' % (self.args.engine, self.complaint(e)), file=sys.stderr)
+            return False
+        return True
+
+    def run_steps(self, steps):
+        """One run through the browser: the steps, each reported as it is
+        done, then every context closed, so that nothing of the run is
+        left for the next; 'done' ends it.  Returns whether every step
+        could be done."""
+        os.makedirs(self.out, exist_ok=True)
+        ok = True
+        for name, actions in steps:
+            self.step = Step(name)
+            error = None
+            try:
+                for n, label, verb, rest in actions:
+                    self.act(label, verb, rest)
                     self.settle()
-                except Complaint as e:
-                    error = str(e)
-                except self.PlaywrightError as e:
-                    error = self.complaint(e)
-                try:
-                    self.record(self.step)
-                except self.PlaywrightError as e:
-                    error = error or self.complaint(e)
-                self.write(name, '.error', error + '\n' if error else '')
-                self.step = None
-                print(('fail %s' if error else 'step %s') % name, flush=True)
-                if error:
-                    ok = False
-                    break
-            browser.close()
+                self.settle()
+            except Complaint as e:
+                error = str(e)
+            except self.PlaywrightError as e:
+                error = self.complaint(e)
+            try:
+                self.record(self.step)
+            except self.PlaywrightError as e:
+                error = error or self.complaint(e)
+            self.write(name, '.error', error + '\n' if error else '')
+            self.step = None
+            print(('fail %s' if error else 'step %s') % name, flush=True)
+            if error:
+                ok = False
+                break
+        for context in list(self.contexts.values()):
+            try:
+                context.close()
+            except self.PlaywrightError:
+                pass
+        self.tabs = {}
+        self.contexts = {}
         print('done', flush=True)
+        return ok
+
+    def run(self, steps, sync_playwright):
+        with sync_playwright() as p:
+            if not self.launch(p):
+                return 2
+            ok = self.run_steps(steps)
+            self.browser.close()
         return 0 if ok else 1
+
+    def serve(self, sync_playwright):
+        """--serve: the engine started once, and a run for every line
+        'run URL RUN OUT' on stdin, reported as a run of its own would
+        be, up to its 'done'; the end of stdin ends it.  A run whose
+        steps cannot be read is 'done' at once, with the complaints on
+        stderr: urt has checked them before, so that is a driver's
+        mistake."""
+        with sync_playwright() as p:
+            if not self.launch(p):
+                return 2
+            for line in sys.stdin:
+                words = shlex.split(line)
+                if len(words) != 4 or words[0] != 'run':
+                    print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
+                    print('done', flush=True)
+                    continue
+                steps, setups, complaints = read_run(words[2])
+                self.begin(words[1], words[2], words[3], setups)
+                if complaints:
+                    for c in complaints:
+                        print(c, file=sys.stderr)
+                    print('done', flush=True)
+                    continue
+                self.run_steps(steps)
+            self.browser.close()
+        return 0
 
 
 def main():
@@ -863,6 +922,7 @@ def main():
     ap.add_argument('--epoch', type=float, default=None)
     ap.add_argument('--timeout', type=float, default=10)
     ap.add_argument('--check', action='store_true')
+    ap.add_argument('--serve', action='store_true')
     ap.add_argument('--help', action='store_true')
     ap.add_argument('rest', nargs='*')
     args = ap.parse_args()
@@ -877,6 +937,14 @@ def main():
         for c in complaints:
             print(c)
         return 1 if complaints else 0
+    if args.serve:
+        if args.rest:
+            print('usage: urt-browse --serve [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS]',
+                  file=sys.stderr)
+            return 2
+        args.url, args.run, args.out = '', '', ''
+        from playwright.sync_api import Error as PlaywrightError, sync_playwright
+        return Driver(args, PlaywrightError).serve(sync_playwright)
     if len(args.rest) != 3:
         print('usage: urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS] URL RUN OUT',
               file=sys.stderr)
@@ -893,4 +961,9 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as e:
+        # The gist first, where urt shows it; the traceback after.
+        print('urt-browse: %s: %s' % (type(e).__name__, str(e).splitlines()[0] if str(e) else ''), file=sys.stderr)
+        raise

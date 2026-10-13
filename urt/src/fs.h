@@ -10,6 +10,7 @@
 #define URT_FS_H
 
 #include <stddef.h>
+#include <sys/types.h>
 
 #include "report.h"
 
@@ -110,6 +111,32 @@ char *run_fd3(char *const argv[], const char *out_path, const char *err_path, in
  * (SIGTERM), what it still says is read, and the caller finds
  * fs_interrupted set.  Returns the exit status as run() does. */
 int run_lines(char *const argv[], const char *err_path, void (*fn)(const char *line, void *data), void *data);
+
+/* A program kept running to be talked to: lines go to its stdin and
+ * come back from its stdout, its stderr goes to a file, appended. */
+struct child {
+    pid_t pid;
+    int to, from;
+    char *buf;              /* what came back and was not yet handed out */
+    size_t len, cap;
+};
+
+/* Start argv as such a child; 0, or -1 with errno set. */
+int child_start(char *const argv[], const char *err_path, struct child *c);
+
+/* A line, newline included, to the child; 0, or -1 with errno set. */
+int child_say(struct child *c, const char *line);
+
+/* The child's lines, each without its newline to fn with data, up to
+ * one that is `until`, which is not handed out: 1 then, 0 when the
+ * child's stdout ended first (it has gone, or is going).  When a signal
+ * arrives the child is told to stop (SIGTERM), what it still says is
+ * read, and the caller finds fs_interrupted set. */
+int child_lines(struct child *c, const char *until, void (*fn)(const char *line, void *data), void *data);
+
+/* End the child: its stdin is closed, which is its cue to leave; a
+ * second later SIGTERM, a second after that SIGKILL.  Reaped. */
+void child_stop(struct child *c);
 
 /* Whether the PATH has a program of that name. */
 int on_path(const char *name);

@@ -117,7 +117,10 @@ names fewer), by `urt-browse` beside `urt`, through Playwright for
 Python: `urt snapshot` starts the application as for a request-response
 run, once per engine, and the driver sends the engine through it,
 settling after every action (no request open but the `/.msgs` poll, and
-a turn of every page's timers with nothing new).  A request
+a turn of every page's timers with nothing new).  The browser itself is
+started once per engine for all the runs of a `urt snapshot`, since
+starting one takes seconds; what a run gets afresh is its contexts, one
+per user, which is where cookies, storage and the clock live.  A request
 for any other server is refused by the driver and recorded as such: a
 run drives this application, and the network is not its business; what
 its pages need, the application serves (the `file` directive of the
