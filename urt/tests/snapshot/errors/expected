@@ -3,6 +3,7 @@ ERROR unrecognised option --bogus
 usage: urt snapshot [--whine|-w | --list|-l] [PATH...]
        urt snapshot (--create|-c) [PROJECT] [CASE...]
        urt snapshot --create-run [PATH] [RUN...]
+       urt snapshot --create-browser-run [PATH] [RUN...]
        urt snapshot (--edit|-e) [PATH] [ARTIFACT...]
 exit 2
 $ urt snapshot -c -w
@@ -88,20 +89,22 @@ requests, one after the other in the order of their names:
                   |-- interaction/
                   |   |-- 01-add.request  what to send
                   |   |-- 01-add.response what came back, as `curl -i` prints it
-                  |   |-- 01-add.sql      what that changed in the database, if anything
+                  |   |-- 01-add.dml.sql  what that changed in the database, if anything
                   |   |-- 01-add.stdout   what the server printed meanwhile, if anything
                   |   |-- 01-add.stderr
                   |   |-- 02-pay.request
                   |   |-- 02-pay.response
                   |   |-- 03-mail.wait    a line to wait for the server to print
-                  |   `-- 03-mail.stdout  what it printed meanwhile, as for a request
+                  |   |-- 03-mail.stdout  what it printed meanwhile, as for a request
+                  |   |-- 04-ship.request
+                  |   `-- 04-ship.error   why the request could not be sent, while it cannot
                   `-- out/
-                      |-- startup.sql     what the application did before the first
+                      |-- startup.dml.sql what the application did before the first
                       |-- startup.stdout  request (task initialize), if anything
                       |-- startup.stderr
                       |-- shutdown.stdout what it printed after the last, if anything
                       |-- shutdown.stderr
-                      `-- db_final.sql    the database it left behind
+                      `-- shutdown.db.sql the database it left behind
 
 A request is a method, a path, and then fields (-d), cookies (-b) and headers
 (-H) in curl's spelling, quoted as for a shell; nothing else is taken:
@@ -118,7 +121,10 @@ no line break, and nothing is read from a file (-d @file, -b file, -H @file).
 
 What the server prints for a request goes beside its response, and only if
 there is any: its own lines about connections and requests are dropped, the
-program's debug output and the runtime's errors are kept.
+program's debug output and the runtime's errors are kept.  A request that
+cannot be sent at all (the server died, or hangs) stops the run: NAME.error
+says why, the records of the requests after it go, and the run fails until
+it gets past the request again.
 
 A step can wait instead of send, for what the application does on its own
 (a task periodic): NAME.wait holds one line,
@@ -130,7 +136,7 @@ and the run goes on once the server has printed a line holding the text after
 before took.  A line counts as the recording has it: one of the server's own
 lines, which are dropped, does not.  What the server printed on that stream up
 to the end of the line, what it printed on the other, and what the database saw
-meanwhile go under NAME, as for a request (NAME.stdout, NAME.stderr, NAME.sql);
+meanwhile go under NAME, as for a request (NAME.stdout, NAME.stderr, NAME.dml.sql);
 there is no response.  What comes after the line on its stream is left to the
 next step; on the other stream and in the database it may land in either, so the
 line waited for is best printed last.  A wait lasts as long as it takes, not a
@@ -167,6 +173,90 @@ with more threads than one it is a matter of chance which of them answers.
 Nor --, after which the server would ignore the flags urt adds (the address,
 the port range, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.
 
+A case can also have runs in a browser, under browser/: the application
+started afresh as above, once per browser engine -- Chromium, Firefox and
+WebKit, all three unless the run's 'engines' file names fewer -- and the
+engine sent through it, step by step, in one tab or several:
+
+  shop.urt/
+  `-- snapshot/
+      `-- sqlite/
+          `-- browser/
+              `-- checkout/             a run; args, env, secret, db.sql and out/ as above
+                  |-- engines             the engines to drive, one per line, if not all
+                  |-- bob.context         how a user's browser is set up, if not the usual way
+                  `-- interaction/
+                      |-- 01-open.step      what to do, and in which tab (user.1)
+                      |-- 01-open.user.1.page.html
+                      |                     the tab's page afterwards: its path, then the DOM
+                      |                     as the browser has it, scripts and handlers left out
+                      |-- 01-open.user.1.requests
+                      |                     what the tab fetched, with the status of each
+                      |-- 01-open.user.1.dialogs
+                      |                     the alerts, confirms and prompts, with their answers
+                      |-- 01-open.user.1.console
+                      |                     what the tab logged, and its script's errors
+                      |-- 01-open.dml.sql   what the step changed in the database, if anything
+                      |-- 01-open.stdout    what the server printed meanwhile, if anything
+                      |-- 01-open.stderr
+                      |-- 02-add.step
+                      |-- 02-add.user.1.page.html
+                      |                     what the engines agree on, shared
+                      |-- 02-add.user.1.page.firefox.html
+                      |                     what one of them records differently, its own
+                      |-- 03-pay.step
+                      `-- 03-pay.error      why the step could not be done, while it cannot
+
+The engines agree on nearly everything, and a record they agree on is one
+file; one that an engine records differently is that engine's own, beside
+it, with the engine's name after the record's kind, and what that engine is
+compared against.  Recording goes by the majority: the engines agreeing in
+the greatest number write the shared file, the others their own, an own file
+whose engine has come to agree goes, and a tie goes to the engine first in
+the order chromium, firefox, webkit.
+
+A step holds actions, one per line, split as for a shell, each for a tab,
+USER.TAB: -- a user is a browser of their own, cookies and all, a tab a page
+in it, a client to the application; user.1 is the usual one, bob.1 another
+user, user.2 a second tab of the first.  A tab comes into being with its
+first action, an open, and goes with close; after every step, every tab that
+is open is recorded.
+
+  user.1: open /Shop/main
+  user.1: fill 'input[name=name]' kettle
+  user.1: click 'text=Add'
+  bob.1: open /Shop/main
+  bob.1: wait 'text=1 item'
+
+`urt-browse --help` lists the actions and their locators, which are
+Playwright's, and the options a USER.context can set up a user's browser
+with (the window, the colour scheme, the locale, ...), each on a line of its
+own, OPTION VALUE; every user's browser is 1024x768, en-US, UTC and the user
+agent 'urt' unless theirs says otherwise.
+The pages' clock stands still at the run's start, so that
+nothing happens between steps that a step did not ask for: `tick 2` lets two
+seconds pass for every page, firing what was due (sleep, timeouts), one
+user's browser after another, each settled before the next.  The pages'
+requests reach the server in the order the engine makes them, and move its
+clock on as curl's would; no engine caches or fetches a favicon, so that each
+sends the same requests.  A request for any other server is refused by the
+driver and recorded as such: a run drives this application, and the network
+is not its business; what the pages need, the application serves (the
+'file' directive).  One engine difference is left as it is: back to a
+page that answered a POST sends the POST again in Chromium and WebKit, and is
+refused by Firefox, where the step cannot be done and says so; a run meant for
+every engine opens the page instead.
+A step that cannot be done -- no such element, two of them, a wait that
+times out -- stops the run, as a request that cannot be sent does: the step's
+NAME.error holds the engine's complaint, beside its records of the pages as
+the engine found them, the records of the steps after it go, and the run fails
+until it gets past the step again.  An engine that stops where the others go
+on has an own NAME.ENGINE.error, and own files, empty, for what it did not
+record after that.
+Browser runs need urt-browse beside urt, python3 with Playwright, and the
+engines where PLAYWRIGHT_BROWSERS_PATH says; the compiler's nix-shell and its
+package with urt have all of it.
+
 Nothing else may be under snapshot/, bar a README.md beside the cases or in
 one, or beside the runs or in one: a file this program would not read is
 refused rather than left to rot.
@@ -183,6 +273,7 @@ USAGE
   urt snapshot --list [PATH...]              list the cases matching the given path(s)
   urt snapshot --create [PROJECT] [CASE...]  create cases for the given project
   urt snapshot --create-run [PATH] [RUN...]  create runs for the one case at the given path
+  urt snapshot --create-browser-run [PATH] [RUN...]  the same, for runs in a browser
   urt snapshot --edit [PATH] [ARTIFACT...]   edit the tracked set of a case
 
 PATH is a project (demo/alert[.urp]), its urt directory (demo/alert.urt), its
@@ -199,7 +290,8 @@ takes the only .urp in the current directory.
 With '--create-run', runs are set up for a case, named as given or by the
 next number: an empty 'args', a 'secret', the schema as the compiler gives it
 for the case as 'db.sql' if the program has tables, and a first request to
-replace.  A plain run fills in the rest.
+replace.  '--create-browser-run' does the same under browser/, with a first
+step, 'user.1: open /', to replace.  A plain run fills in the rest.
 
 With '--edit', the artifacts a case tracks are ticked in a checklist.  PATH
 names the case, or a project or directory holding several, to choose from;

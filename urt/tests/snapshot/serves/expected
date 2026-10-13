@@ -2,7 +2,7 @@ $ urt snapshot runs/serves
 UPDATED runs/serves.urt/snapshot/1 (exitcode)
 UPDATED runs/serves.urt/snapshot/1/request-response/crlf-args (interaction/01.response)
 UPDATED runs/serves.urt/snapshot/1/request-response/second (interaction/01.response)
-UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, interaction/08-dotdot.response, interaction/09-backslash.response, out/db_final.sql) curl failed: 07-quiet
+UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response, interaction/02-fields.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.dml.sql, interaction/05-dml.response, interaction/06-a.response, interaction/06.response, interaction/07-quiet.response, interaction/08-dotdot.response, interaction/09-backslash.response, out/shutdown.db.sql) curl failed: 07-quiet
 1 case and 3 runs: 4 updated, in T
 exit 0
 $ urt snapshot -w runs/serves
@@ -135,10 +135,10 @@ debug: a line from the handler
 == interaction/04-err.stderr
 Fatal error: the handler failed
 
-== interaction/05-dml.sql
+== interaction/05-dml.dml.sql
 INSERT INTO t VALUES (1);
 
-== out/db_final.sql
+== out/shutdown.db.sql
 PRAGMA foreign_keys=OFF;
 BEGIN TRANSACTION;
 CREATE TABLE t (id INTEGER);
@@ -202,7 +202,7 @@ $ urt snapshot runs/serves
 OK runs/serves.urt/snapshot/1
 OK runs/serves.urt/snapshot/1/request-response/crlf-args
 OK runs/serves.urt/snapshot/1/request-response/second
-UPDATED runs/serves.urt/snapshot/1/request-response/talk (interaction/05-dml.response, -interaction/05-dml.sql) curl failed: 07-quiet
+UPDATED runs/serves.urt/snapshot/1/request-response/talk (-interaction/05-dml.dml.sql, interaction/05-dml.response) curl failed: 07-quiet
 1 case and 3 runs: 3 ok, 1 updated, in T
 exit 0
 $ urt snapshot -w runs/serves
@@ -241,4 +241,4 @@ added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interactio
 added (35 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/07-quiet.response
 added (153 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/08-dotdot.response
 added (227 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/09-backslash.response
-added (81 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/out/db_final.sql
+added (81 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/out/shutdown.db.sql

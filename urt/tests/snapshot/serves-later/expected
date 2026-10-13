@@ -1,7 +1,7 @@
 $ urt snapshot runs/serves-later
 UPDATED runs/serves-later.urt/snapshot/1 (exitcode)
-UPDATED runs/serves-later.urt/snapshot/1/request-response/first (interaction/01-task.sql, interaction/01-task.stderr, interaction/01-task.stdout)
-UPDATED runs/serves-later.urt/snapshot/1/request-response/task (interaction/01.response, interaction/02-task.sql, interaction/02-task.stderr, interaction/02-task.stdout, interaction/03-after.response)
+UPDATED runs/serves-later.urt/snapshot/1/request-response/first (interaction/01-task.dml.sql, interaction/01-task.stderr, interaction/01-task.stdout)
+UPDATED runs/serves-later.urt/snapshot/1/request-response/task (interaction/01.response, interaction/02-task.dml.sql, interaction/02-task.stderr, interaction/02-task.stdout, interaction/03-after.response)
 1 case and 2 runs: 3 updated, in T
 exit 0
 $ urt snapshot -w runs/serves-later
@@ -26,7 +26,7 @@ Host: localhost
 User-Agent: urt
 
 
-== 02-task.sql
+== 02-task.dml.sql
 INSERT INTO t VALUES (2);
 
 == 02-task.stderr
@@ -55,7 +55,7 @@ User-Agent: urt
 
 exit 0
 $ cd runs/serves-later.urt/snapshot/1/request-response/first && for f in interaction/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done; echo "out/ holds $(ls out 2>/dev/null | wc -l) files"
-== interaction/01-task.sql
+== interaction/01-task.dml.sql
 INSERT INTO t VALUES (2);
 
 == interaction/01-task.stderr
@@ -72,11 +72,11 @@ exit 0
 $ changes
 added: ./runs/serves-later.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-later.urt/snapshot/1/expected/exitcode
-added (26 bytes): ./runs/serves-later.urt/snapshot/1/request-response/first/interaction/01-task.sql
+added (26 bytes): ./runs/serves-later.urt/snapshot/1/request-response/first/interaction/01-task.dml.sql
 added (24 bytes): ./runs/serves-later.urt/snapshot/1/request-response/first/interaction/01-task.stderr
 added (25 bytes): ./runs/serves-later.urt/snapshot/1/request-response/first/interaction/01-task.stdout
 added (152 bytes): ./runs/serves-later.urt/snapshot/1/request-response/task/interaction/01.response
-added (26 bytes): ./runs/serves-later.urt/snapshot/1/request-response/task/interaction/02-task.sql
+added (26 bytes): ./runs/serves-later.urt/snapshot/1/request-response/task/interaction/02-task.dml.sql
 added (24 bytes): ./runs/serves-later.urt/snapshot/1/request-response/task/interaction/02-task.stderr
 added (25 bytes): ./runs/serves-later.urt/snapshot/1/request-response/task/interaction/02-task.stdout
 added (152 bytes): ./runs/serves-later.urt/snapshot/1/request-response/task/interaction/03-after.response

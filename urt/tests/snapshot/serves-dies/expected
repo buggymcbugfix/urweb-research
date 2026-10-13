@@ -1,11 +1,68 @@
 $ urt snapshot runs/serves-dies
 UPDATED runs/serves-dies.urt/snapshot/1 (exitcode)
-ERROR runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.request could not be sent: curl could not connect (exit 7)
-the server may have died, or be hung
-1 case and 1 run: 1 updated, in T
+
+FAIL runs/serves-dies.urt/snapshot/1/request-response/dies (interaction/01.response, interaction/02-die.response, interaction/03-after.error)
+    request 03-after could not be sent: curl could not connect (exit 7)
+        the server may have died, or be hung
+
+1 case and 1 run: 1 failed, 1 updated, in T
 exit 1
-$ cd runs/serves-dies.urt/snapshot/1/request-response/dies && for f in interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
+$ cd runs/serves-dies.urt/snapshot/1/request-response/dies && for f in interaction/*.response interaction/*.error; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
+== interaction/01.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 63
+Connection: close
+
+1: GET / HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/02-die.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 66
+Connection: close
+
+2: GET /die HTTP/1.1
+Accept: */*
+Host: localhost
+User-Agent: urt
+
+
+== interaction/03-after.error
+curl could not connect (exit 7)
+
+exit 0
+$ urt snapshot runs/serves-dies
+OK runs/serves-dies.urt/snapshot/1
+
+FAIL runs/serves-dies.urt/snapshot/1/request-response/dies
+    request 03-after could not be sent: curl could not connect (exit 7)
+        the server may have died, or be hung
+
+1 case and 1 run: 1 ok, 1 failed, in T
+exit 1
+$ urt snapshot -w runs/serves-dies
+OK runs/serves-dies.urt/snapshot/1
+
+FAIL runs/serves-dies.urt/snapshot/1/request-response/dies
+    request 03-after could not be sent: curl could not connect (exit 7)
+        the server may have died, or be hung
+
+1 case and 1 run: 1 ok, 1 failed, in T
+exit 1
+$ printf 'GET /alive\n' > runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.request && urt snapshot runs/serves-dies
+OK runs/serves-dies.urt/snapshot/1
+UPDATED runs/serves-dies.urt/snapshot/1/request-response/dies (interaction/02-die.response, -interaction/03-after.error, interaction/03-after.response)
+1 case and 1 run: 1 ok, 1 updated, in T
 exit 0
 $ changes
 added: ./runs/serves-dies.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-dies.urt/snapshot/1/expected/exitcode
+added (147 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/01.response
+changed (11 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.request
+added (152 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.response
+added (152 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.response

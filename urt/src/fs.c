@@ -540,6 +540,88 @@ char *run_fd3(char *const argv[], const char *out_path, const char *err_path, in
     return text;
 }
 
+int run_lines(char *const argv[], const char *err_path, void (*fn)(const char *line, void *data), void *data) {
+    int fds[2], st, told = 0;
+    pid_t pid;
+    char *buf, *nl;
+    size_t len = 0, cap = 4096;
+    ssize_t n;
+
+    fflush(stdout);
+    fflush(stderr);
+    if (pipe(fds) < 0) {
+        return 127;
+    }
+    pid = fork();
+    if (pid < 0) {
+        close(fds[0]);
+        close(fds[1]);
+        return 127;
+    }
+    if (pid == 0) {
+        close(fds[0]);
+        redirect(STDERR_FILENO, err_path);
+        if (dup2(fds[1], STDOUT_FILENO) < 0) {
+            _exit(127);
+        }
+        close(fds[1]);
+        execvp(argv[0], argv);
+        _exit(127);
+    }
+    close(fds[1]);
+    buf = xmalloc(cap);
+    for (;;) {
+        if (len + 1 >= cap) {
+            char *bigger = xmalloc(cap *= 2);
+            memcpy(bigger, buf, len);
+            free(buf);
+            buf = bigger;
+        }
+        n = read(fds[0], buf + len, cap - len - 1);
+        if (n < 0 && errno == EINTR) {
+            if (fs_interrupted && !told) {
+                kill(pid, SIGTERM);
+                told = 1;
+            }
+            continue;
+        }
+        if (n <= 0) {
+            break;
+        }
+        len += (size_t) n;
+        buf[len] = 0;
+        /* Whole lines go out as they come; a partial one waits. */
+        while ((nl = memchr(buf, '\n', len))) {
+            *nl = 0;
+            fn(buf, data);
+            len -= (size_t) (nl + 1 - buf);
+            memmove(buf, nl + 1, len + 1);
+        }
+    }
+    if (len) {
+        buf[len] = 0;
+        fn(buf, data);
+    }
+    free(buf);
+    close(fds[0]);
+    while (waitpid(pid, &st, 0) < 0) {
+        if (errno != EINTR) {
+            return 127;
+        }
+        if (fs_interrupted && !told) {
+            kill(pid, SIGTERM);
+            told = 1;
+        }
+    }
+    if (WIFEXITED(st)) {
+        return WEXITSTATUS(st);
+    }
+    if (WIFSIGNALED(st)) {
+        return 128 + WTERMSIG(st);
+    }
+    return 127;
+}
+
 /* The path comes back canonical -- no doubled or trailing slashes, no
  * symlinks -- because the compiler prints the paths it is given after
  * OS.Path.mkCanonical, and what it prints has to match what we strip.

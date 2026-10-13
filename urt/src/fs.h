@@ -104,6 +104,13 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
  * program that cannot be run exits 127 with the reason in err_path. */
 char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int seconds, int *status);
 
+/* The same as run(), for a program that reports a line at a time on its
+ * stdout as it goes: each line, without its newline, goes to fn as it
+ * arrives, with data.  When a signal arrives the program is told to stop
+ * (SIGTERM), what it still says is read, and the caller finds
+ * fs_interrupted set.  Returns the exit status as run() does. */
+int run_lines(char *const argv[], const char *err_path, void (*fn)(const char *line, void *data), void *data);
+
 /* Whether the PATH has a program of that name. */
 int on_path(const char *name);
 

@@ -120,7 +120,11 @@ arun runs/stray.urt/snapshot/1/request-response/a
 : > runs/stray.urt/snapshot/1/request-response/a/cookies.txt
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/02.response
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql
+: > runs/stray.urt/snapshot/1/request-response/a/interaction/03.dml.sql
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/04.stderr
+: > runs/stray.urt/snapshot/1/request-response/a/interaction/01.stdout.firefox
+: > runs/stray.urt/snapshot/1/request-response/a/interaction/01.user.1.page.html
+: > runs/stray.urt/snapshot/1/request-response/a/interaction/01.page.html
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/notes
 mkdir -p runs/stray.urt/snapshot/1/request-response/a/out/more
 : > runs/stray.urt/snapshot/1/request-response/a/out/more/stdout
@@ -269,7 +273,7 @@ printf 'APP_LATER=1\n' > env
 printf 'until in\n' > interaction/01-in.wait
 printf 'GET /die\n' > interaction/02-die.request
 cd "$root"
-# A request whose name ends in .wait, which is a request and no wait.
+# A request whose name ends in .wait: refused, as is any name with a dot.
 proj runs serves-dotwait
 snap runs/serves-dotwait.urt/snapshot/1 exitcode
 arun runs/serves-dotwait.urt/snapshot/1/request-response/a
@@ -323,6 +327,86 @@ arun runs/unready.urt/snapshot/1/request-response/threads-joined
 printf -- '-qt4\n' > runs/unready.urt/snapshot/1/request-response/threads-joined/args
 arun runs/unready.urt/snapshot/1/request-response/dashes
 printf -- '-q --\n' > runs/unready.urt/snapshot/1/request-response/dashes/args
+# Browser runs.  Their steps are read by urt-browse before there has to be
+# an application, and the rest is as for the runs above.
+brun() {
+    mkdir -p "$1/interaction"
+    : > "$1/args"
+    printf 'secret signature\n' > "$1/secret"
+    printf 'user.1: open /\n' > "$1/interaction/01.step"
+}
+proj runs web
+snap runs/web.urt/snapshot/1 exitcode
+brun runs/web.urt/snapshot/1/browser/first
+printf "user.1: fill 'input[name=name]' 'tea kettle'\nuser.1: click 'text=Add'\nbob.1: open /\nbob.1: wait 'text=1 item'\n" \
+    > runs/web.urt/snapshot/1/browser/first/interaction/02-add.step
+printf 'In a browser.\n' > runs/web.urt/snapshot/1/browser/first/README.md
+proj runs webstray
+snap runs/webstray.urt/snapshot/1 exitcode
+brun runs/webstray.urt/snapshot/1/browser/a
+: > runs/webstray.urt/snapshot/1/browser/notes.txt
+: > runs/webstray.urt/snapshot/1/browser/a/shot.png
+: > runs/webstray.urt/snapshot/1/browser/a/a.b.context
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.response
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.png
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.png
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.page
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.page.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.page.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page.firefox.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.firefox.page.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page.opera.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.firefox.page.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.1.page.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.1.page.webkit.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.sql
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.dml.sql
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.dml.firefox.sql
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.dml.sql
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.error
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.stdout.firefox
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.stdout
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/01.db.sql
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/02.user.1.page.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/02.user.1.page.webkit.html
+: > runs/webstray.urt/snapshot/1/browser/a/interaction/a.b.step
+mkdir -p runs/webstray.urt/snapshot/1/browser/a/out
+: > runs/webstray.urt/snapshot/1/browser/a/out/log
+: > runs/webstray.urt/snapshot/1/browser/a/out/startup.stdout
+: > runs/webstray.urt/snapshot/1/browser/a/out/startup.stdout.firefox
+: > runs/webstray.urt/snapshot/1/browser/a/out/startup.firefox.stdout
+: > runs/webstray.urt/snapshot/1/browser/a/out/db_final.sql
+: > runs/webstray.urt/snapshot/1/browser/a/out/shutdown.db.sql
+: > runs/webstray.urt/snapshot/1/browser/a/out/shutdown.db.firefox.sql
+: > runs/webstray.urt/snapshot/1/browser/a/out/shutdown.db.opera.sql
+mkdir -p runs/webstray.urt/snapshot/1/browser/b.c/interaction
+proj runs webunready
+snap runs/webunready.urt/snapshot/1 exitcode
+brun runs/webunready.urt/snapshot/1/browser/a
+rm runs/webunready.urt/snapshot/1/browser/a/secret
+brun runs/webunready.urt/snapshot/1/browser/steps
+cd runs/webunready.urt/snapshot/1/browser/steps/interaction
+printf "user.1: click 'text=Add'\nclick 'text=Add'\nuser.1:\nfirefox.1: open /\nuser.1.2: open /\nbob: open /\n" > 01.step
+printf 'user.1: open main\nuser.1: frob x\nuser.1: fill a\nuser.1: press\nuser.1: dialog maybe\nuser.1: tick -1\nuser.1: wait a b\nuser.1: back now\n' > 02.step
+printf '# nothing yet\n' > 03.step
+printf "user.1: open /main 'never closed\n" > 04.step
+printf "user.1: select 'select'\nuser.1: close\nuser.1: click x\nuser.2: close\n" > 05.step
+cd "$root"
+# The users' contexts are read with the steps.
+printf 'viewport big\ndevice_scale_factor 0\nfrob 1\nlocale\ncolor_scheme bright\nhas_touch yes\nhas_touch no\n' \
+    > runs/webunready.urt/snapshot/1/browser/steps/user.context
+printf 'color_scheme dark\n' > runs/webunready.urt/snapshot/1/browser/steps/bob.context
+: > runs/webunready.urt/snapshot/1/browser/steps/ann.context
+brun runs/webunready.urt/snapshot/1/browser/threads
+printf -- '-t 2\n' > runs/webunready.urt/snapshot/1/browser/threads/args
+brun runs/webunready.urt/snapshot/1/browser/engines-none
+: > runs/webunready.urt/snapshot/1/browser/engines-none/engines
+brun runs/webunready.urt/snapshot/1/browser/engines-odd
+printf 'chromium\nopera\n' > runs/webunready.urt/snapshot/1/browser/engines-odd/engines
+printf 'firefox\n' > runs/web.urt/snapshot/1/browser/first/engines
 # A case that cannot be named stops the run, so it comes last of all.
 proj zz badname
 snap zz/badname.urt/snapshot/c.d exitcode
