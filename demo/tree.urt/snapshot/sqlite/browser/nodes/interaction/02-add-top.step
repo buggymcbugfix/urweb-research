@@ -1,0 +1,2 @@
+user.1: fill 'input[name=Nam]' root
+user.1: click 'input[type=submit]'

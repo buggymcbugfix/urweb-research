@@ -1,0 +1,3 @@
+user.1: fill 'input >> nth=0' 2
+user.1: fill 'input >> nth=1' 'two words'
+user.1: click 'text=Batch it'

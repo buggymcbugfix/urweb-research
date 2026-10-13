@@ -1,0 +1,4 @@
+user.1: fill 'input >> nth=0' 3
+user.1: fill 'input >> nth=1' three
+user.1: click 'text=Batch it'
+user.1: click 'text=Execute'

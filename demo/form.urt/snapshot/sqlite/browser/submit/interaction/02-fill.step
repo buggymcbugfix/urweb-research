@@ -1,0 +1,3 @@
+user.1: fill 'input[name=A]' hello
+user.1: fill 'input[name=B]' world
+user.1: check 'input[name=C]'

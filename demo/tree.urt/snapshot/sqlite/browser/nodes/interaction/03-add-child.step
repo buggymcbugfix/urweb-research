@@ -1,0 +1,2 @@
+user.1: fill 'input[name=Nam] >> nth=0' leaf
+user.1: click 'input[type=submit] >> nth=1'

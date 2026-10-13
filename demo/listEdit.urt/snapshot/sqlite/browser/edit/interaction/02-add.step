@@ -1,0 +1,2 @@
+user.1: fill 'input >> nth=0' apples
+user.1: click 'text=Add'

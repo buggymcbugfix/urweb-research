@@ -1,4 +1,5 @@
 allow url ../../dragList.css
+file /dragList.css out/dragList.css text/css
 
 $/list
 $/monad

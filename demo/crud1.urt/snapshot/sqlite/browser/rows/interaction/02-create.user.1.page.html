@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- /Crud1/create -->
+<html>
+  <head></head>
+  <body>
+    <p>Inserted with ID 1.</p>
+    <table border="1">
+      <tbody>
+        <tr>
+          <th>ID</th>
+          <th>A</th>
+          <th>B</th>
+          <th>C</th>
+          <th>D</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>1</td>
+          <td>first</td>
+          <td>1.5</td>
+          <td>True</td>
+          <td>
+            <a href="/Crud1/upd/1">[Update]</a>
+            <a href="/Crud1/confirm/1">[Delete]</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <hr>
+    <br>
+    <form method="post" action="/Crud1/create">
+      <p>
+        A:
+        <input type="text" name="A" value="">
+      </p>
+      <p>
+        B:
+        <input type="text" name="B" value="">
+      </p>
+      <p>
+        C:
+        <input type="text" name="C" value="">
+      </p>
+      <p>
+        D:
+        <input type="checkbox" name="D">
+      </p>
+      <input type="submit">
+    </form>
+  </body>
+</html>

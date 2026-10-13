@@ -1,0 +1,2 @@
+ann.1: fill 'input[type=text]' hello
+ann.1: click 'text=Send:'

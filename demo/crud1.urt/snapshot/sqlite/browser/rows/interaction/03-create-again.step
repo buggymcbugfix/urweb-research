@@ -1,0 +1,4 @@
+user.1: fill 'input[name=A]' 2
+user.1: fill 'input[name=B]' second
+user.1: fill 'input[name=C]' 2.25
+user.1: click 'input[type=submit]'

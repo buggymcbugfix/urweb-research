@@ -1,0 +1,3 @@
+ann.1: click 'text=Enter'
+bob.1: open /Chat/main
+bob.1: click 'text=Enter'
