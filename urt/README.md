@@ -111,7 +111,12 @@ since whether a button or a checkbox takes the focus on a click is the
 platform's convention and not the engine's), what it fetched
 (`NAME.USER.TAB.requests`), its dialogs and console when there were any;
 and for the step the server's side as for a request (`NAME.dml.sql`,
-`NAME.stdout`, `NAME.stderr`).  Every run is driven through three
+`NAME.stdout`, `NAME.stderr`).  `urt snapshot --screenshot` shoots
+every tab after every step as well, the whole page as the engine draws
+it, into the run's `screenshots/` as `NAME.USER.TAB.ENGINE.png`: for
+looking at when a record wants explaining, not for comparing, since no
+two engines draw alike; git ignores the directory, and the records are
+the same with and without.  Every run is driven through three
 engines, Chromium, Firefox and WebKit (an `engines` file in the run
 names fewer), by `urt-browse` beside `urt`, through Playwright for
 Python: `urt snapshot` starts the application as for a request-response
