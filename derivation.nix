@@ -48,10 +48,11 @@ let
 
   # urt's browser runs drive the three engines through Playwright for
   # Python; all of it comes with urt for now.  The browsers are nixpkgs'
-  # own farm of them, less the ffmpeg Playwright would bring for videos,
-  # and with one change: Playwright's WebKit is WPE, which draws through
-  # EGL and finds none where there is no GPU driver -- a shell, a build
-  # sandbox -- so it is given Mesa's software one.
+  # own farm of them, with the ffmpeg Playwright records its videos
+  # through (`urt snapshot --record`), and with one change: Playwright's
+  # WebKit is WPE, which draws through EGL and finds none where there is
+  # no GPU driver -- a shell, a build sandbox -- so it is given Mesa's
+  # software one.
   urtPython = python3.withPackages (p: [ p.playwright ]);
   pw = playwright-driver.passthru;
   webkitWithEgl =
@@ -89,6 +90,7 @@ let
         "chromium"
         "chromium-headless-shell"
         "firefox"
+        "ffmpeg"
       ]
     )
     // {

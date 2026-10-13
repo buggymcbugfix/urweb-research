@@ -199,6 +199,10 @@ static const char usage_text[] =
     "                  |-- bob.context         how a user's browser is set up, if not the usual way\n"
     "                  |-- screenshots/        every page as drawn, with --screenshot; not for git\n"
     "                  |   `-- 01-open.user.1.chromium.png\n"
+    "                  |-- recordings/         every tab filmed, with --record; not for git\n"
+    "                  |   |-- user.1.chromium.webm\n"
+    "                  |   |-- user.1.chromium.vtt a cue per action: the step, the action, the page's time\n"
+    "                  |   `-- index.html      plays them, with the cues\n"
     "                  `-- interaction/\n"
     "                      |-- 01-open.step      what to do, and in which tab (user.1)\n"
     "                      |-- 01-open.user.1.page.html\n"
@@ -251,7 +255,12 @@ static const char usage_text[] =
     "the run's screenshots/ as NAME.USER.TAB.ENGINE.png, the directory emptied\n"
     "first: pictures to look at when a record wants explaining, which git ignores\n"
     "and nothing compares, since no two engines draw alike; the records are the\n"
-    "same with and without.\n"
+    "same with and without.  With --record, every tab is filmed from its opening\n"
+    "to its closing, a pointer drawn in, under the run's recordings/ as\n"
+    "USER.TAB.ENGINE.webm, with a USER.TAB.ENGINE.vtt beside it that has a cue\n"
+    "per action (the step, the action, the page's time) and an index.html that\n"
+    "plays them with their cues; the same rules as for the screenshots, and the\n"
+    "records the same with and without, too.\n"
     "The pages' clock stands still at the run's start, so that\n"
     "nothing happens between steps that a step did not ask for: `tick 2` lets two\n"
     "seconds pass for every page, firing what was due (sleep, timeouts), one\n"
@@ -290,6 +299,7 @@ static const char usage_text[] =
     "  urt snapshot [PATH...]                     update the snapshots below the given projects\n"
     "  urt snapshot --whine [PATH...]             fail on a diff (you want this in CI)\n"
     "  urt snapshot --screenshot [PATH...]        also shoot every page of the browser runs\n"
+    "  urt snapshot --record [PATH...]            also film every tab of the browser runs\n"
     "  urt snapshot --list [PATH...]              list the cases matching the given path(s)\n"
     "  urt snapshot --create [PROJECT] [CASE...]  create cases for the given project\n"
     "  urt snapshot --create-run [PATH] [RUN...]  create runs for the one case at the given path\n"
@@ -382,7 +392,7 @@ static const char *artifact_names(void) {
 
 /* ------------------------------------------------------------- settings */
 
-static int opt_check = 0, opt_create = 0, opt_create_run = 0, opt_list = 0, opt_edit = 0, opt_screenshot = 0;
+static int opt_check = 0, opt_create = 0, opt_create_run = 0, opt_list = 0, opt_edit = 0, opt_screenshot = 0, opt_record = 0;
 static const char *me = "urt snapshot";   /* how to invoke us, for messages */
 static char urweb[PATHLEN];               /* the compiler, absolute */
 static struct strlist urweb_flags;        /* what it always gets */
@@ -818,9 +828,9 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
         if (!is_file(e)) {
             die_later(fmt("%s should be a file", path(e)), NULL);
         }
-    } else if (n == 2 && kind == RUN_BROWSER && !strcmp(part[1], "screenshots")) {
-        /* Pictures for looking at, --screenshot's, never read; what is
-         * under it is passed over. */
+    } else if (n == 2 && kind == RUN_BROWSER && (!strcmp(part[1], "screenshots") || !strcmp(part[1], "recordings"))) {
+        /* Pictures for looking at, --screenshot's and --record's, never
+         * read; what is under them is passed over. */
         if (!is_dir(e)) {
             die_later(fmt("%s should be a directory", path(e)), NULL);
         }
@@ -879,7 +889,7 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
                   kind == RUN_BROWSER
-                      ? "a browser run holds args, env, secret, db.sql, engines, USER.context, screenshots/ and README.md; NAME.step, and per tab"
+                      ? "a browser run holds args, env, secret, db.sql, engines, USER.context, screenshots/, recordings/ and README.md; NAME.step, and per tab"
                       : "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,",
                   kind == RUN_BROWSER
                       ? "NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step"
@@ -2335,11 +2345,12 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
         join(browse_err, rw, "browse.stderr");
         d = driver_for(ei);
         if (d) {
-            /* The screenshots, when asked for, go straight into the run,
-             * emptied of the last ones by run_run. */
-            done = child_say(d, fmt("run %s %s %s%s\n", shell_quoted(fmt("http://127.0.0.1:%d", serving.port)),
+            /* The screenshots and the recordings, when asked for, go
+             * straight into the run, emptied of the last ones by run_run. */
+            done = child_say(d, fmt("run %s %s %s%s%s\n", shell_quoted(fmt("http://127.0.0.1:%d", serving.port)),
                                      shell_quoted(run_dir), shell_quoted(fmt("%s/interaction", rw)),
-                                     opt_screenshot ? fmt(" screenshots=%s", shell_quoted(fmt("%s/screenshots", run_dir))) : "")) == 0
+                                     opt_screenshot ? fmt(" screenshots=%s", shell_quoted(fmt("%s/screenshots", run_dir))) : "",
+                                     opt_record ? fmt(" recordings=%s", shell_quoted(fmt("%s/recordings", run_dir))) : "")) == 0
                    && child_lines(d, "done", on_browse_line, &b);
         }
         /* What the driver said to stderr during this run, beside the run's
@@ -2658,13 +2669,16 @@ static void run_run(const char *run_dir, const char *exe) {
     n_runs++;
     if (kind == RUN_BROWSER) {
         engines_of(run_dir, &engs);
-        if (opt_screenshot) {
+        for (i = 0; i < 2; i++) {
             /* This run's pictures, and none of an earlier run's. */
-            char shots[PATHLEN];
-            join(shots, run_dir, "screenshots");
-            rm_rf(shots);
-            if (mkdir_p(shots) < 0) {
-                die(fmt("cannot make %s: %s", path(shots), strerror(errno)), NULL);
+            char pictures[PATHLEN];
+            if (!(i == 0 ? opt_screenshot : opt_record)) {
+                continue;
+            }
+            join(pictures, run_dir, i == 0 ? "screenshots" : "recordings");
+            rm_rf(pictures);
+            if (mkdir_p(pictures) < 0) {
+                die(fmt("cannot make %s: %s", path(pictures), strerror(errno)), NULL);
             }
         }
         for (i = 0; i < engs.n; i++) {
@@ -3802,6 +3816,8 @@ int snapshot_main(int argc, char **argv) {
             opt_check = 1;
         } else if (!strcmp(a, "--screenshot")) {
             opt_screenshot = 1;
+        } else if (!strcmp(a, "--record")) {
+            opt_record = 1;
         } else if (!strcmp(a, "--create") || !strcmp(a, "-c")) {
             opt_create = 1;
             i++;
@@ -3828,7 +3844,7 @@ int snapshot_main(int argc, char **argv) {
             break;
         } else if (a[0] == '-') {
             die(fmt("unrecognised option %s", key(a)),
-                fmt("usage: %s", cmd(fmt("%s [--whine|-w | --list|-l] [--screenshot] [PATH...]", me))),
+                fmt("usage: %s", cmd(fmt("%s [--whine|-w | --list|-l] [--screenshot] [--record] [PATH...]", me))),
                 fmt("       %s", cmd(fmt("%s (--create|-c) [PROJECT] [CASE...]", me))),
                 fmt("       %s", cmd(fmt("%s --create-run [PATH] [RUN...]", me))),
                 fmt("       %s", cmd(fmt("%s --create-browser-run [PATH] [RUN...]", me))),
@@ -3839,11 +3855,11 @@ int snapshot_main(int argc, char **argv) {
     }
     argc -= i;
     argv += i;
-    if ((opt_create || opt_create_run || opt_edit) && (opt_check || opt_list || opt_screenshot)) {
-        die(fmt("%s goes with neither %s, %s nor %s",
+    if ((opt_create || opt_create_run || opt_edit) && (opt_check || opt_list || opt_screenshot || opt_record)) {
+        die(fmt("%s goes with neither %s, %s, %s nor %s",
                 key(opt_create ? "--create" : opt_edit ? "--edit"
                     : opt_create_run == 1 + RUN_BROWSER ? "--create-browser-run" : "--create-run"),
-                key("--whine"), key("--list"), key("--screenshot")), NULL);
+                key("--whine"), key("--list"), key("--screenshot"), key("--record")), NULL);
     }
 
     env = getenv("URWEB");

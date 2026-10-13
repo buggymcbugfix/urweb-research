@@ -4,8 +4,9 @@ the pages show after each step; Chromium, Firefox or WebKit, through
 Playwright for Python.
 
     urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS]
-               [--timeout SECONDS] [--screenshots DIR] URL RUN OUT
-    urt-browse --serve [the same options but --screenshots]
+               [--timeout SECONDS] [--screenshots DIR] [--recordings DIR]
+               URL RUN OUT
+    urt-browse --serve [the same options but the directories]
     urt-browse --check RUN
 
 URL is where the application listens (http://127.0.0.1:8000); RUN a run's
@@ -42,14 +43,22 @@ the dialogs, the console and the error only if there was anything.
 With --screenshots, every tab is also shot after every step, the whole
 page as the engine draws it, into DIR as NAME.USER.TAB.ENGINE.png: for
 looking at, not for comparing, since no two engines draw alike; the
-records are the same with and without.  After each step a line 'step
-NAME' is printed, once every page has settled: no request open but the
-/.msgs poll, and a turn of the pages' timers gone by with nothing new.
-A step that cannot be done prints 'fail NAME' and ends the run; 'done'
-ends it otherwise.  With --serve, the browser is started once and a run
-is done for every line 'run URL RUN OUT [screenshots=DIR]' read from
-stdin, quoted as for a shell, reported the same way up to its 'done';
-the browser goes when stdin ends.  With --check, the step and context
+records are the same with and without.  With --recordings, every tab is
+filmed from its opening to its closing, into DIR as
+USER.TAB.ENGINE.webm (a tab opened again after a close is .2.webm, .3
+and so on), with a pointer drawn in, since a headless engine draws
+none; beside each video a USER.TAB.ENGINE.vtt with a cue per action,
+from when the action started to when the next did, saying the step,
+the action and the page's time, and an index.html in DIR that plays
+them with their cues.  The records are the same with and without that
+too.  After each step a line 'step NAME' is printed, once every page
+has settled: no request open but the /.msgs poll, and a turn of the
+pages' timers gone by with nothing new.  A step that cannot be done
+prints 'fail NAME' and ends the run; 'done' ends it otherwise.  With
+--serve, the browser is started once and a run is done for every line
+'run URL RUN OUT [screenshots=DIR] [recordings=DIR]' read from stdin,
+quoted as for a shell, reported the same way up to its 'done'; the
+browser goes when stdin ends.  With --check, the step and context
 files are read and nothing is run: what is wrong with them is printed,
 a line each, and the exit status is 1 if anything was.
 
@@ -121,6 +130,8 @@ application, and the network is not its business.
 
 import argparse
 import datetime
+import html
+import json
 import os
 import re
 import shlex
@@ -141,6 +152,7 @@ DUMP_JS = r"""
     const escAttr = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     const voids = new Set(['area','base','br','col','embed','hr','img','input','link','meta','source','track','wbr']);
     const notTyped = new Set(['button','checkbox','radio','file','color','range','hidden','image','submit','reset']);
+    const left = new Set(['script', 'style', 'noscript', 'urt-cursor']);   // urt-cursor: the pointer drawn for a recording
     function text(n) { return n.data.replace(/\s+/g, ' ').trim(); }
     function typedInto(e) {
         const tag = e.tagName.toLowerCase();
@@ -184,9 +196,9 @@ DUMP_JS = r"""
         if (n.nodeType === 8) { out.push(pad + '<!-- ' + text(n) + ' -->'); return; }
         if (n.nodeType !== 1) { return; }
         const tag = n.tagName.toLowerCase();
-        if (tag === 'script' || tag === 'style' || tag === 'noscript') { return; }
+        if (left.has(tag)) { return; }
         inHead = inHead || tag === 'head';
-        const kids = Array.from(n.childNodes).filter(k => k.nodeType === 1 ? !['script','style','noscript'].includes(k.tagName.toLowerCase())
+        const kids = Array.from(n.childNodes).filter(k => k.nodeType === 1 ? !left.has(k.tagName.toLowerCase())
                                                        : k.nodeType === 3 ? text(k) !== '' : k.nodeType === 8);
         const open = '<' + tag + attrs(n, inHead) + '>';
         if (voids.has(tag)) { out.push(pad + open); return; }
@@ -199,6 +211,46 @@ DUMP_JS = r"""
     dump(document.documentElement, 0, false);
     return out.join('\n') + '\n';
 }
+"""
+
+
+# A pointer drawn into the page while it is recorded, since a headless
+# engine draws none: Playwright's actions send the page real mouse
+# events, and these move an element over the page with them, pressed
+# between mousedown and mouseup.  A name no locator a run uses matches,
+# outside the body so that `body > *` matches what it matched,
+# pointer-events none so that it is never what is under the pointer,
+# and the dump leaves it out.  It appears at the page's first mouse
+# event: a page loaded under a still pointer gets none, and the driver
+# sends none for it, since a move would fire the page's mouseover.
+CURSOR_JS = r"""
+(() => {
+    const arrow = 'data:image/svg+xml,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="28" viewBox="0 0 20 28">'
+        + '<path d="M2 2 L2 22 L7 17.5 L11 26 L14.5 24.5 L10.5 16 L17 16 Z" fill="#000" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>'
+        + '</svg>');
+    let el = null;
+    function cursor() {
+        if (!el && document.documentElement) {
+            el = document.createElement('urt-cursor');
+            el.style.cssText = 'position:fixed;left:0;top:0;width:20px;height:28px;display:block;pointer-events:none;'
+                + 'z-index:2147483647;background:url(' + arrow + ') no-repeat;';
+            document.documentElement.appendChild(el);
+        }
+        return el;
+    }
+    function move(e) {
+        const c = cursor();
+        if (c) { c.style.transform = 'translate(' + (e.clientX - 2) + 'px,' + (e.clientY - 2) + 'px)'; }
+    }
+    function press(e, down) {
+        move(e);
+        if (el) { el.style.filter = down ? 'drop-shadow(0 0 5px #e22)' : ''; }
+    }
+    window.addEventListener('mousemove', move, true);
+    window.addEventListener('mousedown', e => press(e, true), true);
+    window.addEventListener('mouseup', e => press(e, false), true);
+})();
 """
 
 
@@ -477,8 +529,8 @@ class Step:
 
 
 class Tab:
-    """An open tab: its page, the user's context, and the dialog answers
-    queued for it."""
+    """An open tab: its page, the user's context, the dialog answers
+    queued for it, and its recording when there is one."""
 
     def __init__(self, label, context, page):
         self.label = label
@@ -486,6 +538,121 @@ class Tab:
         self.context = context
         self.page = page
         self.answers = []
+        self.video = None
+
+
+class Recording:
+    """One tab's video, from its opening to its closing: where Playwright
+    writes it, what it is to be called, when it started, and the cues:
+    [start, end, lines], the seconds from the start."""
+
+    def __init__(self, name, path, started):
+        self.name = name
+        self.path = path
+        self.started = started
+        self.cues = []
+
+    def cue(self, lines, at=None):
+        now = max(0.0, time.monotonic() - self.started) if at is None else at
+        if self.cues:
+            self.cues[-1][1] = now
+        self.cues.append([now, None, lines])
+
+    def end(self):
+        if self.cues and self.cues[-1][1] is None:
+            self.cues[-1][1] = max(self.cues[-1][0], time.monotonic() - self.started)
+
+
+def vtt_time(seconds):
+    ms = int(round(seconds * 1000))
+    return '%02d:%02d:%02d.%03d' % (ms // 3600000, ms // 60000 % 60, ms // 1000 % 60, ms % 1000)
+
+
+def vtt_text(s):
+    return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
+def read_vtt(path):
+    """The cues of a WebVTT file as this program writes them: a list of
+    (start, end, lines), the times in seconds."""
+    cues = []
+    with open(path, encoding='utf-8') as f:
+        blocks = f.read().split('\n\n')
+    for block in blocks[1:]:
+        lines = block.strip('\n').split('\n')
+        m = re.match(r'^(\d+):(\d+):(\d+)\.(\d+) --> (\d+):(\d+):(\d+)\.(\d+)$', lines[0]) if lines else None
+        if not m:
+            continue
+        t = [int(x) for x in m.groups()]
+        cues.append((t[0] * 3600 + t[1] * 60 + t[2] + t[3] / 1000, t[4] * 3600 + t[5] * 60 + t[6] + t[7] / 1000,
+                     [html.unescape(l) for l in lines[1:]]))
+    return cues
+
+
+INDEX_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>%(title)s</title>
+<style>
+  body { font: 14px/1.4 sans-serif; margin: 1em 2em; background: #fafafa; color: #222; }
+  section { margin-bottom: 2.5em; }
+  h2 { font-size: 1.1em; margin: 0 0 .4em; }
+  .player { display: flex; gap: 1.5em; align-items: flex-start; flex-wrap: wrap; }
+  video { max-width: 70vw; border: 1px solid #bbb; background: #fff; }
+  .cue { white-space: pre-line; min-height: 2.8em; margin: .4em 0; font-family: monospace; color: #444; }
+  ol { margin: 0; padding-left: 2em; max-height: 60vh; overflow: auto; min-width: 20em; }
+  li { cursor: pointer; margin: .15em 0; }
+  li:hover { text-decoration: underline; }
+  li.on { font-weight: bold; }
+  li small { color: #888; font-family: monospace; }
+</style>
+</head>
+<body>
+<h1>%(title)s</h1>
+%(sections)s
+<script>
+const CUES = %(cues)s;
+function stamp(s) { return new Date(s * 1000).toISOString().substr(11, 12); }
+for (const [name, cues] of Object.entries(CUES)) {
+  const section = document.getElementById(name);
+  const video = section.querySelector('video');
+  const box = section.querySelector('.cue');
+  const items = Array.from(section.querySelectorAll('li'));
+  items.forEach((li, i) => li.addEventListener('click', () => { video.currentTime = cues[i][0]; video.play(); }));
+  function show() {
+    const t = video.currentTime;
+    let on = -1;
+    cues.forEach((c, i) => { if (t >= c[0] && (t < c[1] || i === cues.length - 1)) { on = i; } });
+    box.textContent = on >= 0 ? cues[on][2].join('\\n') : '';
+    items.forEach((li, i) => li.classList.toggle('on', i === on));
+  }
+  video.addEventListener('timeupdate', show);
+  video.addEventListener('seeked', show);
+}
+</script>
+</body>
+</html>
+"""
+
+
+def write_index(directory):
+    """index.html in the recordings directory: every video there, with
+    its cues from its .vtt."""
+    names = sorted(f[:-5] for f in os.listdir(directory) if f.endswith('.webm'))
+    sections, cues = [], {}
+    for name in names:
+        vtt = os.path.join(directory, name + '.vtt')
+        cues[name] = read_vtt(vtt) if os.path.exists(vtt) else []
+        items = ''.join('<li><small>%s</small> %s</li>\n' % (vtt_time(start)[3:], html.escape(lines[0] if lines else ''))
+                        for start, _, lines in cues[name])
+        sections.append('<section id="%s">\n<h2>%s</h2>\n<div class="player">\n<div>\n'
+                        '<video controls preload="metadata" src="%s.webm"></video>\n<div class="cue"></div>\n</div>\n'
+                        '<ol>\n%s</ol>\n</div>\n</section>' % (html.escape(name), html.escape(name), html.escape(name), items))
+    title = os.path.basename(os.path.dirname(os.path.abspath(directory))) or 'recordings'
+    with open(os.path.join(directory, 'index.html'), 'w', encoding='utf-8') as f:
+        f.write(INDEX_HTML % {'title': html.escape(title), 'sections': '\n'.join(sections),
+                              'cues': json.dumps(cues, ensure_ascii=False).replace('</', '<\\/')})
 
 
 class Driver:
@@ -494,19 +661,21 @@ class Driver:
         self.PlaywrightError = playwright_error
         self.epoch = args.epoch
         self.browser = None
-        self.begin(args.url, args.run, args.out, setups or {}, args.screenshots)
+        self.begin(args.url, args.run, args.out, setups or {}, args.screenshots, args.recordings)
 
-    def begin(self, url, run_dir, out, setups, screenshots):
+    def begin(self, url, run_dir, out, setups, screenshots, recordings):
         """The state of one run: where the application is, where the
         records go, how the users' browsers are set up (their contexts,
-        by user), where the screenshots go if anywhere, and nothing from
-        a run before."""
+        by user), where the screenshots and the recordings go if
+        anywhere, and nothing from a run before."""
         self.base = url.rstrip('/')
         self.origin = re.sub(r'^https?://', '', self.base)
         self.run_dir = run_dir
         self.out = out
         self.setups = setups
         self.screenshots = screenshots
+        self.recordings = recordings
+        self.videos = []            # Recording, in the order of opening
         self.step = None
         self.open_requests = {}     # request -> (step, label, index)
         self.refused = set()        # requests for other servers, not let out
@@ -664,8 +833,15 @@ class Driver:
         if user not in self.contexts:
             options = dict(CONTEXT_DEFAULTS)
             options.update(self.setups.get(user, {}))
+            if self.recordings:
+                # Playwright's own size would be the window scaled into
+                # 800x800; the page is the window.
+                options['record_video_dir'] = self.recordings
+                options['record_video_size'] = options['viewport']
             context = self.browser.new_context(**options)
             context.set_default_timeout(self.args.timeout * 1000)
+            if self.recordings:
+                context.add_init_script(CURSOR_JS)
             if self.epoch is not None:
                 # Installed a second early: the clock runs between the two
                 # calls, and pausing it at a time already past is refused.
@@ -674,6 +850,12 @@ class Driver:
             self.contexts[user] = context
         page = self.contexts[user].new_page()
         tab = Tab(label, self.contexts[user], page)
+        if self.recordings:
+            # A tab opened again after a close is another video.
+            n = 1 + sum(1 for v in self.videos if v.name.startswith('%s.%s.' % (label, self.args.engine)))
+            name = '%s.%s%s' % (label, self.args.engine, '.%d' % n if n > 1 else '')
+            tab.video = Recording(name, page.video.path(), time.monotonic())
+            self.videos.append(tab.video)
         page.route('**/*', self.route)
         page.on('request', lambda r: self.on_request(label, r))
         page.on('requestfinished', lambda r: self.on_finished(r, self.status_of(r)))
@@ -883,15 +1065,25 @@ class Driver:
         for name, actions in steps:
             self.step = Step(name)
             error = None
+            label = None
             try:
                 for n, label, verb, rest in actions:
+                    # The cue starts with the action; an open's tab, and
+                    # with it the video, is only there after.
+                    text = '%s \u00b7 %s: %s' % (name, label, shlex.join([verb] + list(rest)))
+                    if verb != 'open':
+                        self.cue(label, verb, text)
                     self.act(label, verb, rest)
+                    if verb == 'open':
+                        self.cue(label, verb, text)
                     self.settle()
                 self.settle()
             except Complaint as e:
                 error = str(e)
             except self.PlaywrightError as e:
                 error = self.complaint(e)
+            if error and label in self.tabs:
+                self.cue(label, 'fail', '%s \u00b7 %s: cannot be done: %s' % (name, label, error.splitlines()[0]))
             try:
                 self.record(self.step)
             except self.PlaywrightError as e:
@@ -902,6 +1094,8 @@ class Driver:
             if error:
                 ok = False
                 break
+        for video in self.videos:
+            video.end()
         for context in list(self.contexts.values()):
             try:
                 context.close()
@@ -909,8 +1103,50 @@ class Driver:
                 pass
         self.tabs = {}
         self.contexts = {}
+        if self.recordings:
+            self.keep_videos()
         print('done', flush=True)
         return ok
+
+    # ------------------------------------------------------------ recording
+
+    def cue(self, label, verb, text):
+        """A cue on the recording of the tab an action was for: the tab's
+        own, or every open tab's for a tick, which moves every clock;
+        the page's time goes on a second line.  An open is cued at its
+        tab's start, which the open made; a close on the tab just
+        closed, which is gone from the tabs but not from the videos."""
+        if not self.recordings:
+            return
+        if verb == 'tick':
+            videos = [t.video for t in self.tabs.values()]
+        elif label in self.tabs:
+            videos = [self.tabs[label].video]
+        else:
+            videos = [v for v in self.videos if v.name.startswith('%s.%s' % (label, self.args.engine))][-1:]
+        lines = [text]
+        if self.epoch is not None:
+            lines.append(self.clock_time().strftime('page time %Y-%m-%dT%H:%M:%SZ'))
+        for video in videos:
+            if video is not None:
+                video.cue(lines, 0.0 if verb == 'open' and not video.cues else None)
+
+    def keep_videos(self):
+        """The run's videos under their names, each with its cues as
+        WebVTT, and an index.html playing every video in the directory
+        with its cues, this run's and the other engines'."""
+        for video in self.videos:
+            try:
+                os.replace(video.path, os.path.join(self.recordings, video.name + '.webm'))
+            except OSError as e:
+                print('urt-browse: no video for %s: %s' % (video.name, e), file=sys.stderr)
+                continue
+            with open(os.path.join(self.recordings, video.name + '.vtt'), 'w', encoding='utf-8') as f:
+                f.write('WEBVTT\n\n')
+                for start, end, lines in video.cues:
+                    f.write('%s --> %s\n%s\n\n' % (vtt_time(start), vtt_time(end if end is not None else start),
+                                                   '\n'.join(vtt_text(l) for l in lines)))
+        write_index(self.recordings)
 
     def run(self, steps, sync_playwright):
         with sync_playwright() as p:
@@ -922,8 +1158,9 @@ class Driver:
 
     def serve(self, sync_playwright):
         """--serve: the engine started once, and a run for every line
-        'run URL RUN OUT [screenshots=DIR]' on stdin, reported as a run
-        of its own would be, up to its 'done'; the end of stdin ends it.
+        'run URL RUN OUT [screenshots=DIR] [recordings=DIR]' on stdin,
+        reported as a run of its own would be, up to its 'done'; the end
+        of stdin ends it.
         A run whose steps cannot be read is 'done' at once, with the
         complaints on stderr: urt has checked them before, so that is a
         driver's mistake."""
@@ -934,12 +1171,12 @@ class Driver:
                 words = shlex.split(line)
                 options = dict(w.split('=', 1) for w in words[4:] if '=' in w)
                 if len(words) < 4 or words[0] != 'run' or len(options) != len(words) - 4 \
-                        or set(options) - {'screenshots'}:
+                        or set(options) - {'screenshots', 'recordings'}:
                     print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
                     print('done', flush=True)
                     continue
                 steps, setups, complaints = read_run(words[2])
-                self.begin(words[1], words[2], words[3], setups, options.get('screenshots'))
+                self.begin(words[1], words[2], words[3], setups, options.get('screenshots'), options.get('recordings'))
                 if complaints:
                     for c in complaints:
                         print(c, file=sys.stderr)
@@ -956,6 +1193,7 @@ def main():
     ap.add_argument('--epoch', type=float, default=None)
     ap.add_argument('--timeout', type=float, default=10)
     ap.add_argument('--screenshots', default=None)
+    ap.add_argument('--recordings', default=None)
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--serve', action='store_true')
     ap.add_argument('--help', action='store_true')
@@ -973,7 +1211,7 @@ def main():
             print(c)
         return 1 if complaints else 0
     if args.serve:
-        if args.rest or args.screenshots:
+        if args.rest or args.screenshots or args.recordings:
             print('usage: urt-browse --serve [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS]',
                   file=sys.stderr)
             return 2
@@ -982,7 +1220,7 @@ def main():
         return Driver(args, PlaywrightError).serve(sync_playwright)
     if len(args.rest) != 3:
         print('usage: urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS] '
-              '[--screenshots DIR] URL RUN OUT', file=sys.stderr)
+              '[--screenshots DIR] [--recordings DIR] URL RUN OUT', file=sys.stderr)
         return 2
     args.url, args.run, args.out = args.rest
     steps, setups, complaints = read_run(args.run)
