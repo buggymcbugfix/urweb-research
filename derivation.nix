@@ -2,15 +2,23 @@
   autoconf,
   automake,
   curl,
+  dejavu_fonts,
+  fetchzip,
+  fontconfig,
+  liberation_ttf,
   gcc,
   icu,
   lib,
+  libglvnd,
   libtool,
   linkFarm,
   makeBinaryWrapper,
+  makeFontsConf,
+  mesa,
   mlton20210117,
   openssl,
   pkg-config,
+  playwright-driver,
   postgresql,
   python3,
   runCommand,
@@ -37,6 +45,106 @@ let
         };
       in
       git.dirtyRev or git.rev;
+
+  # urt's browser runs drive the three engines through Playwright for
+  # Python; all of it comes with urt for now.  The browsers are nixpkgs'
+  # own farm of them, less the ffmpeg Playwright would bring for videos,
+  # and with one change: Playwright's WebKit is WPE, which draws through
+  # EGL and finds none where there is no GPU driver -- a shell, a build
+  # sandbox -- so it is given Mesa's software one.
+  urtPython = python3.withPackages (p: [ p.playwright ]);
+  pw = playwright-driver.passthru;
+  webkitWithEgl =
+    if stdenv.hostPlatform.isLinux then
+      runCommand "playwright-webkit-egl" { nativeBuildInputs = [ makeBinaryWrapper ]; } ''
+        mkdir -p $out
+        for f in ${pw.components.webkit}/*; do ln -s "$f" $out/; done
+        rm $out/pw_run.sh
+        makeWrapper ${pw.components.webkit}/pw_run.sh $out/pw_run.sh \
+          --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ libglvnd mesa ]} \
+          --set __EGL_VENDOR_LIBRARY_DIRS ${mesa}/share/glvnd/egl_vendor.d \
+          --set EGL_PLATFORM surfaceless \
+          --set LIBGL_ALWAYS_SOFTWARE 1
+      ''
+    else
+      pw.components.webkit;
+  # On a Mac, Playwright's WebKit is built for one macOS: the revision
+  # above is the build for macOS 15, which nixpkgs fetches, and for macOS
+  # 14 Playwright asks for an older one by its revision (browsers.json,
+  # revisionOverrides), under a directory named for the platform as well
+  # (webkit_mac14_arm64_special-2251), so the farm holds that one too,
+  # and the host's macOS says which is started.  Hash of the 2251 build
+  # for 1.61.1.
+  webkitMac14Revision = pw.browsersJSON.webkit.revisionOverrides."mac14-arm64" or null;
+  webkitMac14 = fetchzip {
+    url = "https://cdn.playwright.dev/dbazure/download/playwright/builds/webkit/${webkitMac14Revision}/webkit-mac-14-arm64.zip";
+    stripRoot = false;
+    hash = "sha256-AbDHuUg8jLNPWur6hieDdY8Kc2+PmlXRJGD46yujam4=";
+  };
+  # Named as Playwright looks them up: chromium-1228, chromium_headless_shell-1228, ...
+  farmName = name: "${lib.replaceStrings [ "-" ] [ "_" ] name}-${pw.browsersJSON.${name}.revision}";
+  urtBrowsers = linkFarm "urt-browsers" (
+    lib.listToAttrs (
+      map (name: lib.nameValuePair (farmName name) pw.components.${name}) [
+        "chromium"
+        "chromium-headless-shell"
+        "firefox"
+      ]
+    )
+    // {
+      ${farmName "webkit"} = webkitWithEgl;
+    }
+    // lib.optionalAttrs (stdenv.hostPlatform.isDarwin && webkitMac14Revision != null) {
+      "webkit_mac14_arm64_special-${webkitMac14Revision}" = webkitMac14;
+    }
+  );
+  # Where Playwright finds them; that it need not check the host for their
+  # libraries, which were patched for the store when built (the check, ldd
+  # over every library, takes seconds at every start); and the fonts the
+  # browser draws with, so that a page is laid out the same in the shell,
+  # in the package's checks and on another machine, rather than with
+  # whatever the host has installed, which in a build sandbox is nothing.
+  # Liberation and DejaVu, and one rule of our own, so that the engines
+  # draw the same faces.  Chromium asks for its defaults by name, Times
+  # New Roman, Arial and Courier New, and takes only a metric equivalent
+  # for them, which Liberation is; Firefox asks for the generic serif,
+  # sans-serif and monospace, which fontconfig's own rules would give to
+  # DejaVu.  The rule gives the generics to Liberation too.  WebKit's
+  # default is sans-serif where the other two default to serif, which is
+  # the engine's and stays.
+  fontRules = builtins.toFile "urt-fonts.conf" ''
+    <?xml version="1.0"?>
+    <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+    <fontconfig>
+      <alias binding="strong"><family>serif</family><prefer><family>Liberation Serif</family></prefer></alias>
+      <alias binding="strong"><family>sans-serif</family><prefer><family>Liberation Sans</family></prefer></alias>
+      <alias binding="strong"><family>monospace</family><prefer><family>Liberation Mono</family></prefer></alias>
+    </fontconfig>
+  '';
+  fontsConf = makeFontsConf {
+    fontDirectories = [
+      dejavu_fonts
+      liberation_ttf
+    ];
+    impureFontDirectories = [ ]; # nothing from the host, and its rules neither:
+    includes = [
+      "${fontconfig.out}/etc/fonts/conf.d" # fontconfig's own
+      fontRules
+    ];
+  };
+  browserEnv = {
+    PLAYWRIGHT_BROWSERS_PATH = "${urtBrowsers}";
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS = "1";
+    # Less the user's own font directory, which fontconfig's template puts in
+    FONTCONFIG_FILE = runCommand "urt-fonts.conf" { } ''
+      sed '/<dir prefix="xdg">/d' ${fontsConf} > $out
+    '';
+  };
+
+  # The same, as wrapProgram takes it
+  browserFlags = lib.concatStringsSep " " (
+    lib.mapAttrsToList (name: value: "--set-default ${name} ${lib.escapeShellArg value}") browserEnv
+  );
 
   configureEnv = prefix: ''
     export SQHEADER="${sqlite.dev}/include/sqlite3.h"
@@ -85,7 +193,10 @@ stdenv.mkDerivation (finalAttrs: {
     mlton20210117
     pkg-config
   ]
-  ++ lib.optional withUrt makeBinaryWrapper;
+  ++ lib.optionals withUrt [
+    makeBinaryWrapper
+    urtPython # urt's pty cases, stand-in server and browser runs; also what urt-browse's shebang becomes
+  ];
 
   # link/runtime dependencies
   buildInputs = [
@@ -97,12 +208,22 @@ stdenv.mkDerivation (finalAttrs: {
 
   # test dependencies
   nativeCheckInputs = [
-    curl 
-  ] ++ lib.optional withUrt python3; # urt's pty cases and stand-in server
+    curl
+  ];
 
   # What the build writes into src/version.sml (see Makefile.am): the
-  # sandbox has neither git nor .git to read it from
-  env.URWEB_COMMIT = commit;
+  # sandbox has neither git nor .git to read it from; and, with urt,
+  # where its checks find the browsers
+  env = {
+    URWEB_COMMIT = commit;
+  }
+  // lib.optionalAttrs withUrt browserEnv;
+
+  # The build's sandbox has no /usr/bin/env for urt-browse's shebang, and
+  # the checks run it before patchShebangs would come to the output.
+  postPatch = lib.optionalString withUrt ''
+    patchShebangs urt/urt-browse
+  '';
 
   preConfigure = configureEnv "$out" + ''
     ./autogen.sh
@@ -120,6 +241,13 @@ stdenv.mkDerivation (finalAttrs: {
 
   doCheck = true;
 
+  # Firefox hangs at the start when its home cannot be written (the
+  # sandbox's is /homeless-shelter), and WebKit grumbles; give them one.
+  preCheck = lib.optionalString withUrt ''
+    export HOME="$NIX_BUILD_TOP/home"
+    mkdir -p "$HOME"
+  '';
+
   checkPhase = ''
     runHook preCheck
     make check ${lib.optionalString withUrt "check-urt check-snapshot"}
@@ -131,14 +259,22 @@ stdenv.mkDerivation (finalAttrs: {
     make install
   ''
   + lib.optionalString withUrt ''
-    install -m 755 urt/urt urt/urt-format "$out/bin"
-    wrapProgram "$out/bin/urt" --set-default URWEB "$out/bin/urweb"
+    install -m 755 urt/urt urt/urt-format urt/urt-browse "$out/bin"
+    wrapProgram "$out/bin/urt" --set-default URWEB "$out/bin/urweb" ${browserFlags}
+    wrapProgram "$out/bin/urt-browse" ${browserFlags}
   ''
   + ''
     runHook postInstall
   '';
 
   passthru.configureEnv = configureEnv;
+
+  # What urt's browser runs need, for shell.nix
+  passthru.urt = {
+    python = urtPython;
+    browsers = urtBrowsers;
+    env = browserEnv;
+  };
 
   /*
     withLibraries accepts urweb libraries:
