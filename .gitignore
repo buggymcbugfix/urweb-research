@@ -40,8 +40,10 @@ doc/*.out
 # like build output.  They are the tests, under the projects' urt directories.
 !**/*.urt/**
 # ... bar the application that `urt snapshot` builds for a case with runs
-# and keeps in the case.
+# and keeps in the case, and the screenshots `urt snapshot --screenshot`
+# leaves in a browser run, which are for looking at.
 **/*.urt/snapshot/*/app.exe
+**/*.urt/snapshot/*/browser/*/screenshots/
 
 # TeX
 *.aux

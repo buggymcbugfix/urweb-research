@@ -1,6 +1,6 @@
 $ urt snapshot --bogus
 ERROR unrecognised option --bogus
-usage: urt snapshot [--whine|-w | --list|-l] [PATH...]
+usage: urt snapshot [--whine|-w | --list|-l] [--screenshot] [PATH...]
        urt snapshot (--create|-c) [PROJECT] [CASE...]
        urt snapshot --create-run [PATH] [RUN...]
        urt snapshot --create-browser-run [PATH] [RUN...]
@@ -11,7 +11,7 @@ ERROR no project called -w
 expected -w.urp or -w.ur to be there
 exit 2
 $ urt snapshot -w -c x
-ERROR --create goes with neither --whine nor --list
+ERROR --create goes with neither --whine, --list nor --screenshot
 exit 2
 $ urt snapshot nope
 ERROR nothing to test at nope
@@ -185,6 +185,8 @@ engine sent through it, step by step, in one tab or several:
               `-- checkout/             a run; args, env, secret, db.sql and out/ as above
                   |-- engines             the engines to drive, one per line, if not all
                   |-- bob.context         how a user's browser is set up, if not the usual way
+                  |-- screenshots/        every page as drawn, with --screenshot; not for git
+                  |   `-- 01-open.user.1.chromium.png
                   `-- interaction/
                       |-- 01-open.step      what to do, and in which tab (user.1)
                       |-- 01-open.user.1.page.html
@@ -232,7 +234,12 @@ is open is recorded.
 Playwright's, and the options a USER.context can set up a user's browser
 with (the window, the colour scheme, the locale, ...), each on a line of its
 own, OPTION VALUE; every user's browser is 1024x768, en-US, UTC and the user
-agent 'urt' unless theirs says otherwise.
+agent 'urt' unless theirs says otherwise.  With --screenshot, every tab is
+shot after every step as well, the whole page as the engine draws it, under
+the run's screenshots/ as NAME.USER.TAB.ENGINE.png, the directory emptied
+first: pictures to look at when a record wants explaining, which git ignores
+and nothing compares, since no two engines draw alike; the records are the
+same with and without.
 The pages' clock stands still at the run's start, so that
 nothing happens between steps that a step did not ask for: `tick 2` lets two
 seconds pass for every page, firing what was due (sleep, timeouts), one
@@ -270,6 +277,7 @@ USAGE
 
   urt snapshot [PATH...]                     update the snapshots below the given projects
   urt snapshot --whine [PATH...]             fail on a diff (you want this in CI)
+  urt snapshot --screenshot [PATH...]        also shoot every page of the browser runs
   urt snapshot --list [PATH...]              list the cases matching the given path(s)
   urt snapshot --create [PROJECT] [CASE...]  create cases for the given project
   urt snapshot --create-run [PATH] [RUN...]  create runs for the one case at the given path
