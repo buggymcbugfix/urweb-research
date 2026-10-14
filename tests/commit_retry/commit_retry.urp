@@ -1,0 +1,18 @@
+database dbname=commit_retry.db
+ffi retry
+include retry.h
+link retry.c
+effectful Retry.step
+effectful Retry.attempts
+effectful Retry.arm
+effectful Retry.inTxn
+effectful Retry.watch
+effectful Retry.watchAfter
+allow env COMMIT_RETRY_MODE
+allow url /Commit_retry/*
+safeGet Commit_retry/main
+safeGet Commit_retry/rows
+
+$/list
+$/option
+commit_retry

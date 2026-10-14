@@ -1,0 +1,18 @@
+attempt 1, in transaction True, rows now 1
+two-phase: commit
+two-phase: rollback
+after-commit: free, will retry: 1
+two-phase: free, will retry: 1
+Commit conflict in periodic task; retrying
+attempt 2, in transaction True, rows now 1
+two-phase: commit
+two-phase: rollback
+after-commit: free, will retry: 1
+two-phase: free, will retry: 1
+Commit conflict in periodic task; retrying
+attempt 3, in transaction True, rows now 1
+two-phase: commit
+after-commit: commit
+after-commit: free, will retry: 0
+two-phase: free, will retry: 0
+after the attempts
