@@ -448,15 +448,24 @@ void uw_transaction_arrives();
 void uw_transaction_departs();
 
 // A clock and a random number generator pinned from the environment
-// (reproducible.c).  The last two return 0 when theirs is not pinned.  A
-// database backend with a generator of its own registers with the hook
-// what resets it, to run at the start of every attempt while the numbers
-// are pinned.
+// (reproducible.c).  uw_reproducible_now, _epoch and _rand return 0 when
+// theirs is not pinned.  A pinned clock is logical: requests say their time,
+// and periodic tasks and client expiries are scheduled on it (the _periodic
+// calls, uw_next_client_expiry).  A database backend with a generator of its
+// own registers with the hook what resets it, to run at the start of every
+// attempt while the numbers are pinned.
 void uw_reproducible_init(void);
-void uw_reproducible_request(void);
+int uw_reproducible_request(struct uw_context *, const char *time_header);
+void uw_reproducible_clock(struct uw_context *, const char *query, char *buf, size_t size);
+int uw_reproducible_clock_pinned(void);
+int uw_reproducible_periodic(int period);
+void uw_reproducible_periodic_wait(int);
+void uw_reproducible_periodic_done(int);
 void uw_reproducible_attempt(void);
 void uw_reproducible_on_attempt(void (*)(void));
+int uw_reproducible_now(int64_t *);
 int uw_reproducible_epoch(int64_t *);
+int uw_next_client_expiry(struct uw_context *, int64_t *);
 int uw_reproducible_rand_pinned(void);
 int uw_reproducible_rand(uint64_t *);
 

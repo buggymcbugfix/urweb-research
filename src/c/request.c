@@ -92,13 +92,16 @@ typedef struct {
   uw_loggers *ls;
   uw_periodic pdic;
   uw_app *app;
+  int scheduled;    // the task's number on the logical clock, or -1 for the wall clock
 } periodic;
 
 // The thread of one periodic task: run it, commit, sleep, again, for the
 // life of the process.  A failure of any kind is logged, and the thread
 // goes on to the next period: there is nobody to answer to, so the log is
 // all there is, and a task that stopped running would be worse than one
-// that failed once.
+// that failed once.  On a logical clock (reproducible.c) the thread does
+// not sleep but waits for its turn, which the clock gives it when it is
+// moved past the task's time.
 static void *periodic_loop(void *data) {
   periodic *p = (periodic *)data;
   uw_loggers *ls = p->ls;
@@ -112,6 +115,9 @@ static void *periodic_loop(void *data) {
     int retries_left = MAX_RETRIES;
     failure_kind r;
     int again;
+
+    if (p->scheduled >= 0)
+      uw_reproducible_periodic_wait(p->scheduled);
 
     uw_transaction_arrives();
 
@@ -166,7 +172,10 @@ static void *periodic_loop(void *data) {
 
     uw_transaction_departs();
 
-    sleep(p->pdic.period);
+    if (p->scheduled >= 0)
+      uw_reproducible_periodic_done(p->scheduled);
+    else
+      sleep(p->pdic.period);
   };
 }
 
@@ -258,6 +267,7 @@ void uw_request_start_threads(uw_app *app, uw_loggers *ls) {
     arg->ls = ls;
     arg->pdic = *ps;
     arg->app = app;
+    arg->scheduled = uw_reproducible_periodic(ps->period);
 
     if (pthread_create_big(&thread, NULL, periodic_loop, arg)) {
       fprintf(stderr, "Error creating periodic thread\n");
@@ -307,7 +317,22 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
   char errmsg[ERROR_BUF_LEN];
 
   uw_reset(ctx);
-  uw_reproducible_request();
+
+  // The logical clock's own requests, when it is pinned (reproducible.c), at
+  // a fixed path rather than under the prefix, so that whoever drives the
+  // clock need not know the application's.
+  if (uw_reproducible_clock_pinned() && !strcmp(path, "/.clock")) {
+    char answer[64];
+    uw_reproducible_clock(ctx, query_string, answer, sizeof answer);
+    uw_reset(ctx);
+    on_success(ctx);
+    uw_write_header(ctx, "Content-type: text/plain\r\n");
+    uw_write(ctx, answer);
+    return SERVED;
+  }
+
+  if (uw_reproducible_request(ctx, uw_Basis_requestHeader(ctx, "UrWeb-Time")))
+    uw_reset(ctx);
 
   rc->queryString[0] = 0;
 
@@ -680,7 +705,10 @@ void *client_pruner(void *data) {
     exit(1);
 
   while (1) {
-    uw_prune_clients(ctx);
+    // On the logical clock, clients expire when the clock is moved past
+    // their time (reproducible.c), not when this thread wakes up.
+    if (!uw_reproducible_clock_pinned())
+      uw_prune_clients(ctx);
     sleep(5);
   }
 }

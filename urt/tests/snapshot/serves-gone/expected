@@ -1,8 +1,14 @@
 $ urt snapshot runs/serves-gone
 UPDATED runs/serves-gone.urt/snapshot/1 (exitcode)
-ERROR runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/03-never.wait: the server was gone before it printed a line holding 'never'
-1 case and 1 run: 1 updated, in T
+
+FAIL runs/serves-gone.urt/snapshot/1/request-response/gone (interaction/01.response, interaction/02-die.response, interaction/03-never.error)
+    wait 03-never cannot be done: cannot connect to the server: Connection refused
+
+1 case and 1 run: 1 failed, 1 updated, in T
 exit 1
 $ changes
 added: ./runs/serves-gone.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-gone.urt/snapshot/1/expected/exitcode
+added (172 bytes): ./runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/01.response
+added (175 bytes): ./runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/02-die.response
+added (49 bytes): ./runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/03-never.error

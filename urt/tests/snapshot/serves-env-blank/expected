@@ -10,4 +10,4 @@ exit 0
 $ changes
 added: ./runs/serves-env-blank.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-env-blank.urt/snapshot/1/expected/exitcode
-added (164 bytes): ./runs/serves-env-blank.urt/snapshot/1/request-response/a/interaction/01.response
+added (190 bytes): ./runs/serves-env-blank.urt/snapshot/1/request-response/a/interaction/01.response

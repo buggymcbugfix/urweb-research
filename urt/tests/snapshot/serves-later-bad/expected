@@ -1,10 +1,12 @@
 $ urt snapshot runs/serves-later-bad
 ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/02-both is a request and a wait
 a step is the one or the other; what it leads to is filed under its name
-ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/03-no-until.wait: a wait is 'until TEXT', TEXT being what the server is to print
-ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/04-nothing.wait: a wait is 'until TEXT', TEXT being what the server is to print
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/03-no-until.wait: a wait is 'wait T', T a time, or 'until TEXT', TEXT being what the server is to print
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/04-nothing.wait: a wait is 'wait T', T a time, or 'until TEXT', TEXT being what the server is to print
 ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/05-two.wait: a wait is one line
-ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/06-blank.wait: a wait is 'until TEXT', TEXT being what the server is to print
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/06-blank.wait: a wait is 'wait T', T a time, or 'until TEXT', TEXT being what the server is to print
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/07-unitless.wait: '5' is not a time: a number and its unit, 500ms, 2s, 3min, 1h, 30d
+ERROR runs/serves-later-bad.urt/snapshot/1/request-response/bad/interaction/08-no-time.wait: a wait is 'wait T', T a time, or 'until TEXT', TEXT being what the server is to print
 0 cases, in T
 exit 1
 $ changes

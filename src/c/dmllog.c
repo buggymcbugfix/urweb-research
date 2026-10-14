@@ -75,7 +75,8 @@ void uw_log_dml(uw_context ctx, const char *loc, const char *sql, long rows) {
 
   if (uw_buffer_used(buf) == 0) {
     // The first statement of this transaction.
-    time_t now = uw_Basis_now(ctx).seconds;
+    uw_Basis_time t = uw_Basis_now(ctx);
+    time_t now = t.seconds;
     struct tm tm;
     char *url = uw_Basis_currentUrl(ctx);
 
@@ -85,8 +86,14 @@ void uw_log_dml(uw_context ctx, const char *loc, const char *sql, long rows) {
     }
 
     gmtime_r(&now, &tm);
-    strftime(line, sizeof line, "-- %Y-%m-%d %H:%M:%S UTC", &tm);
+    strftime(line, sizeof line, "-- %Y-%m-%d %H:%M:%S", &tm);
     failed |= uw_buffer_append(buf, line, strlen(line));
+    // Milliseconds only when there are any: a logical clock that says them.
+    if (t.microseconds / 1000) {
+      snprintf(line, sizeof line, ".%03d", (int)(t.microseconds / 1000));
+      failed |= uw_buffer_append(buf, line, strlen(line));
+    }
+    failed |= uw_buffer_append(buf, " UTC", 4);
     if (url && *url) {
       const char *method = uw_Basis_currentUrlHasPost(ctx) ? " POST " : " GET ";
       failed |= uw_buffer_append(buf, method, strlen(method));

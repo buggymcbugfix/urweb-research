@@ -230,6 +230,13 @@ arun runs/serves-later.urt/snapshot/1/request-response/first
 rm runs/serves-later.urt/snapshot/1/request-response/first/interaction/01.request
 printf 'APP_LATER=1\n' > runs/serves-later.urt/snapshot/1/request-response/first/env
 printf 'until a line from a task\n' > runs/serves-later.urt/snapshot/1/request-response/first/interaction/01-task.wait
+# A wait for a time: the task the request leaves comes due within it.
+arun runs/serves-later.urt/snapshot/1/request-response/timed
+cd runs/serves-later.urt/snapshot/1/request-response/timed/interaction
+printf 'GET /later\n' > 01.request
+printf 'wait 2s\n' > 02-two.wait
+printf 'GET /after\n' > 03-after.request
+cd "$root"
 proj runs serves-later-bad
 snap runs/serves-later-bad.urt/snapshot/1 exitcode
 arun runs/serves-later-bad.urt/snapshot/1/request-response/bad
@@ -240,7 +247,23 @@ printf 'for a second\n' > 03-no-until.wait
 printf 'until \n' > 04-nothing.wait
 printf 'until one\nuntil two\n' > 05-two.wait
 printf 'until  \n' > 06-blank.wait
+printf 'wait 5\n' > 07-unitless.wait
+printf 'wait\n' > 08-no-time.wait
 cd "$root"
+# Waits for what does not come: after the server's last task, and before
+# its next one, which is due later than an until looks.
+proj runs serves-never
+snap runs/serves-never.urt/snapshot/1 exitcode
+arun runs/serves-never.urt/snapshot/1/request-response/after
+cd runs/serves-never.urt/snapshot/1/request-response/after/interaction
+printf 'GET /later\n' > 01.request
+printf 'until a line from a task\n' > 02-task.wait
+printf 'until another line\n' > 03-more.wait
+printf 'GET /after\n' > 04-after.request
+cd "$root"
+arun runs/serves-never.urt/snapshot/1/request-response/far
+printf 'GET /year\n' > runs/serves-never.urt/snapshot/1/request-response/far/interaction/01.request
+printf 'until a line from a task\n' > runs/serves-never.urt/snapshot/1/request-response/far/interaction/02-task.wait
 proj runs serves-gone
 snap runs/serves-gone.urt/snapshot/1 exitcode
 arun runs/serves-gone.urt/snapshot/1/request-response/gone

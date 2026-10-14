@@ -11,24 +11,26 @@ $ cd runs/serves-dies.urt/snapshot/1/request-response/dies && for f in interacti
 == interaction/01.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 63
+Content-Length: 88
 Connection: close
 
 1: GET / HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684800000
 User-Agent: urt
 
 
 == interaction/02-die.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 66
+Content-Length: 91
 Connection: close
 
-2: GET /die HTTP/1.1
+3: GET /die HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684801000
 User-Agent: urt
 
 
@@ -62,7 +64,7 @@ exit 0
 $ changes
 added: ./runs/serves-dies.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-dies.urt/snapshot/1/expected/exitcode
-added (147 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/01.response
+added (172 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/01.response
 changed (11 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.request
-added (152 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.response
-added (152 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.response
+added (177 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.response
+added (177 bytes): ./runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/03-after.response
