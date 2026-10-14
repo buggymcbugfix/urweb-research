@@ -1,0 +1,9 @@
+ffi flags
+include flags.h
+link -Iinc
+link -DEXTRA=1
+link flags.c
+allow url /Link_c_flags/main
+safeGet Link_c_flags/main
+
+link_c_flags
