@@ -1,0 +1,14 @@
+database dbname=periodic.db
+ffi misbehave
+include misbehave.h
+link misbehave.c
+effectful Misbehave.step
+effectful Misbehave.failInCommit
+effectful Misbehave.boundedRetry
+effectful Misbehave.fatalWithoutTransaction
+allow env PERIODIC_MODE
+allow url /Periodic/main
+safeGet Periodic/main
+
+$/option
+periodic

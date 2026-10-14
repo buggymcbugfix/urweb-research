@@ -1,0 +1,6 @@
+limit time 2
+allow url /Timelimit/*
+safeGet Timelimit/main
+safeGet Timelimit/spin
+
+timelimit
