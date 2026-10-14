@@ -1017,17 +1017,17 @@ class Reel:
         self.pictures = {}      # tab -> (its last picture's path, its bytes)
         self.n = 0
 
-    def picture(self, tab, png):
-        """The path of the picture png of the tab, a new one only if it
-        differs from the tab's last."""
+    def picture(self, tab, data, kind):
+        """The path of the picture of the tab, data in the format kind
+        (png, jpeg), a new one only if it differs from the tab's last."""
         last = self.pictures.get(tab)
-        if last is not None and last[1] == png:
+        if last is not None and last[1] == data:
             return last[0]
         self.n += 1
-        path = os.path.join(self.directory, '%s-%06d.png' % (self.user, self.n))
+        path = os.path.join(self.directory, '%s-%06d.%s' % (self.user, self.n, kind))
         with open(path, 'wb') as f:
-            f.write(png)
-        self.pictures[tab] = (path, png)
+            f.write(data)
+        self.pictures[tab] = (path, data)
         return path
 
 
@@ -1148,11 +1148,11 @@ class Matroska:
         return data
 
 
-# A frame, composed on a canvas in a page of the engine's own: the strip,
-# the picture of the page, a dialog, the pointer; as a JPEG at quality 100
+# A frame, composed on a canvas in a page of Chromium's: the strip, the
+# picture of the page, a dialog, the pointer; as a JPEG at quality 100
 # (the only format Playwright's ffmpeg reads, and at 100 as good as PNG
-# once encoded), in base64.  The picture comes as PNG, and only when it
-# changes.
+# once encoded), in base64.  The picture comes as the engine shot it, a
+# PNG or a JPEG (f.type), and only when it changes.
 COMPOSE_JS = r"""
 (() => {
     const BAR = %d;
@@ -1187,11 +1187,11 @@ COMPOSE_JS = r"""
         if (g.roundRect) { g.roundRect(x, y, w, h, r); } else { g.rect(x, y, w, h); }
     };
     globalThis.compose = async (f) => {
-        if (f.png !== undefined) {
+        if (f.picture !== undefined) {
             picture = null;
-            if (f.png !== null) {
-                const bytes = Uint8Array.from(atob(f.png), c => c.charCodeAt(0));
-                picture = await createImageBitmap(new Blob([bytes], {type: 'image/png'}));
+            if (f.picture !== null) {
+                const bytes = Uint8Array.from(atob(f.picture), c => c.charCodeAt(0));
+                picture = await createImageBitmap(new Blob([bytes], {type: f.type}));
             }
         }
         const w = f.w, h = f.h, cw = w + (w & 1), ch = h + BAR + ((h + BAR) & 1);
@@ -3389,13 +3389,16 @@ class Run:
         if front is not None and front.page is not None:
             picture = reel.pictures.get(front, (None,))[0]
             if not (front.dialog or front.navigating or front.loading or self.is_busy(front)):
+                # Chromium makes a JPEG at quality 100 in two thirds of the
+                # time of a PNG, the others a PNG fastest.
+                kind = 'jpeg' if self.on[user.name] == 'chromium' else 'png'
                 try:
-                    png = await self.call(front, front.page.screenshot(type='png', scale='css', caret='initial',
-                                                                       timeout=3000))
+                    data = await self.call(front, front.page.screenshot(
+                        type=kind, quality=100 if kind == 'jpeg' else None, scale='css', caret='initial', timeout=3000))
                 except (self.PlaywrightError, Complaint):
-                    png = None
-                if png:
-                    picture = reel.picture(front, png)
+                    data = None
+                if data:
+                    picture = reel.picture(front, data, kind)
         tabs = tuple((t.name, t is front) for t in user.tabs if not t.closed)
         path = self.path_of(front.page.url) if front is not None and front.page is not None else ''
         pointer = (round(front.pointer[0], 1), round(front.pointer[1], 1), front.pressed) \
@@ -3413,9 +3416,11 @@ class Run:
 
     async def develop(self, reel, end):
         """The user's film, USER.PASS.webm in the recordings: every frame
-        composed in a page of the user's engine and handed to ffmpeg at its
-        time; between frames the picture stands, a frame a second for the
-        strip's clock.  And its cues, USER.PASS.vtt."""
+        composed in a page of Chromium's, whose canvas makes a JPEG fastest
+        (WebKit's takes three times as long), or of the user's engine if
+        Chromium does not start, and handed to ffmpeg at its time; between
+        frames the picture stands, a frame a second for the strip's clock.
+        And its cues, USER.PASS.vtt."""
         name = '%s.%s' % (reel.user, self.pass_name)
         e = self.epoch_ms()
         viewport = self.setup.options_of(reel.user)['viewport']
@@ -3440,7 +3445,8 @@ class Run:
         if frames[-1][0] < end:
             frames.append((end,) + frames[-1][1:])
         trace('develop', name, len(frames))
-        context = await self.drv.browsers[self.on[reel.user]].new_context()
+        composer = 'chromium' if await self.drv.launch('chromium') else self.on[reel.user]
+        context = await self.drv.browsers[composer].new_context()
         page = await context.new_page()
         proc = None
         try:
@@ -3459,10 +3465,11 @@ class Run:
                 if picture != last:
                     last = picture
                     if picture is None:
-                        f['png'] = None
+                        f['picture'] = None
                     else:
                         with open(picture, 'rb') as fp:
-                            f['png'] = base64.b64encode(fp.read()).decode()
+                            f['picture'] = base64.b64encode(fp.read()).decode()
+                        f['type'] = 'image/jpeg' if picture.endswith('.jpeg') else 'image/png'
                 jpeg = base64.b64decode(await page.evaluate('f => compose(f)', f))
                 proc.stdin.write(mkv.frame(t - e, jpeg))
                 await proc.stdin.drain()
@@ -3575,8 +3582,9 @@ class Run:
             if h.task is not None and not h.task.done():
                 h.task.cancel()
         if self.reels:
-            for reel in self.reels.values():
-                await self.develop(reel, self.now)
+            # Every user's film at once, each composed in a page of its own
+            # and encoded by an ffmpeg of its own.
+            await asyncio.gather(*(self.develop(reel, self.now) for reel in self.reels.values()))
             write_index(self.recordings, self.frame_ms)
             shutil.rmtree(self.pictures, ignore_errors=True)
         self.closed_port.close()

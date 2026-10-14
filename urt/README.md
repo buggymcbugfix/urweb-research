@@ -187,13 +187,12 @@ shot).  A frame is a point of a grid on the clock, every 16ms or every T
 with `--record=T`, at which anything shown may have changed; the clock
 stops on the grid while anything in the page moves that will stop (an
 endless animation, a spinner, is filmed with whatever else changes), and
-between frames
-the picture stands, so that a still minute costs a frame a second (the
-strip's clock) and nothing else.  The frames are composed on a canvas in
-the engine's own browser and encoded by the ffmpeg Playwright brings
-along, from JPEG at quality 100 (all it reads, and as good as PNG once
-encoded) to VP8 at a quality that keeps text sharp, each at its own
-millisecond.  Beside each film a `USER.PASS.vtt` has a cue per line,
+between frames the picture stands, so that a still minute costs a frame
+a second (the strip's clock) and nothing else.  The frames are composed
+on a canvas in Chromium, whatever the engine, every user's film at once,
+and encoded by the ffmpeg Playwright brings along, from JPEG at quality
+100 (all it reads, and as good as PNG once encoded) to VP8 at a quality
+that keeps text sharp, each at its own millisecond.  Beside each film a `USER.PASS.vtt` has a cue per line,
 and an `index.html` plays a run's films together, users and passes, on
 one clock, every one in a box to move by its title and size by its
 corner; the same rules, and the records the same with and without, and
