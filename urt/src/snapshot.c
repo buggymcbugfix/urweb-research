@@ -192,17 +192,18 @@ static const char usage_text[] =
     "the port range, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
     "\n"
     "A case can also have runs in a browser, under browser/: the application\n"
-    "started afresh as above, once per browser engine -- Chromium, Firefox and\n"
-    "WebKit, all three unless the run's 'engines' file names fewer -- and the\n"
-    "engine sent through it, step by step, by one user or several, each in one\n"
-    "tab or several:\n"
+    "started afresh as above, once per pass, and every pass sent through it step\n"
+    "by step, by one user or several, each in one tab or several, each in a browser\n"
+    "engine -- Chromium, Firefox or WebKit.  A pass puts every user on an engine, and\n"
+    "there are as many as it takes to drive each through all of theirs, every user\n"
+    "through all three unless the run's context says fewer; the passes go at the\n"
+    "same time, each with its application:\n"
     "\n"
     "  shop.urt/\n"
     "  `-- snapshot/\n"
     "      `-- sqlite/\n"
     "          `-- browser/\n"
     "              `-- checkout/             a run; args, env, secret, db.sql and out/ as above\n"
-    "                  |-- engines             the engines to drive, one per line, if not all\n"
     "                  |-- context             the users' order, and how their browsers are set up\n"
     "                  |-- screenshots/        every page as drawn, with --screenshot; not for git\n"
     "                  |   `-- 01-open.Alice.1.chromium.png\n"
@@ -227,19 +228,24 @@ static const char usage_text[] =
     "                      |-- 01-open.stderr\n"
     "                      |-- 02-add.step\n"
     "                      |-- 02-add.Alice.1.page.html\n"
-    "                      |                     what the engines agree on, shared\n"
+    "                      |                     what the passes agree on, shared\n"
     "                      |-- 02-add.Alice.1.page.firefox.html\n"
     "                      |                     what one of them records differently, its own\n"
     "                      |-- 03-pay.step\n"
     "                      `-- 03-pay.error      why the step could not be done, while it cannot\n"
     "\n"
-    "The engines agree on nearly everything, and a record they agree on is one\n"
-    "file; one that an engine records differently is that engine's own, beside\n"
-    "it, with the engine's name after the record's kind, and what that engine is\n"
-    "compared against.  Recording goes by the majority: the engines agreeing in\n"
-    "the greatest number write the shared file, the others their own, an own file\n"
-    "whose engine has come to agree goes, and a tie goes to the engine first in\n"
-    "the order chromium, firefox, webkit.\n"
+    "A pass is named by its engine where every user is on the same one, as when\n"
+    "they all have the same engines: chromium, firefox, webkit.  Where they do not,\n"
+    "the i-th pass puts every user on the i-th of their engines in that order, the\n"
+    "last again for a user with fewer, and a pass that mixes them is named by the\n"
+    "users' engines in the context's order, joined by +: with Alice on chromium and\n"
+    "Bernd on firefox and webkit, chromium+firefox and chromium+webkit.\n"
+    "The passes agree on nearly everything, and a record they agree on is one\n"
+    "file; one that a pass records differently is that pass's own, beside it,\n"
+    "with the pass's name after the record's kind, and what that pass is compared\n"
+    "against.  Recording goes by the majority: the passes agreeing in the greatest\n"
+    "number write the shared file, the others their own, an own file whose pass\n"
+    "has come to agree goes, and a tie goes to the pass first in order.\n"
     "\n"
     "A step holds lines, each for a user: 'USER: ACTION', or 'USER:' alone with the\n"
     "user's lines under it, each indented with a tab.  A user is a browser of their\n"
@@ -261,21 +267,22 @@ static const char usage_text[] =
     "and their parameters, and what the context can say, OPTION VALUE a line, for\n"
     "every user before the first line [USER] and for that user under it: the users'\n"
     "order, which a run with more than one needs; whether the server's tasks due\n"
-    "when a request arrives run before it or after; a request's round trip; how\n"
+    "when a request arrives run before it or after; the engines a user is driven\n"
+    "through ('engines chromium webkit'); a request's round trip; how\n"
     "long a kind of act takes; how a hidden tab's timers are held back, as Chrome\n"
     "does unless it says otherwise; and how a user's browser is set up (the window,\n"
     "the colour scheme, the locale, ...), every user's being 1024x768, en-US, UTC\n"
     "and the user agent 'urt' unless it says otherwise.  With --screenshot, every tab\n"
     "is shot after every step as well, the whole page as the engine draws it, under\n"
-    "the run's screenshots/ as NAME.USER.TAB.ENGINE.png, the directory emptied\n"
+    "the run's screenshots/ as NAME.USER.TAB.PASS.png, the directory emptied\n"
     "first: pictures to look at when a record wants explaining, which git ignores\n"
     "and nothing compares, since no two engines draw alike; the records are the\n"
     "same with and without.  With --record, every user is filmed on the run's\n"
-    "clock, under the run's recordings/ as USER.ENGINE.webm: their tab in front,\n"
+    "clock, under the run's recordings/ as USER.PASS.webm: their tab in front,\n"
     "under a strip with their tabs, the clock and the line they are at, the pointer\n"
     "and any dialog drawn in.  A frame is taken every T (--record=T, 16ms unless\n"
     "given) at which anything shown may have changed, the clock stopping on those\n"
-    "while anything moves that will stop; a USER.ENGINE.vtt beside it has a cue\n"
+    "while anything moves that will stop; a USER.PASS.vtt beside it has a cue\n"
     "per line, and an index.html plays a run's films together, each in a box to\n"
     "move and size at will.  The same rules as for the screenshots, and the records\n"
     "the same with and without, and whatever T, too.\n"
@@ -304,8 +311,8 @@ static const char usage_text[] =
     "element does not come in time -- stops the run, as a request that cannot be\n"
     "sent does: the step's NAME.error holds the engine's complaint, beside its\n"
     "records of the pages as the engine found them, the records of the steps after\n"
-    "it go, and the run fails until it gets past the step again.  An engine that\n"
-    "stops where the others go on has an own NAME.ENGINE.error, and own files,\n"
+    "it go, and the run fails until it gets past the step again.  A pass that\n"
+    "stops where the others go on has an own NAME.error.PASS, and own files,\n"
     "empty, for what it did not record after that.\n"
     "Browser runs need urt-browse beside urt, python3 with Playwright, and the\n"
     "engines where PLAYWRIGHT_BROWSERS_PATH says; the compiler's nix-shell and its\n"
@@ -429,20 +436,29 @@ static int diff_labels = 0;               /* GNU diff, which names the sides for
 
 static int n_cases = 0, n_runs = 0, n_ok = 0, n_bad = 0, n_changed = 0, n_skipped = 0, n_nonzero = 0;
 static long started;
-static struct server serving;             /* the application now running, if any */
+/* The passes of a browser run go at the same time, each with its own
+ * application and driver; there are as many as the most engines a user
+ * has, three at most. */
+#define PASSES_MAX 3
 
-/* The browser drivers, one per engine (the order of engines[]), started
- * at the first browser run that needs each and kept for the rest: a
- * browser takes seconds to start, a run's contexts a moment.  Their
- * stderr accumulates under tmp; driver_err_at[i] is where the run
- * underway began in it. */
-static struct child drivers[3];
-static int driver_up[3];
-static long driver_err_at[3];
+/* The applications now running, if any: a request-response run's, or a
+ * browser run's, one a pass. */
+static struct server servers[PASSES_MAX];
+
+/* The browser drivers, one a pass of a run at once, started at the first
+ * browser run that needs each and kept for the rest, with the engines
+ * they started: an engine takes seconds to start, a run's contexts a
+ * moment.  A pass goes to the driver that has its first user's engine
+ * (the order of engines[]) when that one is free, so that a driver keeps
+ * to one engine where the passes do.  Their stderr accumulates under tmp;
+ * driver_err_at[i] is where the run underway began in it. */
+static struct child drivers[PASSES_MAX];
+static int driver_up[PASSES_MAX];
+static long driver_err_at[PASSES_MAX];
 
 static void drivers_stop(void) {
     int i;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < PASSES_MAX; i++) {
         if (driver_up[i]) {
             child_stop(&drivers[i]);
             driver_up[i] = 0;
@@ -453,7 +469,10 @@ static void drivers_stop(void) {
 /* The scratch directory goes with us, whichever way we leave, and so
  * do a server we started and the browsers. */
 static void cleanup(void) {
-    server_stop(&serving);
+    int i;
+    for (i = 0; i < PASSES_MAX; i++) {
+        server_stop(&servers[i]);
+    }
     drivers_stop();
     if (*tmp) {
         rm_rf(tmp);
@@ -625,10 +644,11 @@ static const char *input_what(const char *suffix) {
  * step NAME; a tab's record in a browser run is NAME.USER.TAB.KIND, USER.TAB
  * being the tab's name as the steps give it; the records under out/ are
  * startup.KIND and shutdown.KIND.  A kind that is a language has its
- * extension last (NAME.dml.sql, NAME.Alice.1.page.html), and one engine's
- * own record (see settle_shared) has the engine's name after the kind
- * (NAME.dml.firefox.sql, NAME.stdout.firefox, NAME.Alice.1.page.firefox.html),
- * so that it sorts beside the shared one.  No name has a dot in it -- not
+ * extension last (NAME.dml.sql, NAME.Alice.1.page.html), and one pass's
+ * own record (see settle_shared) has the pass's name after the kind
+ * (NAME.dml.firefox.sql, NAME.stdout.firefox, NAME.Alice.1.page.firefox.html,
+ * NAME.Alice.1.page.chromium+webkit.html), so that it sorts beside the
+ * shared one.  No name has a dot in it -- not
  * a request's or a step's, a user's or a tab's -- and the kinds are
  * fixed, so a record's name is read from its end.  NAME.error is the
  * record of a request that could not be sent, or a step that could not be
@@ -679,25 +699,42 @@ static enum run_kind kind_of(const char *run_dir) {
     return !strcmp(basename_of(d), run_dirname[RUN_BROWSER]) ? RUN_BROWSER : RUN_REQUESTS;
 }
 
-/* The browser engines a browser run is driven through, every one unless
- * the run's `engines` file names fewer; in this order, which is also the
- * order that settles a tie between them. */
+/* The browser engines, in the order the driver names a pass by. */
 static const char *const engines[] = { "chromium", "firefox", "webkit", NULL };
 
-static int is_engine(const char *s) {
+/* The place of the engine that s starts with, up to its end or a +, in
+ * engines[]; -1 for none. */
+static int engine_at(const char *s) {
     int i;
     for (i = 0; engines[i]; i++) {
-        if (!strcmp(s, engines[i])) {
-            return 1;
+        size_t n = strlen(engines[i]);
+        if (!strncmp(s, engines[i], n) && (s[n] == 0 || s[n] == '+')) {
+            return i;
         }
     }
-    return 0;
+    return -1;
 }
 
-/* A record's name, NAME[.USER.TAB].KIND[.ENGINE][EXT], into dst (PATHLEN):
- * label and engine may be empty. */
-static void record_name(char *dst, const char *name, const char *label, const struct record_kind *k, const char *engine) {
-    pathf(dst, "%s%s%s.%s%s%s%s", name, *label ? "." : "", label, k->kind, *engine ? "." : "", engine, k->ext);
+/* Whether s names a pass of a browser run: an engine, every user on it,
+ * or the users' engines in their order, joined by + (chromium+firefox). */
+static int is_pass(const char *s) {
+    for (;;) {
+        int i = engine_at(s);
+        if (i < 0) {
+            return 0;
+        }
+        s += strlen(engines[i]);
+        if (!*s) {
+            return 1;
+        }
+        s++;
+    }
+}
+
+/* A record's name, NAME[.USER.TAB].KIND[.PASS][EXT], into dst (PATHLEN):
+ * label and pass may be empty. */
+static void record_name(char *dst, const char *name, const char *label, const struct record_kind *k, const char *pass) {
+    pathf(dst, "%s%s%s.%s%s%s%s", name, *label ? "." : "", label, k->kind, *pass ? "." : "", pass, k->ext);
 }
 
 /* "a" or "an" before a word. */
@@ -705,10 +742,10 @@ static const char *article(const char *word) {
     return strchr("aeiou", word[0]) ? "an" : "a";
 }
 
-/* What a record's name says, read from its end: the kind, the engine
- * when it is one engine's own, and before them NAME or NAME.USER.TAB.
+/* What a record's name says, read from its end: the kind, the pass
+ * when it is one pass's own, and before them NAME or NAME.USER.TAB.
  * run is the kind of run it is in, or -1 for any.  NAME goes into name,
- * USER.TAB or nothing into label, the engine or nothing into engine
+ * USER.TAB or nothing into label, the pass or nothing into engine
  * (PATHLEN each; any may be NULL).  Returns the kind, or NULL: with why
  * (why_size) saying what is wrong when the name has a kind but not the
  * shape, or not for this kind of run, and why empty when it has no
@@ -731,7 +768,7 @@ static const struct record_kind *parse_record(const char *file, int run, char *n
     if (!strcmp(parts[n - 1], "html") || !strcmp(parts[n - 1], "sql")) {
         ext = fmt(".%s", parts[--n]);
     }
-    if (n >= 3 && is_engine(parts[n - 1]) && kind_named(parts[n - 2])) {
+    if (n >= 3 && is_pass(parts[n - 1]) && kind_named(parts[n - 2])) {
         eng = parts[--n];
     }
     k = kind_named(parts[n - 1]);
@@ -744,7 +781,7 @@ static const struct record_kind *parse_record(const char *file, int run, char *n
         return NULL;
     }
     if (run == RUN_REQUESTS && *eng) {
-        snprintf(why, why_size, "an engine's own record is a browser run's; here %s %s record is NAME.%s%s",
+        snprintf(why, why_size, "a pass's own record is a browser run's; here %s %s record is NAME.%s%s",
                  article(k->kind), k->kind, k->kind, k->ext);
         return NULL;
     }
@@ -756,9 +793,9 @@ static const struct record_kind *parse_record(const char *file, int run, char *n
     if (n != (k->tab ? 3 : 1)) {
         if (k->tab) {
             snprintf(why, why_size, "a tab's record is NAME.USER.TAB.%s%s, USER.TAB the tab's name as the steps give it, "
-                     "or NAME.USER.TAB.%s.ENGINE%s for one engine's own", k->kind, k->ext, k->kind, k->ext);
+                     "or NAME.USER.TAB.%s.PASS%s for one pass's own", k->kind, k->ext, k->kind, k->ext);
         } else {
-            snprintf(why, why_size, "%s %s record is NAME.%s%s, or NAME.%s.ENGINE%s for one engine's own",
+            snprintf(why, why_size, "%s %s record is NAME.%s%s, or NAME.%s.PASS%s for one pass's own",
                      article(k->kind), k->kind, k->kind, k->ext, k->kind, k->ext);
         }
         return NULL;
@@ -779,24 +816,24 @@ static const struct record_kind *parse_record(const char *file, int run, char *n
     return k;
 }
 
-/* A record the engines agree on is one file, NAME.KIND; one that an
- * engine records differently from the others is that engine's own,
- * NAME.KIND.ENGINE, beside it.  own_name gives the own name for a
+/* A record the passes agree on is one file, NAME.KIND; one that a pass
+ * records differently from the others is that pass's own,
+ * NAME.KIND.PASS, beside it.  own_name gives the own name for a
  * record's relative path: interaction/04-send.Alice.1.page.html, firefox
  * -> interaction/04-send.Alice.1.page.firefox.html. */
-static void own_name(char *dst, const char *rel, const char *engine) {
+static void own_name(char *dst, const char *rel, const char *pass) {
     char name[PATHLEN], label[PATHLEN], own[PATHLEN], why[512], dir[PATHLEN];
     const struct record_kind *k = parse_record(basename_of(rel), -1, name, label, NULL, why, sizeof why);
     if (!k) {
         die(fmt("%s is not a record's name", rel), NULL);   /* ours are all named by record_name */
     }
-    record_name(own, name, label, k, engine);
+    record_name(own, name, label, k, pass);
     dirname_of(dir, rel);
     pathf(dst, "%s%s%s", strcmp(dir, ".") ? dir : "", strcmp(dir, ".") ? "/" : "", own);
 }
 
 /* Whether name is one of the records under out/ (startup.dml.sql,
- * shutdown.stdout, ...), or in a browser run an engine's own one
+ * shutdown.stdout, ...), or in a browser run a pass's own one
  * (startup.dml.firefox.sql). */
 static int out_record(const char *name, enum run_kind kind) {
     char rec[PATHLEN], engine[PATHLEN], why[512];
@@ -852,7 +889,7 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
             return 1;
         }
     } else if (n == 2 && (!strcmp(part[1], "args") || !strcmp(part[1], "secret") || !strcmp(part[1], "db.sql")
-                          || !strcmp(part[1], "env") || (kind == RUN_BROWSER && !strcmp(part[1], "engines")))) {
+                          || !strcmp(part[1], "env"))) {
         if (!is_file(e)) {
             die_later(fmt("%s should be a file", path(e)), NULL);
         }
@@ -888,8 +925,8 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
     } else if (n == 3 && !strcmp(part[1], "interaction") && is_file(e)
                && ((k = parse_record(part[2], kind, name, label, engine, why, sizeof why)) != NULL || *why)) {
         /* A record, with its request or its step: NAME.KIND, or in a
-         * browser run a tab's NAME.USER.TAB.KIND, either an engine's own
-         * with the engine's name after the kind. */
+         * browser run a tab's NAME.USER.TAB.KIND, either a pass's own
+         * with the pass's name after the kind. */
         char input[PATHLEN + 16], wait[PATHLEN + 16], dir[PATHLEN];
         if (!k) {
             die_later(fmt("%s is not named as a record", path(e)), why, NULL);
@@ -918,7 +955,7 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
                   kind == RUN_BROWSER
-                      ? "a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab"
+                      ? "a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab"
                       : "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,",
                   kind == RUN_BROWSER
                       ? "NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step"
@@ -927,9 +964,9 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
                       ? "NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,"
                       : "shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/",
                   kind == RUN_BROWSER
-                      ? "startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's" : NULL,
+                      ? "startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's" : NULL,
                   kind == RUN_BROWSER
-                      ? "name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently" : NULL, NULL);
+                      ? "name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently" : NULL, NULL);
         return is_dir(e);
     }
     return 0;
@@ -2095,28 +2132,11 @@ static int run_ready(const char *run_dir) {
     if (kind_of(run_dir) == RUN_BROWSER) {
         /* The driver reads the steps and the users' contexts, and says
          * what is wrong with them a line at a time, as NAME.step:LINE:
-         * ...; python3 is all it needs for that. */
+         * ..., or else the run's passes; python3 is all it needs for
+         * that. */
         char browser[PATHLEN], said[PATHLEN], *text, *line, *end;
         char *argv[4];
         int status;
-        struct strlist wanted = { 0, 0, 0 };
-        join(f, run_dir, "engines");
-        if (is_file(f) && (text = read_text(f))) {
-            split_words(text, &wanted);
-            free(text);
-            if (wanted.n == 0) {
-                die_later(fmt("%s names no engine", path(f)),
-                          "it narrows the engines the run is driven through: chromium, firefox, webkit, one per line;",
-                          "delete it for all of them", NULL);
-            }
-            for (i = 0; i < wanted.n; i++) {
-                if (!is_engine(wanted.v[i])) {
-                    die_later(fmt("%s names %s, which is no engine", path(f), key(wanted.v[i])),
-                              "the engines are chromium, firefox and webkit", NULL);
-                }
-            }
-            sl_free(&wanted);
-        }
         if (!find_browser(browser)) {
             die_later(fmt("%s is a browser run, and there is no %s beside %s", test(run_dir), path("urt-browse"), path("urt")),
                       "it drives the browser; it is a script in the urt directory, installed with urt", NULL);
@@ -2221,47 +2241,37 @@ static void on_browse_line(const char *line, void *data) {
     }
 }
 
-/* The place of an engine in engines[]; -1 for none. */
-static int engine_index(const char *engine) {
-    int i;
-    for (i = 0; engines[i]; i++) {
-        if (!strcmp(engine, engines[i])) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 /* Under tmp rather than work, which goes with every case. */
-static const char *driver_err_path(int ei) {
-    return fmt("%s/browse-%s.stderr", tmp, engines[ei]);
+static const char *driver_err_path(int slot) {
+    return fmt("%s/browse-%d.stderr", tmp, slot);
 }
 
-/* The driver for an engine, started if it is not running: urt-browse
- * --serve, which keeps the browser and takes a run per line.  NULL, with
- * the problem reported, if it cannot be started. */
-static struct child *driver_for(int ei) {
+/* The driver in a slot, started if it is not running: urt-browse --serve,
+ * which keeps the engines it starts and does a pass of a run per line.
+ * NULL, with the problem reported, if it cannot be started. */
+static struct child *driver_for(int slot) {
     char browser[PATHLEN];
-    char *argv[8];
+    char *argv[6];
     int n = 0;
-    if (driver_up[ei]) {
-        return &drivers[ei];
+    long size;
+    if (driver_up[slot]) {
+        return &drivers[slot];
     }
     find_browser(browser);                  /* run_ready has seen it */
     argv[n++] = browser;
     argv[n++] = "--serve";
-    argv[n++] = "--engine";
-    argv[n++] = (char *) engines[ei];
     argv[n++] = "--epoch";
     argv[n++] = RUN_TIME;
     argv[n] = NULL;
-    if (child_start(argv, driver_err_path(ei), &drivers[ei]) < 0) {
-        die_later(fmt("cannot start %s for %s: %s", path("urt-browse"), engines[ei], strerror(errno)), NULL);
+    if (child_start(argv, driver_err_path(slot), &drivers[slot]) < 0) {
+        die_later(fmt("cannot start %s: %s", path("urt-browse"), strerror(errno)), NULL);
         return NULL;
     }
-    driver_up[ei] = 1;
-    driver_err_at[ei] = 0;
-    return &drivers[ei];
+    driver_up[slot] = 1;
+    /* Its stderr goes on where the one before it, if any, left off. */
+    size = file_size(driver_err_path(slot));
+    driver_err_at[slot] = size > 0 ? size : 0;
+    return &drivers[slot];
 }
 
 /* s quoted for a shell, and for the driver, which splits a line as one. */
@@ -2284,29 +2294,33 @@ static const char *shell_quoted(const char *s) {
     return r;
 }
 
-/* One start of the application exe, into rw: its own database, loaded
- * from the run's db.sql, its secret and args; then the requests sent to
- * it, or, for a browser run, the engine named sent through it; stopped,
- * and its database dumped.  What came of it lands under rw as it is laid
- * out under the run, and goes on outputs, as relative paths; what curl
- * failed on goes on failed.  Returns 0, or -1 with the problem reported,
- * and nothing of the run is to be recorded then.  A request that cannot
- * be sent, or a step that cannot be done, is not that kind of problem:
- * the run stops there, with NAME.error saying why, and is recorded as
- * far as it got; stopped (PATHLEN) names the input it stopped at, or is
- * empty. */
-static int run_app(const char *run_dir, const char *exe, const char *engine, const char *rw,
-                   struct strlist *outputs, char *failed, size_t failed_size, char *stopped) {
-    char f[PATHLEN], g[PATHLEN], db[PATHLEN], dml[PATHLEN], interaction[PATHLEN];
-    char server_out[PATHLEN], server_err[PATHLEN], why[256];
-    long out_at = 0, err_at = 0;
-    long long clock_ms = atoll(RUN_TIME) * 1000;    /* the server's clock, when the next step starts */
-    struct strlist args = { 0, 0, 0 }, files = { 0, 0, 0 };
+/* One start of the application, and where what came of it goes. */
+struct app {
+    const char *rw;
+    char db[PATHLEN], dml[PATHLEN], server_out[PATHLEN], server_err[PATHLEN];
+    long out_at, err_at;
+    int has_db;
+    struct server *server;
+};
+
+/* The application exe started into rw, as server: its own database,
+ * loaded from the run's db.sql, its secret and args, its environment;
+ * what it did before the first request cut out under rw/out.  browser
+ * says whether it is for a browser run, whose driver places the server's
+ * tasks among the requests.  What came of it lands under rw as it is laid
+ * out under the run, and goes on outputs, as relative paths.  0, or -1
+ * with the problem reported. */
+static int app_start(const char *run_dir, const char *exe, int browser, const char *rw, struct server *server,
+                     struct app *a, struct strlist *outputs) {
+    char f[PATHLEN], g[PATHLEN], why[256];
+    struct strlist args = { 0, 0, 0 };
     struct strlist env_names = { 0, 0, 0 }, env_values = { 0, 0, 0 };
     char *text, **env_saved;
-    int i, has_db, started, before = report_problems;
+    int i, started;
 
-    *stopped = 0;
+    a->rw = rw;
+    a->out_at = a->err_at = 0;
+    a->server = server;
     rm_rf(rw);
     if (mkdir_p(fmt("%s/interaction", rw)) < 0 || mkdir_p(fmt("%s/out", rw)) < 0) {
         die(fmt("cannot make %s", path(rw)), NULL);
@@ -2322,13 +2336,13 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
     setenv("URWEB_SIGFILE_PATH", g, 1);
 
     join(f, run_dir, "db.sql");
-    join(db, rw, "db");
-    has_db = is_file(f);
-    if (has_db) {
+    join(a->db, rw, "db");
+    a->has_db = is_file(f);
+    if (a->has_db) {
         /* -safe: a seed is SQL, and runs no dot-command that reaches
          * outside the database (.shell, .output, .read) and no ATTACH. */
         static char *load[] = { "sqlite3", "-safe", "-batch", "-bail", NULL, NULL };
-        load[4] = db;
+        load[4] = a->db;
         if (run_in(load, f, "/dev/null", fmt("%s/sqlite.err", rw)) != 0) {
             bail_if_interrupted();
             die_later(fmt("%s does not load", path(f)), head_of(fmt("%s/sqlite.err", rw), "(sqlite3 said nothing)"), NULL);
@@ -2338,13 +2352,13 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
     /* Also without a db.sql, or the application would go for the database
      * named when it was compiled; and it wants a file to be there, if only
      * an empty one, which to SQLite is a database with nothing in it. */
-    if (!has_db && write_text(db, "") < 0) {
-        die(fmt("cannot write %s: %s", path(db), strerror(errno)), NULL);
+    if (!a->has_db && write_text(a->db, "") < 0) {
+        die(fmt("cannot write %s: %s", path(a->db), strerror(errno)), NULL);
     }
-    setenv("URWEB_SQLITE_DB_PATH", db, 1);
+    setenv("URWEB_SQLITE_DB_PATH", a->db, 1);
 
-    join(dml, rw, "dml.sql");
-    setenv("URWEB_DML_LOG", dml, 1);
+    join(a->dml, rw, "dml.sql");
+    setenv("URWEB_DML_LOG", a->dml, 1);
     setenv("URWEB_REPRODUCIBLE_EPOCH", RUN_TIME, 1);
     setenv("URWEB_REPRODUCIBLE_PRNG_SEED", RUN_SEED, 1);
     setenv("URWEB_MIN_HEAP", RUN_MIN_HEAP, 1);
@@ -2352,7 +2366,7 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
     /* In a browser run the driver places the tasks due at a time among the
      * requests arriving then, by its context's tie rule: the server runs
      * none of them on its own when a request comes. */
-    if (engine) {
+    if (browser) {
         setenv("URWEB_REPRODUCIBLE_TASKS", "last", 1);
     } else {
         unsetenv("URWEB_REPRODUCIBLE_TASKS");
@@ -2378,9 +2392,9 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
         setenv(env_names.v[i], env_values.v[i], 1);
     }
 
-    join(server_out, rw, "server.stdout");
-    join(server_err, rw, "server.stderr");
-    started = server_start(exe, &args, server_out, server_err, &serving, why, sizeof why);
+    join(a->server_out, rw, "server.stdout");
+    join(a->server_err, rw, "server.stderr");
+    started = server_start(exe, &args, a->server_out, a->server_err, server, why, sizeof why);
     for (i = 0; i < env_names.n; i++) {
         if (env_saved[i]) {
             setenv(env_names.v[i], env_saved[i], 1);
@@ -2392,76 +2406,79 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
     free(env_saved);
     sl_free(&env_names);
     sl_free(&env_values);
+    sl_free(&args);
     if (started < 0) {
         bail_if_interrupted();
-        die_later(fmt("the application does not start for %s: %s", test(run_dir), why), head_of(server_err, NULL), NULL);
-        sl_free(&args);
+        die_later(fmt("the application does not start for %s: %s", test(run_dir), why), head_of(a->server_err, NULL), NULL);
         return -1;
     }
-    sl_free(&args);
 
     /* What the application did before the first request: the initialize
      * task's statements, and what it printed while starting.  Nothing else
      * happens before then: the server's clock stands still until a step
      * moves it. */
-    join(interaction, run_dir, "interaction");
-    if (!engine) {
-        inputs_of(interaction, RUN_REQUESTS, &files);
+    if (exists(a->dml) && rename(a->dml, fmt("%s/out/startup.dml.sql", rw)) < 0) {
+        die(fmt("cannot move %s: %s", path(a->dml), strerror(errno)), NULL);
     }
-    if (exists(dml) && rename(dml, fmt("%s/out/startup.dml.sql", rw)) < 0) {
-        die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
-    }
-    cut_output(server_out, &out_at, -1, fmt("%s/out/startup.stdout", rw));
-    cut_output(server_err, &err_at, -1, fmt("%s/out/startup.stderr", rw));
+    cut_output(a->server_out, &a->out_at, -1, fmt("%s/out/startup.stdout", rw));
+    cut_output(a->server_err, &a->err_at, -1, fmt("%s/out/startup.stderr", rw));
     sl_push(outputs, "out/startup.dml.sql");
     sl_push(outputs, "out/startup.stdout");
     sl_push(outputs, "out/startup.stderr");
+    return 0;
+}
 
-    if (engine) {
-        /* The driver takes the steps from the run and leaves the records
-         * under rw, saying after each step that it has; the server's
-         * output is cut on those lines, as after a request. */
-        struct browsing b = { run_dir, rw, dml, server_out, server_err, &out_at, &err_at, outputs, 0, "" };
-        char browse_err[PATHLEN];
-        struct child *d;
-        int ei = engine_index(engine), done = 0;
-        join(browse_err, rw, "browse.stderr");
-        d = driver_for(ei);
-        if (d) {
-            /* The screenshots and the recordings, when asked for, go
-             * straight into the run, emptied of the last ones by run_run. */
-            done = child_say(d, fmt("run %s %s %s%s%s%s\n", shell_quoted(fmt("http://127.0.0.1:%d", serving.port)),
-                                     shell_quoted(run_dir), shell_quoted(fmt("%s/interaction", rw)),
-                                     opt_screenshot ? fmt(" screenshots=%s", shell_quoted(fmt("%s/screenshots", run_dir))) : "",
-                                     opt_record ? fmt(" recordings=%s", shell_quoted(fmt("%s/recordings", run_dir))) : "",
-                                     opt_frame ? fmt(" frame=%s", shell_quoted(opt_frame)) : "")) == 0
-                   && child_lines(d, "done", on_browse_line, &b);
-        }
-        /* What the driver said to stderr during this run, beside the run's
-         * records, where head_of finds it. */
-        cut_output(driver_err_path(ei), &driver_err_at[ei], -1, browse_err);
-        if (*b.stopped) {
-            /* The driver ends the run at the step it could not do. */
-            strcpy(stopped, b.stopped);
-            stale_after(run_dir, rw, RUN_BROWSER, stopped, outputs);
-        } else if (!fs_interrupted && (!done || !b.steps)) {
-            die_later(fmt("%s does not run %s for %s", path("urt-browse"), engine, test(run_dir)),
-                      head_of(browse_err, "(it said nothing)"), NULL);
-        }
-        if (!done && d) {
-            /* The driver is gone, or not to be trusted; the next run
-             * starts it afresh. */
-            child_stop(d);
-            driver_up[ei] = 0;
+/* What the application printed last, once stopped, and the database it
+ * left behind, dumped: 0, or -1 with the problem reported, and nothing
+ * of the run is to be recorded then. */
+static int app_end(const char *run_dir, struct app *a, struct strlist *outputs) {
+    cut_output(a->server_out, &a->out_at, -1, fmt("%s/out/shutdown.stdout", a->rw));
+    cut_output(a->server_err, &a->err_at, -1, fmt("%s/out/shutdown.stderr", a->rw));
+    sl_push(outputs, "out/shutdown.stdout");
+    sl_push(outputs, "out/shutdown.stderr");
+    if (a->has_db) {
+        static char *dump[] = { "sqlite3", "-safe", "-batch", NULL, ".dump", NULL };
+        dump[3] = a->db;
+        if (run(dump, fmt("%s/out/shutdown.db.sql", a->rw), fmt("%s/sqlite.err", a->rw)) != 0) {
+            /* The run failed, then, and nothing of it is recorded. */
+            die_later(fmt("cannot dump the database of %s", test(run_dir)),
+                      head_of(fmt("%s/sqlite.err", a->rw), "(sqlite3 said nothing)"), NULL);
+            return -1;
         }
     }
-    /* The steps of a request-response run, requests and waits, in the
-     * order of their names (none for a browser run), on the server's
-     * clock: a request is served at the clock, which then moves on by a
-     * second; a wait moves it on by its time, or until what it waits for.
-     * One that cannot be read ends the run: those after it count on what
-     * it would have done.  One that cannot be done stops it, NAME.error
-     * saying why, and the run is recorded as far as it got. */
+    sl_push(outputs, "out/shutdown.db.sql");
+    return 0;
+}
+
+/* A request-response run: the application started once into rw, sent the
+ * requests, stopped, and its database dumped.  What came of it goes on
+ * outputs; what curl failed on goes on failed.  Returns 0, or -1 with the
+ * problem reported, and nothing of the run is to be recorded then.  A
+ * request that cannot be sent is not that kind of problem: the run stops
+ * there, with NAME.error saying why, and is recorded as far as it got;
+ * stopped (PATHLEN) names the input it stopped at, or is empty. */
+static int run_app(const char *run_dir, const char *exe, const char *rw,
+                   struct strlist *outputs, char *failed, size_t failed_size, char *stopped) {
+    char f[PATHLEN], g[PATHLEN], interaction[PATHLEN], why[256];
+    long long clock_ms = atoll(RUN_TIME) * 1000;    /* the server's clock, when the next step starts */
+    struct strlist files = { 0, 0, 0 };
+    struct app a;
+    char *text;
+    int i, before = report_problems;
+
+    *stopped = 0;
+    if (app_start(run_dir, exe, 0, rw, &servers[0], &a, outputs) < 0) {
+        return -1;
+    }
+    join(interaction, run_dir, "interaction");
+    inputs_of(interaction, RUN_REQUESTS, &files);
+    /* The steps, requests and waits, in the order of their names, on the
+     * server's clock: a request is served at the clock, which then moves
+     * on by a second; a wait moves it on by its time, or until what it
+     * waits for.  One that cannot be read ends the run: those after it
+     * count on what it would have done.  One that cannot be done stops
+     * it, NAME.error saying why, and the run is recorded as far as it
+     * got. */
     for (i = 0; i < files.n && report_problems == before; i++) {
         char method[32], url_path[PATHLEN], err[256], what[1024], cannot[512] = "";
         struct strlist options = { 0, 0, 0 };
@@ -2482,10 +2499,11 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
              * clients' expiries.  Each is over when the clock is moved
              * past it, so all of what they print and change is there by
              * the time the wait is done. */
-            wait_on_clock(&serving, &clock_ms, ms, what, server_out, out_at, server_err, err_at, cannot, sizeof cannot);
+            wait_on_clock(a.server, &clock_ms, ms, what, a.server_out, a.out_at, a.server_err, a.err_at, cannot,
+                          sizeof cannot);
         } else {
-            int status = send_request(method, url_path, &options, serving.port, fmt("%s/interaction/%s.response", rw, name),
-                                      clock_ms);
+            int status = send_request(method, url_path, &options, a.server->port,
+                                      fmt("%s/interaction/%s.response", rw, name), clock_ms);
             if (!never_sent(status)) {
                 /* What else is due at the request's tag -- the tasks, when
                  * they come after the requests (URWEB_REPRODUCIBLE_TASKS)
@@ -2493,7 +2511,7 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
                  * any more is the next step's to report: this one has its
                  * answer. */
                 long long next;
-                server_clock(&serving, clock_ms + 1, &next, why, sizeof why);
+                server_clock(a.server, clock_ms + 1, &next, why, sizeof why);
             }
             clock_ms += 1000;
             if (never_sent(status)) {
@@ -2524,14 +2542,14 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
             /* The server has written what this step changed, if anything,
              * before it answered; taken away, the file will be there again
              * only if the next step changes something. */
-            if (exists(dml) && rename(dml, fmt("%s/interaction/%s.dml.sql", rw, name)) < 0) {
-                die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
+            if (exists(a.dml) && rename(a.dml, fmt("%s/interaction/%s.dml.sql", rw, name)) < 0) {
+                die(fmt("cannot move %s: %s", path(a.dml), strerror(errno)), NULL);
             }
             sl_push(outputs, fmt("interaction/%s.dml.sql", name));
             /* Likewise what it printed: the server flushes every line as
              * it goes, and all of a step's come before its answer. */
-            cut_output(server_out, &out_at, -1, fmt("%s/interaction/%s.stdout", rw, name));
-            cut_output(server_err, &err_at, -1, fmt("%s/interaction/%s.stderr", rw, name));
+            cut_output(a.server_out, &a.out_at, -1, fmt("%s/interaction/%s.stdout", rw, name));
+            cut_output(a.server_err, &a.err_at, -1, fmt("%s/interaction/%s.stderr", rw, name));
             sl_push(outputs, fmt("interaction/%s.stdout", name));
             sl_push(outputs, fmt("interaction/%s.stderr", name));
         }
@@ -2546,49 +2564,161 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
         }
     }
     sl_free(&files);
-    server_stop(&serving);
+    server_stop(a.server);
     bail_if_interrupted();
     if (report_problems != before) {
         return -1;
     }
+    return app_end(run_dir, &a, outputs);
+}
 
-    cut_output(server_out, &out_at, -1, fmt("%s/out/shutdown.stdout", rw));
-    cut_output(server_err, &err_at, -1, fmt("%s/out/shutdown.stderr", rw));
-    sl_push(outputs, "out/shutdown.stdout");
-    sl_push(outputs, "out/shutdown.stderr");
-    if (has_db) {
-        static char *dump[] = { "sqlite3", "-safe", "-batch", NULL, ".dump", NULL };
-        dump[3] = db;
-        if (run(dump, fmt("%s/out/shutdown.db.sql", rw), fmt("%s/sqlite.err", rw)) != 0) {
-            /* The run failed, then, and nothing of it is recorded. */
-            die_later(fmt("cannot dump the database of %s", test(run_dir)), head_of(fmt("%s/sqlite.err", rw), "(sqlite3 said nothing)"), NULL);
+/* The passes a browser run is driven through, in order, as the driver
+ * reads them from the run's context; none if it cannot (run_ready has
+ * said why). */
+static void passes_of(const char *run_dir, struct strlist *out) {
+    char browser[PATHLEN], said[PATHLEN], *text, *line, *end;
+    char *argv[4];
+    if (!find_browser(browser)) {
+        return;
+    }
+    argv[0] = browser;
+    argv[1] = "--check";
+    argv[2] = (char *) run_dir;
+    argv[3] = NULL;
+    join(said, work, "passes.txt");
+    if (run(argv, said, "/dev/null") != 0) {
+        return;
+    }
+    text = read_text(said);
+    for (line = text; line && *line; line = end ? end + 1 : line + strlen(line)) {
+        end = strchr(line, '\n');
+        if (end) {
+            *end = 0;
+        }
+        if (has_prefix(line, "pass ") && is_pass(line + 5) && out->n < PASSES_MAX) {
+            sl_push(out, line + 5);
+        }
+    }
+    free(text);
+}
+
+/* What the drivers say, a line at a time, to the pass it is for. */
+static void on_pass_line(int i, const char *line, void *data) {
+    struct browsing *b = data;
+    on_browse_line(line, &b[i]);
+}
+
+/* A browser run: the application started once per pass, passes->v[i]
+ * into rws[i], and every pass driven through at once, each by a driver of
+ * its own, which leaves the records under rws[i] and goes on outputs[i];
+ * then every application stopped, and its database dumped.  Returns 0,
+ * or -1 with the problem reported, and nothing of the run is to be
+ * recorded then.  A step that cannot be done is not that kind of problem:
+ * that pass stops there, with NAME.error saying why, and is recorded as
+ * far as it got; stopped[i] (PATHLEN) names the step it stopped at, or is
+ * empty. */
+static int run_passes(const char *run_dir, const char *exe, const struct strlist *passes, char rws[][PATHLEN],
+                      struct strlist outputs[], char stopped[][PATHLEN]) {
+    struct app apps[PASSES_MAX];
+    struct browsing b[PASSES_MAX];
+    struct child *ds[PASSES_MAX], *going[PASSES_MAX] = { NULL };
+    char browse_err[PASSES_MAX][PATHLEN];
+    int slot[PASSES_MAX], taken[PASSES_MAX] = { 0 }, done[PASSES_MAX] = { 0 }, said[PASSES_MAX] = { 0 };
+    int i, j, n = passes->n, before = report_problems, ok = 1;
+
+    for (i = 0; i < n; i++) {
+        *stopped[i] = 0;
+        if (app_start(run_dir, exe, 1, rws[i], &servers[i], &apps[i], &outputs[i]) < 0) {
+            while (--i >= 0) {
+                server_stop(&servers[i]);
+            }
             return -1;
         }
     }
-    sl_push(outputs, "out/shutdown.db.sql");
-    return 0;
-}
-
-/* The engines a browser run is driven through: those its engines file
- * names, in the standing order, or all of them. */
-static void engines_of(const char *run_dir, struct strlist *out) {
-    struct strlist wanted = { 0, 0, 0 };
-    char f[PATHLEN], *text;
-    int i;
-    join(f, run_dir, "engines");
-    if (is_file(f) && (text = read_text(f))) {
-        split_words(text, &wanted);
-        free(text);
+    /* A pass to the driver of its first user's engine, if no pass before
+     * it took that one, or else to the first one free. */
+    for (i = 0; i < n; i++) {
+        int want = engine_at(passes->v[i]);
+        slot[i] = want >= 0 && want < PASSES_MAX && !taken[want] ? want : -1;
+        for (j = 0; slot[i] < 0 && j < PASSES_MAX; j++) {
+            if (!taken[j]) {
+                slot[i] = j;
+            }
+        }
+        taken[slot[i]] = 1;
     }
-    for (i = 0; engines[i]; i++) {
-        if (wanted.n == 0 || sl_has(&wanted, engines[i])) {
-            sl_push(out, engines[i]);
+    /* The driver takes the steps from the run and leaves the records
+     * under rws[i], saying after each step that it has; the server's
+     * output is cut on those lines, as after a request.  The screenshots
+     * and the recordings, when asked for, go straight into the run,
+     * emptied of the last ones by run_run. */
+    for (i = 0; i < n; i++) {
+        struct browsing one = { run_dir, rws[i], apps[i].dml, apps[i].server_out, apps[i].server_err,
+                                &apps[i].out_at, &apps[i].err_at, &outputs[i], 0, "" };
+        b[i] = one;
+        join(browse_err[i], rws[i], "browse.stderr");
+        ds[i] = driver_for(slot[i]);
+        said[i] = ds[i] != NULL
+                  && child_say(ds[i], fmt("run %s %s %s pass=%s%s%s%s\n",
+                                          shell_quoted(fmt("http://127.0.0.1:%d", servers[i].port)),
+                                          shell_quoted(run_dir), shell_quoted(fmt("%s/interaction", rws[i])),
+                                          shell_quoted(passes->v[i]),
+                                          opt_screenshot ? fmt(" screenshots=%s", shell_quoted(fmt("%s/screenshots", run_dir))) : "",
+                                          opt_record ? fmt(" recordings=%s", shell_quoted(fmt("%s/recordings", run_dir))) : "",
+                                          opt_frame ? fmt(" frame=%s", shell_quoted(opt_frame)) : "")) == 0;
+    }
+    {
+        /* Those that took their pass, heard together. */
+        int at[PASSES_MAX], heard[PASSES_MAX];
+        struct browsing bs[PASSES_MAX];
+        for (i = 0, j = 0; i < n; i++) {
+            if (said[i]) {
+                going[j] = ds[i];
+                bs[j] = b[i];
+                at[j++] = i;
+            }
+        }
+        children_lines(going, j, "done", on_pass_line, bs, heard);
+        while (--j >= 0) {
+            b[at[j]] = bs[j];
+            done[at[j]] = heard[j];
         }
     }
-    sl_free(&wanted);
+    for (i = 0; i < n; i++) {
+        /* What the driver said to stderr during this pass, beside its
+         * records, where head_of finds it. */
+        if (ds[i]) {
+            cut_output(driver_err_path(slot[i]), &driver_err_at[slot[i]], -1, browse_err[i]);
+        }
+        if (*b[i].stopped) {
+            /* The driver ends the pass at the step it could not do. */
+            strcpy(stopped[i], b[i].stopped);
+            stale_after(run_dir, rws[i], RUN_BROWSER, stopped[i], &outputs[i]);
+        } else if (!fs_interrupted && (!done[i] || !b[i].steps)) {
+            die_later(fmt("%s does not run %s for %s", path("urt-browse"), passes->v[i], test(run_dir)),
+                      head_of(browse_err[i], "(it said nothing)"), NULL);
+        }
+        if (!done[i] && ds[i]) {
+            /* The driver is gone, or not to be trusted; the next run
+             * starts it afresh. */
+            child_stop(ds[i]);
+            driver_up[slot[i]] = 0;
+        }
+    }
+    for (i = 0; i < n; i++) {
+        server_stop(&servers[i]);
+    }
+    bail_if_interrupted();
+    if (report_problems != before) {
+        return -1;
+    }
+    for (i = 0; i < n && ok; i++) {
+        ok = app_end(run_dir, &apps[i], &outputs[i]) == 0;
+    }
+    return ok ? 0 : -1;
 }
 
-/* Whether two of an engine's records are the same, a record that is not
+/* Whether two of a pass's records are the same, a record that is not
  * there counting as an empty one: the driver writes a record only when
  * there is anything, and an empty server stream is dropped as well. */
 static int same_record(const char *a, const char *b) {
@@ -2607,15 +2737,15 @@ static int same_record(const char *a, const char *b) {
     return empty;
 }
 
-/* One record of a browser run, compared or recorded for every engine it
- * was driven through.  rws[i] is where engine i left what came of it;
- * rel names the record under the run.  The engines agreeing on it share
- * NAME.R; an engine that records it differently has its own NAME.ENGINE.R
+/* One record of a browser run, compared or recorded for every pass it
+ * was driven through.  rws[i] is where pass i left what came of it; rel
+ * names the record under the run.  The passes agreeing on it share
+ * NAME.R; a pass that records it differently has its own NAME.PASS.R
  * beside that, which is what it is compared against.  Recording goes by
- * the majority: the largest group of agreeing engines writes the shared
- * file, the others their own, and an own file whose engine has come to
+ * the majority: the largest group of agreeing passes writes the shared
+ * file, the others their own, and an own file whose pass has come to
  * agree with the shared one goes, so that the files converge; a tie
- * goes to the engine first in the standing order. */
+ * goes to the pass first in order. */
 static void settle_shared(const char *run_dir, const char *rel, const struct strlist *engs, char rws[][PATHLEN],
                           char *bad, char *changed, size_t size, struct strlist *diffs) {
     char clean[8][PATHLEN], now[PATHLEN], want[PATHLEN], own[PATHLEN], d[PATHLEN];
@@ -2630,7 +2760,7 @@ static void settle_shared(const char *run_dir, const char *rel, const struct str
         }
     }
     if (opt_check) {
-        /* Engines that share the expected file and recorded the same
+        /* Passes that share the expected file and recorded the same
          * thing are reported once, as the record; the rest each. */
         int alike = 1;
         for (i = 0; i < engs->n && alike; i++) {
@@ -2648,7 +2778,7 @@ static void settle_shared(const char *run_dir, const char *rel, const struct str
         }
         return;
     }
-    /* Group the engines by what they recorded; the largest group, the
+    /* Group the passes by what they recorded; the largest group, the
      * earliest among equals, is the majority. */
     for (i = 0; i < engs->n; i++) {
         group[i] = i;
@@ -2692,7 +2822,7 @@ static void settle_shared(const char *run_dir, const char *rel, const struct str
                 list_add(changed, size, fmt("-%s [%s]", rel, engs->v[i]));
             }
         } else if (!exists(clean[i])) {
-            /* This engine records nothing where the others record
+            /* This pass records nothing where the others record
              * something: its own file, empty, says so. */
             if (!is_file(want) || !same_record(want, clean[i])) {
                 if (write_text(want, "") < 0) {
@@ -2711,7 +2841,7 @@ static void settle_shared(const char *run_dir, const char *rel, const struct str
 
 /* Where a run stopped, under its verdict: the request that could not be
  * sent, the wait or the step that could not be done, and what its
- * NAME.error under rw says.  tag names the engine, for a run driven
+ * NAME.error under rw says.  tag names the pass, for a run driven
  * through several. */
 static void say_stopped(enum run_kind kind, const char *run_dir, const char *rw, const char *name, const char *tag) {
     char *text = read_text(fmt("%s/interaction/%s.error", rw, name)), *l, *end;
@@ -2740,19 +2870,26 @@ static void say_stopped(enum run_kind kind, const char *run_dir, const char *rw,
 }
 
 /* One run: the application started once and sent the requests, or once
- * per engine and driven through, and what came of it compared or
+ * per pass and driven through, and what came of it compared or
  * recorded.  A run that stopped at a request or a step is recorded as
  * far as it got, and fails. */
 static void run_run(const char *run_dir, const char *exe) {
-    char rws[8][PATHLEN], stopped[8][PATHLEN];
+    char rws[PASSES_MAX][PATHLEN], stopped[PASSES_MAX][PATHLEN];
     char bad[PATHLEN] = "", changed[PATHLEN] = "", failed[PATHLEN] = "", note[512] = "";
     struct strlist engs = { 0, 0, 0 }, outputs = { 0, 0, 0 }, shared = { 0, 0, 0 }, diffs = { 0, 0, 0 };
+    struct strlist mine[PASSES_MAX];
     int i, kind = kind_of(run_dir), before = report_problems, any_stopped = 0;
     long t0 = tenths_now();
 
     n_runs++;
     if (kind == RUN_BROWSER) {
-        engines_of(run_dir, &engs);
+        /* The passes, under the name engs: what records differently is
+         * a pass's own. */
+        passes_of(run_dir, &engs);
+        if (engs.n == 0) {
+            die_later(fmt("%s cannot say the passes of %s", path("urt-browse"), test(run_dir)), NULL);
+            return;
+        }
         for (i = 0; i < 2; i++) {
             /* This run's pictures, and none of an earlier run's. */
             char pictures[PATHLEN];
@@ -2766,21 +2903,26 @@ static void run_run(const char *run_dir, const char *exe) {
             }
         }
         for (i = 0; i < engs.n; i++) {
-            struct strlist mine = { 0, 0, 0 };
-            int j;
+            struct strlist none = { 0, 0, 0 };
+            mine[i] = none;
             pathf(rws[i], "%s/run-%s", work, engs.v[i]);
-            if (run_app(run_dir, exe, engs.v[i], rws[i], &mine, failed, sizeof failed, stopped[i]) < 0) {
-                sl_free(&mine);
-                sl_free(&engs);
-                return;
+        }
+        if (run_passes(run_dir, exe, &engs, rws, mine, stopped) < 0) {
+            for (i = 0; i < engs.n; i++) {
+                sl_free(&mine[i]);
             }
-            /* Every record may be shared between the engines. */
-            for (j = 0; j < mine.n; j++) {
-                if (!sl_has(&shared, mine.v[j])) {
-                    sl_push(&shared, mine.v[j]);
+            sl_free(&engs);
+            return;
+        }
+        for (i = 0; i < engs.n; i++) {
+            /* Every record may be shared between the passes. */
+            int j;
+            for (j = 0; j < mine[i].n; j++) {
+                if (!sl_has(&shared, mine[i].v[j])) {
+                    sl_push(&shared, mine[i].v[j]);
                 }
             }
-            sl_free(&mine);
+            sl_free(&mine[i]);
         }
         sl_sort(&shared);
         for (i = 0; i < shared.n; i++) {
@@ -2788,7 +2930,7 @@ static void run_run(const char *run_dir, const char *exe) {
         }
     } else {
         join(rws[0], work, "run");
-        if (run_app(run_dir, exe, NULL, rws[0], &outputs, failed, sizeof failed, stopped[0]) < 0) {
+        if (run_app(run_dir, exe, rws[0], &outputs, failed, sizeof failed, stopped[0]) < 0) {
             sl_free(&outputs);
             return;
         }
@@ -2821,7 +2963,7 @@ static void run_run(const char *run_dir, const char *exe) {
             show_diff(diffs.v[i]);
         }
         for (i = 0; i < (kind == RUN_BROWSER ? engs.n : 1); i++) {
-            /* Engines that stopped at the same step with the same complaint
+            /* Passes that stopped at the same step with the same complaint
              * are reported together, and not at all by name when they are
              * all of them. */
             char who[256] = "";

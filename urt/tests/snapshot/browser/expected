@@ -1,58 +1,64 @@
 $ urt snapshot -w runs/webstray
 ERROR runs/webstray.urt/snapshot/1/browser/a/a.b.context is a user's context of before
 a run's users are set up in one file, context, each under a line [USER]; move its lines there
+ERROR runs/webstray.urt/snapshot/1/browser/a/engines does not belong in a run
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.db.sql is not named as a record
 the database left behind is the one db record, shutdown.db.sql under out/
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.dml.sql is not named as a record
-a dml record is NAME.dml.sql, or NAME.dml.ENGINE.sql for one engine's own
+a dml record is NAME.dml.sql, or NAME.dml.PASS.sql for one pass's own
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.page.html is not named as a record
-a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.ENGINE.html for one engine's own
+a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.PASS.html for one pass's own
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.stdout is not named as a record
-a stdout record is NAME.stdout, or NAME.stdout.ENGINE for one engine's own
+a stdout record is NAME.stdout, or NAME.stdout.PASS for one pass's own
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.html does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.page is not named as a record
 a page record ends in page.html, as in NAME.USER.TAB.page.html
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.page.html is not named as a record
-a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.ENGINE.html for one engine's own
+a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.PASS.html for one pass's own
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.png does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.response is not named as a record
 a response record is a request's
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.sql does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.dml.sql is not named as a record
-a dml record is NAME.dml.sql, or NAME.dml.ENGINE.sql for one engine's own
+a dml record is NAME.dml.sql, or NAME.dml.PASS.sql for one pass's own
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.error is not named as a record
-an error record is NAME.error, or NAME.error.ENGINE for one engine's own
+an error record is NAME.error, or NAME.error.PASS for one pass's own
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.firefox.page.html is not named as a record
-a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.ENGINE.html for one engine's own
+a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.PASS.html for one pass's own
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page is not named as a record
 a page record ends in page.html, as in NAME.USER.TAB.page.html
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page.opera.html does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.png does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/02.user.1.page.html records no step
 there is no runs/webstray.urt/snapshot/1/browser/a/interaction/02.step; delete the one, or write the other
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/02.user.1.page.webkit.html records no step
@@ -60,37 +66,37 @@ there is no runs/webstray.urt/snapshot/1/browser/a/interaction/02.step; delete t
 ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/a.b.step is not a name for a step
 the name of a step has no dot in it: its records are NAME.USER.TAB.page.html and so on
 ERROR runs/webstray.urt/snapshot/1/browser/a/out/db_final.sql does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/out/log does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/out/shutdown.db.opera.sql does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/out/startup.firefox.stdout does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/a/recordings should be a directory
 ERROR runs/webstray.urt/snapshot/1/browser/a/screenshots should be a directory
 ERROR runs/webstray.urt/snapshot/1/browser/a/shot.png does not belong in a run
-a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
+a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab
 NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
 NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
-startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
-name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with a pass's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that pass records it differently
 ERROR runs/webstray.urt/snapshot/1/browser/b.c is not a name for a run
 the name of a run is letters, digits, _ and -, and nothing else, not starting with -
 ERROR runs/webstray.urt/snapshot/1/browser/notes.txt does not belong among the runs
@@ -100,11 +106,6 @@ exit 1
 $ urt snapshot runs/webunready
 ERROR runs/webunready.urt/snapshot/1/browser/a has no secret
 the key the application signs with: any 16 bytes or more, such as the line 'secret signature'
-ERROR runs/webunready.urt/snapshot/1/browser/engines-none/engines names no engine
-it narrows the engines the run is driven through: chromium, firefox, webkit, one per line;
-delete it for all of them
-ERROR runs/webunready.urt/snapshot/1/browser/engines-odd/engines names opera, which is no engine
-the engines are chromium, firefox and webkit
 ERROR runs/webunready.urt/snapshot/1/browser/steps has steps, or contexts, that cannot be read
     01.step:1: lines name the user alone now, not the tab: user: open /Shop/main [target=1]
     01.step:2: a line starts with the user it is for, USER:, as in: Alice: open /Shop/main [target=1]
@@ -137,7 +138,7 @@ ERROR runs/webunready.urt/snapshot/1/browser/steps has steps, or contexts, that 
     context: order names every user of the steps once; it leaves out Bernd
     context:1: viewport takes WxH, the window in pixels, as in 1024x768, not 'big'
     context:2: device_scale_factor takes a number above 0, not '0'
-    context:3: 'frob' is not an option; the options are order, tasks, rtt, throttle, the verbs' times (back, check, click, close, dblclick, dialog, drag, fill, focus, forward, hover, open, press, reload, select, swipe, tab, type, uncheck, until, wheel), and viewport, device_scale_factor, color_scheme, reduced_motion, forced_colors, locale, timezone_id, has_touch, user_agent
+    context:3: 'frob' is not an option; the options are order, tasks, engines, rtt, throttle, the verbs' times (back, check, click, close, dblclick, dialog, drag, fill, focus, forward, hover, open, press, reload, select, swipe, tab, type, uncheck, until, wheel), and viewport, device_scale_factor, color_scheme, reduced_motion, forced_colors, locale, timezone_id, has_touch, user_agent
     context:4: locale takes one value
     context:5: color_scheme takes light, dark or no-preference, not 'bright'
     context:7: has_touch is given twice
@@ -145,8 +146,11 @@ ERROR runs/webunready.urt/snapshot/1/browser/steps has steps, or contexts, that 
     context:10: rtt takes a time, a number and its unit: 150ms, 2s
     context:11: throttle takes AFTER EVERY [chained], two times: once a tab has been hidden for AFTER, its timers wait for the next multiple of EVERY (only those set from a timer five deep, with chained); or none
     context:13: throttle none goes alone
-    context:15: order is the run's, not a user's: it goes before the first [USER]
-    context:16: click takes a time, a number and its unit: 150ms, 2s
+    context:14: engines names the engines to drive everyone through, each once: chromium, firefox, webkit
+    context:16: order is the run's, not a user's: it goes before the first [USER]
+    context:17: click takes a time, a number and its unit: 150ms, 2s
+    context:18: engines names the engines to drive Bernd through, each once: chromium, firefox, webkit
+    context:20: engines names the engines to drive Carlos through, each once: chromium, firefox, webkit
 ERROR runs/webunready.urt/snapshot/1/browser/threads/args asks for threads, with -t
 a run's requests are sent one after the other, so one thread serves them all;
 with more, which one answers is a matter of chance, and the server's output with it

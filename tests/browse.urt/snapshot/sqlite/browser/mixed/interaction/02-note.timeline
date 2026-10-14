@@ -1,0 +1,7 @@
+0.200 1.850 Carlos: type 'input[type=text]' 'from Carlos'
+0.200 2.350 Eun-ji: after Carlos."noted"
+1.850 2.350 Carlos: click 'text=Note'
+2.250 2.350 Carlos.1: POST /note/from.20Carlos 200
+2.350 2.350 Carlos: label "noted"
+2.350 2.850 Eun-ji: click 'text=Other'
+2.750 2.850 Eun-ji.1: GET /other 200

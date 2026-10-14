@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """Drive an Ur/Web application in a browser, step by step, on one logical
 clock, and record what the pages show after each step; Chromium, Firefox
-or WebKit, through Playwright for Python.
+or WebKit, through Playwright for Python, each user on one of them.
 
-    urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS]
-               [--timeout SECONDS] [--screenshots DIR] [--recordings DIR]
-               [--frame T] URL RUN OUT
-    urt-browse --serve [the same options but the directories]
+    urt-browse [--pass NAME] [--epoch SECONDS] [--timeout SECONDS]
+               [--screenshots DIR] [--recordings DIR] [--frame T] URL RUN OUT
+    urt-browse --serve [--epoch SECONDS] [--timeout SECONDS]
     urt-browse --check RUN
 
 URL is where the application listens (http://127.0.0.1:8000), its clock
 pinned (URWEB_REPRODUCIBLE_EPOCH, and URWEB_REPRODUCIBLE_TASKS=last); RUN
 a run's directory: the NAME.step files under RUN/interaction, done in the
 order of their names, and RUN/context, how the users' browsers are set
-up (below); OUT where the records go: after every step, one set per tab
-that is open, USER.TAB being the user's name and the tab's, and one for
-the step:
+up (below); NAME the pass, which puts every user on an engine (below), the
+run's first unless given; OUT where the records go: after every step, one
+set per tab that is open, USER.TAB being the user's name and the tab's,
+and one for the step:
 
     NAME.USER.TAB.page.html
                     the page, as HTML: its path in a comment, then the DOM
@@ -46,25 +46,28 @@ the step:
 
 the dialogs, the console and the error only if there was anything.
 With --screenshots, every tab is also shot after every step, the whole
-page as the engine draws it, into DIR as NAME.USER.TAB.ENGINE.png: for
+page as the engine draws it, into DIR as NAME.USER.TAB.PASS.png: for
 looking at, not for comparing.  With --recordings, every user is filmed
-on the clock, into DIR as USER.ENGINE.webm: their tab in front as the
+on the clock, into DIR as USER.PASS.webm: their tab in front as the
 engine draws it, under a strip with their tabs, the clock and the line
 they are at, the pointer and any dialog drawn in.  A frame is a point of
 a grid on the clock, every T (--frame, 16ms unless given), at which
 anything shown may have changed, the clock stopping on the grid while
 anything in the page moves that will stop (an endless animation, a
 spinner, is filmed with whatever else changes); between the frames the
-picture stands, and the strip's clock goes on a second at a time.  The lines are the cues
-(USER.ENGINE.vtt), and DIR's index.html plays a run's films together,
-every one in a box to move and size at will.  The records are the same
-with and without either.  After each step a line 'step NAME' is
-printed; a step that cannot be done prints 'fail NAME' and ends the run;
-'done' ends it otherwise.  With --serve, the browser is started once and
-a run is done for every line 'run URL RUN OUT [screenshots=DIR]
-[recordings=DIR] [frame=T]' read from stdin, quoted as for a shell.  With --check, the step and context
-files are read and nothing is run: what is wrong with them is printed,
-a line each, and the exit status is 1 if anything was.
+picture stands, and the strip's clock goes on a second at a time.  The
+lines are the cues (USER.PASS.vtt), and DIR's index.html plays a run's
+films together, every one in a box to move and size at will.  The
+records are the same with and without either.  After each step a line
+'step NAME' is printed; a step that cannot be done prints 'fail NAME'
+and ends the run; 'done' ends it otherwise.  With --serve, a pass of a
+run is done for every line 'run URL RUN OUT [pass=NAME]
+[screenshots=DIR] [recordings=DIR] [frame=T]' read from stdin, quoted
+as for a shell, an engine started at the first pass that needs it and
+kept for the rest.  With --check, the step and context files are read
+and nothing is run: what is wrong with them is printed, a line each, and
+the exit status is 1 if anything was; and if nothing was, the run's
+passes, a line 'pass NAME' each.
 
 The clock.  There is one, for the pages (Playwright's clock, moved by
 the driver), the server (told the time of every request, and moved
@@ -165,6 +168,9 @@ before the first line [USER], and that user with what is under it:
                             time is done; a run with more than one user has it
     tasks first|last        the server's tasks due when requests arrive come
                             before them (the default) or after
+    engines ENGINE...       the engines the user is driven through, of
+                            chromium, firefox and webkit; all three unless
+                            given
     rtt T                   a request's round trip, 100ms unless given
     throttle AFTER EVERY [chained]
                             once a tab has been hidden for AFTER, a timer of
@@ -193,10 +199,15 @@ before the first line [USER], and that user with what is under it:
     user_agent STRING       urt
 
 order and tasks are the run's alone; what is not given is the engine's
-own.  Every request reaches the server: no engine caches, none fetches a
-favicon.  A request for any other server is refused, and recorded as
-such: a run drives this application, and the network is not its
-business.
+own.  A run is driven through in passes, each from the start with the
+application afresh: the i-th puts every user on the i-th of their
+engines in the order above, the last again for a user with fewer, as
+many passes as the most anyone has.  A pass is named by its engine
+where everyone is on the same one (chromium), and otherwise by theirs
+in the tie order, joined by + (chromium+firefox).  Every request
+reaches the server: no engine caches, none fetches a favicon.  A
+request for any other server is refused, and recorded as such: a run
+drives this application, and the network is not its business.
 """
 
 import argparse
@@ -778,6 +789,11 @@ def parse_option(option, value):
     return value
 
 
+# The engines, in the order that names a pass and settles a tie between
+# passes' records.
+ENGINES = ('chromium', 'firefox', 'webkit')
+
+
 # How a hidden tab's timers are held back unless the context says
 # otherwise: Chrome's, every timer on whole seconds, and after five minutes
 # hidden, a chain of them (each set from the one before, five deep) on
@@ -789,8 +805,8 @@ class Setup:
     """How a run's users are set up, from its context file: the tie order
     of the users, whether tasks due at a time come before or after the
     requests then, and per user (None for everyone) Playwright's options,
-    the verbs' times, the round trip and the throttling of a hidden tab's
-    timers."""
+    the verbs' times, the round trip, the throttling of a hidden tab's
+    timers and the engines."""
 
     def __init__(self):
         self.order = None
@@ -799,6 +815,7 @@ class Setup:
         self.times = {None: {}}
         self.rtt = {None: DEFAULT_RTT}
         self.throttle = {None: DEFAULT_THROTTLE}
+        self.engines = {None: list(ENGINES)}
 
     def options_of(self, user):
         o = dict(CONTEXT_DEFAULTS)
@@ -814,6 +831,25 @@ class Setup:
 
     def throttle_of(self, user):
         return self.throttle.get(user, self.throttle[None])
+
+    def engines_of(self, user):
+        return self.engines.get(user, self.engines[None])
+
+    def passes(self, order):
+        """The passes the run is driven through, [(name, {user: engine})]:
+        the i-th puts every user on the i-th of their engines, the last
+        again for a user with fewer, as many as the most anyone has.  A
+        pass is named by its engine where everyone is on the same, and
+        otherwise by theirs in the tie order, joined by +: chromium,
+        chromium+firefox."""
+        if not order:
+            return [(e, {}) for e in self.engines_of(None)]
+        out = []
+        for i in range(max(len(self.engines_of(u)) for u in order)):
+            on = {u: self.engines_of(u)[min(i, len(self.engines_of(u)) - 1)] for u in order}
+            name = on[order[0]] if len(set(on.values())) == 1 else '+'.join(on[u] for u in order)
+            out.append((name, on))
+        return out
 
 
 def read_context(text, file, complaints):
@@ -865,6 +901,12 @@ def read_context(text, file, complaints):
                     raise Complaint('throttle %s is given twice%s' % (values[0], ' for %s' % user if user else ''))
                 tiers.append([after, parse_time(values[1]), len(values) == 3])
                 continue
+            if option == 'engines':
+                if not values or any(v not in ENGINES for v in values) or len(set(values)) != len(values):
+                    raise Complaint('engines names the engines to drive %s through, each once: chromium, firefox, '
+                                    'webkit' % (user or 'everyone'))
+                setup.engines[user] = [e for e in ENGINES if e in values]
+                continue
             if option in ('order', 'tasks'):
                 if user is not None:
                     raise Complaint('%s is the run\'s, not a user\'s: it goes before the first [USER]' % option)
@@ -889,7 +931,7 @@ def read_context(text, file, complaints):
                 else:
                     setup.times[user][option] = parse_time(values[0])
             else:
-                raise Complaint("'%s' is not an option; the options are order, tasks, rtt, throttle, the verbs' "
+                raise Complaint("'%s' is not an option; the options are order, tasks, engines, rtt, throttle, the verbs' "
                                 "times (%s), and %s" % (option, ', '.join(sorted(DEFAULT_TIMES)), ', '.join(CONTEXT_OPTIONS)))
         except Complaint as e:
             complaints.append('%s: %s' % (where, e))
@@ -1339,7 +1381,7 @@ const FILMS = @FILMS@;
   // timelines have them.
   const clock = {t: 0, playing: false, speed: 1, last: performance.now()};
   const users = [...new Set(FILMS.map(f => f.user))];
-  const engines = [...new Set(FILMS.map(f => f.engine))];
+  const passes = [...new Set(FILMS.map(f => f.pass))];
   const W = 440;
   const controls = panel('controls', TITLE, 10, 10, Math.max(480, Math.min(1200, innerWidth - 20)), 112);
   const lineAt = (cues, t) => {
@@ -1348,9 +1390,9 @@ const FILMS = @FILMS@;
     return on;
   };
   const films = FILMS.map(f => {
-    const col = users.indexOf(f.user), row = engines.indexOf(f.engine);
+    const col = users.indexOf(f.user), row = passes.indexOf(f.pass);
     const h = Math.round(W * f.height / f.width) + 52;
-    const p = panel('film ' + f.name, f.user + ' · ' + f.engine, 10 + col * (W + 10), 132 + row * (h + 10), W, h);
+    const p = panel('film ' + f.name, f.user + ' · ' + f.pass, 10 + col * (W + 10), 132 + row * (h + 10), W, h);
     const video = make('video', {src: f.name + '.webm', muted: true, preload: 'auto', playsInline: true}, p.body);
     const cue = make('div', {className: 'cue'}, p.body);
     return {f, p, video, cue};
@@ -1445,21 +1487,28 @@ const FILMS = @FILMS@;
 
 
 def write_index(directory, frame):
-    """index.html in the recordings directory: every film there, USER.ENGINE
-    with its cues and size from its .vtt, played together."""
+    """index.html in the recordings directory: every film there, USER.PASS
+    with its cues and size from its .vtt, played together.  Written whole
+    or not at all, since the passes of a run may be filmed at once, each
+    writing it when its own films are done."""
     films = []
     for name in sorted(f[:-5] for f in os.listdir(directory) if f.endswith('.webm')):
-        user, _, engine = name.rpartition('.')
+        user, _, pass_name = name.rpartition('.')
         vtt = os.path.join(directory, name + '.vtt')
         size, cues = read_vtt(vtt) if os.path.exists(vtt) else (None, [])
         size = size or (1024, 768 + BAR)
-        films.append({'name': name, 'user': user, 'engine': engine, 'width': size[0], 'height': size[1], 'cues': cues})
+        films.append({'name': name, 'user': user, 'pass': pass_name, 'width': size[0], 'height': size[1], 'cues': cues})
     title = os.path.basename(os.path.dirname(os.path.abspath(directory))) or 'recordings'
     js = lambda v: json.dumps(v, ensure_ascii=False).replace('</', '<\\/')
     page = INDEX_HTML.replace('@TITLE_JSON@', js(title)).replace('@FRAME@', str(frame)) \
         .replace('@FILMS@', js(films)).replace('@TITLE@', html.escape(title))
-    with open(os.path.join(directory, 'index.html'), 'w', encoding='utf-8') as f:
+    fd, tmp = tempfile.mkstemp(prefix='.index.', dir=directory)
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
         f.write(page)
+    mask = os.umask(0)
+    os.umask(mask)
+    os.chmod(tmp, 0o666 & ~mask)
+    os.replace(tmp, os.path.join(directory, 'index.html'))
 
 
 # ------------------------------------------------------------ the clock
@@ -2379,13 +2428,14 @@ class User:
 
 
 class Run:
-    """One run through one engine: the clock, the users, the requests in
-    the driver's hands, the server's clock, the records."""
+    """One pass of a run: the clock, the users, each on their engine, the
+    requests in the driver's hands, the server's clock, the records."""
 
-    def __init__(self, drv, url, run_dir, out, steps, setup, order, screenshots, recordings, frame):
+    def __init__(self, drv, url, run_dir, out, steps, setup, order, screenshots, recordings, frame, pass_):
         self.drv, self.args = drv, drv.args
         self.PlaywrightError = drv.PlaywrightError
-        self.browser = drv.browser
+        # The pass: its name, and every user's engine in it.
+        self.pass_name, self.on = pass_
         # The server's address, and the one the pages are given: the same
         # host on a port that refuses every connection, so that nothing an
         # engine does on its own (WebKit connects ahead of a request it
@@ -2579,7 +2629,7 @@ class Run:
         if user.context is not None:
             return user.context
         options = self.setup.options_of(user.name)
-        context = await self.browser.new_context(**options)
+        context = await self.drv.browsers[self.on[user.name]].new_context(**options)
         context.set_default_timeout(self.args.timeout * 1000)
         await context.clock.install(time=dt(self.now - 1000))
         await context.clock.pause_at(dt(self.now))
@@ -3314,11 +3364,11 @@ class Run:
             reel.frames.append(frame)
 
     async def develop(self, reel, end):
-        """The user's film, USER.ENGINE.webm in the recordings: every frame
-        composed in a page of the engine's own and handed to ffmpeg at its
+        """The user's film, USER.PASS.webm in the recordings: every frame
+        composed in a page of the user's engine and handed to ffmpeg at its
         time; between frames the picture stands, a frame a second for the
-        strip's clock.  And its cues, USER.ENGINE.vtt."""
-        name = '%s.%s' % (reel.user, self.args.engine)
+        strip's clock.  And its cues, USER.PASS.vtt."""
+        name = '%s.%s' % (reel.user, self.pass_name)
         e = self.epoch_ms()
         viewport = self.setup.options_of(reel.user)['viewport']
         width, height = viewport['width'], viewport['height']
@@ -3342,7 +3392,7 @@ class Run:
         if frames[-1][0] < end:
             frames.append((end,) + frames[-1][1:])
         trace('develop', name, len(frames))
-        context = await self.browser.new_context()
+        context = await self.drv.browsers[self.on[reel.user]].new_context()
         page = await context.new_page()
         proc = None
         try:
@@ -3417,7 +3467,7 @@ class Run:
                 dump = await self.call(tab, page.evaluate(DUMP_JS, self.path_of(page.url)))
                 self.write(name, '.page.html', dump)
             if self.screenshots and tab.dialog is None:
-                await self.drv.shoot(page, '%s.%s.png' % (name, self.args.engine), self.screenshots)
+                await self.drv.shoot(page, '%s.%s.png' % (name, self.pass_name), self.screenshots)
         for h in self.held:
             if h.step is step and not h.tab.closed:
                 step.timeline.append((h.sent, None, '%s: %s %s ...' % (h.tab.label, h.req.method, self.path_of(h.req.url))))
@@ -3487,12 +3537,14 @@ class Run:
 # ------------------------------------------------------------- the driver
 
 class Driver:
-    """The engine, started once, and the runs done through it."""
+    """The engines, each started at the first pass that needs it and kept,
+    and the runs done through them."""
 
     def __init__(self, args, playwright_error):
         self.args = args
         self.PlaywrightError = playwright_error
-        self.browser = None
+        self.playwright = None
+        self.browsers = {}
 
     def complaint(self, e):
         """What Playwright said, less its call log, which narrates what the
@@ -3506,27 +3558,32 @@ class Driver:
             lines.pop()
         return '\n'.join(lines)
 
-    async def launch(self, p):
-        """The engine; a failure is said plainly, since what urt shows of
-        this is the first lines, and a traceback's are the least telling."""
+    async def launch(self, engine):
+        """The engine, started if it is not yet; a failure is said plainly,
+        since what urt shows of this is the first lines, and a traceback's
+        are the least telling.  Whether it is there."""
+        if engine in self.browsers:
+            return True
+        p = self.playwright
         try:
-            if self.args.engine == 'chromium':
+            if engine == 'chromium':
                 # Chromium keeps renderer memory under /dev/shm unless told
                 # not to, and a build sandbox (nix's) has next to none
                 # there, which closes the page before the first step.
                 # Smooth scrolling (the keyboard's) would land in wall time.
-                self.browser = await p.chromium.launch(args=['--disable-dev-shm-usage', '--disable-smooth-scrolling'])
-            elif self.args.engine == 'firefox':
+                browser = await p.chromium.launch(args=['--disable-dev-shm-usage', '--disable-smooth-scrolling'])
+            elif engine == 'firefox':
                 # Firefox fetches a page's favicon from outside the page,
                 # where Playwright does not see it; the server would.  And
                 # smooth scrolling (the keyboard's) would land in wall time.
-                self.browser = await p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False,
-                                                                          'general.smoothScroll': False})
+                browser = await p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False,
+                                                                     'general.smoothScroll': False})
             else:
-                self.browser = await p.webkit.launch()
+                browser = await p.webkit.launch()
         except self.PlaywrightError as e:
-            print('%s does not start: %s' % (self.args.engine, self.complaint(e)), file=sys.stderr)
+            print('%s does not start: %s' % (engine, self.complaint(e)), file=sys.stderr)
             return False
+        self.browsers[engine] = browser
         return True
 
     async def shoot(self, page, file, directory):
@@ -3549,24 +3606,34 @@ class Driver:
         with open(os.path.join(directory, file), 'wb') as f:
             f.write(last)
 
-    async def run_one(self, url, run_dir, out, screenshots, recordings, frame):
+    async def run_one(self, url, run_dir, out, pass_name, screenshots, recordings, frame):
+        """One pass of a run, the first unless named."""
         steps, setup, order, complaints = read_run(run_dir)
+        passes = setup.passes(order)
+        if not complaints and pass_name is not None and pass_name not in dict(passes):
+            complaints = ['%s has no pass %s; its passes are %s' % (run_dir, pass_name, ', '.join(n for n, _ in passes))]
         if complaints:
             for c in complaints:
                 print(c, file=sys.stderr)
             print('done', flush=True)
             return False
-        run = Run(self, url, run_dir, out, steps, setup, order, screenshots, recordings, frame)
+        name = pass_name if pass_name is not None else passes[0][0]
+        on = dict(passes)[name]
+        for engine in ENGINES:
+            if engine in on.values() and not await self.launch(engine):
+                print('done', flush=True)
+                return False
+        run = Run(self, url, run_dir, out, steps, setup, order, screenshots, recordings, frame, (name, on))
         return await run.run()
 
     async def main(self, async_playwright):
         async with async_playwright() as p:
-            if not await self.launch(p):
-                return 2
+            self.playwright = p
             if not self.args.serve:
-                ok = await self.run_one(self.args.url, self.args.run, self.args.out, self.args.screenshots,
-                                        self.args.recordings, self.args.frame)
-                await self.browser.close()
+                ok = await self.run_one(self.args.url, self.args.run, self.args.out, self.args.pass_,
+                                        self.args.screenshots, self.args.recordings, self.args.frame)
+                for browser in self.browsers.values():
+                    await browser.close()
                 return 0 if ok else 1
             loop = asyncio.get_running_loop()
             while True:
@@ -3577,19 +3644,20 @@ class Driver:
                 options = dict(w.split('=', 1) for w in words[4:] if '=' in w)
                 frame = parse_time(options.get('frame', '16ms'))
                 if len(words) < 4 or words[0] != 'run' or len(options) != len(words) - 4 \
-                        or set(options) - {'screenshots', 'recordings', 'frame'} or not frame:
+                        or set(options) - {'pass', 'screenshots', 'recordings', 'frame'} or not frame:
                     print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
                     print('done', flush=True)
                     continue
-                await self.run_one(words[1], words[2], words[3], options.get('screenshots'), options.get('recordings'),
-                                   frame)
-            await self.browser.close()
+                await self.run_one(words[1], words[2], words[3], options.get('pass'), options.get('screenshots'),
+                                   options.get('recordings'), frame)
+            for browser in self.browsers.values():
+                await browser.close()
         return 0
 
 
 def main():
     ap = argparse.ArgumentParser(add_help=False)
-    ap.add_argument('--engine', choices=['chromium', 'firefox', 'webkit'], default='chromium')
+    ap.add_argument('--pass', dest='pass_', default=None)
     ap.add_argument('--epoch', type=float, default=946684800)
     ap.add_argument('--timeout', type=float, default=10)
     ap.add_argument('--screenshots', default=None)
@@ -3611,17 +3679,20 @@ def main():
         if len(args.rest) != 1:
             print('usage: urt-browse --check RUN', file=sys.stderr)
             return 2
-        _, _, _, complaints = read_run(args.rest[0])
+        _, setup, order, complaints = read_run(args.rest[0])
         for c in complaints:
             print(c)
-        return 1 if complaints else 0
+        if complaints:
+            return 1
+        for name, _ in setup.passes(order):
+            print('pass %s' % name)
+        return 0
     if args.serve:
-        if args.rest or args.screenshots or args.recordings:
-            print('usage: urt-browse --serve [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS]',
-                  file=sys.stderr)
+        if args.rest or args.screenshots or args.recordings or args.pass_:
+            print('usage: urt-browse --serve [--epoch SECONDS] [--timeout SECONDS]', file=sys.stderr)
             return 2
     elif len(args.rest) != 3:
-        print('usage: urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS] '
+        print('usage: urt-browse [--pass NAME] [--epoch SECONDS] [--timeout SECONDS] '
               '[--screenshots DIR] [--recordings DIR] [--frame T] URL RUN OUT', file=sys.stderr)
         return 2
     else:

@@ -180,17 +180,18 @@ Nor --, after which the server would ignore the flags urt adds (the address,
 the port range, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.
 
 A case can also have runs in a browser, under browser/: the application
-started afresh as above, once per browser engine -- Chromium, Firefox and
-WebKit, all three unless the run's 'engines' file names fewer -- and the
-engine sent through it, step by step, by one user or several, each in one
-tab or several:
+started afresh as above, once per pass, and every pass sent through it step
+by step, by one user or several, each in one tab or several, each in a browser
+engine -- Chromium, Firefox or WebKit.  A pass puts every user on an engine, and
+there are as many as it takes to drive each through all of theirs, every user
+through all three unless the run's context says fewer; the passes go at the
+same time, each with its application:
 
   shop.urt/
   `-- snapshot/
       `-- sqlite/
           `-- browser/
               `-- checkout/             a run; args, env, secret, db.sql and out/ as above
-                  |-- engines             the engines to drive, one per line, if not all
                   |-- context             the users' order, and how their browsers are set up
                   |-- screenshots/        every page as drawn, with --screenshot; not for git
                   |   `-- 01-open.Alice.1.chromium.png
@@ -215,19 +216,24 @@ tab or several:
                       |-- 01-open.stderr
                       |-- 02-add.step
                       |-- 02-add.Alice.1.page.html
-                      |                     what the engines agree on, shared
+                      |                     what the passes agree on, shared
                       |-- 02-add.Alice.1.page.firefox.html
                       |                     what one of them records differently, its own
                       |-- 03-pay.step
                       `-- 03-pay.error      why the step could not be done, while it cannot
 
-The engines agree on nearly everything, and a record they agree on is one
-file; one that an engine records differently is that engine's own, beside
-it, with the engine's name after the record's kind, and what that engine is
-compared against.  Recording goes by the majority: the engines agreeing in
-the greatest number write the shared file, the others their own, an own file
-whose engine has come to agree goes, and a tie goes to the engine first in
-the order chromium, firefox, webkit.
+A pass is named by its engine where every user is on the same one, as when
+they all have the same engines: chromium, firefox, webkit.  Where they do not,
+the i-th pass puts every user on the i-th of their engines in that order, the
+last again for a user with fewer, and a pass that mixes them is named by the
+users' engines in the context's order, joined by +: with Alice on chromium and
+Bernd on firefox and webkit, chromium+firefox and chromium+webkit.
+The passes agree on nearly everything, and a record they agree on is one
+file; one that a pass records differently is that pass's own, beside it,
+with the pass's name after the record's kind, and what that pass is compared
+against.  Recording goes by the majority: the passes agreeing in the greatest
+number write the shared file, the others their own, an own file whose pass
+has come to agree goes, and a tie goes to the pass first in order.
 
 A step holds lines, each for a user: 'USER: ACTION', or 'USER:' alone with the
 user's lines under it, each indented with a tab.  A user is a browser of their
@@ -249,21 +255,22 @@ as USER.TAB.
 and their parameters, and what the context can say, OPTION VALUE a line, for
 every user before the first line [USER] and for that user under it: the users'
 order, which a run with more than one needs; whether the server's tasks due
-when a request arrives run before it or after; a request's round trip; how
+when a request arrives run before it or after; the engines a user is driven
+through ('engines chromium webkit'); a request's round trip; how
 long a kind of act takes; how a hidden tab's timers are held back, as Chrome
 does unless it says otherwise; and how a user's browser is set up (the window,
 the colour scheme, the locale, ...), every user's being 1024x768, en-US, UTC
 and the user agent 'urt' unless it says otherwise.  With --screenshot, every tab
 is shot after every step as well, the whole page as the engine draws it, under
-the run's screenshots/ as NAME.USER.TAB.ENGINE.png, the directory emptied
+the run's screenshots/ as NAME.USER.TAB.PASS.png, the directory emptied
 first: pictures to look at when a record wants explaining, which git ignores
 and nothing compares, since no two engines draw alike; the records are the
 same with and without.  With --record, every user is filmed on the run's
-clock, under the run's recordings/ as USER.ENGINE.webm: their tab in front,
+clock, under the run's recordings/ as USER.PASS.webm: their tab in front,
 under a strip with their tabs, the clock and the line they are at, the pointer
 and any dialog drawn in.  A frame is taken every T (--record=T, 16ms unless
 given) at which anything shown may have changed, the clock stopping on those
-while anything moves that will stop; a USER.ENGINE.vtt beside it has a cue
+while anything moves that will stop; a USER.PASS.vtt beside it has a cue
 per line, and an index.html plays a run's films together, each in a box to
 move and size at will.  The same rules as for the screenshots, and the records
 the same with and without, and whatever T, too.
@@ -292,8 +299,8 @@ A step that cannot be done -- no such element, two of them, an until whose
 element does not come in time -- stops the run, as a request that cannot be
 sent does: the step's NAME.error holds the engine's complaint, beside its
 records of the pages as the engine found them, the records of the steps after
-it go, and the run fails until it gets past the step again.  An engine that
-stops where the others go on has an own NAME.ENGINE.error, and own files,
+it go, and the run fails until it gets past the step again.  A pass that
+stops where the others go on has an own NAME.error.PASS, and own files,
 empty, for what it did not record after that.
 Browser runs need urt-browse beside urt, python3 with Playwright, and the
 engines where PLAYWRIGHT_BROWSERS_PATH says; the compiler's nix-shell and its

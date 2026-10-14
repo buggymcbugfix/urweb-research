@@ -6,7 +6,7 @@ shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/01.page.html is not named as a record
 a page record is a step's
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/01.stdout.firefox is not named as a record
-an engine's own record is a browser run's; here a stdout record is NAME.stdout
+a pass's own record is a browser run's; here a stdout record is NAME.stdout
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/01.user.1.page.html is not named as a record
 a page record is a step's
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/02.response answers no request

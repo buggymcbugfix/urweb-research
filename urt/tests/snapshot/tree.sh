@@ -363,7 +363,7 @@ snap runs/web.urt/snapshot/1 exitcode
 brun runs/web.urt/snapshot/1/browser/first
 printf "user: fill 'input[name=name]' 'tea kettle'\nuser: click 'text=Add'\nBernd:\n\topen / [target=1]\n\tuntil 'text=1 item'\n" \
     > runs/web.urt/snapshot/1/browser/first/interaction/02-add.step
-printf 'order user Bernd\n' > runs/web.urt/snapshot/1/browser/first/context
+printf 'order user Bernd\nengines firefox\n' > runs/web.urt/snapshot/1/browser/first/context
 printf 'In a browser.\n' > runs/web.urt/snapshot/1/browser/first/README.md
 mkdir -p runs/web.urt/snapshot/1/browser/first/screenshots/old runs/web.urt/snapshot/1/browser/first/recordings
 : > runs/web.urt/snapshot/1/browser/first/recordings/user.1.chromium.webm
@@ -374,6 +374,7 @@ snap runs/webstray.urt/snapshot/1 exitcode
 brun runs/webstray.urt/snapshot/1/browser/a
 : > runs/webstray.urt/snapshot/1/browser/notes.txt
 : > runs/webstray.urt/snapshot/1/browser/a/shot.png
+printf 'firefox\n' > runs/webstray.urt/snapshot/1/browser/a/engines
 : > runs/webstray.urt/snapshot/1/browser/a/a.b.context
 : > runs/webstray.urt/snapshot/1/browser/a/screenshots
 : > runs/webstray.urt/snapshot/1/browser/a/recordings
@@ -465,18 +466,16 @@ rtt fast
 throttle 1s
 throttle 0s 1s
 throttle none
+engines
 [Bernd]
 order Bernd
 click 2
+engines chromium opera
 [Carlos]
+engines webkit webkit
 CONTEXT
 brun runs/webunready.urt/snapshot/1/browser/threads
 printf -- '-t 2\n' > runs/webunready.urt/snapshot/1/browser/threads/args
-brun runs/webunready.urt/snapshot/1/browser/engines-none
-: > runs/webunready.urt/snapshot/1/browser/engines-none/engines
-brun runs/webunready.urt/snapshot/1/browser/engines-odd
-printf 'chromium\nopera\n' > runs/webunready.urt/snapshot/1/browser/engines-odd/engines
-printf 'firefox\n' > runs/web.urt/snapshot/1/browser/first/engines
 # A case that cannot be named stops the run, so it comes last of all.
 proj zz badname
 snap zz/badname.urt/snapshot/c.d exitcode

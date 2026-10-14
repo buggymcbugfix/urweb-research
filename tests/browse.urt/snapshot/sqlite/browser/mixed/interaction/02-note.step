@@ -1,0 +1,7 @@
+Carlos:
+	type 'input[type=text]' 'from Carlos'
+	click 'text=Note'
+	label "noted"
+Eun-ji:
+	after Carlos."noted"
+	click 'text=Other'

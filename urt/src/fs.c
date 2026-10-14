@@ -690,32 +690,46 @@ int child_say(struct child *c, const char *line) {
     return 0;
 }
 
+/* The whole lines the child has said, each to fn, up to one that is
+ * until, which is not handed out; a partial one waits.  1 when until
+ * came. */
+static int take_lines(struct child *c, const char *until, void (*fn)(const char *line, void *data), void *data) {
+    char *nl;
+    while ((nl = memchr(c->buf, '\n', c->len))) {
+        int last;
+        *nl = 0;
+        last = !strcmp(c->buf, until);
+        if (!last) {
+            fn(c->buf, data);
+        }
+        c->len -= (size_t) (nl + 1 - c->buf);
+        memmove(c->buf, nl + 1, c->len + 1);
+        if (last) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Room in the child's buffer for more than a byte. */
+static void make_room(struct child *c) {
+    if (c->len + 1 >= c->cap) {
+        char *bigger = xmalloc(c->cap *= 2);
+        memcpy(bigger, c->buf, c->len);
+        free(c->buf);
+        c->buf = bigger;
+    }
+}
+
 int child_lines(struct child *c, const char *until, void (*fn)(const char *line, void *data), void *data) {
     int told = 0;
-    char *nl;
     ssize_t n;
 
     for (;;) {
-        /* Whole lines go out as they come; a partial one waits. */
-        while ((nl = memchr(c->buf, '\n', c->len))) {
-            int last;
-            *nl = 0;
-            last = !strcmp(c->buf, until);
-            if (!last) {
-                fn(c->buf, data);
-            }
-            c->len -= (size_t) (nl + 1 - c->buf);
-            memmove(c->buf, nl + 1, c->len + 1);
-            if (last) {
-                return 1;
-            }
+        if (take_lines(c, until, fn, data)) {
+            return 1;
         }
-        if (c->len + 1 >= c->cap) {
-            char *bigger = xmalloc(c->cap *= 2);
-            memcpy(bigger, c->buf, c->len);
-            free(c->buf);
-            c->buf = bigger;
-        }
+        make_room(c);
         n = read(c->from, c->buf + c->len, c->cap - c->len - 1);
         if (n < 0 && errno == EINTR) {
             if (fs_interrupted && !told) {
@@ -734,6 +748,89 @@ int child_lines(struct child *c, const char *until, void (*fn)(const char *line,
         }
         c->len += (size_t) n;
         c->buf[c->len] = 0;
+    }
+}
+
+/* One of several children, for take_lines. */
+struct one_of {
+    void (*fn)(int i, const char *line, void *data);
+    int i;
+    void *data;
+};
+
+static void line_of(const char *line, void *p) {
+    struct one_of *w = p;
+    w->fn(w->i, line, w->data);
+}
+
+void children_lines(struct child *const cs[], int n, const char *until,
+                    void (*fn)(int i, const char *line, void *data), void *data, int done[]) {
+    struct pollfd fds[CHILDREN_MAX];
+    int open[CHILDREN_MAX], at[CHILDREN_MAX], left = 0, told = 0, i, j, k;
+
+    if (n > CHILDREN_MAX) {
+        die(fmt("children_lines: %d children, %d at most", n, CHILDREN_MAX), NULL);
+    }
+    for (i = 0; i < n; i++) {
+        struct one_of w = { fn, i, data };
+        done[i] = take_lines(cs[i], until, line_of, &w);
+        open[i] = !done[i];
+        left += open[i];
+    }
+    while (left > 0) {
+        if (fs_interrupted && !told) {
+            for (i = 0; i < n; i++) {
+                if (open[i]) {
+                    kill(cs[i]->pid, SIGTERM);
+                }
+            }
+            told = 1;
+        }
+        for (i = k = 0; i < n; i++) {
+            if (open[i]) {
+                fds[k].fd = cs[i]->from;
+                fds[k].events = POLLIN;
+                fds[k].revents = 0;
+                at[k++] = i;
+            }
+        }
+        if (poll(fds, (nfds_t) k, -1) < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            die(fmt("cannot wait for the drivers: %s", strerror(errno)), NULL);
+        }
+        for (j = 0; j < k; j++) {
+            struct child *c = cs[at[j]];
+            struct one_of w = { fn, at[j], data };
+            ssize_t r;
+            if (!fds[j].revents) {
+                continue;
+            }
+            make_room(c);
+            r = read(c->from, c->buf + c->len, c->cap - c->len - 1);
+            if (r < 0 && errno == EINTR) {
+                continue;
+            }
+            if (r <= 0) {
+                /* Gone, or going: what it said last is a line too. */
+                if (c->len) {
+                    c->buf[c->len] = 0;
+                    line_of(c->buf, &w);
+                    c->len = 0;
+                }
+                open[at[j]] = 0;
+                left--;
+                continue;
+            }
+            c->len += (size_t) r;
+            c->buf[c->len] = 0;
+            if (take_lines(c, until, line_of, &w)) {
+                done[at[j]] = 1;
+                open[at[j]] = 0;
+                left--;
+            }
+        }
     }
 }
 

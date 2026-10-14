@@ -112,8 +112,9 @@ in order, and wait for one another with labels (`label "sent"`, `after
 Alice."sent"`).  The run's `context` file says, an option a line, `OPTION
 VALUE`, for every user before the first line `[USER]` and for that user
 under it: the users' order, which a run with more than one needs; the
-tie rule for the server's tasks (`tasks first|last`); a request's round
-trip (`rtt 100ms`); how long a kind of act takes (`click 400ms`); how a
+tie rule for the server's tasks (`tasks first|last`); the engines a user
+is driven through (`engines chromium webkit`, all three unless given); a
+request's round trip (`rtt 100ms`); how long a kind of act takes (`click 400ms`); how a
 hidden tab's timers are held back (`throttle AFTER EVERY [chained]`, a
 line a tier: once the tab has been hidden for AFTER, a timer due
 meanwhile waits for the next multiple of EVERY, with `chained` only one
@@ -174,11 +175,11 @@ and console when there were any; and for the step its timeline and the
 server's side as for a request (`NAME.dml.sql`, `NAME.stdout`,
 `NAME.stderr`).  `urt snapshot --screenshot` shoots every tab after
 every step as well, the whole page as the engine draws it, into the
-run's `screenshots/` as `NAME.USER.TAB.ENGINE.png`: for looking at when
+run's `screenshots/` as `NAME.USER.TAB.PASS.png`: for looking at when
 a record wants explaining, not for comparing, since no two engines draw
 alike; git ignores the directory, and the records are the same with and
 without.  `urt snapshot --record` films every user on the run's clock, into the
-run's `recordings/` as `USER.ENGINE.webm`: their tab in front as the
+run's `recordings/` as `USER.PASS.webm`: their tab in front as the
 engine draws it, under a strip with their tabs, the clock and the line
 they are at, the pointer and any dialog drawn in (by the driver, around
 the page: nothing is put into the page, and a dialog's page cannot be
@@ -192,42 +193,50 @@ strip's clock) and nothing else.  The frames are composed on a canvas in
 the engine's own browser and encoded by the ffmpeg Playwright brings
 along, from JPEG at quality 100 (all it reads, and as good as PNG once
 encoded) to VP8 at a quality that keeps text sharp, each at its own
-millisecond.  Beside each film a `USER.ENGINE.vtt` has a cue per line,
-and an `index.html` plays a run's films together, users and engines, on
+millisecond.  Beside each film a `USER.PASS.vtt` has a cue per line,
+and an `index.html` plays a run's films together, users and passes, on
 one clock, every one in a box to move by its title and size by its
 corner; the same rules, and the records the same with and without, and
-whatever T.  Every run is driven through three engines,
-Chromium, Firefox and WebKit (an `engines` file in the run names fewer),
-by `urt-browse` beside `urt`, through Playwright for Python: `urt
-snapshot` starts the application as for a request-response run, once
-per engine, its tasks after the requests due with them unless the
-context says otherwise, and the driver sends the engine through it.
-The browser itself is started once per engine for all the runs of a
-`urt snapshot`, since starting one takes seconds; what a run gets afresh
-is its contexts, one per user, which is where cookies, storage and the
-clock live.  A request for any other server is refused by the driver
+whatever T.  Every run is driven through in passes by `urt-browse`
+beside `urt`, through Playwright for Python.  A pass puts every user on
+an engine, Chromium, Firefox or WebKit, and there are as many as it
+takes to drive each user through all of theirs, every user's being all
+three unless the context's `engines` says fewer: the i-th pass puts
+each user on the i-th of theirs in that order, the last again for a
+user with fewer.  A pass is named by its engine where every user is on
+the same one (`chromium`), as when they all have the same engines, and
+otherwise by the users' engines in their order, joined by `+`: with
+`engines chromium` for Alice and `engines firefox webkit` for Bernd,
+`chromium+firefox` and `chromium+webkit`.  `urt snapshot` starts the
+application as for a request-response run, once per pass, its tasks
+after the requests due with them unless the context says otherwise,
+and drives the passes at the same time, a driver each.  A driver starts
+an engine at the first pass that needs it and keeps it for all the runs
+of a `urt snapshot`, since starting one takes seconds; what a pass gets
+afresh is its contexts, one per user, which is where cookies, storage
+and the clock live.  A request for any other server is refused by the driver
 and recorded as such: a run drives this application, and the network is
 not its business; what its pages need, the application serves (the
-`file` directive of the .urp).  The engines agree on nearly everything,
-since the driver levels what they do on their own (no engine caches or
-fetches a favicon, every request goes through the driver, the clock is
-the driver's), and a record they agree on is one file; one that an
-engine records differently is that engine's own, named with the engine
+`file` directive of the .urp).  The passes agree on nearly everything,
+since the driver levels what the engines do on their own (no engine
+caches or fetches a favicon, every request goes through the driver, the
+clock is the driver's), and a record they agree on is one file; one
+that a pass records differently is that pass's own, named with the pass
 after the record's kind so that it sorts beside the shared one
 (`NAME.USER.TAB.page.firefox.html` beside `NAME.USER.TAB.page.html`,
-`NAME.stdout.firefox` beside `NAME.stdout`), and what that engine is
-compared against.  Recording goes by the majority, a tie to the engine
-first in the order above, and an own file whose engine has come to
-agree goes again.  A step that cannot be done (no such element, two of
+`NAME.stdout.firefox` beside `NAME.stdout`), and what that pass is
+compared against.  Recording goes by the majority, a tie to the pass
+first in order, and an own file whose pass has come to agree goes
+again.  A step that cannot be done (no such element, two of
 them, an `until` whose element does not come in time) stops the run, as
 a request that cannot be sent does: the step's `NAME.error` holds the
 engine's complaint, beside the records of the page as the engine found
 it, the records of the steps after it go, and the run fails, with the
-complaint under its verdict, until it gets past the step again.  An
-engine that stops where the others go on has its own `NAME.error.ENGINE`
-and, for what it did not record after that, own files that are empty;
-where it is the majority that stops, the `NAME.error` is the shared one
-and the engine that went on has the own files.  One such difference is
+complaint under its verdict, until it gets past the step again.  A pass
+that stops where the others go on has its own `NAME.error.PASS` and,
+for what it did not record after that, own files that are empty; where
+it is the majority that stops, the `NAME.error` is the shared one and
+the pass that went on has the own files.  One such difference is
 the engines' own and stays: `back` to a page that answered a POST sends
 the POST again in Chromium and WebKit, and Firefox, which keeps no such
 page, refuses, so there the step cannot be done and its complaint says

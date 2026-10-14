@@ -1,0 +1,8 @@
+order Carlos Eun-ji
+
+# Carlos on Chromium, Eun-ji on Firefox and WebKit: a pass for each of
+# hers, chromium+firefox and chromium+webkit.
+[Carlos]
+engines chromium
+[Eun-ji]
+engines firefox webkit
