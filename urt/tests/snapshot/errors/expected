@@ -147,7 +147,8 @@ for the heap to grow; every request is for the host 'localhost', from the
 user agent 'urt'.
 
 A run's env adds to the application's environment, NAME=value a line, the
-value taken as written; blank lines and lines starting with # are skipped.
+value taken as written, though it holds no control character but a tab;
+blank lines and lines starting with # are skipped.
 What urt sets itself for the above cannot be set there: URWEB_SIGFILE_PATH,
 URWEB_SQLITE_DB_PATH, URWEB_DML_LOG, URWEB_REPRODUCIBLE_EPOCH,
 URWEB_REPRODUCIBLE_PRNG_SEED, URWEB_MIN_HEAP and TZ.

@@ -158,7 +158,8 @@ static const char usage_text[] =
     "user agent 'urt'.\n"
     "\n"
     "A run's env adds to the application's environment, NAME=value a line, the\n"
-    "value taken as written; blank lines and lines starting with # are skipped.\n"
+    "value taken as written, though it holds no control character but a tab;\n"
+    "blank lines and lines starting with # are skipped.\n"
     "What urt sets itself for the above cannot be set there: URWEB_SIGFILE_PATH,\n"
     "URWEB_SQLITE_DB_PATH, URWEB_DML_LOG, URWEB_REPRODUCIBLE_EPOCH,\n"
     "URWEB_REPRODUCIBLE_PRNG_SEED, URWEB_MIN_HEAP and TZ.\n"
@@ -944,11 +945,14 @@ static int valid_env_name(const char *s) {
 }
 
 /* A run's env file f, NAME=value a line, into names and values: blank
- * lines and lines starting with # are skipped, a line may end in CRLF, and
- * the value is the rest of the line as it stands.  What is wrong with it
- * is complained about, and then -1. */
+ * lines (nothing, or blanks) and lines starting with # are skipped, a line
+ * may end in CRLF, and the value is the rest of the line as it stands.  A
+ * value holds no control character but a tab: a lone CR would be one,
+ * from a file whose lines end in CR alone, which this would otherwise
+ * read as one long line.  What is wrong with it is complained about, and
+ * then -1. */
 static int read_run_env(const char *f, struct strlist *names, struct strlist *values) {
-    char *text = read_text(f), *line, *next, *eq;
+    char *text = read_text(f), *line, *next, *eq, *c;
     int lineno = 0, before = report_problems;
     size_t i, n;
     if (!text) {
@@ -972,7 +976,7 @@ static int read_run_env(const char *f, struct strlist *names, struct strlist *va
         if (n && line[n - 1] == '\r') {
             line[--n] = 0;
         }
-        if (!n || line[0] == '#') {
+        if (strspn(line, " \t") == n || line[0] == '#') {
             continue;
         }
         eq = strchr(line, '=');
@@ -984,6 +988,14 @@ static int read_run_env(const char *f, struct strlist *names, struct strlist *va
         if (!valid_env_name(line)) {
             die_later(fmt("%s:%d: %s cannot name an environment variable", path(f), lineno, key(line)),
                       "a name is letters, digits and _, not starting with a digit", NULL);
+            continue;
+        }
+        for (c = eq + 1; *c && (*c == '\t' || ((unsigned char) *c >= 0x20 && *c != 0x7f)); c++) {
+            ;
+        }
+        if (*c) {
+            die_later(fmt("%s:%d: the value of %s holds a control character", path(f), lineno, key(line)),
+                      "a line ends in LF or CRLF, and a value holds no other control character than a tab", NULL);
             continue;
         }
         for (i = 0; i < sizeof run_env_reserved / sizeof run_env_reserved[0]; i++) {
