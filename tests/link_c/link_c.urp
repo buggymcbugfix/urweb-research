@@ -1,0 +1,7 @@
+ffi answer
+include answer.h
+link answer.c
+allow url /Link_c/main
+safeGet Link_c/main
+
+link_c

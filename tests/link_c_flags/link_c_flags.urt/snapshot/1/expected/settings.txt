@@ -8,7 +8,7 @@ Dev: false
 Profile: false
 Timeout: 60
 Ffi tests/link_c_flags/flags
-Link -Iinc
+Link -Itests/link_c_flags/inc
 Link -DEXTRA=1
 Link tests/link_c_flags/flags.c
 Linker: (none)

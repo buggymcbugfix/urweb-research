@@ -1,0 +1,10 @@
+library lib
+ffi names
+include names.h
+link a/x.c
+link b/x.c
+link a/x.c
+allow url /Link_c_dirs/main
+safeGet Link_c_dirs/main
+
+link_c_dirs
