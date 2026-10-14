@@ -1,0 +1,36 @@
+Prefix: /
+Database: (none)
+Exe: tests/link_c_flags/link_c_flags.exe
+SQL file: (none)
+Endpoints file: (none)
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Ffi tests/link_c_flags/flags
+Link -Iinc
+Link -DEXTRA=1
+Link tests/link_c_flags/flags.c
+Linker: (none)
+Header tests/link_c_flags/flags.h
+JsModule: (none)
+Url allow #*
+Url allow /Link_c_flags/main
+Source tests/link_c_flags/link_c_flags
+Dbms: (none)
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Link_c_flags/main
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types
