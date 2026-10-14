@@ -1,8 +1,9 @@
 (* A periodic task that goes wrong in the way PERIODIC_MODE names, on its
    first tick (the bounded-retry ones on their first three or six attempts),
-   and reports on the next, which the run waits for; later ticks do nothing,
-   so what is recorded does not depend on how many come before the run's next
-   step.  What the runtime does with each failure is the point. *)
+   and reports on the next (commitfail on the one after), which the run waits
+   for; later ticks do nothing, so what is recorded does not depend on how
+   many come before the run's next step.  What the runtime does with each
+   failure is the point. *)
 
 table stuck : { N : int }
 
@@ -36,14 +37,16 @@ task periodic 1 = fn () =>
         else return ()
       | "commitfail" =>
         (* COMMIT fails and the database transaction stays open, as after
-           SQLITE_BUSY; the next tick then has to be able to BEGIN. *)
+           SQLITE_BUSY; the next tick then has to be able to BEGIN, and
+           write.  The tick after that reports: a tick's writes are logged
+           at its COMMIT, after anything it prints. *)
         if n = 1 then
             dml (INSERT INTO stuck (N) VALUES (1));
             Misbehave.pendingWrite
         else if n = 2 then
             Misbehave.finishPendingWrite;
-            dml (INSERT INTO stuck (N) VALUES (2));
-            debug "still running"
+            dml (INSERT INTO stuck (N) VALUES (2))
+        else if n = 3 then debug "still running"
         else return ()
       | _ => return ()
 
