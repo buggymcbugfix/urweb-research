@@ -1,6 +1,6 @@
 $ urt snapshot runs/serves-gone
 UPDATED runs/serves-gone.urt/snapshot/1 (exitcode)
-ERROR runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/03-never.wait: the server was gone before it printed  never
+ERROR runs/serves-gone.urt/snapshot/1/request-response/gone/interaction/03-never.wait: the server was gone before it printed a line holding 'never'
 1 case and 1 run: 1 updated, in T
 exit 1
 $ changes

@@ -137,11 +137,12 @@ static const char usage_text[] =
     "  until still running\n"
     "\n"
     "and the run goes on once the server has printed a line holding the text after\n"
-    "'until', on stdout or stderr, since the step before ended.  What it printed and\n"
-    "what the database saw meanwhile go under NAME, as for a request (NAME.stdout,\n"
-    "NAME.stderr, NAME.sql); there is no response.  A wait lasts as long as it takes,\n"
-    "not a set time, so that what is recorded does not depend on the machine; if\n"
-    "the line has not come within 30 seconds, or the server is gone, the run fails.\n"
+    "'until', the blanks around it aside, on stdout or stderr, since the step before\n"
+    "ended.  What it printed and what the database saw meanwhile go under NAME, as\n"
+    "for a request (NAME.stdout, NAME.stderr, NAME.sql); there is no response.  A\n"
+    "wait lasts as long as it takes, not a set time, so that what is recorded does\n"
+    "not depend on the machine; if the line has not come within 30 seconds, or the\n"
+    "server is gone, the run fails.\n"
     "A wait that comes first takes what the server printed while starting as well,\n"
     "which then is not under out/: a task starts with the server, and whether its\n"
     "first lines come before the server says it is listening or after is a matter\n"
@@ -1372,10 +1373,11 @@ static void steps_of(const char *interaction, struct strlist *names) {
 
 #define WAIT_SECONDS 30     /* as long as curl gives a request */
 
-/* A wait file's text: one line, "until TEXT", with TEXT not empty; TEXT
- * into what.  0, or -1 with the complaint in err. */
+/* A wait file's text: one line, "until TEXT"; TEXT, without the blanks
+ * around it, which cannot be seen and would make it match nearly any
+ * line, into what, and not empty.  0, or -1 with the complaint in err. */
 static int parse_wait(const char *text, char *what, size_t what_size, char *err, size_t err_size) {
-    size_t n = strlen(text);
+    size_t n = strlen(text), s, e;
     if (n && text[n - 1] == '\n') {
         n--;
     }
@@ -1386,16 +1388,22 @@ static int parse_wait(const char *text, char *what, size_t what_size, char *err,
         snprintf(err, err_size, "a wait is one line");
         return -1;
     }
-    if (n < 7 || strncmp(text, "until ", 6) != 0) {
+    for (s = 6; s < n && (text[s] == ' ' || text[s] == '\t'); s++) {
+        ;
+    }
+    for (e = n; e > s && (text[e - 1] == ' ' || text[e - 1] == '\t'); e--) {
+        ;
+    }
+    if (n < 6 || strncmp(text, "until ", 6) != 0 || s == e) {
         snprintf(err, err_size, "a wait is 'until TEXT', TEXT being what the server is to print");
         return -1;
     }
-    if (n - 6 >= what_size) {
+    if (e - s >= what_size) {
         snprintf(err, err_size, "the text to wait for is too long");
         return -1;
     }
-    memcpy(what, text + 6, n - 6);
-    what[n - 6] = 0;
+    memcpy(what, text + s, e - s);
+    what[e - s] = 0;
     return 0;
 }
 
@@ -1667,10 +1675,11 @@ static void run_run(const char *run_dir, const char *exe) {
                 die_later(fmt("%s: %s", path(f), text ? err : strerror(errno)), NULL);
             } else if ((got = wait_for(what, server_out, out_at, server_err, err_at, &serving)) != 0) {
                 if (got == 1) {
-                    die_later(fmt("%s: the server did not print %s within %d seconds", path(f), key(what), WAIT_SECONDS),
+                    die_later(fmt("%s: the server printed no line holding '%s' within %d seconds", path(f), key(what),
+                                  WAIT_SECONDS),
                               head_of(server_err, NULL), NULL);
                 } else if (got == 2) {
-                    die_later(fmt("%s: the server was gone before it printed %s", path(f), key(what)),
+                    die_later(fmt("%s: the server was gone before it printed a line holding '%s'", path(f), key(what)),
                               head_of(server_err, NULL), NULL);
                 }
             } else {
