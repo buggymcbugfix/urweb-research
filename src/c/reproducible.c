@@ -25,7 +25,10 @@
 // T, in order.  That request answers with when the next such event is due,
 // `next T` or `next none`, so that whoever drives the clock knows where to
 // stop next: a task's message on a channel is then sent at the time it was
-// due, and advance=T+1 handles what is due at T and nothing later.
+// due, and advance=T+1 handles what is due at T and nothing later.  A second
+// line, `released N`, says how many polls for messages (/.msgs) the server
+// has answered or closed so far, so that a driver holding their answers
+// knows which of them the server let go, and when.
 
 #include "config.h"
 
@@ -272,9 +275,9 @@ void uw_reproducible_clock(uw_context ctx, const char *query, char *buf, size_t 
     catch_up(ctx, t, 0);
   }
   if (next_event(ctx, &at, &task)) {
-    snprintf(buf, size, "next %lld\n", (long long)at);
+    snprintf(buf, size, "next %lld\nreleased %lu\n", (long long)at, uw_polls_released());
   } else {
-    snprintf(buf, size, "next none\n");
+    snprintf(buf, size, "next none\nreleased %lu\n", uw_polls_released());
   }
 }
 

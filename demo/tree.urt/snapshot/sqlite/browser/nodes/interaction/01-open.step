@@ -1,1 +1,1 @@
-user.1: open /Tree/main
+user: open /Tree/main [target=1]

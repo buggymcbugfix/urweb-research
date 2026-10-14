@@ -1,0 +1,2 @@
+user: dblclick 'text=Twice'
+user: hover 'text=Hover' [1s]

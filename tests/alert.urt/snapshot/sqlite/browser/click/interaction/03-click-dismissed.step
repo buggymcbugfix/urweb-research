@@ -1,2 +1,2 @@
-user.1: dialog dismiss
-user.1: click 'text=Click Me!'
+user: dialog dismiss
+user: click 'text=Click Me!'

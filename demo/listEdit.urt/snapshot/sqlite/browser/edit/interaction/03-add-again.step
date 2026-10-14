@@ -1,2 +1,2 @@
-user.1: fill 'input >> nth=0' pears
-user.1: click 'text=Add'
+user: fill 'input >> nth=0' 'pears'
+user: click 'text=Add'

@@ -1,4 +1,4 @@
-user.1: dialog accept
-user.1: dialog dismiss
-user.1: dialog accept
-user.1: click 'text=Check values'
+user: dialog accept
+user: dialog dismiss
+user: dialog accept
+user: click 'text=Check values'

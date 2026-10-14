@@ -1,0 +1,2 @@
+3.900 4.400 user: click 'text=[Delete] >> nth=1'
+4.300 4.400 user.1: GET /Crud1/confirm/2 200

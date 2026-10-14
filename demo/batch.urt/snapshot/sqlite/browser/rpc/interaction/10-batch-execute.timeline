@@ -1,0 +1,5 @@
+4.200 4.400 user: fill 'input >> nth=0' '3'
+4.400 4.600 user: fill 'input >> nth=1' 'three'
+4.600 5.000 user: click 'text=Batch it'
+5.000 5.500 user: click 'text=Execute'
+5.400 5.500 user.1: POST /Batch/doBatch/Cons/3/three/Nil 200

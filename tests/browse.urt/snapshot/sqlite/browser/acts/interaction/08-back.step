@@ -1,0 +1,3 @@
+user: tab 1
+user: fill 'input[type=text]' 'more'
+user: press Enter [on='input[type=text]']

@@ -1,1 +1,1 @@
-user.1: drag 'text=Deuchars' 50%,50% 'text=Budvar' 50%,20%
+user: drag 'text=Deuchars' 'text=Budvar' [from=50%,50%] [to=50%,20%]

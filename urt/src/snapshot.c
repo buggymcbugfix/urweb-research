@@ -194,7 +194,8 @@ static const char usage_text[] =
     "A case can also have runs in a browser, under browser/: the application\n"
     "started afresh as above, once per browser engine -- Chromium, Firefox and\n"
     "WebKit, all three unless the run's 'engines' file names fewer -- and the\n"
-    "engine sent through it, step by step, in one tab or several:\n"
+    "engine sent through it, step by step, by one user or several, each in one\n"
+    "tab or several:\n"
     "\n"
     "  shop.urt/\n"
     "  `-- snapshot/\n"
@@ -202,7 +203,7 @@ static const char usage_text[] =
     "          `-- browser/\n"
     "              `-- checkout/             a run; args, env, secret, db.sql and out/ as above\n"
     "                  |-- engines             the engines to drive, one per line, if not all\n"
-    "                  |-- bob.context         how a user's browser is set up, if not the usual way\n"
+    "                  |-- context             the users' order, and how their browsers are set up\n"
     "                  |-- screenshots/        every page as drawn, with --screenshot; not for git\n"
     "                  |   `-- 01-open.user.1.chromium.png\n"
     "                  |-- recordings/         every tab filmed, with --record; not for git\n"
@@ -210,7 +211,8 @@ static const char usage_text[] =
     "                  |   |-- user.1.chromium.vtt a cue per action: the step, the action, the page's time\n"
     "                  |   `-- index.html      plays them, with the cues\n"
     "                  `-- interaction/\n"
-    "                      |-- 01-open.step      what to do, and in which tab (user.1)\n"
+    "                      |-- 01-open.step      what each user does\n"
+    "                      |-- 01-open.timeline  what happened when: every line, every request\n"
     "                      |-- 01-open.user.1.page.html\n"
     "                      |                     the tab's page afterwards: its path, then the DOM\n"
     "                      |                     as the browser has it, scripts and handlers left out\n"
@@ -239,54 +241,66 @@ static const char usage_text[] =
     "whose engine has come to agree goes, and a tie goes to the engine first in\n"
     "the order chromium, firefox, webkit.\n"
     "\n"
-    "A step holds actions, one per line, split as for a shell, each for a tab,\n"
-    "USER.TAB: -- a user is a browser of their own, cookies and all, a tab a page\n"
-    "in it, a client to the application; user.1 is the usual one, bob.1 another\n"
-    "user, user.2 a second tab of the first.  A tab comes into being with its\n"
-    "first action, an open, and goes with close; after every step, every tab that\n"
-    "is open is recorded.\n"
+    "A step holds lines, each for a user: 'USER: ACTION', or 'USER:' alone with the\n"
+    "user's lines under it, each indented with a tab.  A user is a browser of their\n"
+    "own, cookies and all; their tabs are pages in it, each a client to the\n"
+    "application, named by the action that opens them ([target=NAME]), and their\n"
+    "lines act on the tab in front.  The users of a step go side by side, each\n"
+    "through their lines in order, and the step is over when all are done and no\n"
+    "page has a request open but its poll; then every tab that is open is recorded,\n"
+    "as USER.TAB.\n"
     "\n"
-    "  user.1: open /Shop/main\n"
-    "  user.1: fill 'input[name=name]' kettle\n"
-    "  user.1: click 'text=Add'\n"
-    "  bob.1: open /Shop/main\n"
-    "  bob.1: wait 'text=1 item'\n"
+    "  user: open /Shop/main [target=1]\n"
+    "  user: fill 'input[name=name]' kettle\n"
+    "  user: click 'text=Add'\n"
+    "  Bernd:\n"
+    "  \topen /Shop/main [target=1]\n"
+    "  \tuntil 'text=1 item'\n"
     "\n"
-    "`urt-browse --help` lists the actions and their locators, which are\n"
-    "Playwright's, and the options a USER.context can set up a user's browser\n"
-    "with (the window, the colour scheme, the locale, ...), each on a line of its\n"
-    "own, OPTION VALUE; every user's browser is 1024x768, en-US, UTC and the user\n"
-    "agent 'urt' unless theirs says otherwise.  With --screenshot, every tab is\n"
-    "shot after every step as well, the whole page as the engine draws it, under\n"
+    "`urt-browse --help` lists the actions, their locators, which are Playwright's,\n"
+    "and their parameters, and what the context can say, OPTION VALUE a line, for\n"
+    "every user before the first line [USER] and for that user under it: the users'\n"
+    "order, which a run with more than one needs; whether the server's tasks due\n"
+    "when a request arrives run before it or after; a request's round trip; how\n"
+    "long a kind of act takes; and how a user's browser is set up (the window, the\n"
+    "colour scheme, the locale, ...), every user's being 1024x768, en-US, UTC and\n"
+    "the user agent 'urt' unless it says otherwise.  With --screenshot, every tab\n"
+    "is shot after every step as well, the whole page as the engine draws it, under\n"
     "the run's screenshots/ as NAME.USER.TAB.ENGINE.png, the directory emptied\n"
     "first: pictures to look at when a record wants explaining, which git ignores\n"
     "and nothing compares, since no two engines draw alike; the records are the\n"
-    "same with and without.  With --record, every tab is filmed from its opening\n"
-    "to its closing, a pointer drawn in, under the run's recordings/ as\n"
-    "USER.TAB.ENGINE.webm, with a USER.TAB.ENGINE.vtt beside it that has a cue\n"
-    "per action (the step, the action, the page's time) and an index.html that\n"
-    "plays them with their cues; the same rules as for the screenshots, and the\n"
-    "records the same with and without, too.\n"
-    "The pages' clock stands still at the run's start, so that\n"
-    "nothing happens between steps that a step did not ask for: `tick 2` lets two\n"
-    "seconds pass for every page, firing what was due (sleep, timeouts), one\n"
-    "user's browser after another, each settled before the next.  The pages'\n"
-    "requests reach the server in the order the engine makes them, and move its\n"
-    "clock on as curl's would; no engine caches or fetches a favicon, so that each\n"
-    "sends the same requests.  A request for any other server is refused by the\n"
-    "driver and recorded as such: a run drives this application, and the network\n"
-    "is not its business; what the pages need, the application serves (the\n"
-    "'file' directive).  One engine difference is left as it is: back to a\n"
-    "page that answered a POST sends the POST again in Chromium and WebKit, and is\n"
-    "refused by Firefox, where the step cannot be done and says so; a run meant for\n"
-    "every engine opens the page instead.\n"
-    "A step that cannot be done -- no such element, two of them, a wait that\n"
-    "times out -- stops the run, as a request that cannot be sent does: the step's\n"
-    "NAME.error holds the engine's complaint, beside its records of the pages as\n"
-    "the engine found them, the records of the steps after it go, and the run fails\n"
-    "until it gets past the step again.  An engine that stops where the others go\n"
-    "on has an own NAME.ENGINE.error, and own files, empty, for what it did not\n"
-    "record after that.\n"
+    "same with and without.  With --record, every tab is filmed from its opening to\n"
+    "its closing, a pointer drawn in, under the run's recordings/ as\n"
+    "USER.TAB.ENGINE.webm, with a USER.TAB.ENGINE.vtt beside it that has a cue per\n"
+    "action (the step, the action, the page's time) and an index.html that plays\n"
+    "them with their cues; the same rules as for the screenshots, and the records\n"
+    "the same with and without, too.\n"
+    "There is one clock, for the pages, the server and the users.  It starts at the\n"
+    "epoch and moves from one thing due to the next, as fast as they get done,\n"
+    "nothing waiting on the wall clock: an act takes the time it takes a person (a\n"
+    "click 400ms, a key typed 150ms), a request reaches the server half a round\n"
+    "trip after the page sent it and its answer the page half a round trip later\n"
+    "(100ms the trip), a page's timer fires when it is due, and so does a task of\n"
+    "the server's.  What is due at the same time is done in a fixed order: the\n"
+    "server's part first, then the pages' timers and the answers coming back, then\n"
+    "the users' input, the users in the context's order.  So a run comes out the\n"
+    "same every time, whatever the machine, and NAME.timeline says what happened\n"
+    "when, in seconds since the epoch.  A last line 'wait T' in a step, for no\n"
+    "user, lets T pass for everyone before the records are taken.  No engine caches\n"
+    "or fetches a favicon, so that each sends the same requests.  A request for any\n"
+    "other server is refused by the driver and recorded as such: a run drives this\n"
+    "application, and the network is not its business; what the pages need, the\n"
+    "application serves (the 'file' directive).  One engine difference is left as\n"
+    "it is: back to a page that answered a POST sends the POST again in Chromium\n"
+    "and WebKit, and is refused by Firefox, where the step cannot be done and says\n"
+    "so; a run meant for every engine opens the page instead.\n"
+    "A step that cannot be done -- no such element, two of them, an until whose\n"
+    "element does not come in time -- stops the run, as a request that cannot be\n"
+    "sent does: the step's NAME.error holds the engine's complaint, beside its\n"
+    "records of the pages as the engine found them, the records of the steps after\n"
+    "it go, and the run fails until it gets past the step again.  An engine that\n"
+    "stops where the others go on has an own NAME.ENGINE.error, and own files,\n"
+    "empty, for what it did not record after that.\n"
     "Browser runs need urt-browse beside urt, python3 with Playwright, and the\n"
     "engines where PLAYWRIGHT_BROWSERS_PATH says; the compiler's nix-shell and its\n"
     "package with urt have all of it.\n"
@@ -327,7 +341,7 @@ static const char usage_text[] =
     "next number: an empty 'args', a 'secret', the schema as the compiler gives it\n"
     "for the case as 'db.sql' if the program has tables, and a first request to\n"
     "replace.  '--create-browser-run' does the same under browser/, with a first\n"
-    "step, 'user.1: open /', to replace.  A plain run fills in the rest.\n"
+    "step, 'user: open / [target=1]', to replace.  A plain run fills in the rest.\n"
     "\n"
     "With '--edit', the artifacts a case tracks are ticked in a checklist.  PATH\n"
     "names the case, or a project or directory holding several, to choose from;\n"
@@ -626,6 +640,7 @@ static const struct record_kind record_kinds[] = {
     { "stdout",   "",      0, -1 },
     { "stderr",   "",      0, -1 },
     { "error",    "",      0, -1 },
+    { "timeline", "",      0, RUN_BROWSER },
     { "page",     ".html", 1, RUN_BROWSER },
     { "requests", "",      1, RUN_BROWSER },
     { "dialogs",  "",      1, RUN_BROWSER },
@@ -841,15 +856,15 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
             die_later(fmt("%s should be a directory", path(e)), NULL);
         }
         return 1;
-    } else if (n == 2 && kind == RUN_BROWSER && has_suffix(part[1], ".context")) {
-        /* USER.context: how that user's browser is set up; the driver
-         * reads it, and says what is wrong with it. */
+    } else if (n == 2 && kind == RUN_BROWSER && !strcmp(part[1], "context")) {
+        /* How the users' browsers are set up, and the run's tie rule and
+         * timing; the driver reads it, and says what is wrong with it. */
         if (!is_file(e)) {
             die_later(fmt("%s should be a file", path(e)), NULL);
-        } else if (strchr(part[1], '.') != strrchr(part[1], '.') || part[1][0] == '.') {
-            die_later(fmt("%s is not a user's context", path(e)),
-                      "a user's browser is set up by USER.context, USER the user's name as the steps give it, which has no dot in it", NULL);
         }
+    } else if (n == 2 && kind == RUN_BROWSER && has_suffix(part[1], ".context")) {
+        die_later(fmt("%s is a user's context of before", path(e)),
+                  "a run's users are set up in one file, context, each under a line [USER]; move its lines there", NULL);
     } else if (n == 2 && (!strcmp(part[1], "interaction") || !strcmp(part[1], "out"))) {
         if (!is_dir(e)) {
             die_later(fmt("%s should be a directory", path(e)), NULL);
@@ -896,7 +911,7 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
                   kind == RUN_BROWSER
-                      ? "a browser run holds args, env, secret, db.sql, engines, USER.context, screenshots/, recordings/ and README.md; NAME.step, and per tab"
+                      ? "a browser run holds args, env, secret, db.sql, engines, context, screenshots/, recordings/ and README.md; NAME.step, and per tab"
                       : "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,",
                   kind == RUN_BROWSER
                       ? "NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step"
@@ -1359,13 +1374,15 @@ static int valid_env_name(const char *s) {
  * read as one long line.  What is wrong with it is complained about, and
  * then -1. */
 static int read_run_env(const char *f, struct strlist *names, struct strlist *values) {
-    char *text = read_text(f), *line, *next, *eq, *c;
-    int lineno = 0, before = report_problems;
+    char *text = read_text(f), *line, *next, *eq, *c, dir[PATHLEN];
+    int lineno = 0, before = report_problems, browser;
     size_t i, n;
     if (!text) {
         die_later(fmt("%s: %s", path(f), strerror(errno)), NULL);
         return -1;
     }
+    dirname_of(dir, f);
+    browser = kind_of(dir) == RUN_BROWSER;
     if ((long) strlen(text) != file_size(f)) {
         die_later(fmt("%s holds a NUL byte", path(f)), "an env file is text", NULL);
         free(text);
@@ -1413,6 +1430,12 @@ static int read_run_env(const char *f, struct strlist *names, struct strlist *va
             }
         }
         if (i < sizeof run_env_reserved / sizeof run_env_reserved[0]) {
+            continue;
+        }
+        if (!strcmp(line, "URWEB_REPRODUCIBLE_TASKS") && browser) {
+            die_later(fmt("%s:%d sets %s, which a browser run's context says", path(f), lineno, key(line)),
+                      "the driver places the tasks due at a time before or after the requests then, as 'tasks first'",
+                      "or 'tasks last' in the run's context says, and urt starts the server for that", NULL);
             continue;
         }
         if (sl_has(names, line)) {
@@ -2319,6 +2342,14 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
     setenv("URWEB_REPRODUCIBLE_PRNG_SEED", RUN_SEED, 1);
     setenv("URWEB_MIN_HEAP", RUN_MIN_HEAP, 1);
     setenv("TZ", "UTC", 1);
+    /* In a browser run the driver places the tasks due at a time among the
+     * requests arriving then, by its context's tie rule: the server runs
+     * none of them on its own when a request comes. */
+    if (engine) {
+        setenv("URWEB_REPRODUCIBLE_TASKS", "last", 1);
+    } else {
+        unsetenv("URWEB_REPRODUCIBLE_TASKS");
+    }
 
     join(f, run_dir, "args");
     text = is_file(f) ? read_text(f) : NULL;
@@ -3832,7 +3863,7 @@ static int create_run(int argc, char **argv, enum run_kind kind) {
             die(fmt("cannot write %s: %s", path(f), strerror(errno)), NULL);
         }
         join(f, d, first);
-        if (write_text(f, kind == RUN_BROWSER ? "user.1: open /\n" : "GET /\n") < 0) {
+        if (write_text(f, kind == RUN_BROWSER ? "user: open / [target=1]\n" : "GET /\n") < 0) {
             die(fmt("cannot write %s: %s", path(f), strerror(errno)), NULL);
         }
         say(ST_NEW, "CREATED", runs.v[i],

@@ -95,86 +95,117 @@ Not there yet:
 
 A case can also have runs in a browser, under `browser/`, laid out as
 the request-response runs are but with `NAME.step` files under
-`interaction/`: what to do, actions one per line, each in a tab named
-`USER.TAB:` (`user.1: open /Shop/main`, `user.1: fill 'input[name=name]'
-kettle`, `user.1: click 'text=Add'`, `user.1: drag 'text=Pooh'
-'text=Edward'`, `bob.1: open /Shop/main`, `bob.1: wait 'text=1 item'`;
-`urt-browse --help` has them all, the locators are Playwright's, and a
-locator can be followed by a position on the element, `50%,80%` of its
-box or `12,40` pixels from its corner).  A user is a browser of their
-own, cookies and all; a tab is a page in it, and a client to the
-application; `user.1` is the usual one, `user.2` a second tab of the
-same person, `bob.1` another person.  A tab comes into being with its
-first action, an open, and goes with `close`.  Every user's browser is
-1024x768, `en-US`, `UTC` and the user agent `urt`, unless a
-`USER.context` file beside `engines` says otherwise: an option a line,
-`OPTION VALUE`, in Playwright's names for a browser context
+`interaction/`: what each user does, a line each, `USER: ACTION`, or
+`USER:` alone with the user's lines under it indented with a tab
+(`user: open /Shop/main [target=1]`, `user: fill 'input[name=name]'
+kettle`, `user: click 'text=Add'`, `user: drag 'text=Pooh'
+'text=Edward'`, `Bernd: until 'text=1 item'`; `urt-browse --help` has
+them all, the locators are Playwright's, and an action's parameters
+follow it in brackets: its time, `[2s]`, a position on the element,
+`[at=50%,80%]`, the tab it opens, `[target=2]`).  A user is a browser of
+their own, cookies and all; their tabs are pages in it, each a client to
+the application, called by the name the action that opens it gives
+(`user.1`, `user.2`, `Bernd.1`), and their lines act on the tab in front
+(`tab NAME` brings one there, `close` closes it, `quit` closes the
+browser).  The users of a step go side by side, each through their lines
+in order, and wait for one another with labels (`label "sent"`, `after
+Alice."sent"`).  The run's `context` file says, an option a line, `OPTION
+VALUE`, for every user before the first line `[USER]` and for that user
+under it: the users' order, which a run with more than one needs; the
+tie rule for the server's tasks (`tasks first|last`); a request's round
+trip (`rtt 100ms`); how long a kind of act takes (`click 400ms`); and
+how the browser is set up, in Playwright's names for a browser context
 (`viewport 800x600`, `device_scale_factor 2`, `color_scheme dark`,
 `reduced_motion reduce`, `forced_colors active`, `locale de-DE`,
-`timezone_id Europe/Berlin`, `has_touch yes`, `user_agent ...`); what no
-file gives is the engine's own.  Beside each step, for every tab open
-after it, what the page showed (`NAME.USER.TAB.page.html`: the DOM as
-HTML, its path in a comment, scripts, styles and handlers left out, the
-live value of every field in, `hidden` on what is not shown, and
-`autofocus` on the field that has the focus when that is one typed into,
-since whether a button or a checkbox takes the focus on a click is the
-platform's convention and not the engine's), what it fetched
-(`NAME.USER.TAB.requests`), its dialogs and console when there were any;
-and for the step the server's side as for a request (`NAME.dml.sql`,
-`NAME.stdout`, `NAME.stderr`).  `urt snapshot --screenshot` shoots
-every tab after every step as well, the whole page as the engine draws
-it, into the run's `screenshots/` as `NAME.USER.TAB.ENGINE.png`: for
-looking at when a record wants explaining, not for comparing, since no
-two engines draw alike; git ignores the directory, and the records are
-the same with and without.  `urt snapshot --record` films every tab
-from its opening to its closing, into the run's `recordings/` as
-`USER.TAB.ENGINE.webm`, a pointer drawn in since a headless engine
-draws none, with a `USER.TAB.ENGINE.vtt` beside it, a cue per action
-saying the step, the action and the page's time, and an `index.html`
-that plays them with their cues; the same rules.  Every run is driven through three
-engines, Chromium, Firefox and WebKit (an `engines` file in the run
-names fewer), by `urt-browse` beside `urt`, through Playwright for
-Python: `urt snapshot` starts the application as for a request-response
-run, once per engine, and the driver sends the engine through it,
-settling after every action (no request open but the `/.msgs` poll, and
-a turn of every page's timers with nothing new).  The browser itself is
-started once per engine for all the runs of a `urt snapshot`, since
-starting one takes seconds; what a run gets afresh is its contexts, one
-per user, which is where cookies, storage and the clock live.  A request
-for any other server is refused by the driver and recorded as such: a
-run drives this application, and the network is not its business; what
-its pages need, the application serves (the `file` directive of the
-.urp).  The engines agree on nearly everything, since the driver levels
-what they do on their own (no engine caches or fetches a favicon, the
-page's clock is Playwright's), and a record they agree on is one file;
-one that an engine records differently is that engine's own, named with
-the engine after the record's kind so that it sorts beside the shared
-one (`NAME.USER.TAB.page.firefox.html` beside `NAME.USER.TAB.page.html`,
+`timezone_id Europe/Berlin`, `has_touch yes`, `user_agent ...`), every
+user's browser being 1024x768, `en-US`, `UTC` and the user agent `urt`
+unless it says otherwise; what it does not give is the engine's own.
+
+There is one clock, for the pages, the server and the users, and it is
+logical: it starts at the epoch and moves from one thing due to the
+next, as fast as they get done, nothing waiting on the wall clock.  A
+user's act takes the time it takes a person, a request reaches the
+server half a round trip after the page sent it (with its time in an
+`UrWeb-Time` header) and its answer the page half a round trip later, a
+page's timer fires when it is due (Playwright's clock, moved by the
+driver, one per page), and a task of the server's when it is due
+(`/.clock?advance=T` moves the server on).  What is due at the same time
+is done in a fixed order: the server's part first, its tasks and the
+requests arriving in the order the context's tie rule says; then the
+pages' timers and the answers coming back; then the users' input, in the
+users' order.  A run comes out the same every time, on any machine, and
+`NAME.timeline` says what happened when: every line of the step, from
+when the user took it to when it was done, and every request, from when
+the page sent it to when the answer came back.  An action is done when
+what it set off is done -- its requests answered, and those sent on
+their answers, the pages it loads loaded, its dialogs answered -- but
+not timers due later, nor the poll; with `[async]` the user goes on
+once their own act is done.  A dialog is answered as a line before it
+said (`dialog accept`, `dialog dismiss`, `dialog answer TEXT`), a second
+after it shows unless the line or the context gives another time; one
+that no line answers is accepted.  A last line `wait T` in a step, for
+no user, lets T pass for everyone before the records are taken.
+
+Beside each step, for every tab open after it, what the page showed
+(`NAME.USER.TAB.page.html`: the DOM as HTML, its path in a comment,
+scripts, styles and handlers left out, the live value of every field
+in, `hidden` on what is not shown, and `autofocus` on the field that
+has the focus when that is one typed into, since whether a button or a
+checkbox takes the focus on a click is the platform's convention and not
+the engine's), what it fetched (`NAME.USER.TAB.requests`), its dialogs
+and console when there were any; and for the step its timeline and the
+server's side as for a request (`NAME.dml.sql`, `NAME.stdout`,
+`NAME.stderr`).  `urt snapshot --screenshot` shoots every tab after
+every step as well, the whole page as the engine draws it, into the
+run's `screenshots/` as `NAME.USER.TAB.ENGINE.png`: for looking at when
+a record wants explaining, not for comparing, since no two engines draw
+alike; git ignores the directory, and the records are the same with and
+without.  `urt snapshot --record` films every tab from its opening to
+its closing, into the run's `recordings/` as `USER.TAB.ENGINE.webm`, a
+pointer drawn in since a headless engine draws none, with a
+`USER.TAB.ENGINE.vtt` beside it, a cue per action saying the step, the
+action and the page's time, and an `index.html` that plays them with
+their cues; the same rules.  Every run is driven through three engines,
+Chromium, Firefox and WebKit (an `engines` file in the run names fewer),
+by `urt-browse` beside `urt`, through Playwright for Python: `urt
+snapshot` starts the application as for a request-response run, once
+per engine, its tasks after the requests due with them unless the
+context says otherwise, and the driver sends the engine through it.
+The browser itself is started once per engine for all the runs of a
+`urt snapshot`, since starting one takes seconds; what a run gets afresh
+is its contexts, one per user, which is where cookies, storage and the
+clock live.  A request for any other server is refused by the driver
+and recorded as such: a run drives this application, and the network is
+not its business; what its pages need, the application serves (the
+`file` directive of the .urp).  The engines agree on nearly everything,
+since the driver levels what they do on their own (no engine caches or
+fetches a favicon, every request goes through the driver, the clock is
+the driver's), and a record they agree on is one file; one that an
+engine records differently is that engine's own, named with the engine
+after the record's kind so that it sorts beside the shared one
+(`NAME.USER.TAB.page.firefox.html` beside `NAME.USER.TAB.page.html`,
 `NAME.stdout.firefox` beside `NAME.stdout`), and what that engine is
 compared against.  Recording goes by the majority, a tie to the engine
-first in the order above, and an own file whose engine has come to agree
-goes again.  The pages' clock stands still from the run's start and
-`tick N` moves it, one user's browser after another, each settled before
-the next, so `sleep`, the client timeout and periodic work happen when a
-step says and reach the server in one order, and a run repeats byte for
-byte.  A step that cannot be done (no such element, two of them, a wait
-that times out) stops the run, as a request that cannot be sent does:
-the step's `NAME.error` holds the engine's complaint, beside the records
-of the page as the engine found it, the records of the steps after it
-go, and the run fails, with the complaint under its verdict, until it
-gets past the step again.  An engine that stops where the others go on
-has its own `NAME.error.ENGINE` and, for what it did not record after
-that, own files that are empty; where it is the majority that stops, the
-`NAME.error` is the shared one and the engine that went on has the own
-files.  One such difference is the engines' own and stays: `back` to a
-page that answered a POST sends the POST again in Chromium and WebKit,
-and Firefox, which keeps no such page, refuses, so there the step cannot
-be done and its complaint says why; a run meant for every engine opens
-the page instead.  (The cure is in the application server: answer a
-form's POST with a redirect to a GET, so that no POST stays in the
-history.)  Browser runs need `urt-browse`, python3 with Playwright, and
-the engines where `PLAYWRIGHT_BROWSERS_PATH` says; the compiler's
-`nix-shell` and its package with urt have all of it.
+first in the order above, and an own file whose engine has come to
+agree goes again.  A step that cannot be done (no such element, two of
+them, an `until` whose element does not come in time) stops the run, as
+a request that cannot be sent does: the step's `NAME.error` holds the
+engine's complaint, beside the records of the page as the engine found
+it, the records of the steps after it go, and the run fails, with the
+complaint under its verdict, until it gets past the step again.  An
+engine that stops where the others go on has its own `NAME.error.ENGINE`
+and, for what it did not record after that, own files that are empty;
+where it is the majority that stops, the `NAME.error` is the shared one
+and the engine that went on has the own files.  One such difference is
+the engines' own and stays: `back` to a page that answered a POST sends
+the POST again in Chromium and WebKit, and Firefox, which keeps no such
+page, refuses, so there the step cannot be done and its complaint says
+why; a run meant for every engine opens the page instead.  (The cure is
+in the application server: answer a form's POST with a redirect to a
+GET, so that no POST stays in the history.)  Browser runs need
+`urt-browse`, python3 with Playwright, and the engines where
+`PLAYWRIGHT_BROWSERS_PATH` says; the compiler's `nix-shell` and its
+package with urt have all of it.
 
 `urt format`, `urt fmt`
 -----------------------

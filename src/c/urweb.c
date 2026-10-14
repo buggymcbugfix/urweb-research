@@ -263,6 +263,19 @@ static void release_client(client *c) {
 
 static const char begin_msgs[] = "Content-type: text/plain\r\n\r\n";
 static pthread_t pruning_thread;
+
+// How many /.msgs requests have been answered or closed: whoever drives a
+// logical clock (reproducible.c) learns from it which of the polls it has
+// sent are over, as of the last thing the server did.
+static unsigned long polls_released = 0;
+
+unsigned long uw_polls_released(void) {
+  return __atomic_load_n(&polls_released, __ATOMIC_SEQ_CST);
+}
+
+static void poll_released(void) {
+  __atomic_add_fetch(&polls_released, 1, __ATOMIC_SEQ_CST);
+}
 static int pruning_thread_initialized = 0;
 
 static client *find_client(unsigned id) {
@@ -294,6 +307,7 @@ static void chastise(int (*send)(int sockfd, const void *buf, ssize_t len), int 
   send(sock, begin_msgs, sizeof(begin_msgs) - 1);
   send(sock, "R", 1);
   close(sock);
+  poll_released();
 }
 
 void uw_client_connect(unsigned id, int pass, int sock,
@@ -327,6 +341,7 @@ void uw_client_connect(unsigned id, int pass, int sock,
   if (c->sock != -1) {
     c->close(c->sock);
     c->sock = -1;
+    poll_released();
   }
 
   c->last_contact = now_seconds();
@@ -337,6 +352,7 @@ void uw_client_connect(unsigned id, int pass, int sock,
     send(sock, c->msgs.start, uw_buffer_used(&c->msgs));
     uw_buffer_reset(&c->msgs);
     close(sock);
+    poll_released();
   }
   else {
     c->sock = sock;
@@ -375,6 +391,7 @@ static void client_send(client *c, uw_buffer *msg, const char *script, int scrip
     c->send(c->sock, msg->start, uw_buffer_used(msg));
     c->close(c->sock);
     c->sock = -1;
+    poll_released();
   } else if (uw_buffer_append(&c->msgs, msg->start, uw_buffer_used(msg)))
     fprintf(stderr, "Client message buffer size exceeded");
 

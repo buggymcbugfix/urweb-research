@@ -1,0 +1,2 @@
+0.200 0.400 user: fill 'input >> nth=0' 'apples'
+0.400 0.800 user: click 'text=Add'

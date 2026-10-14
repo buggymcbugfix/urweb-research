@@ -30,8 +30,9 @@
 #   /.clock    the logical clock, as the runtime has it when urt pins it
 #              (src/c/reproducible.c): ?advance=T does what is due before T
 #              (milliseconds since the Unix epoch), and the answer says when
-#              the next thing is due, `next T` or `next none`; a request is
-#              made at the time its UrWeb-Time header says
+#              the next thing is due, `next T` or `next none`, and then
+#              `released 0`, there being no polls; a request is made at the
+#              time its UrWeb-Time header says
 #
 # APP_PIDFILE names a file that the process that serves writes its pid
 # to, and removes when it is stopped, for a transcript to see whether it
@@ -188,7 +189,7 @@ while True:
                 _, _, what, args = due.pop(0)
                 what(*args)
         due.sort()
-        answer = b"next %d\n" % due[0][0] if due else b"next none\n"
+        answer = (b"next %d\n" % due[0][0] if due else b"next none\n") + b"released 0\n"
         c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
                   % len(answer) + answer)
         c.close()

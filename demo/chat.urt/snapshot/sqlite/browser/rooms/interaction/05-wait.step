@@ -1,1 +1,1 @@
-bob.1: wait 'text=hello'
+Bernd: until 'text=hello'

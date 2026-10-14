@@ -1,0 +1,2 @@
+0.000 0.100 user.1: GET /Cookie/main 200
+0.000 0.100 user: open /Cookie/main [target=1]

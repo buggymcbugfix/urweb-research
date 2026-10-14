@@ -1,1 +1,1 @@
-user.1: click 'text=Increment'
+user: click 'text=Increment'

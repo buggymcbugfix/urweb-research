@@ -1,0 +1,3 @@
+user:
+	select 'select' 'a'
+	check 'input[type=checkbox]'

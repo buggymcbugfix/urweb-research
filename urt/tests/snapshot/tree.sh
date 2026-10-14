@@ -356,13 +356,14 @@ brun() {
     mkdir -p "$1/interaction"
     : > "$1/args"
     printf 'secret signature\n' > "$1/secret"
-    printf 'user.1: open /\n' > "$1/interaction/01.step"
+    printf 'user: open / [target=1]\n' > "$1/interaction/01.step"
 }
 proj runs web
 snap runs/web.urt/snapshot/1 exitcode
 brun runs/web.urt/snapshot/1/browser/first
-printf "user.1: fill 'input[name=name]' 'tea kettle'\nuser.1: click 'text=Add'\nbob.1: open /\nbob.1: wait 'text=1 item'\n" \
+printf "user: fill 'input[name=name]' 'tea kettle'\nuser: click 'text=Add'\nBernd:\n\topen / [target=1]\n\tuntil 'text=1 item'\n" \
     > runs/web.urt/snapshot/1/browser/first/interaction/02-add.step
+printf 'order user Bernd\n' > runs/web.urt/snapshot/1/browser/first/context
 printf 'In a browser.\n' > runs/web.urt/snapshot/1/browser/first/README.md
 mkdir -p runs/web.urt/snapshot/1/browser/first/screenshots/old runs/web.urt/snapshot/1/browser/first/recordings
 : > runs/web.urt/snapshot/1/browser/first/recordings/user.1.chromium.webm
@@ -418,17 +419,54 @@ brun runs/webunready.urt/snapshot/1/browser/a
 rm runs/webunready.urt/snapshot/1/browser/a/secret
 brun runs/webunready.urt/snapshot/1/browser/steps
 cd runs/webunready.urt/snapshot/1/browser/steps/interaction
-printf "user.1: click 'text=Add'\nclick 'text=Add'\nuser.1:\nfirefox.1: open /\nuser.1.2: open /\nbob: open /\n" > 01.step
-printf 'user.1: open main\nuser.1: frob x\nuser.1: fill a\nuser.1: press\nuser.1: dialog maybe\nuser.1: tick -1\nuser.1: wait a b\nuser.1: back now\n' > 02.step
+cat > 01.step <<'STEP'
+user.1: click 'text=Add'
+click 'text=Add'
+user: click 'text=Add'
+Bernd: open / [target=1]
+Bernd: tab 1
+	fill 'a' 'b'
+STEP
+cat > 02.step <<'STEP'
+user: open main [target=1]
+user: frob x
+user: fill 'a'
+user: press
+user: dialog maybe
+user: wait 1
+user: until 'a' gone [5]
+user: back now
+user: click 'x' [at=here]
+user: click 'x' [target=a.b]
+user: click "x"
+user: label "mine"
+user: after user."mine"
+user: after Bernd."nope"
+user: wait 1s [async]
+user: click 'x' (at=1,1)
+user: fill 'a' "b"
+STEP
 printf '# nothing yet\n' > 03.step
-printf "user.1: open /main 'never closed\n" > 04.step
-printf "user.1: select 'select'\nuser.1: close\nuser.1: click x\nuser.2: close\n" > 05.step
+printf "user: open /main 'never closed\n" > 04.step
+printf "user:\n  click 'x'\n\tclose\n\tclose\nwait 1s\nuser: wait 1s\n" > 05.step
 cd "$root"
-# The users' contexts are read with the steps.
-printf 'viewport big\ndevice_scale_factor 0\nfrob 1\nlocale\ncolor_scheme bright\nhas_touch yes\nhas_touch no\n' \
-    > runs/webunready.urt/snapshot/1/browser/steps/user.context
-printf 'color_scheme dark\n' > runs/webunready.urt/snapshot/1/browser/steps/bob.context
-: > runs/webunready.urt/snapshot/1/browser/steps/ann.context
+# The run's context is read with the steps.
+cat > runs/webunready.urt/snapshot/1/browser/steps/context <<'CONTEXT'
+viewport big
+device_scale_factor 0
+frob 1
+locale
+color_scheme bright
+has_touch yes
+has_touch no
+order user
+tasks sometimes
+rtt fast
+[Bernd]
+order Bernd
+click 2
+[Carlos]
+CONTEXT
 brun runs/webunready.urt/snapshot/1/browser/threads
 printf -- '-t 2\n' > runs/webunready.urt/snapshot/1/browser/threads/args
 brun runs/webunready.urt/snapshot/1/browser/engines-none

@@ -1,1 +1,1 @@
-user.1: open /Counter/main
+user: open /Counter/main [target=1]

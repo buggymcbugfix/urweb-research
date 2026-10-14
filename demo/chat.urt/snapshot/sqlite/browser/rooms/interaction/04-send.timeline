@@ -1,0 +1,7 @@
+1.400 2.200 Alice.1: POST /.msgs 200
+1.500 1.700 Alice: fill 'input[type=text]' 'hello'
+1.500 2.200 Bernd.1: POST /.msgs 200
+1.700 2.200 Alice: click 'text=Send:'
+2.100 2.200 Alice.1: POST /Chat/speak/1/hello 200
+2.200 ... Alice.1: POST /.msgs ...
+2.200 ... Bernd.1: POST /.msgs ...

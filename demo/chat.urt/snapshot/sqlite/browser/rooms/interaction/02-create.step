@@ -1,2 +1,2 @@
-ann.1: fill 'input[name=Title]' lounge
-ann.1: click 'input[type=submit]'
+Alice: fill 'input[name=Title]' 'lounge'
+Alice: click 'input[type=submit]'

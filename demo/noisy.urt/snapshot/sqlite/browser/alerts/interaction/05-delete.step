@@ -1,2 +1,2 @@
-user.1: fill 'input >> nth=2' 1
-user.1: click 'text=Delete'
+user: fill 'input >> nth=2' '1'
+user: click 'text=Delete'

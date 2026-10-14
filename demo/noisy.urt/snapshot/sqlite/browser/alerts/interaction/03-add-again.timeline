@@ -1,0 +1,4 @@
+1.100 1.300 user: fill 'input >> nth=0' '2'
+1.300 1.500 user: fill 'input >> nth=1' 'two'
+1.500 2.000 user: click 'text=Add'
+1.900 2.000 user.1: POST /Noisy/add/2/two 200

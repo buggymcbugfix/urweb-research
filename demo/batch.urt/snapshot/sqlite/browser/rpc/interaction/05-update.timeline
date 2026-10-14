@@ -1,0 +1,2 @@
+2.300 2.800 user: click 'text=Update'
+2.700 2.800 user.1: POST /Batch/allRows/_ 200

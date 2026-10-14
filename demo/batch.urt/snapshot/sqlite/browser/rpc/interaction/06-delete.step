@@ -1,1 +1,1 @@
-user.1: click 'text=Delete >> nth=0'
+user: click 'text=Delete >> nth=0'

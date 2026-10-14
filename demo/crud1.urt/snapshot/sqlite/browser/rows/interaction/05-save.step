@@ -1,2 +1,2 @@
-user.1: fill 'input[name=B]' changed
-user.1: click 'input[type=submit]'
+user: fill 'input[name=B]' 'changed'
+user: click 'input[type=submit]'

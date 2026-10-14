@@ -1,0 +1,3 @@
+3.200 3.400 user: fill 'input[name=B]' 'changed'
+3.400 3.900 user: click 'input[type=submit]'
+3.800 3.900 user.1: POST /Crud1/save/1 200

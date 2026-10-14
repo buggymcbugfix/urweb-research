@@ -435,7 +435,8 @@ int server_clock(const struct server *s, long long advance, long long *next, cha
         return -1;
     }
     body += 4;
-    if (!strcmp(body, "next none\n")) {
+    /* The first line is ours; what follows (released N) is a driver's. */
+    if (!strncmp(body, "next none\n", 10)) {
         return 0;
     }
     if (sscanf(body, "next %lld", next) == 1) {

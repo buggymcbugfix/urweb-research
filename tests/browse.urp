@@ -1,0 +1,4 @@
+database dbname=browse
+rewrite all Browse/*
+
+browse

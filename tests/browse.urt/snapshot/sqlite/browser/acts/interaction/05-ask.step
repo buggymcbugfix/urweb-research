@@ -1,0 +1,4 @@
+user: dialog dismiss
+user: click 'text=Ask'
+user: dialog accept [2s]
+user: click 'text=Ask'

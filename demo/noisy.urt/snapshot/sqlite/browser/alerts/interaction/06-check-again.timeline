@@ -1,0 +1,7 @@
+6.400 6.400 user: dialog accept
+6.400 6.400 user: dialog accept
+6.400 6.400 user: dialog dismiss
+6.400 10.100 user: click 'text=Check values'
+6.800 6.900 user.1: POST /Noisy/lookup/1 200
+7.900 8.000 user.1: POST /Noisy/lookup/2 200
+9.000 9.100 user.1: POST /Noisy/lookup/3 200

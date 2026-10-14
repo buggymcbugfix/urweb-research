@@ -1,1 +1,1 @@
-user.1: click 'text=Check values'
+user: click 'text=Check values'

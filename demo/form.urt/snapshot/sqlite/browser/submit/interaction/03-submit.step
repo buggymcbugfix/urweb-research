@@ -1,1 +1,1 @@
-user.1: click 'input[type=submit]'
+user: click 'input[type=submit]'

@@ -1,0 +1,2 @@
+0.750 1.250 user: select 'select' 'a'
+1.250 1.650 user: check 'input[type=checkbox]'

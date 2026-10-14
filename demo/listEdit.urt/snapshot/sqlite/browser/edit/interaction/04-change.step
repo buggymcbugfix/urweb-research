@@ -1,2 +1,2 @@
-user.1: fill 'input >> nth=1' cherries
-user.1: click 'text=Change to: >> nth=0'
+user: fill 'input >> nth=1' 'cherries'
+user: click 'text=Change to: >> nth=0'
