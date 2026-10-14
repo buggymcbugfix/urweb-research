@@ -1,0 +1,2 @@
+urt snapshot runs/serves-env-blank
+cd runs/serves-env-blank.urt/snapshot/1/request-response && for f in */interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tail -n 1 "$f"; done

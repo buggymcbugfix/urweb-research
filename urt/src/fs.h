@@ -100,7 +100,8 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
  * exited, with its status in *status; NULL if it could not be started.
  * If the descriptor is not closed within the seconds given, what was
  * written so far comes back with *status = -1, and the program has
- * been killed (its offspring, if it has any by then, has not). */
+ * been killed (its offspring, if it has any by then, has not).  A
+ * program that cannot be run exits 127 with the reason in err_path. */
 char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int seconds, int *status);
 
 /* Whether the PATH has a program of that name. */

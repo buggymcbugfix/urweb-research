@@ -1,0 +1,2 @@
+urt snapshot runs/serves-env-cr
+cd runs/serves-env-cr.urt/snapshot/1/request-response && for f in */interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tail -n 1 "$f" | sed 's/\r/<CR>/g'; done

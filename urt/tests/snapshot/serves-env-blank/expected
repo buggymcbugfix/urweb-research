@@ -1,0 +1,13 @@
+$ urt snapshot runs/serves-env-blank
+UPDATED runs/serves-env-blank.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-env-blank.urt/snapshot/1/request-response/a (interaction/01.response)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ cd runs/serves-env-blank.urt/snapshot/1/request-response && for f in */interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tail -n 1 "$f"; done
+== a/interaction/01.response
+APP_B=2
+exit 0
+$ changes
+added: ./runs/serves-env-blank.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-env-blank.urt/snapshot/1/expected/exitcode
+added (164 bytes): ./runs/serves-env-blank.urt/snapshot/1/request-response/a/interaction/01.response

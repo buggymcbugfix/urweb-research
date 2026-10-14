@@ -18,6 +18,8 @@
 #   /die       an answer, and then the server exits
 #   /corrupt   an answer, after the database ($URWEB_SQLITE_DB_PATH) has
 #              been overwritten with garbage
+#   /env/NAME  an answer that ends in NAME=value, as the environment has it,
+#              or in "NAME is not set"
 #
 # APP_PIDFILE names a file that the process that serves writes its pid
 # to, and removes when it is stopped, for a transcript to see whether it
@@ -158,6 +160,10 @@ while True:
         with open(os.environ["URWEB_SQLITE_DB_PATH"], "wb") as db:
             db.write(b"not a database " * 64)
     echo = b"%d: " % served + lines[0] + b"\n" + b"\n".join(sorted(lines[1:])) + b"\n\n" + body
+    if path.startswith("/env/"):
+        name = path[len("/env/"):]
+        value = os.environ.get(name)
+        echo += (("%s=%s\n" % (name, value)) if value is not None else ("%s is not set\n" % name)).encode()
     c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
               % len(echo) + echo)
     c.close()

@@ -1,0 +1,10 @@
+$ urt snapshot runs/serves-env-bad
+ERROR runs/serves-env-bad.urt/snapshot/1/request-response/bad/env:1 sets TZ, which urt sets itself
+it is part of what makes a run repeat, or of what urt reads back
+ERROR runs/serves-env-bad.urt/snapshot/1/request-response/bad/env:2 is not NAME=value
+ERROR runs/serves-env-bad.urt/snapshot/1/request-response/bad/env:3: 1APP cannot name an environment variable
+a name is letters, digits and _, not starting with a digit
+ERROR runs/serves-env-bad.urt/snapshot/1/request-response/bad/env:5 sets APP_TWICE a second time
+0 cases, in T
+exit 1
+$ changes

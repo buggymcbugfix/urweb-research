@@ -1,0 +1,26 @@
+$ urt snapshot runs/serves-env
+UPDATED runs/serves-env.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-env.urt/snapshot/1/request-response/env (interaction/01.response, interaction/02.response, interaction/03.response)
+UPDATED runs/serves-env.urt/snapshot/1/request-response/plain (interaction/01.response, interaction/02.response)
+1 case and 2 runs: 3 updated, in T
+exit 0
+$ cd runs/serves-env.urt/snapshot/1/request-response && for f in */interaction/*.response; do echo "== $f"; tr -d '\r' < "$f" | tail -n 1; done
+== env/interaction/01.response
+APP_GREETING=hello, run
+== env/interaction/02.response
+APP_EMPTY=
+== env/interaction/03.response
+APP_OUTSIDE=outside
+== plain/interaction/01.response
+APP_GREETING=outside
+== plain/interaction/02.response
+APP_EMPTY is not set
+exit 0
+$ changes
+added: ./runs/serves-env.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-env.urt/snapshot/1/expected/exitcode
+added (188 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/01.response
+added (171 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/02.response
+added (182 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/03.response
+added (185 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.response
+added (181 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/02.response

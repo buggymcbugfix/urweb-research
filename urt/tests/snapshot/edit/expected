@@ -512,7 +512,7 @@ delete it, or move it where it goes
 WARN broken/twins.urt/snapshot: cases four, three pass the same args (none); one case would do
 WARN broken/twins.urt/snapshot: cases one, two pass the same args (-dbms sqlite); one case would do
 ERROR runs/stray.urt/snapshot/1/request-response/a/cookies.txt does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/02.response answers no request
@@ -522,19 +522,19 @@ there is no runs/stray.urt/snapshot/1/request-response/a/interaction/03.request;
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/04.stderr answers no request
 there is no runs/stray.urt/snapshot/1/request-response/a/interaction/04.request; delete the one, or write the other
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/notes does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/log does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/more does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/stdout does not belong in a run
-a run holds args, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.response, NAME.sql, NAME.stdout
 and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
 shutdown.stderr and db_final.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run

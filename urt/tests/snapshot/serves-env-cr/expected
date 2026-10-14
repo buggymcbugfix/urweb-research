@@ -1,0 +1,8 @@
+$ urt snapshot runs/serves-env-cr
+ERROR runs/serves-env-cr.urt/snapshot/1/request-response/a/env:1: the value of APP_A holds a control character
+a line ends in LF or CRLF, and a value holds no other control character than a tab
+0 cases, in T
+exit 1
+$ cd runs/serves-env-cr.urt/snapshot/1/request-response && for f in */interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tail -n 1 "$f" | sed 's/\r/<CR>/g'; done
+exit 0
+$ changes
