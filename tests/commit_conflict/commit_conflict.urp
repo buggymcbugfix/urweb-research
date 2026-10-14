@@ -1,0 +1,15 @@
+database dbname=commit_conflict.db
+ffi conflict
+include conflict.h
+link conflict.c
+effectful Conflict.step
+effectful Conflict.armOnce
+effectful Conflict.inTxn
+allow env COMMIT_CONFLICT_MODE
+allow url /Commit_conflict/*
+safeGet Commit_conflict/main
+safeGet Commit_conflict/rows
+
+$/list
+$/option
+commit_conflict
