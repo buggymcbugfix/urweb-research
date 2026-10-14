@@ -1,0 +1,3 @@
+Fatal error in periodic task: boom without a transaction
+Rollback error: cannot rollback - no transaction is active<br />Error running SQL ROLLBACK
+Periodic task continues after the failed rollback
