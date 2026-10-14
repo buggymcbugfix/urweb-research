@@ -1,0 +1,9 @@
+$ urt snapshot runs/serves-dotwait
+ERROR runs/serves-dotwait.urt/snapshot/1/request-response/a/interaction/02.request: No such file or directory
+0 cases, in T
+exit 1
+$ ls runs/serves-dotwait.urt/snapshot/1/request-response/a/interaction
+01.request
+02.wait.request
+exit 0
+$ changes

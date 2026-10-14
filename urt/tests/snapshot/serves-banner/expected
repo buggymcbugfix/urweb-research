@@ -1,0 +1,14 @@
+$ urt snapshot runs/serves-banner
+UPDATED runs/serves-banner.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-banner.urt/snapshot/1/request-response/a (interaction/02-die.response)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ cd runs/serves-banner.urt/snapshot/1/request-response/a && ls interaction && for f in interaction/* out/*; do case $f in *.stdout|*.stderr) echo "== $f"; cat "$f";; esac; done
+01-in.wait
+02-die.request
+02-die.response
+exit 0
+$ changes
+added: ./runs/serves-banner.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-banner.urt/snapshot/1/expected/exitcode
+added (150 bytes): ./runs/serves-banner.urt/snapshot/1/request-response/a/interaction/02-die.response

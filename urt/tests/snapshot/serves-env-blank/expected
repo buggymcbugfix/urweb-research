@@ -1,0 +1,7 @@
+$ urt snapshot runs/serves-env-blank
+ERROR runs/serves-env-blank.urt/snapshot/1/request-response/a/env:2 is not NAME=value
+0 cases, in T
+exit 1
+$ cd runs/serves-env-blank.urt/snapshot/1/request-response && for f in */interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tail -n 1 "$f"; done
+exit 0
+$ changes

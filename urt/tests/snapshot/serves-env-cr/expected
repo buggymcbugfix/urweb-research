@@ -1,0 +1,16 @@
+$ urt snapshot runs/serves-env-cr
+UPDATED runs/serves-env-cr.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-env-cr.urt/snapshot/1/request-response/a (interaction/01.response, interaction/02.response)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ cd runs/serves-env-cr.urt/snapshot/1/request-response && for f in */interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tail -n 1 "$f" | sed 's/\r/<CR>/g'; done
+== a/interaction/01.response
+APP_A=1<CR>APP_B=2
+== a/interaction/02.response
+APP_B is not set
+exit 0
+$ changes
+added: ./runs/serves-env-cr.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-env-cr.urt/snapshot/1/expected/exitcode
+added (172 bytes): ./runs/serves-env-cr.urt/snapshot/1/request-response/a/interaction/01.response
+added (173 bytes): ./runs/serves-env-cr.urt/snapshot/1/request-response/a/interaction/02.response
