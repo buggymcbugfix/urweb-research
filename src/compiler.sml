@@ -379,7 +379,10 @@ fun p_job (job : job) =
                   bool ("Profile", #profile job),
                   opt ("Timeout", SOME (Int.toString (#timeout job)))]
                  @ files ("Ffi", #ffi job)
-                 @ files ("Link", #link job)
+                 @ each ("Link", map (fn s => if String.isPrefix "-I" s then
+                                                  "-I" ^ ErrorMsg.displayFile (String.extract (s, 2, NONE))
+                                              else
+                                                  ErrorMsg.displayFile s) (#link job))
                  @ [opt ("Linker", #linker job)]
                  @ files ("Header", #headers job)
                  @ each ("Script", #scripts job)
@@ -953,7 +956,16 @@ fun parseUrp' accLibs fname =
                                       timeout := SOME (valOf (Int.fromString arg)))
                                    | "ffi" => ffi := relify arg :: !ffi
                                    | "link" => let
-                                         val arg = if size arg >= 1
+                                         (* The directory after -I is where the C that
+                                          * compileC compiles finds headers, the sources
+                                          * named here among it, and like them it is
+                                          * relative to this file. *)
+                                         val arg = if String.isPrefix "-I" arg then
+                                                       case trimS (String.extract (arg, 2, NONE)) of
+                                                           "" => (ErrorMsg.error "link -I without a directory";
+                                                                  arg)
+                                                         | dir => "-I" ^ relifyA dir
+                                                   else if size arg >= 1
                                                       andalso String.sub (arg, 0) = #"-" then
                                                        arg
                                                    else
@@ -1831,11 +1843,33 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
 
         val extra = (if profile then " -pg" else "") ^ (if debug then " -g" else "")
 
+        val link' = rev (#1 (foldl (fn (s, (acc, set)) =>
+                                       if StringSet.member (set, s) then
+                                           (acc, set)
+                                       else
+                                           (s :: acc, StringSet.add (set, s)))
+                                   ([], StringSet.empty) link'))
+
+        (* -I, -D and -U among the files to link are for the compiles: the
+         * generated C includes the FFI headers that the sources below
+         * include too, and both have to see them alike. The linker has no
+         * use for them, nor a compile for the linker's flags (clang with
+         * -Werror refuses -l as unused). The directory of -I is a file
+         * name, made absolute by parseUrp; -D and -U are passed as
+         * written, like the linker's flags. *)
+        fun preprocessor s = List.exists (fn p => String.isPrefix p s) ["-I", "-D", "-U"]
+        val cpp = String.concat (map (fn s => if String.isPrefix "-I" s then
+                                                  " -I" ^ escapeFilename (String.extract (s, 2, NONE))
+                                              else
+                                                  " " ^ s)
+                                     (List.filter preprocessor link'))
+
         fun compileOne (cname, oname) =
             (Settings.getCCompiler ()) ^ " " ^ Config.ccArgs ^ " " ^ Config.pthreadCflags ^ " -Wimplicit -Werror -Wno-unused-value"
             ^ opt ^ " -I " ^ !Settings.configInclude
             ^ " " ^ !Settings.configIcuIncludes
             ^ " " ^ #compile proto
+            ^ cpp
             ^ " -c " ^ escapeFilename cname ^ " -o " ^ escapeFilename oname
             ^ extra
 
@@ -1846,12 +1880,6 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
          * urweb.h and its includes wherever this compiler has them; its
          * object goes beside the generated one and is linked in its place.
          * A file named twice is compiled once. *)
-        val link' = rev (#1 (foldl (fn (s, (acc, set)) =>
-                                       if StringSet.member (set, s) then
-                                           (acc, set)
-                                       else
-                                           (s :: acc, StringSet.add (set, s)))
-                                   ([], StringSet.empty) link'))
         val sources = #1 (foldr (fn (s, (acc, n)) =>
                                     if String.isSuffix ".c" s andalso not (String.isPrefix "-" s) then
                                         ((s, OS.Path.joinDirFile {dir = OS.Path.dir oname,
@@ -1886,7 +1914,7 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
 
         val link = link ^ extra
 
-        val link = foldl (fn (s, link) => link ^ " " ^ linked s) link link'
+        val link = foldl (fn (s, link) => if preprocessor s then link else link ^ " " ^ linked s) link link'
 
         fun system s =
             (if debug then
