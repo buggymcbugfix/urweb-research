@@ -1559,8 +1559,21 @@ void uw_write_header(uw_context ctx, uw_Basis_string s) {
   ctx->outHeaders.front += len;
 }
 
+// Whether the headers so far give the length, under any spelling of the
+// name: a file of the file directive is sent with Content-Length, and a
+// server that added its own Content-length would send two, which a strict
+// client refuses.
 int uw_has_contentLength(uw_context ctx) {
-  return strstr(ctx->outHeaders.start, "Content-length: ") != NULL;
+  const char *p = ctx->outHeaders.start;
+
+  while (p && *p) {
+    if (!strncasecmp(p, "Content-Length:", 15))
+      return 1;
+    p = strstr(p, "\r\n");
+    if (p)
+      p += 2;
+  }
+  return 0;
 }
 
 void uw_clear_headers(uw_context ctx) {
