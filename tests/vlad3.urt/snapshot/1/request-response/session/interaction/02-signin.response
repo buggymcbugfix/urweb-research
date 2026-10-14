@@ -2,7 +2,7 @@ HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Set-Cookie: Vlad3/user=vil.40example.2Eorg; path=/; httponly
 Connection: close
-Content-length: 115
+Content-Length: 115
 
 <!DOCTYPE html><html><head></head><body>
 Welcome vil@example.org. <a href="/Vlad3/logout">Logout</a>

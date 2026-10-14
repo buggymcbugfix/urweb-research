@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 202
+Content-Length: 202
 
 <!DOCTYPE html><html><head></head><body>
 <p>Are you sure you want to delete ID #2?</p>

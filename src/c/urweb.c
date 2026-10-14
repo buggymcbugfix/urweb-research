@@ -1577,9 +1577,8 @@ void uw_write_header(uw_context ctx, uw_Basis_string s) {
 }
 
 // Whether the headers so far give the length, under any spelling of the
-// name: a file of the file directive is sent with Content-Length, and a
-// server that added its own Content-length would send two, which a strict
-// client refuses.
+// name, so that the server adds none of its own: a strict client refuses a
+// response with two.
 int uw_has_contentLength(uw_context ctx) {
   const char *p = ctx->outHeaders.start;
 
@@ -4429,7 +4428,7 @@ __attribute__((noreturn)) void uw_return_blob(uw_context ctx, uw_Basis_blob b, u
   uw_write_header(ctx, on_success);
   uw_write_header(ctx, "Content-Type: ");
   uw_write_header(ctx, mimeType);
-  uw_write_header(ctx, "\r\nContent-length: ");
+  uw_write_header(ctx, "\r\nContent-Length: ");
   ctx_uw_buffer_check(ctx, "headers", &ctx->outHeaders, INTS_MAX);
   sprintf(ctx->outHeaders.front, "%lu%n", (unsigned long)b.size, &len);
   ctx->outHeaders.front += len;
@@ -4466,7 +4465,7 @@ __attribute__((noreturn)) void uw_return_blob_from_page(uw_context ctx, uw_Basis
   uw_write_header(ctx, on_success);
   uw_write_header(ctx, "Content-Type: ");
   uw_write_header(ctx, mimeType);
-  uw_write_header(ctx, "\r\nContent-length: ");
+  uw_write_header(ctx, "\r\nContent-Length: ");
   ctx_uw_buffer_check(ctx, "headers", &ctx->outHeaders, INTS_MAX);
   sprintf(ctx->outHeaders.front, "%lu%n", (unsigned long)uw_buffer_used(&ctx->page), &len);
   ctx->outHeaders.front += len;

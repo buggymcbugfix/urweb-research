@@ -1,7 +1,7 @@
 HTTP/1.1 500 Internal Server Error
 Content-type: text/html
 Connection: close
-Content-length: 94
+Content-Length: 94
 
 <html><head><title>Fatal Error</title></head><body>Fatal error: Missing input B
 </body></html>
