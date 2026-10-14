@@ -126,12 +126,16 @@ A step can wait instead of send, for what the application does on its own
   until still running
 
 and the run goes on once the server has printed a line holding the text after
-'until', the blanks around it aside, on stdout or stderr, since the step before
-ended.  What it printed and what the database saw meanwhile go under NAME, as
-for a request (NAME.stdout, NAME.stderr, NAME.sql); there is no response.  A
-wait lasts as long as it takes, not a set time, so that what is recorded does
-not depend on the machine; if the line has not come within 30 seconds, or the
-server is gone, the run fails.
+'until', the blanks around it aside, on stdout or stderr, since what the step
+before took.  A line counts as the recording has it: one of the server's own
+lines, which are dropped, does not.  What the server printed on that stream up
+to the end of the line, what it printed on the other, and what the database saw
+meanwhile go under NAME, as for a request (NAME.stdout, NAME.stderr, NAME.sql);
+there is no response.  What comes after the line on its stream is left to the
+next step; on the other stream and in the database it may land in either, so the
+line waited for is best printed last.  A wait lasts as long as it takes, not a
+set time, so that what is recorded does not depend on the machine; if the line
+has not come within 30 seconds, or the server is gone, the run fails.
 A wait that comes first takes what the server printed while starting as well,
 which then is not under out/: a task starts with the server, and whether its
 first lines come before the server says it is listening or after is a matter
