@@ -250,9 +250,10 @@ and their parameters, and what the context can say, OPTION VALUE a line, for
 every user before the first line [USER] and for that user under it: the users'
 order, which a run with more than one needs; whether the server's tasks due
 when a request arrives run before it or after; a request's round trip; how
-long a kind of act takes; and how a user's browser is set up (the window, the
-colour scheme, the locale, ...), every user's being 1024x768, en-US, UTC and
-the user agent 'urt' unless it says otherwise.  With --screenshot, every tab
+long a kind of act takes; how a hidden tab's timers are held back, as Chrome
+does unless it says otherwise; and how a user's browser is set up (the window,
+the colour scheme, the locale, ...), every user's being 1024x768, en-US, UTC
+and the user agent 'urt' unless it says otherwise.  With --screenshot, every tab
 is shot after every step as well, the whole page as the engine draws it, under
 the run's screenshots/ as NAME.USER.TAB.ENGINE.png, the directory emptied
 first: pictures to look at when a record wants explaining, which git ignores

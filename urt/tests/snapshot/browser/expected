@@ -137,14 +137,16 @@ ERROR runs/webunready.urt/snapshot/1/browser/steps has steps, or contexts, that 
     context: order names every user of the steps once; it leaves out Bernd
     context:1: viewport takes WxH, the window in pixels, as in 1024x768, not 'big'
     context:2: device_scale_factor takes a number above 0, not '0'
-    context:3: 'frob' is not an option; the options are order, tasks, rtt, the verbs' times (back, check, click, close, dblclick, dialog, drag, fill, focus, forward, hover, open, press, reload, select, swipe, tab, type, uncheck, until, wheel), and viewport, device_scale_factor, color_scheme, reduced_motion, forced_colors, locale, timezone_id, has_touch, user_agent
+    context:3: 'frob' is not an option; the options are order, tasks, rtt, throttle, the verbs' times (back, check, click, close, dblclick, dialog, drag, fill, focus, forward, hover, open, press, reload, select, swipe, tab, type, uncheck, until, wheel), and viewport, device_scale_factor, color_scheme, reduced_motion, forced_colors, locale, timezone_id, has_touch, user_agent
     context:4: locale takes one value
     context:5: color_scheme takes light, dark or no-preference, not 'bright'
     context:7: has_touch is given twice
     context:9: tasks takes 'first' or 'last': whether the server's tasks due at a time come before or after the requests arriving then
     context:10: rtt takes a time, a number and its unit: 150ms, 2s
-    context:12: order is the run's, not a user's: it goes before the first [USER]
-    context:13: click takes a time, a number and its unit: 150ms, 2s
+    context:11: throttle takes AFTER EVERY [chained], two times: once a tab has been hidden for AFTER, its timers wait for the next multiple of EVERY (only those set from a timer five deep, with chained); or none
+    context:13: throttle none goes alone
+    context:15: order is the run's, not a user's: it goes before the first [USER]
+    context:16: click takes a time, a number and its unit: 150ms, 2s
 ERROR runs/webunready.urt/snapshot/1/browser/threads/args asks for threads, with -t
 a run's requests are sent one after the other, so one thread serves them all;
 with more, which one answers is a matter of chance, and the server's output with it

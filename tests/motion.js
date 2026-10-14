@@ -76,4 +76,15 @@ function motionSetup() {
     window.addEventListener('focus', () => say('focus'));
     window.addEventListener('blur', () => say('blur'));
     button('Later', () => { say('later'); setTimeout(() => { say('alert'); alert('later'); say('alerted'); }, 1000); });
+
+    // A chain of timers, each set from the one before, 250ms apart unless
+    // held back; the log says whenever the gap between two changes.
+    let lastTick = null, lastGap = null;
+    const tick = () => {
+        const t = Math.round(performance.now());
+        if (lastTick !== null && t - lastTick !== lastGap) { lastGap = t - lastTick; say('ticks ' + lastGap + 'ms apart'); }
+        lastTick = t;
+        setTimeout(tick, 250);
+    };
+    button('Tick', () => { say('tick'); setTimeout(tick, 250); });
 }

@@ -1,0 +1,6 @@
+order Carlos Farid
+
+# Farid has Chrome's, the default; Carlos his own.
+[Carlos]
+throttle 0s 500ms
+throttle 1min 5s chained

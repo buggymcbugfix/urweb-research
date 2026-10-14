@@ -159,6 +159,16 @@ before the first line [USER], and that user with what is under it:
     tasks first|last        the server's tasks due when requests arrive come
                             before them (the default) or after
     rtt T                   a request's round trip, 100ms unless given
+    throttle AFTER EVERY [chained]
+                            once a tab has been hidden for AFTER, a timer of
+                            its page due meanwhile waits for the next multiple
+                            of EVERY on the clock, with chained only one set
+                            from a timer five deep; a line a tier, the last
+                            that applies counting, and the tab's return
+                            running what waits.  Unless given, Chrome's:
+                            'throttle 0s 1s' and 'throttle 5min 1min
+                            chained'; 'throttle none' for no throttling.  A
+                            user's lines take the place of everyone's
     VERB T                  how long the verb's act takes unless an action
                             says: click 400ms, dblclick, hover, check, uncheck
                             400ms, drag 1s, swipe 300ms, wheel 300ms, type
@@ -797,11 +807,19 @@ def parse_option(option, value):
     return value
 
 
+# How a hidden tab's timers are held back unless the context says
+# otherwise: Chrome's, every timer on whole seconds, and after five minutes
+# hidden, a chain of them (each set from the one before, five deep) on
+# whole minutes.  [after, every, chained], in ms.
+DEFAULT_THROTTLE = [[0, 1000, False], [300000, 60000, True]]
+
+
 class Setup:
     """How a run's users are set up, from its context file: the tie order
     of the users, whether tasks due at a time come before or after the
     requests then, and per user (None for everyone) Playwright's options,
-    the verbs' times and the round trip."""
+    the verbs' times, the round trip and the throttling of a hidden tab's
+    timers."""
 
     def __init__(self):
         self.order = None
@@ -809,6 +827,7 @@ class Setup:
         self.options = {None: {}}
         self.times = {None: {}}
         self.rtt = {None: DEFAULT_RTT}
+        self.throttle = {None: DEFAULT_THROTTLE}
 
     def options_of(self, user):
         o = dict(CONTEXT_DEFAULTS)
@@ -822,6 +841,9 @@ class Setup:
     def rtt_of(self, user):
         return self.rtt.get(user, self.rtt[None])
 
+    def throttle_of(self, user):
+        return self.throttle.get(user, self.throttle[None])
+
 
 def read_context(text, file, complaints):
     """A run's context file: lines OPTION VALUE, those before any line
@@ -829,6 +851,7 @@ def read_context(text, file, complaints):
     setup = Setup()
     user = None
     seen = {None: set()}
+    throttles = {}
     for n, raw in enumerate(text.splitlines(), 1):
         where = '%s:%d' % (file, n)
         line = raw.strip()
@@ -849,9 +872,28 @@ def read_context(text, file, complaints):
             if any(w.kind != 'word' for w in words):
                 raise Complaint('a context line is OPTION VALUE, text in single quotes')
             option, values = words[0].text, [w.text for w in words[1:]]
-            if option in seen[user]:
+            if option in seen[user] and option != 'throttle':
                 raise Complaint('%s is given twice%s' % (option, ' for %s' % user if user else ''))
             seen[user].add(option)
+            if option == 'throttle':
+                tiers = throttles.setdefault(user, [])
+                if values == ['none']:
+                    if tiers:
+                        raise Complaint('throttle none goes alone')
+                    tiers.append(None)
+                    continue
+                if tiers == [None]:
+                    raise Complaint('throttle none goes alone')
+                if len(values) not in (2, 3) or len(values) == 3 and values[2] != 'chained' \
+                        or parse_time(values[0]) is None or not parse_time(values[1] or ''):
+                    raise Complaint('throttle takes AFTER EVERY [chained], two times: once a tab has been hidden '
+                                    'for AFTER, its timers wait for the next multiple of EVERY (only those set '
+                                    'from a timer five deep, with chained); or none')
+                after = parse_time(values[0])
+                if any(t[0] == after for t in tiers):
+                    raise Complaint('throttle %s is given twice%s' % (values[0], ' for %s' % user if user else ''))
+                tiers.append([after, parse_time(values[1]), len(values) == 3])
+                continue
             if option in ('order', 'tasks'):
                 if user is not None:
                     raise Complaint('%s is the run\'s, not a user\'s: it goes before the first [USER]' % option)
@@ -876,10 +918,13 @@ def read_context(text, file, complaints):
                 else:
                     setup.times[user][option] = parse_time(values[0])
             else:
-                raise Complaint("'%s' is not an option; the options are order, tasks, rtt, the verbs' times "
-                                "(%s), and %s" % (option, ', '.join(sorted(DEFAULT_TIMES)), ', '.join(CONTEXT_OPTIONS)))
+                raise Complaint("'%s' is not an option; the options are order, tasks, rtt, throttle, the verbs' "
+                                "times (%s), and %s" % (option, ', '.join(sorted(DEFAULT_TIMES)), ', '.join(CONTEXT_OPTIONS)))
         except Complaint as e:
             complaints.append('%s: %s' % (where, e))
+    # A user's throttle lines take the place of everyone's.
+    for who, tiers in throttles.items():
+        setup.throttle[who] = [] if tiers == [None] else sorted(tiers)
     return setup
 
 
@@ -1251,8 +1296,70 @@ MOTION_JS = r"""
         return [crossed, next, running];
     };
 
+    // ---- a hidden tab's timers: a callback due while the tab is hidden
+    // waits for the next multiple of the interval of the tier it falls in
+    // (the last whose time hidden has passed, if it is for chained timers
+    // only, one set from a timer five deep), all of them at once; the tab
+    // coming back runs what waits.  [after, every, chained], in ms.
+    const tiers = globalThis.__urtThrottle || [];
+    let shown = true, hiddenSince = null, depth = 0;
+    const held_back = new Map();   // the page's id -> {f, args, level, wake}
+    const wakes = new Set();       // the times a wake-up is set for
+    const setT = window.setTimeout, clearT = window.clearTimeout;
+    const setI = window.setInterval, clearI = window.clearInterval;
+    const wakeOf = (level) => {
+        if (shown || hiddenSince === null) { return null; }
+        const t = now();
+        let tier = null;
+        for (const x of tiers) {
+            if (t - hiddenSince >= x[0] && (!x[2] || level >= 5)) { tier = x; }
+        }
+        if (tier === null) { return null; }
+        const wake = Math.ceil(t / tier[1]) * tier[1];
+        return wake > t ? wake : null;
+    };
+    const run = (f, args, level) => {
+        const outer = depth;
+        depth = level;
+        try { f.apply(window, args); } finally { depth = outer; }
+    };
+    const wakeUp = (at) => {
+        wakes.delete(at);
+        const due = [...held_back].filter(([, h]) => h.wake <= at);
+        for (const [id] of due) { held_back.delete(id); }
+        for (const [, h] of due) { run(h.f, h.args, h.level); }
+    };
+    const holdBack = (id, f, args, level, wake) => {
+        if (held_back.has(id)) { return; }     // an interval's iterations meanwhile come to one
+        held_back.set(id, {f, args, level, wake});
+        if (!wakes.has(wake)) {
+            wakes.add(wake);
+            setT.call(window, () => wakeUp(wake), wake - now());
+        }
+    };
+    window.setTimeout = function (f, delay, ...args) {
+        if (typeof f !== 'function') { return setT.call(window, f, delay, ...args); }
+        const level = depth + 1;
+        const id = setT.call(window, (...a) => {
+            const wake = wakeOf(level);
+            if (wake === null) { run(f, a, level); } else { holdBack(id, f, a, level, wake); }
+        }, delay, ...args);
+        return id;
+    };
+    window.setInterval = function (f, delay, ...args) {
+        if (typeof f !== 'function') { return setI.call(window, f, delay, ...args); }
+        let level = depth;
+        const id = setI.call(window, (...a) => {
+            level++;
+            const wake = wakeOf(level);
+            if (wake === null) { run(f, a, level); } else { holdBack(id, f, a, level, wake); }
+        }, delay, ...args);
+        return id;
+    };
+    window.clearTimeout = function (id) { held_back.delete(id); return clearT.call(window, id); };
+    window.clearInterval = function (id) { held_back.delete(id); return clearI.call(window, id); };
+
     // ---- visibility
-    let shown = true;
     Object.defineProperty(Document.prototype, 'visibilityState', {configurable: true, get() { return shown ? 'visible' : 'hidden'; }});
     Object.defineProperty(Document.prototype, 'hidden', {configurable: true, get() { return !shown; }});
     Document.prototype.hasFocus = function () { return shown; };
@@ -1274,19 +1381,26 @@ MOTION_JS = r"""
     // the tab: none reaches the page.
     const own = e => { if (e.isTrusted && (e.type === 'visibilitychange' || e.target === window)) { e.stopImmediatePropagation(); } };
     for (const type of ['focus', 'blur', 'visibilitychange']) { window.addEventListener(type, own, true); }
-    urt.init = (s) => { shown = s; };
+    urt.init = (s, since) => { shown = s; hiddenSince = s ? null : since; };
     urt.show = (s) => {
         if (s === shown) { return; }
         if (!s) {
             window.dispatchEvent(new FocusEvent('blur'));
             shown = false;
+            hiddenSince = now();
             document.dispatchEvent(new Event('visibilitychange', {bubbles: true}));
         } else {
             shown = true;
+            hiddenSince = null;
             document.dispatchEvent(new Event('visibilitychange', {bubbles: true}));
             window.dispatchEvent(new FocusEvent('focus'));
             for (const [id, f] of waiting) { moved.set(id, raf.call(window, f)); }
             waiting.clear();
+            if (held_back.size) {
+                const at = now();
+                for (const h of held_back.values()) { h.wake = at; }
+                setT.call(window, () => wakeUp(at), 0);
+            }
         }
     };
 })();
@@ -1347,14 +1461,15 @@ PROBE_JS = r"""
 # itself out, before any script of the page's runs; it also says whether
 # the tab is shown.
 CLOCK_SCRIPT = ('<script>(() => { const c = globalThis.__pwClock && globalThis.__pwClock.controller; '
-                'if (c) { c.now(); c._now.time = %d; } if (globalThis.__urt) { globalThis.__urt.init(%s); } '
+                'if (c) { c.now(); c._now.time = %d; } if (globalThis.__urt) { globalThis.__urt.init(%s, %s); } '
                 'document.currentScript.remove(); })()</script>')
 
 
-def with_clock(body, now, shown):
+def with_clock(body, now, shown, hidden_since):
     """An HTML document with CLOCK_SCRIPT for now put first: in its head,
     or after its html tag or doctype if it has none."""
-    script = (CLOCK_SCRIPT % (now, 'true' if shown else 'false')).encode()
+    script = (CLOCK_SCRIPT % (now, 'true' if shown else 'false',
+                              'null' if hidden_since is None else hidden_since)).encode()
     for pattern in (rb'<head(\s[^>]*)?>', rb'<html(\s[^>]*)?>', rb'<!doctype[^>]*>'):
         m = re.search(pattern, body, re.I)
         if m:
@@ -1411,6 +1526,7 @@ class Tab:
         self.pointer = (0.0, 0.0)
         self.animating = 0          # animations and scrolls under way in the page, as of its last probe
         self.shown = True           # what the page was told: whether it is the tab in front
+        self.hidden_since = None    # since when the tab has not been in front, while it is not
         self.parked = None          # (dialog, answer) of a dialog shown while the tab was not in front
         self.closed = False
         self.video = None
@@ -2006,6 +2122,7 @@ class Run:
         await context.clock.install(time=dt(self.now - 1000))
         await context.clock.pause_at(dt(self.now))
         await context.add_init_script(TICKS_JS)
+        await context.add_init_script('globalThis.__urtThrottle = %s;' % json.dumps(self.setup.throttle_of(user.name)))
         await context.add_init_script(MOTION_JS)
         if self.recordings:
             await context.add_init_script(CURSOR_JS)
@@ -2368,7 +2485,8 @@ class Run:
             elif h.navigation and 'html' in h.response.headers.get('content-type', ''):
                 tab.shown = tab is tab.user.front
                 await self.call(tab, h.route.fulfill(response=h.response,
-                                                     body=with_clock(await h.response.body(), self.now, tab.shown)))
+                                                     body=with_clock(await h.response.body(), self.now, tab.shown,
+                                                                     tab.hidden_since)))
             else:
                 await self.call(tab, h.route.fulfill(response=h.response))
         except self.PlaywrightError:
@@ -2510,6 +2628,11 @@ class Run:
         """Every user's tab in front shown, the others hidden, the ones
         that change told so: the hidden first, then the shown."""
         for user in self.users.values():
+            for tab in user.tabs:
+                if tab is user.front:
+                    tab.hidden_since = None
+                elif tab.hidden_since is None:
+                    tab.hidden_since = self.now
             for want in (False, True):
                 for tab in user.tabs:
                     if tab.closed or tab.page is None or (tab is user.front) != want:

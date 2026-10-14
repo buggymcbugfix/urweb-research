@@ -113,7 +113,13 @@ Alice."sent"`).  The run's `context` file says, an option a line, `OPTION
 VALUE`, for every user before the first line `[USER]` and for that user
 under it: the users' order, which a run with more than one needs; the
 tie rule for the server's tasks (`tasks first|last`); a request's round
-trip (`rtt 100ms`); how long a kind of act takes (`click 400ms`); and
+trip (`rtt 100ms`); how long a kind of act takes (`click 400ms`); how a
+hidden tab's timers are held back (`throttle AFTER EVERY [chained]`, a
+line a tier: once the tab has been hidden for AFTER, a timer due
+meanwhile waits for the next multiple of EVERY, with `chained` only one
+set from a timer five deep; Chrome's two tiers, `throttle 0s 1s` and
+`throttle 5min 1min chained`, unless given, `throttle none` for none);
+and
 how the browser is set up, in Playwright's names for a browser context
 (`viewport 800x600`, `device_scale_factor 2`, `color_scheme dark`,
 `reduced_motion reduce`, `forced_colors active`, `locale de-DE`,

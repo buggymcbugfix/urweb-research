@@ -462,6 +462,9 @@ has_touch no
 order user
 tasks sometimes
 rtt fast
+throttle 1s
+throttle 0s 1s
+throttle none
 [Bernd]
 order Bernd
 click 2
