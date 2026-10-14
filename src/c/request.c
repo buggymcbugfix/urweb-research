@@ -121,7 +121,14 @@ static void *periodic_loop(void *data) {
       r = uw_runCallback(ctx, p->pdic.callback);
 
       if (r == SUCCESS) {
-        uw_commit(ctx);
+        if (uw_commit(ctx)) {
+          // A serialization failure at COMMIT: the database rolled the
+          // transaction back and uw_commit undid the transactionals.  Run
+          // the callback again, as for such a failure in the body.
+          ls->log_debug(ld, "Commit conflict in periodic task; retrying\n");
+          again = 1;
+          continue;
+        }
         if (uw_has_error(ctx)) {
           // Either COMMIT itself failed (a lock held past the busy timeout,
           // say) and the transaction may still be open, or a transactional's
@@ -555,7 +562,15 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
     }
 
     if (fk == SUCCESS || fk == RETURN_INDIRECTLY) {
-      uw_commit(ctx);
+      if (uw_commit(ctx)) {
+        // A serialization failure at COMMIT: the database rolled the
+        // transaction back and uw_commit undid the transactionals.  Run the
+        // handler again, as for such a failure during the transaction.
+        log_debug(logger_data, "Commit conflict; retrying\n");
+        uw_transaction_departs();
+        uw_reset_keep_request(ctx);
+        continue;
+      }
       if (uw_has_error(ctx) && !had_error) {
         log_error(logger_data, "Fatal error: %s\n", uw_error_message(ctx));
         uw_reset_keep_error_message(ctx);

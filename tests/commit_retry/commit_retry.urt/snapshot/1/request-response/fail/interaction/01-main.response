@@ -1,6 +1,7 @@
-HTTP/1.1 200 OK
-Content-type: text/html; charset=utf-8
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
 Connection: close
-Content-length: 83
+Content-length: 148
 
-<!DOCTYPE html><html><body>attempt 1, in transaction True, rows now 1</body></html>
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/commit_retry/commit_retry.ur:26:13-27:3: the last attempt fails
+</body></html>

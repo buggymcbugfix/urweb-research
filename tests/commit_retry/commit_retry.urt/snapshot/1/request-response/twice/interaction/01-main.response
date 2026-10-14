@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 83
+Content-length: 96
 
-<!DOCTYPE html><html><body>attempt 1, in transaction True, rows now 1</body></html>
+<!DOCTYPE html><html><head></head><body>attempt 3, in transaction True, rows now 1</body></html>
