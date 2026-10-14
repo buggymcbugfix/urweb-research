@@ -1,1 +1,1 @@
-user: click 'input[value=Delete] >> nth=1'
+Eun-ji: click 'input[value=Delete] >> nth=1'

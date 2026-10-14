@@ -1,2 +1,2 @@
-2.200 2.700 user: click 'input[value=Delete] >> nth=1'
-2.600 2.700 user.1: POST /Tree/del/2 200
+2.200 2.700 Eun-ji: click 'input[value=Delete] >> nth=1'
+2.600 2.700 Eun-ji.1: POST /Tree/del/2 200

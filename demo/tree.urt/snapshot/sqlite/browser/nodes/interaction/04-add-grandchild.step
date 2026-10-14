@@ -1,2 +1,2 @@
-user: fill 'input[name=Nam] >> nth=1' 'bud'
-user: click 'input[type=submit] >> nth=3'
+Eun-ji: fill 'input[name=Nam] >> nth=1' 'bud'
+Eun-ji: click 'input[type=submit] >> nth=3'

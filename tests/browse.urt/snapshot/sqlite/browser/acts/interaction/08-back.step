@@ -1,3 +1,3 @@
-user: tab 1
-user: fill 'input[type=text]' 'more'
-user: press Enter [on='input[type=text]']
+Alice: tab 1
+Alice: fill 'input[type=text]' 'more'
+Alice: press Enter [on='input[type=text]']

@@ -1,2 +1,2 @@
-5.950 6.350 user: dblclick 'text=Twice'
-6.350 7.350 user: hover 'text=Hover' [1s]
+5.950 6.350 Alice: dblclick 'text=Twice'
+6.350 7.350 Alice: hover 'text=Hover' [1s]

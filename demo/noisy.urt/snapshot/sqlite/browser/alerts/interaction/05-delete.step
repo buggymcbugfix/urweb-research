@@ -1,2 +1,2 @@
-user: fill 'input >> nth=2' '1'
-user: click 'text=Delete'
+Divya: fill 'input >> nth=2' '1'
+Divya: click 'text=Delete'

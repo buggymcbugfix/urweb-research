@@ -1,4 +1,4 @@
-2.150 2.150 user: dialog dismiss
-2.150 3.550 user: click 'text=Ask'
-3.550 3.550 user: dialog accept [2s]
-3.550 5.950 user: click 'text=Ask'
+2.150 2.150 Alice: dialog dismiss
+2.150 3.550 Alice: click 'text=Ask'
+3.550 3.550 Alice: dialog accept [2s]
+3.550 5.950 Alice: click 'text=Ask'

@@ -1,5 +1,5 @@
-0.100 0.300 user: fill 'input[name=A] >> nth=0' 'hello'
-0.300 0.500 user: fill 'input[name=B] >> nth=0' '1.5'
-0.500 0.700 user: fill 'input[name=C] >> nth=0' '42'
-0.700 1.200 user: click 'input[type=submit] >> nth=0'
-1.100 1.200 user.1: POST /Cookie/set 200
+0.100 0.300 Bernd: fill 'input[name=A] >> nth=0' 'hello'
+0.300 0.500 Bernd: fill 'input[name=B] >> nth=0' '1.5'
+0.500 0.700 Bernd: fill 'input[name=C] >> nth=0' '42'
+0.700 1.200 Bernd: click 'input[type=submit] >> nth=0'
+1.100 1.200 Bernd.1: POST /Cookie/set 200

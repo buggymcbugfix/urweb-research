@@ -1,2 +1,2 @@
-user: quit
-user: open /main [target=1]
+Alice: quit
+Alice: open /main [target=1]

@@ -1,2 +1,2 @@
-0.800 1.000 user: fill 'input >> nth=0' 'pears'
-1.000 1.400 user: click 'text=Add'
+0.800 1.000 Alice: fill 'input >> nth=0' 'pears'
+1.000 1.400 Alice: click 'text=Add'

@@ -1,2 +1,2 @@
-0.000 0.100 user.1: GET /Counter/main 200
-0.000 0.100 user: open /Counter/main [target=1]
+0.000 0.100 Alice.1: GET /Counter/main 200
+0.000 0.100 Alice: open /Counter/main [target=1]

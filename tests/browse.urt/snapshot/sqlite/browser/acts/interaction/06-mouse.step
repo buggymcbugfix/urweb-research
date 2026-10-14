@@ -1,2 +1,2 @@
-user: dblclick 'text=Twice'
-user: hover 'text=Hover' [1s]
+Alice: dblclick 'text=Twice'
+Alice: hover 'text=Hover' [1s]

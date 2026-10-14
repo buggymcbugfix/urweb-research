@@ -1,2 +1,2 @@
-0.200 0.700 user: click 'text=Update'
-0.600 0.700 user.1: POST /Increment/increment/_ 200
+0.200 0.700 Divya: click 'text=Update'
+0.600 0.700 Divya.1: POST /Increment/increment/_ 200

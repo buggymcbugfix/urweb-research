@@ -675,11 +675,11 @@ def read_step(name, text, file, complaints, users):
                     raise Complaint('wait for everyone is a step\'s last line; a user\'s pause is USER: wait T')
                 step.wait = parse_time(words[1].text)
                 continue
-            raise Complaint('a line starts with the user it is for, USER:, as in: user: open /Shop/main [target=1]')
+            raise Complaint('a line starts with the user it is for, USER:, as in: Alice: open /Shop/main [target=1]')
         except Complaint as e:
             complaints.append('%s: %s' % (where, e))
     if not step.actions and step.wait is None and not any(c.startswith(file + ':') for c in complaints):
-        complaints.append('%s: no action; a step does something, as in: user: open /Shop/main [target=1]' % file)
+        complaints.append('%s: no action; a step does something, as in: Alice: open /Shop/main [target=1]' % file)
     return step
 
 

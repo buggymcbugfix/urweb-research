@@ -1,2 +1,2 @@
-0.200 0.650 user: type 'input[type=text]' 'tea'
-0.650 0.750 user: press Enter
+0.200 0.650 Alice: type 'input[type=text]' 'tea'
+0.650 0.750 Alice: press Enter

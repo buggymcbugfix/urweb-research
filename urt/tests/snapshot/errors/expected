@@ -193,30 +193,30 @@ tab or several:
                   |-- engines             the engines to drive, one per line, if not all
                   |-- context             the users' order, and how their browsers are set up
                   |-- screenshots/        every page as drawn, with --screenshot; not for git
-                  |   `-- 01-open.user.1.chromium.png
+                  |   `-- 01-open.Alice.1.chromium.png
                   |-- recordings/         every tab filmed, with --record; not for git
-                  |   |-- user.1.chromium.webm
-                  |   |-- user.1.chromium.vtt a cue per action: the step, the action, the page's time
+                  |   |-- Alice.1.chromium.webm
+                  |   |-- Alice.1.chromium.vtt a cue per action: the step, the action, the page's time
                   |   `-- index.html      plays them, with the cues
                   `-- interaction/
                       |-- 01-open.step      what each user does
                       |-- 01-open.timeline  what happened when: every line, every request
-                      |-- 01-open.user.1.page.html
+                      |-- 01-open.Alice.1.page.html
                       |                     the tab's page afterwards: its path, then the DOM
                       |                     as the browser has it, scripts and handlers left out
-                      |-- 01-open.user.1.requests
+                      |-- 01-open.Alice.1.requests
                       |                     what the tab fetched, with the status of each
-                      |-- 01-open.user.1.dialogs
+                      |-- 01-open.Alice.1.dialogs
                       |                     the alerts, confirms and prompts, with their answers
-                      |-- 01-open.user.1.console
+                      |-- 01-open.Alice.1.console
                       |                     what the tab logged, and its script's errors
                       |-- 01-open.dml.sql   what the step changed in the database, if anything
                       |-- 01-open.stdout    what the server printed meanwhile, if anything
                       |-- 01-open.stderr
                       |-- 02-add.step
-                      |-- 02-add.user.1.page.html
+                      |-- 02-add.Alice.1.page.html
                       |                     what the engines agree on, shared
-                      |-- 02-add.user.1.page.firefox.html
+                      |-- 02-add.Alice.1.page.firefox.html
                       |                     what one of them records differently, its own
                       |-- 03-pay.step
                       `-- 03-pay.error      why the step could not be done, while it cannot
@@ -238,9 +238,9 @@ through their lines in order, and the step is over when all are done and no
 page has a request open but its poll; then every tab that is open is recorded,
 as USER.TAB.
 
-  user: open /Shop/main [target=1]
-  user: fill 'input[name=name]' kettle
-  user: click 'text=Add'
+  Alice: open /Shop/main [target=1]
+  Alice: fill 'input[name=name]' kettle
+  Alice: click 'text=Add'
   Bernd:
   	open /Shop/main [target=1]
   	until 'text=1 item'

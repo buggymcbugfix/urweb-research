@@ -107,7 +107,7 @@ ERROR runs/webunready.urt/snapshot/1/browser/engines-odd/engines names opera, wh
 the engines are chromium, firefox and webkit
 ERROR runs/webunready.urt/snapshot/1/browser/steps has steps, or contexts, that cannot be read
     01.step:1: lines name the user alone now, not the tab: user: open /Shop/main [target=1]
-    01.step:2: a line starts with the user it is for, USER:, as in: user: open /Shop/main [target=1]
+    01.step:2: a line starts with the user it is for, USER:, as in: Alice: open /Shop/main [target=1]
     01.step:3: user has no tab in front to click in; a tab is opened with [target=NAME], as in: user: open /Shop/main [target=1]
     01.step:5: 1 is in front already
     01.step:6: an indented line belongs to a block, which starts with a line USER: alone
@@ -127,7 +127,7 @@ ERROR runs/webunready.urt/snapshot/1/browser/steps has steps, or contexts, that 
     02.step:15: 'async' is neither a flag nor a parameter of wait: wait T
     02.step:16: at is optional for click, in brackets: click L [at=...] [T] [target=NAME] [async]
     02.step:17: double quotes are for labels; text and locators take single quotes
-    03.step: no action; a step does something, as in: user: open /Shop/main [target=1]
+    03.step: no action; a step does something, as in: Alice: open /Shop/main [target=1]
     04.step:1: a quote is not closed: 'never closed
     05.step:2: a block's lines are indented with a tab, not blanks
     05.step:3: user has no tab in front to close; a tab is opened with [target=NAME], as in: user: open /Shop/main [target=1]

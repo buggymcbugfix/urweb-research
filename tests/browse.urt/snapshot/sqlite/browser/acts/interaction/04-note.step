@@ -1,2 +1,2 @@
-user: click 'text=Note' [async]
-user: until 'text=noted tea'
+Alice: click 'text=Note' [async]
+Alice: until 'text=noted tea'

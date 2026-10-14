@@ -1,6 +1,6 @@
-0.100 0.300 user: fill 'input[name=A]' '1'
-0.300 0.500 user: fill 'input[name=B]' 'first'
-0.500 0.700 user: fill 'input[name=C]' '1.5'
-0.700 1.100 user: check 'input[name=D]'
-1.100 1.600 user: click 'input[type=submit]'
-1.500 1.600 user.1: POST /Crud1/create 200
+0.100 0.300 Divya: fill 'input[name=A]' '1'
+0.300 0.500 Divya: fill 'input[name=B]' 'first'
+0.500 0.700 Divya: fill 'input[name=C]' '1.5'
+0.700 1.100 Divya: check 'input[name=D]'
+1.100 1.600 Divya: click 'input[type=submit]'
+1.500 1.600 Divya.1: POST /Crud1/create 200

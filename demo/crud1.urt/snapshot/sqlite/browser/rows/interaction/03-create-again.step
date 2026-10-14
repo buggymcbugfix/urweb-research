@@ -1,4 +1,4 @@
-user: fill 'input[name=A]' '2'
-user: fill 'input[name=B]' 'second'
-user: fill 'input[name=C]' '2.25'
-user: click 'input[type=submit]'
+Divya: fill 'input[name=A]' '2'
+Divya: fill 'input[name=B]' 'second'
+Divya: fill 'input[name=C]' '2.25'
+Divya: click 'input[type=submit]'

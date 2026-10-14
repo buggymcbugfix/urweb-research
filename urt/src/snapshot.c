@@ -205,30 +205,30 @@ static const char usage_text[] =
     "                  |-- engines             the engines to drive, one per line, if not all\n"
     "                  |-- context             the users' order, and how their browsers are set up\n"
     "                  |-- screenshots/        every page as drawn, with --screenshot; not for git\n"
-    "                  |   `-- 01-open.user.1.chromium.png\n"
+    "                  |   `-- 01-open.Alice.1.chromium.png\n"
     "                  |-- recordings/         every tab filmed, with --record; not for git\n"
-    "                  |   |-- user.1.chromium.webm\n"
-    "                  |   |-- user.1.chromium.vtt a cue per action: the step, the action, the page's time\n"
+    "                  |   |-- Alice.1.chromium.webm\n"
+    "                  |   |-- Alice.1.chromium.vtt a cue per action: the step, the action, the page's time\n"
     "                  |   `-- index.html      plays them, with the cues\n"
     "                  `-- interaction/\n"
     "                      |-- 01-open.step      what each user does\n"
     "                      |-- 01-open.timeline  what happened when: every line, every request\n"
-    "                      |-- 01-open.user.1.page.html\n"
+    "                      |-- 01-open.Alice.1.page.html\n"
     "                      |                     the tab's page afterwards: its path, then the DOM\n"
     "                      |                     as the browser has it, scripts and handlers left out\n"
-    "                      |-- 01-open.user.1.requests\n"
+    "                      |-- 01-open.Alice.1.requests\n"
     "                      |                     what the tab fetched, with the status of each\n"
-    "                      |-- 01-open.user.1.dialogs\n"
+    "                      |-- 01-open.Alice.1.dialogs\n"
     "                      |                     the alerts, confirms and prompts, with their answers\n"
-    "                      |-- 01-open.user.1.console\n"
+    "                      |-- 01-open.Alice.1.console\n"
     "                      |                     what the tab logged, and its script's errors\n"
     "                      |-- 01-open.dml.sql   what the step changed in the database, if anything\n"
     "                      |-- 01-open.stdout    what the server printed meanwhile, if anything\n"
     "                      |-- 01-open.stderr\n"
     "                      |-- 02-add.step\n"
-    "                      |-- 02-add.user.1.page.html\n"
+    "                      |-- 02-add.Alice.1.page.html\n"
     "                      |                     what the engines agree on, shared\n"
-    "                      |-- 02-add.user.1.page.firefox.html\n"
+    "                      |-- 02-add.Alice.1.page.firefox.html\n"
     "                      |                     what one of them records differently, its own\n"
     "                      |-- 03-pay.step\n"
     "                      `-- 03-pay.error      why the step could not be done, while it cannot\n"
@@ -250,9 +250,9 @@ static const char usage_text[] =
     "page has a request open but its poll; then every tab that is open is recorded,\n"
     "as USER.TAB.\n"
     "\n"
-    "  user: open /Shop/main [target=1]\n"
-    "  user: fill 'input[name=name]' kettle\n"
-    "  user: click 'text=Add'\n"
+    "  Alice: open /Shop/main [target=1]\n"
+    "  Alice: fill 'input[name=name]' kettle\n"
+    "  Alice: click 'text=Add'\n"
     "  Bernd:\n"
     "  \topen /Shop/main [target=1]\n"
     "  \tuntil 'text=1 item'\n"
@@ -618,9 +618,9 @@ static const char *input_what(const char *suffix) {
  * step NAME; a tab's record in a browser run is NAME.USER.TAB.KIND, USER.TAB
  * being the tab's name as the steps give it; the records under out/ are
  * startup.KIND and shutdown.KIND.  A kind that is a language has its
- * extension last (NAME.dml.sql, NAME.user.1.page.html), and one engine's
+ * extension last (NAME.dml.sql, NAME.Alice.1.page.html), and one engine's
  * own record (see settle_shared) has the engine's name after the kind
- * (NAME.dml.firefox.sql, NAME.stdout.firefox, NAME.user.1.page.firefox.html),
+ * (NAME.dml.firefox.sql, NAME.stdout.firefox, NAME.Alice.1.page.firefox.html),
  * so that it sorts beside the shared one.  No name has a dot in it -- not
  * a request's or a step's, a user's or a tab's -- and the kinds are
  * fixed, so a record's name is read from its end.  NAME.error is the
@@ -775,8 +775,8 @@ static const struct record_kind *parse_record(const char *file, int run, char *n
 /* A record the engines agree on is one file, NAME.KIND; one that an
  * engine records differently from the others is that engine's own,
  * NAME.KIND.ENGINE, beside it.  own_name gives the own name for a
- * record's relative path: interaction/04-send.user.1.page.html, firefox
- * -> interaction/04-send.user.1.page.firefox.html. */
+ * record's relative path: interaction/04-send.Alice.1.page.html, firefox
+ * -> interaction/04-send.Alice.1.page.firefox.html. */
 static void own_name(char *dst, const char *rel, const char *engine) {
     char name[PATHLEN], label[PATHLEN], own[PATHLEN], why[512], dir[PATHLEN];
     const struct record_kind *k = parse_record(basename_of(rel), -1, name, label, NULL, why, sizeof why);

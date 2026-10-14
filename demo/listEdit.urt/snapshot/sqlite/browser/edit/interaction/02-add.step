@@ -1,2 +1,2 @@
-user: fill 'input >> nth=0' 'apples'
-user: click 'text=Add'
+Alice: fill 'input >> nth=0' 'apples'
+Alice: click 'text=Add'

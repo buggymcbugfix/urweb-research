@@ -1,4 +1,4 @@
-user: fill 'input >> nth=0' '3'
-user: fill 'input >> nth=1' 'three'
-user: click 'text=Batch it'
-user: click 'text=Execute'
+Eun-ji: fill 'input >> nth=0' '3'
+Eun-ji: fill 'input >> nth=1' 'three'
+Eun-ji: click 'text=Batch it'
+Eun-ji: click 'text=Execute'

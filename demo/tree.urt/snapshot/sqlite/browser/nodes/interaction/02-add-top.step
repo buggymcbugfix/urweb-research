@@ -1,2 +1,2 @@
-user: fill 'input[name=Nam]' 'root'
-user: click 'input[type=submit]'
+Eun-ji: fill 'input[name=Nam]' 'root'
+Eun-ji: click 'input[type=submit]'

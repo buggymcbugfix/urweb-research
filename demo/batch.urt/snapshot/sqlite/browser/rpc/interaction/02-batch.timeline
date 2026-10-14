@@ -1,3 +1,3 @@
-0.200 0.400 user: fill 'input >> nth=0' '1'
-0.400 0.600 user: fill 'input >> nth=1' 'one'
-0.600 1.000 user: click 'text=Batch it'
+0.200 0.400 Eun-ji: fill 'input >> nth=0' '1'
+0.400 0.600 Eun-ji: fill 'input >> nth=1' 'one'
+0.600 1.000 Eun-ji: click 'text=Batch it'

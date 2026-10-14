@@ -1,2 +1,2 @@
-2.700 3.200 user: click 'text=[Update] >> nth=0'
-3.100 3.200 user.1: GET /Crud1/upd/1 200
+2.700 3.200 Divya: click 'text=[Update] >> nth=0'
+3.100 3.200 Divya.1: GET /Crud1/upd/1 200
