@@ -2000,6 +2000,8 @@ class Tab:
         self.answer = None          # the answer to come to the dialog it shows
         self.watchers = []          # futures of calls a dialog would hold up
         self.pending = []           # calls a dialog holds up
+        self.stirs = 0              # how often anything happened in the page, as the driver saw it
+        self.calm = 0               # probes in a row since then that found nothing new
         self.sent = None            # (document, requests sent, navigations away begun), as of its last probe
         self.routed = {}            # document -> its requests the driver has seen
         self.left_by = {}           # document -> navigations away the driver has seen begin
@@ -2299,6 +2301,7 @@ class User:
         await self.run.touch(tab)
         if coro_fn is not None:
             await self.run.call(tab, coro_fn(), user=self)
+            self.run.stir(tab)
         if press is not None:
             tab.pressed = press
         tab.changed = True
@@ -2571,6 +2574,38 @@ class Run:
     async def const(self, v):
         return v
 
+    def stir(self, tab):
+        """Something happened in the tab's page: an event of it, or one
+        the driver or the user gave it."""
+        if tab is not None:
+            tab.stirs += 1
+            tab.calm = 0
+
+    def restless(self, tab):
+        """Whether a probe of the tab may find anything: one in front, whose
+        animation frames run on the wall clock, once at every tag, its
+        clock moved there; any, until two probes in a row have found
+        nothing new since anything happened in it.  A tab not in front
+        that nothing happens in moves when its next thing is due."""
+        return tab.clock is None or tab.calm < 2 or tab is tab.user.front and tab.clock != self.now
+
+    async def touch_all(self, tabs):
+        """The tabs touched, each user's in order, the users at once:
+        what a page does that another user's sees goes through the
+        server, where it comes in the users' order whatever the order of
+        the probes."""
+        users = {}
+        for tab in tabs:
+            users.setdefault(tab.user, []).append(tab)
+
+        async def one(mine):
+            for tab in mine:
+                await self.touch(tab)
+        if len(users) == 1:
+            await one(tabs)
+        elif users:
+            await asyncio.gather(*(one(mine) for mine in users.values()))
+
     def is_busy(self, tab):
         return tab.busy is not None and not tab.busy.done()
 
@@ -2584,6 +2619,7 @@ class Run:
         yet (one after a redirect)."""
         if tab.closed or tab.dialog or tab.navigating or self.is_busy(tab):
             return
+        stirs = tab.stirs
         task = asyncio.ensure_future(tab.page.evaluate(PROBE_JS, self.now))
         shown = asyncio.get_running_loop().create_future()
         tab.watchers.append(shown)
@@ -2615,6 +2651,7 @@ class Run:
         trace('touch', tab.label, fired, nxt and self.stamp(nxt), tab.animating)
         tab.clock = self.now
         tab.next_timer = nxt
+        tab.calm = 0 if fired or tab.stirs != stirs else tab.calm + 1
         # What moves is filmed; an endless animation (a spinner) only along
         # with anything else, or a film of a page with one would have a
         # frame at every point of its grid.
@@ -2746,12 +2783,14 @@ class Run:
         tab.left = self.now
         task.add_done_callback(lambda t: self.navigated(tab, t))
         self.activity += 1
+        self.stir(tab)
 
     def navigated(self, tab, task):
         """A navigation call is over: if it failed, nothing is under way
         that it started."""
         trace('navigated', tab.label, task.cancelled() or task.exception())
         self.activity += 1
+        self.stir(tab)
         tab.awaiting = False
         if task.cancelled() or task.exception() is not None:
             tab.loading = tab.navigating = False
@@ -2787,6 +2826,7 @@ class Run:
 
     def on_request(self, tab, req):
         self.activity += 1
+        self.stir(tab)
         if self.step is None:
             return
         requests = self.step.tab(tab.label).requests
@@ -2797,6 +2837,7 @@ class Run:
         self.activity += 1
         h = self.heldmap.pop(req, None)
         if h is not None:
+            self.stir(h.tab)
             h.finished = True
             if h in self.held:
                 self.held.remove(h)
@@ -2840,6 +2881,7 @@ class Run:
     def on_load(self, tab):
         trace('load', tab.label)
         self.activity += 1
+        self.stir(tab)
         tab.changed = True
         tab.loading = False
 
@@ -2847,15 +2889,18 @@ class Run:
         trace('framenavigated', tab.label, frame.url)
         if frame == tab.page.main_frame:
             self.activity += 1
+            self.stir(tab)
             tab.sent = None         # a new document's, until its first probe
             tab.changed = True
             tab.navigating = False
 
     def on_console(self, tab, msg):
+        self.stir(tab)
         if self.step is not None:
             self.step.tab(tab.label).console.append('%s: %s' % (msg.type, msg.text))
 
     def on_pageerror(self, tab, err):
+        self.stir(tab)
         if self.step is not None:
             self.step.tab(tab.label).console.append('error: %s' % err.message.splitlines()[0])
 
@@ -2864,6 +2909,7 @@ class Run:
         queued for the tab, or accepted, the answer's time after it shows,
         which in a tab not in front is when the user comes to it."""
         self.activity += 1
+        self.stir(tab)
         tab.dialog = dialog
         tab.changed = True
         for w in tab.watchers:
@@ -2899,6 +2945,7 @@ class Run:
         tab.dialog = None
         tab.answer = None
         tab.changed = True
+        self.stir(tab)
         # What the dialog held up goes on, at the time of the answer.
         pending, tab.pending = tab.pending, []
         for task in pending:
@@ -2934,6 +2981,7 @@ class Run:
             self.on_request(tab, req)
         else:
             tab = self.page_tab.get(page) or self.on_page(user, page)
+        self.stir(tab)
         sent = req.headers.get('x-urt-sent', '')
         if re.match(r'^\d+\.\d+$', sent):
             doc = int(sent.split('.')[0])
@@ -3013,6 +3061,7 @@ class Run:
             h.finished = True
             self.drop(h)
         self.activity += 1
+        self.stir(tab)
         tab.changed = True
 
     def drop(self, h):
@@ -3099,9 +3148,8 @@ class Run:
             arrivals = self.pop(t, PHASE_SERVER)
             if arrivals or (self.server_next is not None and self.server_next <= t):
                 await self.server_tag(t, arrivals)
-            for tab in self.live_tabs():
-                if tab.next_timer is not None and tab.next_timer <= t and self.timers_on(tab):
-                    await self.touch(tab)
+            await self.touch_all([tab for tab in self.live_tabs()
+                                  if tab.next_timer is not None and tab.next_timer <= t and self.timers_on(tab)])
             for fn in self.pop(t, PHASE_DELIVERY):
                 await fn()
             for fn in self.pop(t, PHASE_USER):
@@ -3125,8 +3173,7 @@ class Run:
         while quiet < 2:
             mark = self.activity
             await self.show_fronts()
-            for tab in self.live_tabs():
-                await self.touch(tab)
+            await self.touch_all([tab for tab in self.live_tabs() if self.restless(tab)])
             await asyncio.sleep(0)
             # A dialog holds up its page, and what the page would report
             # meanwhile: that comes once it is answered, at a later tag.
@@ -3171,6 +3218,7 @@ class Run:
                         tab.shown = want
                         tab.changed = True
                         self.activity += 1
+                        self.stir(tab)
 
     def coming(self, tab):
         """Whether the tab has something under way that comes in wall
