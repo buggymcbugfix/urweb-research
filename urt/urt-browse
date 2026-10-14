@@ -3561,7 +3561,43 @@ def main():
             return 2
     # Playwright is imported here so that --check needs only python3.
     from playwright.async_api import Error as PlaywrightError, async_playwright
+    unstack_playwright()
     return asyncio.run(Driver(args, PlaywrightError).main(async_playwright))
+
+
+def unstack_playwright():
+    """Playwright's client takes the caller's stack at every call, for its
+    logs and its errors' tracebacks, by inspect.stack(), which looks up
+    every frame's source file on disk: half of what the driver spends,
+    at a probe a tab a round.  The frames alone do for its logs, which
+    the driver does not keep, and an error's traceback is not shown."""
+    import inspect
+    import traceback
+    import playwright._impl._connection as connection
+
+    class Inspect:
+        def __getattr__(self, name):
+            return getattr(inspect, name)
+
+        @staticmethod
+        def stack(context=1):
+            out = []
+            f = sys._getframe(1)
+            while f is not None:
+                out.append(inspect.FrameInfo(f, f.f_code.co_filename, f.f_lineno, f.f_code.co_name, None, None))
+                f = f.f_back
+            return out
+
+    class Traceback:
+        def __getattr__(self, name):
+            return getattr(traceback, name)
+
+        @staticmethod
+        def extract_stack(f=None, limit=None):
+            return traceback.StackSummary()
+
+    connection.inspect = Inspect()
+    connection.traceback = Traceback()
 
 
 if __name__ == '__main__':
