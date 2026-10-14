@@ -133,7 +133,18 @@ driver, one per page), and a task of the server's when it is due
 is done in a fixed order: the server's part first, its tasks and the
 requests arriving in the order the context's tie rule says; then the
 pages' timers and the answers coming back; then the users' input, in the
-users' order.  A run comes out the same every time, on any machine, and
+users' order.  What moves on its own in a page follows the clock as
+well: an animation (a CSS transition or animation, `element.animate()`)
+is held where the clock says, its start, iterations and end coming at
+their time with their events; scrolling is instant, and a smooth scroll
+the page asks for is the driver's, 300ms of frames 16ms apart; a wheel
+is the page's event and an exact scroll at once; and the tab in front
+of a user is visible and has the focus, the others hidden, without
+animation frames, a dialog in one waiting for the user to come to it.
+An element is ready to act on when it is shown, enabled and still: no
+animation of its own or around it under way and, while anything else
+in the page moves, the same box on two frames in a row.  A run comes
+out the same every time, on any machine, and
 `NAME.timeline` says what happened when: every line of the step, from
 when the user took it to when it was done, and every request, from when
 the page sent it to when the answer came back.  An action is done when

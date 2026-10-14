@@ -73,6 +73,18 @@ says; then the pages' timers and the answers coming back; then the
 users' input, users in the tie order.  A run comes out the same every
 time, whatever the machine.
 
+What moves on its own in a page is on the clock too.  An animation (a
+CSS transition or animation, element.animate()) is held where the clock
+says, and its start, iterations and end, with their events, come at
+their time; an endless one's iterations do not, and it never ends.  The
+engines' scrolling is instant, whatever the page's CSS says, and a
+smooth scroll the page asks for takes 300ms, a frame every 16ms.  The
+tab in front of a user is visible and has the focus, the others are
+hidden and get no animation frames: visibilitychange, blur and focus
+come when the front changes, and a dialog a hidden tab shows waits for
+the user to come to it.  Code running on after a dialog it showed sees
+the time at which it showed until its next timer or event.
+
 A step file holds lines, each for a user: 'USER: ACTION', or a line
 'USER:' alone and under it the user's lines, each indented with one
 tab.  A user is a browser of their own, cookies and all; their tabs are
@@ -89,9 +101,12 @@ arguments come its parameters, in any order: [T], its time, a number
 and its unit (500ms, 2s, 1.5s, 3min, 1h, 2d); [NAME=VALUE], one it may
 be given; (NAME=VALUE), one it must; [NAME], a flag.  L is a locator in
 Playwright's syntax ('text=Batch it', 'button >> nth=1', '#uw3'); it
-must match one element, and an action waits until it does, shown and
-enabled, at most as long as an until.  X,Y is a position on an element,
-each a percentage of its box or pixels from its top-left corner.
+must match one element, and an action waits until it does, shown,
+enabled and still, at most as long as an until.  Still is no animation
+of its own or around it under way and, while anything else in the page
+moves, the same box on two frames in a row, 16ms apart.  X,Y is a
+position on an element, each a percentage of its box or pixels from its
+top-left corner.
 
     open PATH [T]           go to the page at PATH, starting with /
     click L [at=X,Y] [T]    also dblclick, hover: the pointer moves to the
@@ -101,7 +116,11 @@ each a percentage of its box or pixels from its top-left corner.
                             press on L1, move to L2, come to rest, let go
     swipe L (from=X,Y) (to=X,Y) [T]
                             press, move within L, let go while moving
-    wheel DX DY [T]         the mouse wheel, DX right and DY down, in pixels
+    wheel DX DY [T]         the mouse wheel where the pointer is, DX right
+                            and DY down, in pixels: the page gets the
+                            event, and unless it cancels it, the nearest
+                            box that can scroll that way moves that much,
+                            at once
     fill L TEXT [T]         set a field to TEXT
     type L TEXT [T]         type TEXT into it, a key at a time; T a key
     press KEY [on=L] [T]    Enter, Tab, ArrowDown, Control+a, ...
@@ -1053,23 +1072,268 @@ TICKS_JS = r"""
 })();
 """
 
+# What moves on its own in a page, put on the page's clock (Playwright's
+# moves timers, not animations, which run on the engine's own frames, in
+# wall time), and the tab's visibility, which a headless engine does not
+# have.  In every document, before its scripts:
+#
+# - Every animation (a CSS transition or animation, element.animate()) is
+#   held: paused as soon as it is seen, which is at a probe or on the
+#   engine's next frame, and set to where the clock says at every probe.
+#   Its start, its iterations and its end are due like timers, so their
+#   events come at their time; seeking one past them fires them on the
+#   engine's next frame, which a probe that crossed one waits for.  An
+#   endless one's iterations are not due; it never ends.  A page that
+#   pauses, reverses or rates its own animations is not followed.
+# - Scrolling is instant, whatever the page's CSS says, and a smooth
+#   scroll asked of the API (scrollTo, scrollBy, scrollIntoView, with
+#   behavior 'smooth') is the driver's own: 300ms, eased, a frame every
+#   16ms, so that the page sees its scroll events at their time.
+# - A wheel is an event and an exact scroll: dispatched where the pointer
+#   is, and unless the page cancels it, the nearest box that can scroll
+#   that way moves by the delta, at once.  The engines' own wheel scrolls
+#   later and, in Firefox, by part of the delta.
+# - The tab in front of a user's window is visible and has the focus, the
+#   others are hidden: document.visibilityState, hidden and hasFocus()
+#   say so, visibilitychange, blur and focus come when the front changes,
+#   and a hidden tab gets no animation frames (they wait for its return).
+MOTION_JS = r"""
+(() => {
+    if (globalThis.__urt) { return; }
+    const pw = globalThis.__pwClock;
+    const c = pw && pw.controller;
+    const real = pw ? pw.builtins : globalThis;
+    const urt = globalThis.__urt = {};
+    const now = () => c ? c._now.time : Date.now();
+
+    // ---- animations
+    const held = new Map();     // animation -> {start, at} (at: where it was last set), or null: left alone
+    const scan = () => {
+        let fresh = false;
+        if (!document.getAnimations) { return fresh; }
+        for (const a of document.getAnimations()) {
+            if (held.has(a)) { continue; }
+            if (a.playState !== 'running' || !a.effect) { held.set(a, null); continue; }
+            try { a.pause(); } catch (e) { held.set(a, null); continue; }
+            held.set(a, {start: now(), at: -1});
+            fresh = true;
+        }
+        return fresh;
+    };
+    // Where an animation's events fall, in its own time: the end of its
+    // delay, each iteration but an endless one's, its end.
+    const marks = (a) => {
+        const t = a.effect.getComputedTiming();
+        const out = [t.delay || 0];
+        if (Number.isFinite(t.activeDuration)) {
+            if (Number.isFinite(t.iterations) && typeof t.duration === 'number' && t.duration > 0) {
+                for (let k = 1; k < t.iterations && k < 1000; k++) { out.push((t.delay || 0) + k * t.duration); }
+            }
+            out.push(t.endTime);
+        }
+        return out;
+    };
+    const frame = () => { scan(); real.requestAnimationFrame(frame); };
+    if (real.requestAnimationFrame) { real.requestAnimationFrame(frame); }
+
+    // ---- scrolling
+    const SMOOTH = 300;
+    const scrolls = new Map();  // scroller -> {from, to, start, last}
+    const ease = p => p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+    const pos = s => [s.scrollLeft, s.scrollTop];
+    const smooth = args => args.length > 0 && args[0] !== null && typeof args[0] === 'object' && args[0].behavior === 'smooth';
+    const instant = arg => Object.assign({}, arg, {behavior: 'instant'});
+    const smoothly = (scrollers, scroll) => {
+        const before = scrollers.map(pos);
+        scroll();
+        scrollers.forEach((s, i) => {
+            const to = pos(s), from = before[i];
+            if (to[0] === from[0] && to[1] === from[1]) { return; }
+            s.scrollLeft = from[0];
+            s.scrollTop = from[1];
+            scrolls.set(s, {from, to, start: now(), last: null});
+        });
+    };
+    const page = () => document.scrollingElement || document.documentElement;
+    for (const [obj, names] of [[window, ['scrollTo', 'scroll', 'scrollBy']],
+                                [Element.prototype, ['scrollTo', 'scroll', 'scrollBy']]]) {
+        for (const name of names) {
+            const orig = obj[name];
+            if (typeof orig !== 'function') { continue; }
+            obj[name] = function (...args) {
+                if (!smooth(args)) { return orig.apply(this, args); }
+                smoothly([this === window ? page() : this], () => orig.call(this, instant(args[0])));
+            };
+        }
+    }
+    const into = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (...args) {
+        if (!smooth(args)) { return into.apply(this, args); }
+        const scrollers = [];
+        for (let p = this.parentElement; p; p = p.parentElement) {
+            if (p.scrollHeight > p.clientHeight || p.scrollWidth > p.clientWidth) { scrollers.push(p); }
+        }
+        if (!scrollers.includes(page())) { scrollers.push(page()); }
+        smoothly(scrollers, () => into.call(this, instant(args[0])));
+    };
+    try {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync('*, *::before, *::after { scroll-behavior: auto !important; }');
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
+    } catch (e) {}
+
+    urt.wheel = (x, y, dx, dy) => {
+        const target = document.elementFromPoint(x, y) || document.body || document.documentElement;
+        const ev = new WheelEvent('wheel', {deltaX: dx, deltaY: dy, deltaMode: 0, clientX: x, clientY: y,
+                                            bubbles: true, cancelable: true, composed: true, view: window});
+        target.dispatchEvent(ev);
+        if (ev.defaultPrevented) { return false; }
+        for (const [d, down] of [[dx, false], [dy, true]]) {
+            if (!d) { continue; }
+            const room = s => down ? (d > 0 ? s.scrollTop < s.scrollHeight - s.clientHeight : s.scrollTop > 0)
+                                   : (d > 0 ? s.scrollLeft < s.scrollWidth - s.clientWidth : s.scrollLeft > 0);
+            let s = target;
+            for (; s && s !== document.body && s !== document.documentElement; s = s.parentElement) {
+                const o = down ? getComputedStyle(s).overflowY : getComputedStyle(s).overflowX;
+                if ((o === 'auto' || o === 'scroll') && room(s)) { break; }
+            }
+            if (!s || s === document.body || s === document.documentElement) { s = page(); }
+            if (down) { s.scrollTop += d; } else { s.scrollLeft += d; }
+        }
+        return true;
+    };
+
+    // Whether an animation moves the element: one of its own or of an
+    // element around it, under way or in its delay.
+    urt.moving = (el) => {
+        for (const [a, h] of held) {
+            const target = h !== null && a.effect && a.effect.target;
+            if (target && (target === el || target.contains(el))) { return true; }
+        }
+        return false;
+    };
+
+    // ---- the page at t: [whether anything happened that the engine
+    // reports on its next frame, when the next thing is due or null,
+    // how many animations are under way]
+    urt.step = (t) => {
+        let crossed = scan(), next = null, running = 0;
+        const due = at => { if (next === null || at < next) { next = at; } };
+        for (const [a, h] of held) {
+            if (h === null) { continue; }
+            if (a.playState === 'idle' || !a.effect) { held.delete(a); continue; }
+            const rate = a.playbackRate || 1;
+            const at = Math.max(0, (t - h.start) * rate);
+            for (const m of marks(a)) {
+                if (m > h.at && m <= at) { crossed = true; }
+                if (m > at) { due(h.start + Math.ceil(m / rate)); }
+            }
+            h.at = at;
+            if (at >= a.effect.getComputedTiming().endTime) {
+                a.finish();
+                held.delete(a);
+            } else {
+                a.currentTime = at;
+                running++;
+            }
+        }
+        for (const [s, r] of scrolls) {
+            if (r.last === t) { continue; }
+            r.last = t;
+            const p = Math.min(1, (t - r.start) / SMOOTH), e = ease(p);
+            // Whole pixels, which every engine keeps as they are.
+            s.scrollLeft = Math.round(r.from[0] + (r.to[0] - r.from[0]) * e);
+            s.scrollTop = Math.round(r.from[1] + (r.to[1] - r.from[1]) * e);
+            crossed = true;
+            if (p >= 1) { scrolls.delete(s); }
+            else { due(r.start + Math.min(SMOOTH, 16 * (Math.floor((t - r.start) / 16) + 1))); running++; }
+        }
+        return [crossed, next, running];
+    };
+
+    // ---- visibility
+    let shown = true;
+    Object.defineProperty(Document.prototype, 'visibilityState', {configurable: true, get() { return shown ? 'visible' : 'hidden'; }});
+    Object.defineProperty(Document.prototype, 'hidden', {configurable: true, get() { return !shown; }});
+    Document.prototype.hasFocus = function () { return shown; };
+    const raf = window.requestAnimationFrame, caf = window.cancelAnimationFrame;
+    const waiting = new Map(), moved = new Map();
+    let ids = 0;
+    window.requestAnimationFrame = function (f) {
+        if (shown) { return raf.call(window, f); }
+        const id = --ids;
+        waiting.set(id, f);
+        return id;
+    };
+    window.cancelAnimationFrame = function (id) {
+        if (waiting.delete(id)) { return; }
+        if (moved.has(id)) { id = moved.get(id); }
+        return caf.call(window, id);
+    };
+    // The engine's own focus, blur and visibilitychange say nothing about
+    // the tab: none reaches the page.
+    const own = e => { if (e.isTrusted && (e.type === 'visibilitychange' || e.target === window)) { e.stopImmediatePropagation(); } };
+    for (const type of ['focus', 'blur', 'visibilitychange']) { window.addEventListener(type, own, true); }
+    urt.init = (s) => { shown = s; };
+    urt.show = (s) => {
+        if (s === shown) { return; }
+        if (!s) {
+            window.dispatchEvent(new FocusEvent('blur'));
+            shown = false;
+            document.dispatchEvent(new Event('visibilitychange', {bubbles: true}));
+        } else {
+            shown = true;
+            document.dispatchEvent(new Event('visibilitychange', {bubbles: true}));
+            window.dispatchEvent(new FocusEvent('focus'));
+            for (const [id, f] of waiting) { moved.set(id, raf.call(window, f)); }
+            waiting.clear();
+        }
+    };
+})();
+"""
+
+# A wheel at the pointer, for MOTION_JS.
+WHEEL_JS = "([x, y, dx, dy]) => globalThis.__urt ? globalThis.__urt.wheel(x, y, dx, dy) : null"
+
+# Whether an animation moves an element, for MOTION_JS.
+MOVING_JS = "(e) => globalThis.__urt ? globalThis.__urt.moving(e) : false"
+
+# Whether a tab is shown, for MOTION_JS.
+SHOW_JS = "(s) => { if (globalThis.__urt) { globalThis.__urt.show(s); } return true; }"
+
+
 # A page's clock moved to t, firing what is due by then (only if anything
-# is, or the clock is behind), and when its next timer is due: [whether
-# a timer fired, the next one's time or null].  null for a page without
-# the clock.  First a turn of the page's real event loop, so that what
-# the page queued meanwhile (a form's submission after a click, which
-# starts a navigation) has started before the answer.
+# is, or the clock is behind), its animations and scrolls set for t, and
+# when its next thing is due: [whether anything fired, the next one's
+# time or null, how many animations and scrolls are under way].  null for
+# a page without the clock.  First a turn of the page's real event loop,
+# so that what the page queued meanwhile (a form's submission after a
+# click, which starts a navigation) has started before the answer; and
+# when an animation crossed one of its events, two of the engine's frames
+# after, in which the engine sends them.
 PROBE_JS = r"""
 (t) => {
     const pw = globalThis.__pwClock;
     const c = pw && pw.controller;
     if (!c) { return null; }
+    const u = globalThis.__urt;
+    const frames = n => new Promise(r => {
+        const f = k => k ? pw.builtins.requestAnimationFrame(() => f(k - 1)) : pw.builtins.setTimeout(r, 0);
+        f(n);
+    });
     return new Promise(r => pw.builtins.setTimeout(r, 0)).then(() => {
         const at = f => f ? c._now.time + (f.callAt - c._now.ticks) : null;
         const first = at(c._firstTimer());
         const due = first !== null && first <= t;
         const moved = c._now.time <= t && (c._now.time < t || due) ? c.pauseAt(t) : null;
-        return Promise.resolve(moved).then(() => [due, at(c._firstTimer())]);
+        return Promise.resolve(moved).then(() => {
+            const m = u ? u.step(t) : [false, null, 0];
+            return (m[0] ? frames(2) : Promise.resolve()).then(() => {
+                let next = at(c._firstTimer());
+                if (m[1] !== null && (next === null || m[1] < next)) { next = m[1]; }
+                return [due || m[0], next, m[2]];
+            });
+        });
     });
 }
 """
@@ -1080,15 +1344,17 @@ PROBE_JS = r"""
 # come while its navigation is under way, Chromium holding up every call
 # into the page until it commits.  So the document is told: a script at
 # the start of its head sets its clock to the time it came, then takes
-# itself out, before any script of the page's runs.
+# itself out, before any script of the page's runs; it also says whether
+# the tab is shown.
 CLOCK_SCRIPT = ('<script>(() => { const c = globalThis.__pwClock && globalThis.__pwClock.controller; '
-                'if (c) { c.now(); c._now.time = %d; } document.currentScript.remove(); })()</script>')
+                'if (c) { c.now(); c._now.time = %d; } if (globalThis.__urt) { globalThis.__urt.init(%s); } '
+                'document.currentScript.remove(); })()</script>')
 
 
-def with_clock(body, now):
+def with_clock(body, now, shown):
     """An HTML document with CLOCK_SCRIPT for now put first: in its head,
     or after its html tag or doctype if it has none."""
-    script = (CLOCK_SCRIPT % now).encode()
+    script = (CLOCK_SCRIPT % (now, 'true' if shown else 'false')).encode()
     for pattern in (rb'<head(\s[^>]*)?>', rb'<html(\s[^>]*)?>', rb'<!doctype[^>]*>'):
         m = re.search(pattern, body, re.I)
         if m:
@@ -1143,6 +1409,9 @@ class Tab:
         self.dialog = None
         self.answers = []
         self.pointer = (0.0, 0.0)
+        self.animating = 0          # animations and scrolls under way in the page, as of its last probe
+        self.shown = True           # what the page was told: whether it is the tab in front
+        self.parked = None          # (dialog, answer) of a dialog shown while the tab was not in front
         self.closed = False
         self.video = None
         self.watchers = []          # futures of calls a dialog would hold up
@@ -1193,6 +1462,7 @@ class User:
         self.done = True
         self.expect_tab = None      # the name a tab the current act opens gets
         self.unborn = None          # a tab the page opened, its page not yet reported
+        self.box = None             # ((tab, locator), when, box): an element being watched for stillness
 
     # ---- parking
 
@@ -1349,8 +1619,12 @@ class User:
         self.expect_tab = None
 
     async def ready(self, tab, locator, need):
-        """Whether the element is there to act on: one of it, shown, and
-        enabled or editable as need says; more than one is a mistake."""
+        """Whether the element is there to act on: one of it, shown,
+        enabled or editable as need says, and still; more than one is a
+        mistake.  Still is the same box on two frames in a row, 16ms
+        apart, while anything moves in the page (an animation, a smooth
+        scroll); in a page where nothing does, nothing moves until the
+        next thing due, and the element is still."""
         if tab.closed or tab.dialog or tab.navigating or self.run.is_busy(tab):
             return False
         loc = tab.page.locator(locator)
@@ -1364,13 +1638,32 @@ class User:
                 raise Complaint("'%s' matches %d elements: %s" % (locator, n, '; '.join(what or [])))
             if not await self.run.call(tab, loc.is_visible()):
                 return False
-            if need == 'editable':
-                return bool(await self.run.call(tab, loc.is_editable()))
-            if need == 'enabled':
-                return bool(await self.run.call(tab, loc.is_enabled()))
-            return True
+            if need == 'editable' and not await self.run.call(tab, loc.is_editable()):
+                return False
+            if need == 'enabled' and not await self.run.call(tab, loc.is_enabled()):
+                return False
+            return await self.still(tab, locator, loc)
         except self.run.PlaywrightError:
             return False
+
+    async def still(self, tab, locator, loc):
+        if not tab.animating:
+            self.box = None
+            return True
+        run = self.run
+        if await run.call(tab, loc.evaluate(MOVING_JS)):
+            # An animation of its own or around it, its end due.
+            self.box = None
+            return False
+        box = await run.call(tab, loc.bounding_box())
+        if self.box is None or self.box[0] != (tab, locator) or self.box[2] != box:
+            self.box = ((tab, locator), run.now, box)
+            run.frame(run.now + 16)
+            return False
+        if run.now < self.box[1] + 16:
+            run.frame(self.box[1] + 16)
+            return False
+        return True
 
     async def wait_ready(self, tab, locator, need='enabled'):
         bound = self.run.setup.time_of(self.name, 'until')
@@ -1480,7 +1773,11 @@ class User:
             loc = await self.wait_ready(tab, a.args[0], 'enabled')
             await self.input(tab, run.now + D, lambda: loc.select_option(a.args[1:]))
         elif verb == 'wheel':
-            await self.input(tab, start, functools.partial(page.mouse.wheel, float(a.args[0]), float(a.args[1])))
+            # The page's own: dispatched where the pointer is, and the
+            # scroll exact and at once (MOTION_JS).
+            x, y = tab.pointer
+            await self.input(tab, start, functools.partial(page.evaluate, WHEEL_JS,
+                                                           [x, y, float(a.args[0]), float(a.args[1])]))
             await self.sleep_until(start + D)
         elif verb == 'drag':
             source = await self.wait_ready(tab, a.args[0], None)
@@ -1569,6 +1866,7 @@ class Run:
         self.open_requests = {}     # request -> (step, label, index)
         self.refused = set()
         self.heldmap = {}           # request -> Held
+        self.frames = set()         # frame stops to come
 
     # ---- the queue
 
@@ -1588,6 +1886,15 @@ class Run:
 
     def has_events(self, tag):
         return bool(self.queue) and self.queue[0][0] <= tag
+
+    def frame(self, tag):
+        """A stop at tag, for a user watching something move."""
+        if tag not in self.frames:
+            self.frames.add(tag)
+            self.push(tag, PHASE_USER, -1, functools.partial(self.framed, tag))
+
+    async def framed(self, tag):
+        self.frames.discard(tag)
 
     async def resume(self, user, fut, value):
         if fut.done() or user.future is not fut:
@@ -1678,8 +1985,8 @@ class Run:
         if r is None:
             tab.next_timer = None
             return
-        fired, nxt = r
-        trace('touch', tab.label, fired, nxt and self.stamp(nxt))
+        fired, nxt, tab.animating = r
+        trace('touch', tab.label, fired, nxt and self.stamp(nxt), tab.animating)
         tab.clock = self.now
         tab.next_timer = nxt
         if fired:
@@ -1699,6 +2006,7 @@ class Run:
         await context.clock.install(time=dt(self.now - 1000))
         await context.clock.pause_at(dt(self.now))
         await context.add_init_script(TICKS_JS)
+        await context.add_init_script(MOTION_JS)
         if self.recordings:
             await context.add_init_script(CURSOR_JS)
         await context.route('**/*', functools.partial(self.on_route, user))
@@ -1927,13 +2235,18 @@ class Run:
 
     def on_dialog(self, tab, dialog):
         """A dialog blocks its page until it is answered: by the answer
-        queued for the tab, or accepted, after the answer's time."""
+        queued for the tab, or accepted, the answer's time after it shows,
+        which in a tab not in front is when the user comes to it."""
         self.activity += 1
         tab.dialog = dialog
         for w in tab.watchers:
             if not w.done():
                 w.set_result(True)
         answer = tab.answers.pop(0) if tab.answers else ('accept', None, self.setup.time_of(tab.user.name, 'dialog'))
+        if tab is not tab.user.front:
+            # Shown when the user comes to the tab, and answered after.
+            tab.parked = (dialog, answer)
+            return
         self.push(self.now + answer[2], PHASE_DELIVERY, tab.user.rank, functools.partial(self.answer, tab, dialog, answer))
 
     async def answer(self, tab, dialog, answer):
@@ -2053,7 +2366,9 @@ class Run:
             if h.error is not None:
                 await self.call(tab, h.route.abort('failed'))
             elif h.navigation and 'html' in h.response.headers.get('content-type', ''):
-                await self.call(tab, h.route.fulfill(response=h.response, body=with_clock(await h.response.body(), self.now)))
+                tab.shown = tab is tab.user.front
+                await self.call(tab, h.route.fulfill(response=h.response,
+                                                     body=with_clock(await h.response.body(), self.now, tab.shown)))
             else:
                 await self.call(tab, h.route.fulfill(response=h.response))
         except self.PlaywrightError:
@@ -2170,6 +2485,7 @@ class Run:
         quiet = 0
         while quiet < 2:
             mark = self.activity
+            await self.show_fronts()
             for tab in self.live_tabs():
                 await self.touch(tab)
             await asyncio.sleep(0)
@@ -2189,6 +2505,27 @@ class Run:
                                 % (self.args.timeout, self.stamp(t),
                                    ', '.join(self.path_of(h.req.url) if isinstance(h, Held) else h.label
                                              for h in delivering) or 'nothing known'))
+
+    async def show_fronts(self):
+        """Every user's tab in front shown, the others hidden, the ones
+        that change told so: the hidden first, then the shown."""
+        for user in self.users.values():
+            for want in (False, True):
+                for tab in user.tabs:
+                    if tab.closed or tab.page is None or (tab is user.front) != want:
+                        continue
+                    if want and tab.parked is not None:
+                        dialog, answer = tab.parked
+                        tab.parked = None
+                        self.push(self.now + answer[2], PHASE_DELIVERY, user.rank,
+                                  functools.partial(self.answer, tab, dialog, answer))
+                    if tab.shown == want or tab.navigating or tab.dialog or self.is_busy(tab):
+                        continue
+                    await self.touch(tab)
+                    if await self.call(tab, tab.page.evaluate(SHOW_JS, want)):
+                        trace('shown' if want else 'hidden', tab.label)
+                        tab.shown = want
+                        self.activity += 1
 
     def coming(self, tab):
         """Whether the tab has something under way that comes in wall
@@ -2226,12 +2563,13 @@ class Run:
 
     def quiet(self, user=None):
         """No request of the user's (everyone's) under way but polls, no
-        page of theirs loading or showing a dialog."""
+        page of theirs loading or showing a dialog (but in a tab not in
+        front, which waits for the user)."""
         tabs = user.tabs if user is not None else self.live_tabs()
         for h in self.held:
             if not h.poll and (user is None or h.tab.user is user) and not h.tab.closed:
                 return False
-        return not any(t.loading or t.dialog for t in tabs if not t.closed)
+        return not any(t.loading or (t.dialog and t.parked is None) for t in tabs if not t.closed)
 
     def stamp(self, ms):
         return '%.3f' % ((ms - self.epoch_ms()) / 1000)
@@ -2270,7 +2608,9 @@ class Run:
                         '%s waits at %s' % (u.name, self.current.get(u.name).text if self.current.get(u.name) else '?')
                         for u in waiting))
                 raise Complaint('nothing more can happen, and the pages are not quiet: %s'
-                                % ', '.join(self.path_of(h.req.url) for h in self.held if not h.poll) or 'loading')
+                                % (', '.join(self.path_of(h.req.url) for h in self.held if not h.poll)
+                                   or ', '.join('%s %s' % (t.label, 'shows a dialog' if t.dialog else 'loads')
+                                                for t in self.live_tabs() if t.loading or t.dialog)))
             await self.process_tag(t)
         for user in self.users.values():
             if user.task is not None and not user.task.done():
@@ -2416,11 +2756,14 @@ class Driver:
                 # Chromium keeps renderer memory under /dev/shm unless told
                 # not to, and a build sandbox (nix's) has next to none
                 # there, which closes the page before the first step.
-                self.browser = await p.chromium.launch(args=['--disable-dev-shm-usage'])
+                # Smooth scrolling (the keyboard's) would land in wall time.
+                self.browser = await p.chromium.launch(args=['--disable-dev-shm-usage', '--disable-smooth-scrolling'])
             elif self.args.engine == 'firefox':
                 # Firefox fetches a page's favicon from outside the page,
-                # where Playwright does not see it; the server would.
-                self.browser = await p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False})
+                # where Playwright does not see it; the server would.  And
+                # smooth scrolling (the keyboard's) would land in wall time.
+                self.browser = await p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False,
+                                                                          'general.smoothScroll': False})
             else:
                 self.browser = await p.webkit.launch()
         except self.PlaywrightError as e:

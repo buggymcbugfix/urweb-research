@@ -1,0 +1,4 @@
+Farid:
+	hover '#box'
+	wheel 0 250
+	click 'text=Where'

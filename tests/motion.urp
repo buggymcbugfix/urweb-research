@@ -1,0 +1,7 @@
+ffi motionFfi
+jsFile motion.js
+jsFunc MotionFfi.setup=motionSetup
+benignEffectful MotionFfi.setup
+rewrite url Motion/*
+
+motion
