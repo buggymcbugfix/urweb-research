@@ -1757,9 +1757,44 @@ MOTION_JS = r"""
     };
     // The engine's own focus, blur and visibilitychange say nothing about
     // the tab: none reaches the page.
-    const own = e => { if (e.isTrusted && (e.type === 'visibilitychange' || e.target === window)) { e.stopImmediatePropagation(); } };
-    for (const type of ['focus', 'blur', 'visibilitychange']) { window.addEventListener(type, own, true); }
-    urt.init = (s, since) => { shown = s; hiddenSince = s ? null : since; };
+    const engines = e => { if (e.isTrusted && (e.type === 'visibilitychange' || e.target === window)) { e.stopImmediatePropagation(); } };
+    for (const type of ['focus', 'blur', 'visibilitychange']) { window.addEventListener(type, engines, true); }
+    urt.init = (s, since, doc) => { shown = s; hiddenSince = s ? null : since; urt.doc = doc; };
+
+    // ---- what the page sends: every request of its own script to its
+    // own server (XMLHttpRequest, fetch) carries the document's number
+    // and its own, x-urt-sent: DOC.N, and every navigation away is
+    // counted (beforeunload), so that a probe says what the driver has
+    // yet to see, whose events come by another way, in wall time.
+    urt.doc = 0;
+    urt.sent = 0;
+    urt.leaves = 0;
+    const own = u => { try { return new URL(u, location.href).origin === location.origin; } catch (e) { return false; } };
+    const tagged = () => urt.doc + '.' + (++urt.sent);
+    const xopen = XMLHttpRequest.prototype.open, xsend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (method, url, ...rest) {
+        this.__urtOwn = own(url);
+        return xopen.call(this, method, url, ...rest);
+    };
+    XMLHttpRequest.prototype.send = function (...args) {
+        if (this.__urtOwn) {
+            try { this.setRequestHeader('x-urt-sent', tagged()); } catch (e) {}
+        }
+        return xsend.apply(this, args);
+    };
+    if (typeof window.fetch === 'function') {
+        const fetch0 = window.fetch;
+        window.fetch = function (input, init) {
+            const req = typeof Request !== 'undefined' && input instanceof Request;
+            if (own(req ? input.url : String(input))) {
+                const headers = new Headers((init && init.headers) || (req ? input.headers : undefined));
+                headers.set('x-urt-sent', tagged());
+                init = Object.assign({}, init, {headers});
+            }
+            return fetch0.call(this, input, init);
+        };
+    }
+    window.addEventListener('beforeunload', () => { urt.leaves++; }, true);
     urt.show = (s) => {
         if (s === shown) { return; }
         if (!s) {
@@ -1798,7 +1833,8 @@ SHOW_JS = "(s) => { if (globalThis.__urt) { globalThis.__urt.show(s); } return t
 # is, or the clock is behind), its animations and scrolls set for t, and
 # when its next thing is due: [whether anything fired, the next one's
 # time or null, how many animations and scrolls are under way, how many
-# of them will end].  null for
+# of them will end, and [the document's number, the requests it has sent,
+# the navigations away it began] or null].  null for
 # a page without the clock.  First a turn of the page's real event loop,
 # so that what the page queued meanwhile (a form's submission after a
 # click, which starts a navigation) has started before the answer; and
@@ -1824,7 +1860,7 @@ PROBE_JS = r"""
             return (m[0] ? frames(2) : Promise.resolve()).then(() => {
                 let next = at(c._firstTimer());
                 if (m[1] !== null && (next === null || m[1] < next)) { next = m[1]; }
-                return [due || m[0], next, m[2], m[3]];
+                return [due || m[0], next, m[2], m[3], u ? [u.doc, u.sent, u.leaves] : null];
             });
         });
     });
@@ -1840,15 +1876,15 @@ PROBE_JS = r"""
 # itself out, before any script of the page's runs; it also says whether
 # the tab is shown.
 CLOCK_SCRIPT = ('<script>(() => { const c = globalThis.__pwClock && globalThis.__pwClock.controller; '
-                'if (c) { c.now(); c._now.time = %d; } if (globalThis.__urt) { globalThis.__urt.init(%s, %s); } '
+                'if (c) { c.now(); c._now.time = %d; } if (globalThis.__urt) { globalThis.__urt.init(%s, %s, %d); } '
                 'document.currentScript.remove(); })()</script>')
 
 
-def with_clock(body, now, shown, hidden_since):
+def with_clock(body, now, shown, hidden_since, doc):
     """An HTML document with CLOCK_SCRIPT for now put first: in its head,
-    or after its html tag or doctype if it has none."""
+    or after its html tag or doctype if it has none.  doc: its number."""
     script = (CLOCK_SCRIPT % (now, 'true' if shown else 'false',
-                              'null' if hidden_since is None else hidden_since)).encode()
+                              'null' if hidden_since is None else hidden_since, doc)).encode()
     for pattern in (rb'<head(\s[^>]*)?>', rb'<html(\s[^>]*)?>', rb'<!doctype[^>]*>'):
         m = re.search(pattern, body, re.I)
         if m:
@@ -1915,6 +1951,10 @@ class Tab:
         self.answer = None          # the answer to come to the dialog it shows
         self.watchers = []          # futures of calls a dialog would hold up
         self.pending = []           # calls a dialog holds up
+        self.sent = None            # (document, requests sent, navigations away begun), as of its last probe
+        self.routed = {}            # document -> its requests the driver has seen
+        self.left_by = {}           # document -> navigations away the driver has seen begin
+        self.owed = None            # (what the page said it sent, since when it is owed), while the driver has not seen it all
 
 
 class TabRecord:
@@ -2391,6 +2431,7 @@ class Run:
         self.refused = set()
         self.heldmap = {}           # request -> Held
         self.frames = set()         # frame stops to come
+        self.docs = 0               # the documents delivered, which number them
 
     # ---- the queue
 
@@ -2518,7 +2559,9 @@ class Run:
         if r is None:
             tab.next_timer = None
             return
-        fired, nxt, tab.animating, tab.moving = r
+        fired, nxt, tab.animating, tab.moving, sent = r
+        if sent is not None:
+            tab.sent = tuple(sent)
         trace('touch', tab.label, fired, nxt and self.stamp(nxt), tab.animating)
         tab.clock = self.now
         tab.next_timer = nxt
@@ -2754,6 +2797,7 @@ class Run:
         trace('framenavigated', tab.label, frame.url)
         if frame == tab.page.main_frame:
             self.activity += 1
+            tab.sent = None         # a new document's, until its first probe
             tab.changed = True
             tab.navigating = False
 
@@ -2840,6 +2884,10 @@ class Run:
             self.on_request(tab, req)
         else:
             tab = self.page_tab.get(page) or self.on_page(user, page)
+        sent = req.headers.get('x-urt-sent', '')
+        if re.match(r'^\d+\.\d+$', sent):
+            doc = int(sent.split('.')[0])
+            tab.routed[doc] = tab.routed.get(doc, 0) + 1
         h = Held(tab, route, self.is_poll(req), self.now)
         h.step = self.step
         trace('route', tab.label, req.method, self.path_of(url))
@@ -2852,6 +2900,8 @@ class Run:
                 tab.loading = tab.navigating = True
                 tab.awaiting = False
                 h.navigation = True
+                if tab.sent is not None:
+                    tab.left_by[tab.sent[0]] = tab.left_by.get(tab.sent[0], 0) + 1
         except self.PlaywrightError:
             pass
         rtt = self.setup.rtt_of(tab.user.name)
@@ -2860,7 +2910,7 @@ class Run:
     async def arrive(self, h):
         h.arrived = self.now
         trace('arrive', h.tab.label, self.path_of(h.req.url))
-        headers = {k: v for k, v in h.req.headers.items() if k.lower() != 'host'}
+        headers = {k: v for k, v in h.req.headers.items() if k.lower() not in ('host', 'x-urt-sent')}
         headers['urweb-time'] = str(self.now)
         if h.poll:
             h.task = asyncio.ensure_future(self.fetch_poll(h, headers))
@@ -2903,9 +2953,10 @@ class Run:
                 await self.call(tab, h.route.abort('failed'))
             elif h.navigation and 'html' in h.response.headers.get('content-type', ''):
                 tab.shown = tab is tab.user.front
+                self.docs += 1
                 await self.call(tab, h.route.fulfill(response=h.response,
                                                      body=with_clock(await h.response.body(), self.now, tab.shown,
-                                                                     tab.hidden_since)))
+                                                                     tab.hidden_since, self.docs)))
             else:
                 await self.call(tab, h.route.fulfill(response=h.response))
         except self.PlaywrightError:
@@ -3078,7 +3129,7 @@ class Run:
         whose requests are all delivered."""
         if tab.closed or tab.dialog:
             return False
-        if tab.awaiting:
+        if tab.awaiting or self.owing(tab):
             return True
         if self.is_busy(tab) and not tab.navigating:
             return True
@@ -3086,6 +3137,27 @@ class Run:
         if tab.navigating:
             return not any(h.tab is tab and h.navigation and h.delivered is None for h in self.held)
         return tab.loading and not undelivered
+
+    def owing(self, tab):
+        """Whether the page has sent a request, or begun a navigation away,
+        that the driver has not seen yet: the page says so at a probe,
+        which comes on its own way, and the request by the network's.
+        One that does not come within two seconds of the wall clock never
+        will (a request the page took back at once), and is not waited
+        for again."""
+        if tab.sent is None or tab.navigating:
+            tab.owed = None
+            return False
+        doc, sent, leaves = tab.sent
+        if tab.routed.get(doc, 0) >= sent and tab.left_by.get(doc, 0) >= leaves:
+            tab.owed = None
+            return False
+        if tab.owed is None or tab.owed[0] != tab.sent:
+            tab.owed = (tab.sent, time.monotonic())
+        elif tab.owed[1] is not None and time.monotonic() - tab.owed[1] > 2:
+            trace('never came', tab.label, tab.sent, tab.routed.get(doc, 0), tab.left_by.get(doc, 0))
+            tab.owed = (tab.sent, None)
+        return tab.owed[1] is not None
 
     async def wake(self, t):
         """Resume the users whose wait is over, in the tie order; whether
