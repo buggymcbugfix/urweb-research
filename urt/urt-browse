@@ -5,7 +5,7 @@ or WebKit, through Playwright for Python.
 
     urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS]
                [--timeout SECONDS] [--screenshots DIR] [--recordings DIR]
-               URL RUN OUT
+               [--frame T] URL RUN OUT
     urt-browse --serve [the same options but the directories]
     urt-browse --check RUN
 
@@ -47,15 +47,22 @@ the step:
 the dialogs, the console and the error only if there was anything.
 With --screenshots, every tab is also shot after every step, the whole
 page as the engine draws it, into DIR as NAME.USER.TAB.ENGINE.png: for
-looking at, not for comparing.  With --recordings, every tab is filmed
-from its opening to its closing, into DIR as USER.TAB.ENGINE.webm, with
-a pointer drawn in and the lines as cues (USER.TAB.ENGINE.vtt), and an
-index.html in DIR plays them.  The records are the same with and without
-either.  After each step a line 'step NAME' is printed; a step that
-cannot be done prints 'fail NAME' and ends the run; 'done' ends it
-otherwise.  With --serve, the browser is started once and a run is done
-for every line 'run URL RUN OUT [screenshots=DIR] [recordings=DIR]' read
-from stdin, quoted as for a shell.  With --check, the step and context
+looking at, not for comparing.  With --recordings, every user is filmed
+on the clock, into DIR as USER.ENGINE.webm: their tab in front as the
+engine draws it, under a strip with their tabs, the clock and the line
+they are at, the pointer and any dialog drawn in.  A frame is a point of
+a grid on the clock, every T (--frame, 16ms unless given), at which
+anything shown may have changed, the clock stopping on the grid while
+anything in the page moves that will stop (an endless animation, a
+spinner, is filmed with whatever else changes); between the frames the
+picture stands, and the strip's clock goes on a second at a time.  The lines are the cues
+(USER.ENGINE.vtt), and DIR's index.html plays a run's films together,
+every one in a box to move and size at will.  The records are the same
+with and without either.  After each step a line 'step NAME' is
+printed; a step that cannot be done prints 'fail NAME' and ends the run;
+'done' ends it otherwise.  With --serve, the browser is started once and
+a run is done for every line 'run URL RUN OUT [screenshots=DIR]
+[recordings=DIR] [frame=T]' read from stdin, quoted as for a shell.  With --check, the step and context
 files are read and nothing is run: what is wrong with them is printed,
 a line each, and the exit status is 1 if anything was.
 
@@ -194,6 +201,7 @@ business.
 
 import argparse
 import asyncio
+import base64
 import datetime
 import functools
 import heapq
@@ -202,8 +210,11 @@ import json
 import os
 import re
 import shlex
+import shutil
 import socket
+import struct
 import sys
+import tempfile
 import time
 
 
@@ -220,7 +231,7 @@ DUMP_JS = r"""
     const escAttr = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
     const voids = new Set(['area','base','br','col','embed','hr','img','input','link','meta','source','track','wbr']);
     const notTyped = new Set(['button','checkbox','radio','file','color','range','hidden','image','submit','reset']);
-    const left = new Set(['script', 'style', 'noscript', 'urt-cursor']);   // urt-cursor: the pointer drawn for a recording
+    const left = new Set(['script', 'style', 'noscript']);
     function text(n) { return n.data.replace(/\s+/g, ' ').trim(); }
     function typedInto(e) {
         const tag = e.tagName.toLowerCase();
@@ -279,46 +290,6 @@ DUMP_JS = r"""
     dump(document.documentElement, 0, false);
     return out.join('\n') + '\n';
 }
-"""
-
-
-# A pointer drawn into the page while it is recorded, since a headless
-# engine draws none: Playwright's actions send the page real mouse
-# events, and these move an element over the page with them, pressed
-# between mousedown and mouseup.  A name no locator a run uses matches,
-# outside the body so that `body > *` matches what it matched,
-# pointer-events none so that it is never what is under the pointer,
-# and the dump leaves it out.  It appears at the page's first mouse
-# event: a page loaded under a still pointer gets none, and the driver
-# sends none for it, since a move would fire the page's mouseover.
-CURSOR_JS = r"""
-(() => {
-    const arrow = 'data:image/svg+xml,' + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="28" viewBox="0 0 20 28">'
-        + '<path d="M2 2 L2 22 L7 17.5 L11 26 L14.5 24.5 L10.5 16 L17 16 Z" fill="#000" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/>'
-        + '</svg>');
-    let el = null;
-    function cursor() {
-        if (!el && document.documentElement) {
-            el = document.createElement('urt-cursor');
-            el.style.cssText = 'position:fixed;left:0;top:0;width:20px;height:28px;display:block;pointer-events:none;'
-                + 'z-index:2147483647;background:url(' + arrow + ') no-repeat;';
-            document.documentElement.appendChild(el);
-        }
-        return el;
-    }
-    function move(e) {
-        const c = cursor();
-        if (c) { c.style.transform = 'translate(' + (e.clientX - 2) + 'px,' + (e.clientY - 2) + 'px)'; }
-    }
-    function press(e, down) {
-        move(e);
-        if (el) { el.style.filter = down ? 'drop-shadow(0 0 5px #e22)' : ''; }
-    }
-    window.addEventListener('mousemove', move, true);
-    window.addEventListener('mousedown', e => press(e, true), true);
-    window.addEventListener('mouseup', e => press(e, false), true);
-})();
 """
 
 
@@ -984,28 +955,38 @@ def read_run(run_dir):
     complaints.sort(key=where)
     return steps, setup, order, complaints
 
-# -------------------------------------------------------------- recording
+# ---------------------------------------------------------------- films
 
-class Recording:
-    """One tab's video, from its opening to its closing: where Playwright
-    writes it, what it is to be called, when it started, and the cues:
-    [start, end, lines], the seconds from the start."""
+# The strip drawn above a user's tab in front: their tabs, the clock and
+# the line they are at.
+BAR = 40
 
-    def __init__(self, name, path, started):
-        self.name = name
-        self.path = path
-        self.started = started
-        self.cues = []
 
-    def cue(self, lines, at=None):
-        now = max(0.0, time.monotonic() - self.started) if at is None else at
-        if self.cues:
-            self.cues[-1][1] = now
-        self.cues.append([now, None, lines])
+class Reel:
+    """A user's film: frames, each (time, the picture of their tab in
+    front then or None, what is drawn around it), and the lines they did,
+    (start, end, text), end None until the run's."""
 
-    def end(self):
-        if self.cues and self.cues[-1][1] is None:
-            self.cues[-1][1] = max(self.cues[-1][0], time.monotonic() - self.started)
+    def __init__(self, user, directory, epoch):
+        self.user = user
+        self.directory = directory
+        self.frames = [(epoch, None, ((), '', None, None, None))]
+        self.lines = []
+        self.pictures = {}      # tab -> (its last picture's path, its bytes)
+        self.n = 0
+
+    def picture(self, tab, png):
+        """The path of the picture png of the tab, a new one only if it
+        differs from the tab's last."""
+        last = self.pictures.get(tab)
+        if last is not None and last[1] == png:
+            return last[0]
+        self.n += 1
+        path = os.path.join(self.directory, '%s-%06d.png' % (self.user, self.n))
+        with open(path, 'wb') as f:
+            f.write(png)
+        self.pictures[tab] = (path, png)
+        return path
 
 
 def vtt_time(seconds):
@@ -1017,87 +998,468 @@ def vtt_text(s):
     return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
 
+def write_vtt(path, size, cues):
+    """cues, (start, end, text) in seconds from the film's start, as
+    WebVTT, the film's size in a note."""
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write('WEBVTT\n\nNOTE size %dx%d\n\n' % size)
+        for start, end, text in cues:
+            f.write('%s --> %s\n%s\n\n' % (vtt_time(start), vtt_time(end), vtt_text(text)))
+
+
 def read_vtt(path):
-    """The cues of a WebVTT file as this program writes them: a list of
-    (start, end, lines), the times in seconds."""
-    cues = []
+    """A WebVTT file as write_vtt writes it: (size, cues), the cues
+    [start, end, text], the times in seconds."""
+    cues, size = [], None
     with open(path, encoding='utf-8') as f:
         blocks = f.read().split('\n\n')
     for block in blocks[1:]:
         lines = block.strip('\n').split('\n')
+        m = re.match(r'^NOTE size (\d+)x(\d+)$', lines[0]) if lines else None
+        if m:
+            size = (int(m.group(1)), int(m.group(2)))
+            continue
         m = re.match(r'^(\d+):(\d+):(\d+)\.(\d+) --> (\d+):(\d+):(\d+)\.(\d+)$', lines[0]) if lines else None
         if not m:
             continue
         t = [int(x) for x in m.groups()]
-        cues.append((t[0] * 3600 + t[1] * 60 + t[2] + t[3] / 1000, t[4] * 3600 + t[5] * 60 + t[6] + t[7] / 1000,
-                     [html.unescape(l) for l in lines[1:]]))
-    return cues
+        cues.append([t[0] * 3600 + t[1] * 60 + t[2] + t[3] / 1000, t[4] * 3600 + t[5] * 60 + t[6] + t[7] / 1000,
+                     html.unescape(' '.join(lines[1:]))])
+    return size, cues
 
 
-INDEX_HTML = """<!DOCTYPE html>
+def find_ffmpeg():
+    """The ffmpeg Playwright brings along for its own videos, which reads
+    JPEG and writes VP8 in WebM, as a film needs; or one on the PATH."""
+    for root in (os.environ.get('PLAYWRIGHT_BROWSERS_PATH'), os.path.expanduser('~/.cache/ms-playwright'),
+                 os.path.expanduser('~/Library/Caches/ms-playwright')):
+        if not root or not os.path.isdir(root):
+            continue
+        for d in sorted((d for d in os.listdir(root) if d.startswith('ffmpeg')), reverse=True):
+            for exe in ('ffmpeg-linux', 'ffmpeg-mac', 'ffmpeg-win64.exe'):
+                path = os.path.join(root, d, exe)
+                if os.access(path, os.X_OK):
+                    return path
+    return shutil.which('ffmpeg')
+
+
+# How a film is encoded: its frames as they come, at their times to the
+# millisecond (a still stretch costs one frame, not one per tick); VP8 at
+# a quality that keeps text sharp (Playwright's own settings blur it).
+FFMPEG_ARGS = ['-hide_banner', '-loglevel', 'error', '-f', 'matroska', '-i', 'pipe:0', '-fps_mode', 'passthrough',
+               '-enc_time_base', '1:1000', '-c:v', 'vp8', '-qmin', '0', '-qmax', '30', '-crf', '4', '-b:v', '10M',
+               '-deadline', 'good', '-cpu-used', '4', '-threads', '2', '-pix_fmt', 'yuv420p', '-y']
+
+
+def _vint(n):
+    for length in range(1, 9):
+        if n < (1 << (7 * length)) - 1:
+            return (n | (1 << (7 * length))).to_bytes(length, 'big')
+    raise ValueError(n)
+
+
+def _el(id_, data):
+    return id_ + _vint(len(data)) + data
+
+
+def _uint(id_, n):
+    return _el(id_, n.to_bytes(max(1, (n.bit_length() + 7) // 8), 'big'))
+
+
+class Matroska:
+    """JPEG pictures, each at its own millisecond, as a Matroska stream,
+    which is what Playwright's ffmpeg can read with their times: a header,
+    then clusters, each of at most 30 seconds (a block's time is 16 bits)
+    and some megabytes."""
+
+    def __init__(self, width, height, duration):
+        info = _uint(b'\x2a\xd7\xb1', 1000000) + _el(b'\x44\x89', struct.pack('>d', float(duration))) \
+            + _el(b'\x4d\x80', b'urt') + _el(b'\x57\x41', b'urt')
+        video = _uint(b'\xb0', width) + _uint(b'\xba', height)
+        track = _uint(b'\xd7', 1) + _uint(b'\x73\xc5', 1) + _uint(b'\x83', 1) + _el(b'\x86', b'V_MJPEG') \
+            + _el(b'\xe0', video)
+        self.head = (_el(b'\x1a\x45\xdf\xa3', _uint(b'\x42\x86', 1) + _uint(b'\x42\xf7', 1) + _uint(b'\x42\xf2', 4)
+                         + _uint(b'\x42\xf3', 8) + _el(b'\x42\x82', b'matroska') + _uint(b'\x42\x87', 4)
+                         + _uint(b'\x42\x85', 2))
+                     + b'\x18\x53\x80\x67\x01\xff\xff\xff\xff\xff\xff\xff'
+                     + _el(b'\x15\x49\xa9\x66', info) + _el(b'\x16\x54\xae\x6b', _el(b'\xae', track)))
+        self.start = None
+        self.blocks = []
+        self.size = 0
+
+    def frame(self, t, jpeg):
+        """What to write for a picture at t ms: the cluster before, if this
+        one starts a new one."""
+        out = b''
+        if self.start is None or t - self.start > 30000 or self.size > 8 << 20:
+            out = self.flush()
+            self.start = t
+        self.blocks.append(_el(b'\xa3', b'\x81' + struct.pack('>h', t - self.start) + b'\x80' + jpeg))
+        self.size += len(jpeg)
+        return out
+
+    def flush(self):
+        if not self.blocks:
+            return b''
+        data = _el(b'\x1f\x43\xb6\x75', _uint(b'\xe7', self.start) + b''.join(self.blocks))
+        self.blocks, self.size = [], 0
+        return data
+
+
+# A frame, composed on a canvas in a page of the engine's own: the strip,
+# the picture of the page, a dialog, the pointer; as a JPEG at quality 100
+# (the only format Playwright's ffmpeg reads, and at 100 as good as PNG
+# once encoded), in base64.  The picture comes as PNG, and only when it
+# changes.
+COMPOSE_JS = r"""
+(() => {
+    const BAR = %d;
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+    const g = canvas.getContext('2d');
+    let picture = null;
+    const arrow = new Path2D('M2 2 L2 22 L7 17.5 L11 26 L14.5 24.5 L10.5 16 L17 16 Z');
+    const fit = (text, width) => {
+        if (g.measureText(text).width <= width) { return text; }
+        let lo = 0, hi = text.length;
+        while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (g.measureText(text.slice(0, mid) + '…').width <= width) { lo = mid; } else { hi = mid - 1; }
+        }
+        return text.slice(0, lo) + '…';
+    };
+    const wrap = (text, width) => {
+        const out = [];
+        for (const para of String(text).split('\n')) {
+            let line = '';
+            for (const word of para.split(' ')) {
+                const next = line ? line + ' ' + word : word;
+                if (line && g.measureText(next).width > width) { out.push(line); line = word; } else { line = next; }
+            }
+            out.push(line);
+        }
+        return out;
+    };
+    const box = (x, y, w, h, r) => {
+        g.beginPath();
+        if (g.roundRect) { g.roundRect(x, y, w, h, r); } else { g.rect(x, y, w, h); }
+    };
+    globalThis.compose = async (f) => {
+        if (f.png !== undefined) {
+            picture = null;
+            if (f.png !== null) {
+                const bytes = Uint8Array.from(atob(f.png), c => c.charCodeAt(0));
+                picture = await createImageBitmap(new Blob([bytes], {type: 'image/png'}));
+            }
+        }
+        const w = f.w, h = f.h, cw = w + (w & 1), ch = h + BAR + ((h + BAR) & 1);
+        if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, cw, ch);
+        // the strip: the tabs, the front one with its path, then the clock and the line
+        g.fillStyle = '#dee1e6'; g.fillRect(0, 0, cw, BAR);
+        g.textBaseline = 'middle';
+        const right = Math.min(w * 0.45, 440), room = w - right - 16;
+        const tw = Math.min(240, (room - 8) / Math.max(1, f.tabs.length));
+        g.font = '13px sans-serif';
+        f.tabs.forEach(([name, front], i) => {
+            const x = 8 + i * tw;
+            box(x, 6, tw - 4, BAR - 6, 6);
+            g.fillStyle = front ? '#ffffff' : '#c6cad0'; g.fill();
+            g.fillStyle = '#202124';
+            g.fillText(fit(front && f.path ? name + '   ' + f.path : name, tw - 22), x + 10, BAR / 2 + 3);
+        });
+        if (!f.tabs.length) { g.fillStyle = '#5f6368'; g.fillText('no tab', 12, BAR / 2); }
+        g.textAlign = 'right';
+        g.fillStyle = '#202124'; g.font = 'bold 13px monospace';
+        g.fillText(f.clock, w - 10, BAR / 2 - 8);
+        g.fillStyle = '#3c4043'; g.font = '12px sans-serif';
+        g.fillText(fit(f.line || '', right - 20), w - 10, BAR / 2 + 9);
+        g.textAlign = 'left';
+        // the page
+        if (picture) { g.drawImage(picture, 0, BAR); }
+        // a dialog, where the engines draw one: at the top, in the middle;
+        // the button of the answer to come marked
+        if (f.dialog) {
+            const [type, message, value, answer, text] = f.dialog;
+            g.fillStyle = 'rgba(0, 0, 0, 0.3)'; g.fillRect(0, BAR, w, h);
+            g.font = '14px sans-serif';
+            const bw = Math.min(460, w - 40), lines = wrap(message, bw - 40).slice(0, 12);
+            const bh = 70 + lines.length * 20 + (type === 'prompt' ? 36 : 0) + 40;
+            const bx = (w - bw) / 2, by = BAR + 16;
+            box(bx, by, bw, bh, 8); g.fillStyle = '#ffffff'; g.fill();
+            g.strokeStyle = '#9aa0a6'; g.lineWidth = 1; g.stroke();
+            g.fillStyle = '#202124'; g.font = 'bold 14px sans-serif';
+            g.fillText(type === 'beforeunload' ? 'Leave this page?' : 'This page says', bx + 20, by + 24);
+            g.font = '14px sans-serif';
+            lines.forEach((l, i) => g.fillText(l, bx + 20, by + 52 + i * 20));
+            let y = by + 52 + lines.length * 20;
+            if (type === 'prompt') {
+                box(bx + 20, y, bw - 40, 28, 4); g.strokeStyle = '#1a73e8'; g.lineWidth = 2; g.stroke();
+                g.fillStyle = '#202124';
+                const shown = answer === 'answer' && text !== null ? text : (value || '');
+                g.fillText(fit(shown, bw - 56), bx + 28, y + 14);
+                y += 36;
+            }
+            const buttons = type === 'alert' ? [['OK', 'accept']] : [['Cancel', 'dismiss'], ['OK', 'accept']];
+            let x = bx + bw - 20;
+            for (let i = buttons.length - 1; i >= 0; i--) {
+                const [label, kind] = buttons[i];
+                x -= 76;
+                const chosen = answer === kind || (answer === 'answer' && kind === 'accept');
+                box(x, y + 6, 76, 30, 15);
+                g.fillStyle = chosen ? '#1a73e8' : '#ffffff'; g.fill();
+                g.strokeStyle = '#1a73e8'; g.lineWidth = 1; g.stroke();
+                g.fillStyle = chosen ? '#ffffff' : '#1a73e8'; g.textAlign = 'center';
+                g.fillText(label, x + 38, y + 21); g.textAlign = 'left';
+                x -= 8;
+            }
+        }
+        // the pointer, red about it while pressed
+        if (f.pointer) {
+            const [px, py, down] = f.pointer;
+            g.save();
+            g.translate(px - 2, BAR + py - 2);
+            if (down) { g.shadowColor = '#e22'; g.shadowBlur = 8; }
+            g.fillStyle = '#000000'; g.fill(arrow);
+            g.shadowBlur = 0; g.strokeStyle = '#ffffff'; g.lineWidth = 1.5; g.lineJoin = 'round'; g.stroke(arrow);
+            g.restore();
+        }
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 1.0));
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        let out = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) { out += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); }
+        return btoa(out);
+    };
+})()
+"""
+
+
+INDEX_HTML = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>%(title)s</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>@TITLE@</title>
 <style>
-  body { font: 14px/1.4 sans-serif; margin: 1em 2em; background: #fafafa; color: #222; }
-  section { margin-bottom: 2.5em; }
-  h2 { font-size: 1.1em; margin: 0 0 .4em; }
-  .player { display: flex; gap: 1.5em; align-items: flex-start; flex-wrap: wrap; }
-  video { max-width: 70vw; border: 1px solid #bbb; background: #fff; }
-  .cue { white-space: pre-line; min-height: 2.8em; margin: .4em 0; font-family: monospace; color: #444; }
-  ol { margin: 0; padding-left: 2em; max-height: 60vh; overflow: auto; min-width: 20em; }
-  li { cursor: pointer; margin: .15em 0; }
+  :root { color-scheme: light dark; --bg: #eceff3; --panel: #ffffff; --line: #c9ced6; --head: #f4f5f7;
+          --text: #1f2328; --soft: #656d76; --on: #0b57d0; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #15171b; --panel: #1f2329; --line: #3b414a; --head: #282d34; --text: #e7e9ec; --soft: #9aa3ad;
+            --on: #8ab4f8; }
+  }
+  body { margin: 0; min-height: 100vh; font: 13px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  .panel { position: absolute; display: flex; flex-direction: column; background: var(--panel);
+           border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
+           resize: both; overflow: hidden; min-width: 160px; min-height: 60px; }
+  .panel[hidden] { display: none; }
+  .panel > header { display: flex; align-items: center; gap: 8px; padding: 3px 4px 3px 9px; background: var(--head);
+                    border-bottom: 1px solid var(--line); cursor: move; user-select: none; font-weight: 600;
+                    touch-action: none; }
+  .panel > header button { margin-left: auto; border: 0; background: none; color: var(--soft); cursor: pointer;
+                           font-size: 15px; line-height: 1; padding: 2px 6px; }
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  video { flex: 1; min-height: 0; width: 100%; background: #000; object-fit: contain; }
+  .cue { padding: 3px 9px; font: 12px ui-monospace, monospace; white-space: nowrap; overflow: hidden;
+         text-overflow: ellipsis; border-top: 1px solid var(--line); min-height: 1.5em; }
+  ol { flex: 1; margin: 0; padding: 4px 9px 6px 3.2em; overflow: auto; }
+  li { cursor: pointer; padding: 1px 0; }
   li:hover { text-decoration: underline; }
-  li.on { font-weight: bold; }
-  li small { color: #888; font-family: monospace; }
+  li.on { color: var(--on); font-weight: 600; }
+  li small { color: var(--soft); font-family: ui-monospace, monospace; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 7px 9px; overflow: auto; }
+  .controls input[type=range] { flex: 1 1 240px; }
+  .clock { font: 600 14px ui-monospace, monospace; min-width: 9ch; text-align: right; }
+  .shows { display: flex; flex-wrap: wrap; gap: 2px 14px; width: 100%; color: var(--soft); }
+  .shows label { white-space: nowrap; cursor: pointer; }
+  button.play { min-width: 4.5em; }
 </style>
 </head>
 <body>
-<h1>%(title)s</h1>
-%(sections)s
 <script>
-const CUES = %(cues)s;
-function stamp(s) { return new Date(s * 1000).toISOString().substr(11, 12); }
-for (const [name, cues] of Object.entries(CUES)) {
-  const section = document.getElementById(name);
-  const video = section.querySelector('video');
-  const box = section.querySelector('.cue');
-  const items = Array.from(section.querySelectorAll('li'));
-  items.forEach((li, i) => li.addEventListener('click', () => { video.currentTime = cues[i][0]; video.play(); }));
-  function show() {
-    const t = video.currentTime;
+const TITLE = @TITLE_JSON@;
+const FRAME = @FRAME@;
+const FILMS = @FILMS@;
+</script>
+<script>
+(() => {
+  // Every box can be moved by its title and sized by its corner; where
+  // they are is kept in the browser for this page, until 'Reset layout'.
+  const key = 'urt-recordings ' + location.pathname;
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || '{}'); } catch (e) {}
+  const panels = [];
+  let top = 1;
+  const save = () => {
+    try {
+      const o = {};
+      for (const p of panels) {
+        const e = p.el;
+        o[p.id] = {x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight, hidden: e.hidden};
+      }
+      localStorage.setItem(key, JSON.stringify(o));
+    } catch (e) {}
+  };
+  const make = (tag, props, parent) => {
+    const e = Object.assign(document.createElement(tag), props);
+    if (parent) { parent.appendChild(e); }
+    return e;
+  };
+  const panel = (id, title, x, y, w, h) => {
+    const el = make('section', {className: 'panel'}, document.body);
+    const head = make('header', {}, el);
+    make('span', {textContent: title}, head);
+    const hide = make('button', {textContent: '×', title: 'Hide'}, head);
+    const body = make('div', {className: 'body'}, el);
+    const s = saved[id] || {x, y, w, h, hidden: false};
+    Object.assign(el.style, {left: s.x + 'px', top: s.y + 'px', width: s.w + 'px', height: s.h + 'px'});
+    el.hidden = !!s.hidden;
+    const p = {id, title, el, body, show: null};
+    head.addEventListener('pointerdown', e => {
+      if (e.target === hide || e.button !== 0) { return; }
+      e.preventDefault();
+      el.style.zIndex = ++top;
+      const dx = e.clientX - el.offsetLeft, dy = e.clientY - el.offsetTop;
+      head.setPointerCapture(e.pointerId);
+      const move = ev => {
+        el.style.left = Math.max(0, ev.clientX - dx) + 'px';
+        el.style.top = Math.max(0, ev.clientY - dy) + 'px';
+      };
+      const up = () => { head.removeEventListener('pointermove', move); head.removeEventListener('pointerup', up); save(); };
+      head.addEventListener('pointermove', move);
+      head.addEventListener('pointerup', up);
+    });
+    el.addEventListener('pointerdown', () => { el.style.zIndex = ++top; });
+    new ResizeObserver(save).observe(el);
+    hide.addEventListener('click', () => { el.hidden = true; if (p.show) { p.show.checked = false; } save(); });
+    panels.push(p);
+    return p;
+  };
+
+  // One clock for every film: seconds from the run's start, as the
+  // timelines have them.
+  const clock = {t: 0, playing: false, speed: 1, last: performance.now()};
+  const users = [...new Set(FILMS.map(f => f.user))];
+  const engines = [...new Set(FILMS.map(f => f.engine))];
+  const W = 440;
+  const controls = panel('controls', TITLE, 10, 10, Math.max(480, Math.min(1200, innerWidth - 20)), 112);
+  const lineAt = (cues, t) => {
     let on = -1;
-    cues.forEach((c, i) => { if (t >= c[0] && (t < c[1] || i === cues.length - 1)) { on = i; } });
-    box.textContent = on >= 0 ? cues[on][2].join('\\n') : '';
-    items.forEach((li, i) => li.classList.toggle('on', i === on));
+    cues.forEach((c, i) => { if (t >= c[0] && t < c[1]) { on = i; } });
+    return on;
+  };
+  const films = FILMS.map(f => {
+    const col = users.indexOf(f.user), row = engines.indexOf(f.engine);
+    const h = Math.round(W * f.height / f.width) + 52;
+    const p = panel('film ' + f.name, f.user + ' · ' + f.engine, 10 + col * (W + 10), 132 + row * (h + 10), W, h);
+    const video = make('video', {src: f.name + '.webm', muted: true, preload: 'auto', playsInline: true}, p.body);
+    const cue = make('div', {className: 'cue'}, p.body);
+    return {f, p, video, cue};
+  });
+  const lists = users.map((u, i) => {
+    const f = FILMS.find(x => x.user === u);
+    const p = panel('lines ' + u, u + ' · lines', 20 + users.length * (W + 10), 132 + i * 270, 380, 260);
+    const ol = make('ol', {}, p.body);
+    const items = f.cues.map(c => {
+      const li = make('li', {}, ol);
+      make('small', {textContent: c[0].toFixed(3) + ' '}, li);
+      li.append(c[2]);
+      li.addEventListener('click', () => { clock.t = c[0]; });
+      return li;
+    });
+    return {f, items};
+  });
+
+  const bar = make('div', {className: 'controls'}, controls.body);
+  const play = make('button', {className: 'play', textContent: 'Play'}, bar);
+  const seek = make('input', {type: 'range', min: 0, max: 0, step: 0.001, value: 0}, bar);
+  const time = make('span', {className: 'clock', textContent: '0.000'}, bar);
+  const speed = make('select', {title: 'Speed'}, bar);
+  for (const v of [0.1, 0.25, 0.5, 1, 2, 4]) { make('option', {value: v, textContent: v + '×', selected: v === 1}, speed); }
+  const reset = make('button', {textContent: 'Reset layout'}, bar);
+  const shows = make('div', {className: 'shows'}, bar);
+  for (const p of panels.slice(1)) {
+    const label = make('label', {}, shows);
+    p.show = make('input', {type: 'checkbox', checked: !p.el.hidden}, label);
+    label.append(' ' + p.title);
+    p.show.addEventListener('change', () => {
+      p.el.hidden = !p.show.checked;
+      if (!p.el.hidden) { p.el.style.zIndex = ++top; }
+      save();
+    });
   }
-  video.addEventListener('timeupdate', show);
-  video.addEventListener('seeked', show);
-}
+  const duration = () => Math.max(0, ...films.map(x => Number.isFinite(x.video.duration) ? x.video.duration : 0));
+  play.addEventListener('click', () => { if (clock.t >= duration()) { clock.t = 0; } clock.playing = !clock.playing; });
+  seek.addEventListener('input', () => { clock.t = Number(seek.value); });
+  speed.addEventListener('change', () => { clock.speed = Number(speed.value); });
+  reset.addEventListener('click', () => { try { localStorage.removeItem(key); } catch (e) {} location.reload(); });
+  // Space plays and pauses; the arrows step a frame.
+  addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') { return; }
+    if (e.key === ' ') { e.preventDefault(); play.click(); }
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      clock.playing = false;
+      clock.t = Math.max(0, Math.min(duration(), clock.t + (e.key === 'ArrowRight' ? 1 : -1) * FRAME / 1000));
+    }
+  });
+
+  const tick = now => {
+    const end = duration();
+    if (clock.playing) {
+      clock.t += (now - clock.last) / 1000 * clock.speed;
+      if (clock.t >= end) { clock.t = end; clock.playing = false; }
+    }
+    clock.last = now;
+    for (const x of films) {
+      const v = x.video;
+      if (x.p.el.hidden) { if (!v.paused) { v.pause(); } continue; }
+      const d = Number.isFinite(v.duration) ? v.duration : Infinity;
+      const t = Math.min(clock.t, d);
+      if (v.playbackRate !== clock.speed) { v.playbackRate = clock.speed; }
+      if (clock.playing && t < d) {
+        if (v.paused) { v.play().catch(() => {}); }
+        if (!v.seeking && Math.abs(v.currentTime - t) > 0.15) { v.currentTime = t; }
+      } else {
+        if (!v.paused) { v.pause(); }
+        if (!v.seeking && Math.abs(v.currentTime - t) > 0.0005) { v.currentTime = t; }
+      }
+      const on = lineAt(x.f.cues, clock.t);
+      x.cue.textContent = on >= 0 ? x.f.cues[on][2] : '';
+    }
+    for (const l of lists) {
+      const on = lineAt(l.f.cues, clock.t);
+      l.items.forEach((li, i) => li.classList.toggle('on', i === on));
+    }
+    play.textContent = clock.playing ? 'Pause' : 'Play';
+    seek.max = end;
+    if (document.activeElement !== seek) { seek.value = clock.t; }
+    time.textContent = clock.t.toFixed(3);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+})();
 </script>
 </body>
 </html>
 """
 
 
-def write_index(directory):
-    """index.html in the recordings directory: every video there, with
-    its cues from its .vtt."""
-    names = sorted(f[:-5] for f in os.listdir(directory) if f.endswith('.webm'))
-    sections, cues = [], {}
-    for name in names:
+def write_index(directory, frame):
+    """index.html in the recordings directory: every film there, USER.ENGINE
+    with its cues and size from its .vtt, played together."""
+    films = []
+    for name in sorted(f[:-5] for f in os.listdir(directory) if f.endswith('.webm')):
+        user, _, engine = name.rpartition('.')
         vtt = os.path.join(directory, name + '.vtt')
-        cues[name] = read_vtt(vtt) if os.path.exists(vtt) else []
-        items = ''.join('<li><small>%s</small> %s</li>\n' % (vtt_time(start)[3:], html.escape(lines[0] if lines else ''))
-                        for start, _, lines in cues[name])
-        sections.append('<section id="%s">\n<h2>%s</h2>\n<div class="player">\n<div>\n'
-                        '<video controls preload="metadata" src="%s.webm"></video>\n<div class="cue"></div>\n</div>\n'
-                        '<ol>\n%s</ol>\n</div>\n</section>' % (html.escape(name), html.escape(name), html.escape(name), items))
+        size, cues = read_vtt(vtt) if os.path.exists(vtt) else (None, [])
+        size = size or (1024, 768 + BAR)
+        films.append({'name': name, 'user': user, 'engine': engine, 'width': size[0], 'height': size[1], 'cues': cues})
     title = os.path.basename(os.path.dirname(os.path.abspath(directory))) or 'recordings'
+    js = lambda v: json.dumps(v, ensure_ascii=False).replace('</', '<\\/')
+    page = INDEX_HTML.replace('@TITLE_JSON@', js(title)).replace('@FRAME@', str(frame)) \
+        .replace('@FILMS@', js(films)).replace('@TITLE@', html.escape(title))
     with open(os.path.join(directory, 'index.html'), 'w', encoding='utf-8') as f:
-        f.write(INDEX_HTML % {'title': html.escape(title), 'sections': '\n'.join(sections),
-                              'cues': json.dumps(cues, ensure_ascii=False).replace('</', '<\\/')})
+        f.write(page)
 
 
 # ------------------------------------------------------------ the clock
@@ -1248,6 +1610,16 @@ MOTION_JS = r"""
         return true;
     };
 
+    // Every held animation where the clock says, its events left to step.
+    const seek = () => {
+        const t = now();
+        for (const [a, h] of held) {
+            if (h === null || a.playState === 'idle' || !a.effect) { continue; }
+            const at = Math.max(0, (t - h.start) * (a.playbackRate || 1));
+            if (at < a.effect.getComputedTiming().endTime) { a.currentTime = at; }
+        }
+    };
+
     // Whether an animation moves the element: one of its own or of an
     // element around it, under way or in its delay.
     urt.moving = (el) => {
@@ -1260,9 +1632,10 @@ MOTION_JS = r"""
 
     // ---- the page at t: [whether anything happened that the engine
     // reports on its next frame, when the next thing is due or null,
-    // how many animations are under way]
+    // how many animations and scrolls are under way, and how many of them
+    // will end]
     urt.step = (t) => {
-        let crossed = scan(), next = null, running = 0;
+        let crossed = scan(), next = null, running = 0, ending = 0;
         const due = at => { if (next === null || at < next) { next = at; } };
         for (const [a, h] of held) {
             if (h === null) { continue; }
@@ -1280,20 +1653,22 @@ MOTION_JS = r"""
             } else {
                 a.currentTime = at;
                 running++;
+                if (Number.isFinite(a.effect.getComputedTiming().endTime)) { ending++; }
             }
         }
         for (const [s, r] of scrolls) {
-            if (r.last === t) { continue; }
-            r.last = t;
-            const p = Math.min(1, (t - r.start) / SMOOTH), e = ease(p);
+            const k = Math.max(0, Math.floor((t - r.start) / 16));
+            if (r.last === k) { continue; }
+            r.last = k;
+            const p = Math.min(1, k * 16 / SMOOTH), e = ease(p);
             // Whole pixels, which every engine keeps as they are.
             s.scrollLeft = Math.round(r.from[0] + (r.to[0] - r.from[0]) * e);
             s.scrollTop = Math.round(r.from[1] + (r.to[1] - r.from[1]) * e);
             crossed = true;
             if (p >= 1) { scrolls.delete(s); }
-            else { due(r.start + Math.min(SMOOTH, 16 * (Math.floor((t - r.start) / 16) + 1))); running++; }
+            else { due(r.start + Math.min(SMOOTH, 16 * (k + 1))); running++; ending++; }
         }
-        return [crossed, next, running];
+        return [crossed, next, running, ending];
     };
 
     // ---- a hidden tab's timers: a callback due while the tab is hidden
@@ -1321,6 +1696,7 @@ MOTION_JS = r"""
     const run = (f, args, level) => {
         const outer = depth;
         depth = level;
+        if (held.size) { seek(); }
         try { f.apply(window, args); } finally { depth = outer; }
     };
     const wakeUp = (at) => {
@@ -1366,7 +1742,9 @@ MOTION_JS = r"""
     const raf = window.requestAnimationFrame, caf = window.cancelAnimationFrame;
     const waiting = new Map(), moved = new Map();
     let ids = 0;
+    const framed = f => (...a) => { if (held.size) { seek(); } return f.apply(window, a); };
     window.requestAnimationFrame = function (f) {
+        if (typeof f === 'function') { f = framed(f); }
         if (shown) { return raf.call(window, f); }
         const id = --ids;
         waiting.set(id, f);
@@ -1419,7 +1797,8 @@ SHOW_JS = "(s) => { if (globalThis.__urt) { globalThis.__urt.show(s); } return t
 # A page's clock moved to t, firing what is due by then (only if anything
 # is, or the clock is behind), its animations and scrolls set for t, and
 # when its next thing is due: [whether anything fired, the next one's
-# time or null, how many animations and scrolls are under way].  null for
+# time or null, how many animations and scrolls are under way, how many
+# of them will end].  null for
 # a page without the clock.  First a turn of the page's real event loop,
 # so that what the page queued meanwhile (a form's submission after a
 # click, which starts a navigation) has started before the answer; and
@@ -1441,11 +1820,11 @@ PROBE_JS = r"""
         const due = first !== null && first <= t;
         const moved = c._now.time <= t && (c._now.time < t || due) ? c.pauseAt(t) : null;
         return Promise.resolve(moved).then(() => {
-            const m = u ? u.step(t) : [false, null, 0];
+            const m = u ? u.step(t) : [false, null, 0, 0];
             return (m[0] ? frames(2) : Promise.resolve()).then(() => {
                 let next = at(c._firstTimer());
                 if (m[1] !== null && (next === null || m[1] < next)) { next = m[1]; }
-                return [due || m[0], next, m[2]];
+                return [due || m[0], next, m[2], m[3]];
             });
         });
     });
@@ -1525,11 +1904,15 @@ class Tab:
         self.answers = []
         self.pointer = (0.0, 0.0)
         self.animating = 0          # animations and scrolls under way in the page, as of its last probe
+        self.moving = 0             # of those, the ones that will end
         self.shown = True           # what the page was told: whether it is the tab in front
         self.hidden_since = None    # since when the tab has not been in front, while it is not
         self.parked = None          # (dialog, answer) of a dialog shown while the tab was not in front
         self.closed = False
-        self.video = None
+        self.changed = True         # what a film shows of it may have changed since its last frame
+        self.pointed = False        # the pointer has been moved in it
+        self.pressed = False        # a button of the pointer is down
+        self.answer = None          # the answer to come to the dialog it shows
         self.watchers = []          # futures of calls a dialog would hold up
         self.pending = []           # calls a dialog holds up
 
@@ -1579,6 +1962,8 @@ class User:
         self.expect_tab = None      # the name a tab the current act opens gets
         self.unborn = None          # a tab the page opened, its page not yet reported
         self.box = None             # ((tab, locator), when, box): an element being watched for stillness
+        self.line = None            # the line under way, for a film
+        self.changed = True         # what a film shows of the user may have changed since its last frame
 
     # ---- parking
 
@@ -1624,10 +2009,13 @@ class User:
             await self.sleep_until(self.run.now)
             for a in self.lines:
                 start = self.run.now
-                if self.front is not None and not self.front.closed:
-                    self.run.cue(self.front, '%s \u00b7 %s: %s' % (self.run.step.name, self.name, a.text))
+                self.line = '%s \u00b7 %s' % (self.run.step.name, a.text)
+                self.changed = True
                 await self.do(a)
                 self.run.step.timeline.append((start, self.run.now, '%s: %s' % (self.name, a.text)))
+                reel = self.run.reels.get(self.name)
+                if reel is not None:
+                    reel.lines.append((start, self.run.now, self.line))
         except Complaint as e:
             self.run.fail(self, a, str(e))
         except self.run.PlaywrightError as e:
@@ -1636,6 +2024,8 @@ class User:
             pass
         finally:
             self.done = True
+            self.line = None
+            self.changed = True
             self.future = None
             self.parked.set()
 
@@ -1679,6 +2069,7 @@ class User:
                 raise Complaint('%s is in front already' % name)
             await self.sleep_until(run.now + self.time_of(a))
             self.front = tab
+            self.changed = True
         elif verb == 'quit':
             await self.quit()
         else:
@@ -1771,13 +2162,15 @@ class User:
             # An animation of its own or around it, its end due.
             self.box = None
             return False
+        # The box on frames 16ms apart, from the first look: what the page
+        # does at other times (a film's frames among them) does not count.
+        if self.box is not None and self.box[0] == (tab, locator) and run.now < self.box[1] + 16:
+            run.frame(self.box[1] + 16)
+            return False
         box = await run.call(tab, loc.bounding_box())
         if self.box is None or self.box[0] != (tab, locator) or self.box[2] != box:
             self.box = ((tab, locator), run.now, box)
             run.frame(run.now + 16)
-            return False
-        if run.now < self.box[1] + 16:
-            run.frame(self.box[1] + 16)
             return False
         return True
 
@@ -1804,10 +2197,10 @@ class User:
             y = box['height'] * y / 100
         return box['x'] + x, box['y'] + y
 
-    async def input(self, tab, tag, coro_fn):
+    async def input(self, tab, tag, coro_fn, press=None):
         """An input event at tag, or later if the tab is navigating then:
         it goes to the document that comes; the page's clock moved there
-        first."""
+        first.  press: the pointer's button down or up after it."""
         await self.sleep_until(tag)
         if tab.navigating:
             await self.wait_for(lambda: self.const(not tab.navigating or tab.closed), None,
@@ -1817,6 +2210,9 @@ class User:
         await self.run.touch(tab)
         if coro_fn is not None:
             await self.run.call(tab, coro_fn(), user=self)
+        if press is not None:
+            tab.pressed = press
+        tab.changed = True
 
     async def travel(self, tab, start, end, to):
         """The pointer from where it is to `to`, a move on every frame
@@ -1829,6 +2225,7 @@ class User:
             await self.input(tab, start + (end - start) * k // n,
                              functools.partial(tab.page.mouse.move, x, y))
             tab.pointer = (x, y)
+            tab.pointed = True
 
     async def act(self, tab, a, D):
         if tab.page is None:
@@ -1853,13 +2250,13 @@ class User:
                 return
             await self.travel(tab, start, max(start, start + D - press), to)
             if verb == 'dblclick':
-                await self.input(tab, start + D - 150, lambda: page.mouse.down(click_count=1))
-                await self.input(tab, start + D - 100, lambda: page.mouse.up(click_count=1))
-                await self.input(tab, start + D - 50, lambda: page.mouse.down(click_count=2))
-                await self.input(tab, start + D, lambda: page.mouse.up(click_count=2))
+                await self.input(tab, start + D - 150, lambda: page.mouse.down(click_count=1), press=True)
+                await self.input(tab, start + D - 100, lambda: page.mouse.up(click_count=1), press=False)
+                await self.input(tab, start + D - 50, lambda: page.mouse.down(click_count=2), press=True)
+                await self.input(tab, start + D, lambda: page.mouse.up(click_count=2), press=False)
             else:
-                await self.input(tab, max(start, start + D - 100), lambda: page.mouse.down())
-                await self.input(tab, start + D, lambda: page.mouse.up())
+                await self.input(tab, max(start, start + D - 100), lambda: page.mouse.down(), press=True)
+                await self.input(tab, start + D, lambda: page.mouse.up(), press=False)
         elif verb == 'focus':
             loc = await self.wait_ready(tab, a.args[0], None)
             await self.input(tab, run.now + D, lambda: loc.focus())
@@ -1901,12 +2298,12 @@ class User:
             start = run.now
             frm = await self.point(tab, source, a.named.get('from'))
             await self.travel(tab, start, start + D * 3 // 10, frm)
-            await self.input(tab, start + D * 3 // 10, lambda: page.mouse.down())
+            await self.input(tab, start + D * 3 // 10, lambda: page.mouse.down(), press=True)
             to = await self.point(tab, target, a.named.get('to'))
             await self.travel(tab, start + D * 3 // 10, start + D * 9 // 10, to)
             # At rest over the target before the release.
             await self.input(tab, start + D * 9 // 10 + 16, functools.partial(page.mouse.move, to[0], to[1]))
-            await self.input(tab, max(start + D, start + D * 9 // 10 + 16), lambda: page.mouse.up())
+            await self.input(tab, max(start + D, start + D * 9 // 10 + 16), lambda: page.mouse.up(), press=False)
         elif verb == 'swipe':
             loc = await self.wait_ready(tab, a.args[0], None)
             start = run.now
@@ -1914,10 +2311,11 @@ class User:
             to = await self.point(tab, loc, a.named['to'])
             await self.input(tab, start, functools.partial(page.mouse.move, frm[0], frm[1]))
             tab.pointer = frm
-            await self.input(tab, start, lambda: page.mouse.down())
+            tab.pointed = True
+            await self.input(tab, start, lambda: page.mouse.down(), press=True)
             await self.travel(tab, start, start + D, to)
             # Let go while moving: no rest.
-            await self.input(tab, start + D, lambda: page.mouse.up())
+            await self.input(tab, start + D, lambda: page.mouse.up(), press=False)
         elif verb in ('open', 'back', 'forward', 'reload'):
             await self.input(tab, start, None)
             if verb == 'open':
@@ -1934,6 +2332,7 @@ class User:
         for tab in list(self.tabs):
             tab.closed = True
         self.tabs, self.front = [], None
+        self.changed = True
         if self.context is not None:
             context, self.context = self.context, None
             await context.close()
@@ -1943,7 +2342,7 @@ class Run:
     """One run through one engine: the clock, the users, the requests in
     the driver's hands, the server's clock, the records."""
 
-    def __init__(self, drv, url, run_dir, out, steps, setup, order, screenshots, recordings):
+    def __init__(self, drv, url, run_dir, out, steps, setup, order, screenshots, recordings, frame):
         self.drv, self.args = drv, drv.args
         self.PlaywrightError = drv.PlaywrightError
         self.browser = drv.browser
@@ -1967,6 +2366,16 @@ class Run:
         self.queue = []
         self.seq = 0
         self.users = {name: User(self, name, rank) for rank, name in enumerate(order)}
+        # The films, when asked for: a reel a user, its pictures waiting in
+        # a directory of their own until the run's end.
+        self.frame_ms = frame
+        self.stops = set()          # the film's stops to come
+        self.reels = {}
+        self.pictures = None
+        if recordings:
+            os.makedirs(recordings, exist_ok=True)
+            self.pictures = tempfile.mkdtemp(prefix='urt-film-')
+            self.reels = {name: Reel(name, self.pictures, self.now) for name in order}
         self.page_tab = {}
         self.held = []              # Held, until the page has it
         self.polls = []             # polls at the server, in the order they finished
@@ -1977,7 +2386,6 @@ class Run:
         self.step = None
         self.error = None
         self.current = {}           # user -> the action under way
-        self.videos = []
         self.creating = False
         self.open_requests = {}     # request -> (step, label, index)
         self.refused = set()
@@ -2011,6 +2419,15 @@ class Run:
 
     async def framed(self, tag):
         self.frames.discard(tag)
+
+    def stop(self, tag):
+        """A stop at tag, for a film to show what moves."""
+        if tag not in self.stops:
+            self.stops.add(tag)
+            self.push(tag, PHASE_USER, -1, functools.partial(self.stopped, tag))
+
+    async def stopped(self, tag):
+        self.stops.discard(tag)
 
     async def resume(self, user, fut, value):
         if fut.done() or user.future is not fut:
@@ -2101,10 +2518,15 @@ class Run:
         if r is None:
             tab.next_timer = None
             return
-        fired, nxt, tab.animating = r
+        fired, nxt, tab.animating, tab.moving = r
         trace('touch', tab.label, fired, nxt and self.stamp(nxt), tab.animating)
         tab.clock = self.now
         tab.next_timer = nxt
+        # What moves is filmed; an endless animation (a spinner) only along
+        # with anything else, or a film of a page with one would have a
+        # frame at every point of its grid.
+        if fired or tab.moving:
+            tab.changed = True
         if fired:
             self.activity += 1
 
@@ -2114,9 +2536,6 @@ class Run:
         if user.context is not None:
             return user.context
         options = self.setup.options_of(user.name)
-        if self.recordings:
-            options['record_video_dir'] = self.recordings
-            options['record_video_size'] = options['viewport']
         context = await self.browser.new_context(**options)
         context.set_default_timeout(self.args.timeout * 1000)
         await context.clock.install(time=dt(self.now - 1000))
@@ -2124,8 +2543,6 @@ class Run:
         await context.add_init_script(TICKS_JS)
         await context.add_init_script('globalThis.__urtThrottle = %s;' % json.dumps(self.setup.throttle_of(user.name)))
         await context.add_init_script(MOTION_JS)
-        if self.recordings:
-            await context.add_init_script(CURSOR_JS)
         await context.route('**/*', functools.partial(self.on_route, user))
         context.on('page', lambda page: self.on_page(user, page))
         # The context's, not the page's: a tab's first request can finish
@@ -2148,20 +2565,15 @@ class Run:
         tab = Tab(user, name, None)
         user.tabs.append(tab)
         user.front = tab
+        user.changed = True
         if page is not None:
             self.attach(tab, page)
         return tab
 
     def attach(self, tab, page):
         tab.page = page
+        tab.changed = True
         self.page_tab[page] = tab
-        label = tab.label
-        if self.recordings:
-            n = 1 + sum(1 for v in self.videos if v.name.startswith('%s.%s.' % (label, self.args.engine)))
-            vname = '%s.%s%s' % (label, self.args.engine, '.%d' % n if n > 1 else '')
-            tab.video = Recording(vname, page.video.path(), time.monotonic())
-            self.videos.append(tab.video)
-            self.cue(tab, '%s · %s: opened' % (self.step.name if self.step else '', label), at=0.0)
         page.on('request', lambda r: self.on_request(tab, r))
         page.on('dialog', lambda d: self.on_dialog(tab, d))
         page.on('console', lambda m: self.on_console(tab, m))
@@ -2212,6 +2624,7 @@ class Run:
         if tab in user.tabs:
             i = user.tabs.index(tab)
             user.tabs.pop(i)
+            user.changed = True
             if user.front is tab:
                 user.front = user.tabs[i] if i < len(user.tabs) else user.tabs[i - 1] if user.tabs else None
 
@@ -2334,12 +2747,14 @@ class Run:
     def on_load(self, tab):
         trace('load', tab.label)
         self.activity += 1
+        tab.changed = True
         tab.loading = False
 
     def on_navigated(self, tab, frame):
         trace('framenavigated', tab.label, frame.url)
         if frame == tab.page.main_frame:
             self.activity += 1
+            tab.changed = True
             tab.navigating = False
 
     def on_console(self, tab, msg):
@@ -2356,10 +2771,12 @@ class Run:
         which in a tab not in front is when the user comes to it."""
         self.activity += 1
         tab.dialog = dialog
+        tab.changed = True
         for w in tab.watchers:
             if not w.done():
                 w.set_result(True)
         answer = tab.answers.pop(0) if tab.answers else ('accept', None, self.setup.time_of(tab.user.name, 'dialog'))
+        tab.answer = answer
         if tab is not tab.user.front:
             # Shown when the user comes to the tab, and answered after.
             tab.parked = (dialog, answer)
@@ -2386,6 +2803,8 @@ class Run:
         if self.step is not None:
             self.step.tab(tab.label).dialogs.append(line)
         tab.dialog = None
+        tab.answer = None
+        tab.changed = True
         # What the dialog held up goes on, at the time of the answer.
         pending, tab.pending = tab.pending, []
         for task in pending:
@@ -2493,6 +2912,7 @@ class Run:
             h.finished = True
             self.drop(h)
         self.activity += 1
+        tab.changed = True
 
     def drop(self, h):
         self.heldmap.pop(h.req, None)
@@ -2648,6 +3068,7 @@ class Run:
                     if await self.call(tab, tab.page.evaluate(SHOW_JS, want)):
                         trace('shown' if want else 'hidden', tab.label)
                         tab.shown = want
+                        tab.changed = True
                         self.activity += 1
 
     def coming(self, tab):
@@ -2704,6 +3125,7 @@ class Run:
 
     async def run_step(self, step):
         start = self.now
+        waited = None
         for user in self.users.values():
             user.labels = set()
             user.lines = [a for a in step.actions if a.user == user.name]
@@ -2721,6 +3143,9 @@ class Run:
             if all(u.done for u in self.users.values()) and self.quiet():
                 if step.wait is not None and end is None:
                     end = self.now + step.wait
+                    waited = (self.now, '%s \u00b7 wait %s' % (step.name, show_time(step.wait)))
+                    for user in self.users.values():
+                        user.line, user.changed = waited[1], True
                 if end is None or self.now >= end:
                     break
             t = self.next_tag(end)
@@ -2735,6 +3160,13 @@ class Run:
                                    or ', '.join('%s %s' % (t.label, 'shows a dialog' if t.dialog else 'loads')
                                                 for t in self.live_tabs() if t.loading or t.dialog)))
             await self.process_tag(t)
+            if self.reels:
+                await self.film(end)
+        if waited is not None:
+            for user in self.users.values():
+                user.line, user.changed = None, True
+                if user.name in self.reels:
+                    self.reels[user.name].lines.append((waited[0], self.now, waited[1]))
         for user in self.users.values():
             if user.task is not None and not user.task.done():
                 user.task.cancel()
@@ -2747,9 +3179,136 @@ class Run:
             raise Complaint(self.error)
         return start
 
-    def cue(self, tab, text, at=None):
-        if tab.video is not None:
-            tab.video.cue([text, dt(self.now).strftime('page time %Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'], at)
+    # ---- films
+
+    def grid(self):
+        """The frame now belongs to: the first point of the grid at or after
+        now."""
+        e, f = self.epoch_ms(), self.frame_ms
+        return e + -(-(self.now - e) // f) * f
+
+    async def film(self, end, last=False):
+        """Every user's film at the frame now belongs to: their tab in front
+        shot if anything shown may have changed, once nothing more comes
+        before the frame; while anything in it moves that will end (an
+        animation but an endless one, a smooth scroll), a stop at every
+        frame, so that the film shows it moving.  last: the run is over."""
+        g = self.grid()
+        for user in self.users.values():
+            front = user.front if user.front is not None and not user.front.closed else None
+            if front is not None and front.moving and not last:
+                self.stop(g if g > self.now else g + self.frame_ms)
+        nxt = None if last else self.next_tag(end)
+        if nxt is not None and nxt <= g:
+            return
+        for user in self.users.values():
+            front = user.front if user.front is not None and not user.front.closed else None
+            if user.changed or front is not None and front.changed:
+                await self.shoot(self.reels[user.name], user, front, g)
+                user.changed = False
+                if front is not None:
+                    front.changed = False
+
+    async def shoot(self, reel, user, front, g):
+        """A frame of the user's film at g: the picture of their tab in
+        front, or its last if it cannot be shot now (a dialog holds it up,
+        a document is on its way or loading: its scripts hold up its first
+        picture, and they come at a later frame), and what is drawn around
+        it."""
+        picture = None
+        if front is not None and front.page is not None:
+            picture = reel.pictures.get(front, (None,))[0]
+            if not (front.dialog or front.navigating or front.loading or self.is_busy(front)):
+                try:
+                    png = await self.call(front, front.page.screenshot(type='png', scale='css', caret='initial',
+                                                                       timeout=3000))
+                except (self.PlaywrightError, Complaint):
+                    png = None
+                if png:
+                    picture = reel.picture(front, png)
+        tabs = tuple((t.name, t is front) for t in user.tabs if not t.closed)
+        path = self.path_of(front.page.url) if front is not None and front.page is not None else ''
+        pointer = (round(front.pointer[0], 1), round(front.pointer[1], 1), front.pressed) \
+            if front is not None and front.pointed else None
+        dialog = None
+        if front is not None and front.dialog is not None and front.parked is None:
+            d, answer = front.dialog, front.answer or ('accept', None, 0)
+            dialog = (d.type, d.message, d.default_value, answer[0], answer[1])
+        trace('shot', user.name, self.stamp(g))
+        frame = (g, picture, (tabs, self.normalise(path), pointer, dialog, user.line))
+        if reel.frames and reel.frames[-1][0] == g:
+            reel.frames[-1] = frame
+        elif not reel.frames or reel.frames[-1][1:] != frame[1:]:
+            reel.frames.append(frame)
+
+    async def develop(self, reel, end):
+        """The user's film, USER.ENGINE.webm in the recordings: every frame
+        composed in a page of the engine's own and handed to ffmpeg at its
+        time; between frames the picture stands, a frame a second for the
+        strip's clock.  And its cues, USER.ENGINE.vtt."""
+        name = '%s.%s' % (reel.user, self.args.engine)
+        e = self.epoch_ms()
+        viewport = self.setup.options_of(reel.user)['viewport']
+        width, height = viewport['width'], viewport['height']
+        cues = [((start - e) / 1000, ((stop if stop is not None else end) - e) / 1000, text)
+                for start, stop, text in reel.lines]
+        write_vtt(os.path.join(self.recordings, name + '.vtt'), (width + (width & 1), height + BAR + ((height + BAR) & 1)),
+                  cues)
+        ffmpeg = find_ffmpeg()
+        if ffmpeg is None:
+            print('urt-browse: no ffmpeg for %s: Playwright\'s, under PLAYWRIGHT_BROWSERS_PATH, or one on the PATH'
+                  % name, file=sys.stderr)
+            return
+        frames = []
+        for k, (t, picture, overlay) in enumerate(reel.frames):
+            frames.append((t, picture, overlay))
+            until = reel.frames[k + 1][0] if k + 1 < len(reel.frames) else end
+            s = (t // 1000 + 1) * 1000
+            while s < until:
+                frames.append((s, picture, overlay))
+                s += 1000
+        if frames[-1][0] < end:
+            frames.append((end,) + frames[-1][1:])
+        trace('develop', name, len(frames))
+        context = await self.browser.new_context()
+        page = await context.new_page()
+        proc = None
+        try:
+            await page.set_content('<!DOCTYPE html><body style="margin: 0"></body>')
+            await page.evaluate(COMPOSE_JS % BAR)
+            proc = await asyncio.create_subprocess_exec(ffmpeg, *FFMPEG_ARGS, os.path.join(self.recordings, name + '.webm'),
+                                                        stdin=asyncio.subprocess.PIPE,
+                                                        stdout=asyncio.subprocess.DEVNULL,
+                                                        stderr=asyncio.subprocess.PIPE)
+            mkv = Matroska(width + (width & 1), height + BAR + ((height + BAR) & 1), end - e)
+            proc.stdin.write(mkv.head)
+            last = object()
+            for t, picture, (tabs, path, pointer, dialog, line) in frames:
+                f = {'w': width, 'h': height, 'tabs': tabs, 'path': path, 'pointer': pointer, 'dialog': dialog,
+                     'line': line, 'clock': self.stamp(t)}
+                if picture != last:
+                    last = picture
+                    if picture is None:
+                        f['png'] = None
+                    else:
+                        with open(picture, 'rb') as fp:
+                            f['png'] = base64.b64encode(fp.read()).decode()
+                jpeg = base64.b64decode(await page.evaluate('f => compose(f)', f))
+                proc.stdin.write(mkv.frame(t - e, jpeg))
+                await proc.stdin.drain()
+            proc.stdin.write(mkv.flush())
+            await proc.stdin.drain()
+            proc.stdin.close()
+            err = await proc.stderr.read()
+            trace('developed', name)
+            if await proc.wait() != 0:
+                print('urt-browse: no film for %s: %s' % (name, err.decode(errors='replace').strip()), file=sys.stderr)
+        except (self.PlaywrightError, OSError) as ex:
+            print('urt-browse: no film for %s: %s' % (name, ex), file=sys.stderr)
+            if proc is not None and proc.returncode is None:
+                proc.kill()
+        finally:
+            await context.close()
 
     # ---- records
 
@@ -2816,9 +3375,10 @@ class Run:
             if error and self.error is None:
                 self.error = error
             error = self.error
-            for tab in self.live_tabs():
-                if error and tab.user is getattr(self, 'failed_user', None):
-                    self.cue(tab, '%s · %s: cannot be done: %s' % (step.name, tab.label, error.splitlines()[0]))
+            failed = getattr(self, 'failed_user', None)
+            if error and failed is not None and failed.name in self.reels:
+                self.reels[failed.name].lines.append((self.now, None, '%s \u00b7 cannot be done: %s'
+                                                      % (step.name, error.splitlines()[0])))
             try:
                 await self.record(self.step, error)
             except self.PlaywrightError as e:
@@ -2832,8 +3392,8 @@ class Run:
             if error:
                 ok = False
                 break
-        for video in self.videos:
-            video.end()
+        if self.reels:
+            await self.film(None, last=True)
         for user in self.users.values():
             if user.context is not None:
                 try:
@@ -2844,8 +3404,11 @@ class Run:
         for h in self.polls + self.held:
             if h.task is not None and not h.task.done():
                 h.task.cancel()
-        if self.recordings:
-            self.drv.keep_videos(self.videos, self.recordings)
+        if self.reels:
+            for reel in self.reels.values():
+                await self.develop(reel, self.now)
+            write_index(self.recordings, self.frame_ms)
+            shutil.rmtree(self.pictures, ignore_errors=True)
         self.closed_port.close()
         print('done', flush=True)
         return ok
@@ -2914,30 +3477,14 @@ class Driver:
         with open(os.path.join(directory, file), 'wb') as f:
             f.write(last)
 
-    def keep_videos(self, videos, directory):
-        """The run's videos under their names, each with its cues as
-        WebVTT, and an index.html playing every video in the directory."""
-        for video in videos:
-            try:
-                os.replace(video.path, os.path.join(directory, video.name + '.webm'))
-            except OSError as e:
-                print('urt-browse: no video for %s: %s' % (video.name, e), file=sys.stderr)
-                continue
-            with open(os.path.join(directory, video.name + '.vtt'), 'w', encoding='utf-8') as f:
-                f.write('WEBVTT\n\n')
-                for start, end, lines in video.cues:
-                    f.write('%s --> %s\n%s\n\n' % (vtt_time(start), vtt_time(end if end is not None else start),
-                                                   '\n'.join(vtt_text(l) for l in lines)))
-        write_index(directory)
-
-    async def run_one(self, url, run_dir, out, screenshots, recordings):
+    async def run_one(self, url, run_dir, out, screenshots, recordings, frame):
         steps, setup, order, complaints = read_run(run_dir)
         if complaints:
             for c in complaints:
                 print(c, file=sys.stderr)
             print('done', flush=True)
             return False
-        run = Run(self, url, run_dir, out, steps, setup, order, screenshots, recordings)
+        run = Run(self, url, run_dir, out, steps, setup, order, screenshots, recordings, frame)
         return await run.run()
 
     async def main(self, async_playwright):
@@ -2946,7 +3493,7 @@ class Driver:
                 return 2
             if not self.args.serve:
                 ok = await self.run_one(self.args.url, self.args.run, self.args.out, self.args.screenshots,
-                                        self.args.recordings)
+                                        self.args.recordings, self.args.frame)
                 await self.browser.close()
                 return 0 if ok else 1
             loop = asyncio.get_running_loop()
@@ -2956,12 +3503,14 @@ class Driver:
                     break
                 words = shlex.split(line)
                 options = dict(w.split('=', 1) for w in words[4:] if '=' in w)
+                frame = parse_time(options.get('frame', '16ms'))
                 if len(words) < 4 or words[0] != 'run' or len(options) != len(words) - 4 \
-                        or set(options) - {'screenshots', 'recordings'}:
+                        or set(options) - {'screenshots', 'recordings', 'frame'} or not frame:
                     print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
                     print('done', flush=True)
                     continue
-                await self.run_one(words[1], words[2], words[3], options.get('screenshots'), options.get('recordings'))
+                await self.run_one(words[1], words[2], words[3], options.get('screenshots'), options.get('recordings'),
+                                   frame)
             await self.browser.close()
         return 0
 
@@ -2973,6 +3522,7 @@ def main():
     ap.add_argument('--timeout', type=float, default=10)
     ap.add_argument('--screenshots', default=None)
     ap.add_argument('--recordings', default=None)
+    ap.add_argument('--frame', default='16ms')
     ap.add_argument('--check', action='store_true')
     ap.add_argument('--serve', action='store_true')
     ap.add_argument('--help', action='store_true')
@@ -2981,6 +3531,10 @@ def main():
     if args.help:
         print(__doc__.strip())
         return 0
+    args.frame = parse_time(args.frame)
+    if not args.frame:
+        print('urt-browse: --frame takes a time above 0, a number and its unit: 16ms, 33ms', file=sys.stderr)
+        return 2
     if args.check:
         if len(args.rest) != 1:
             print('usage: urt-browse --check RUN', file=sys.stderr)
@@ -2996,7 +3550,7 @@ def main():
             return 2
     elif len(args.rest) != 3:
         print('usage: urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS] '
-              '[--screenshots DIR] [--recordings DIR] URL RUN OUT', file=sys.stderr)
+              '[--screenshots DIR] [--recordings DIR] [--frame T] URL RUN OUT', file=sys.stderr)
         return 2
     else:
         args.url, args.run, args.out = args.rest

@@ -206,10 +206,10 @@ static const char usage_text[] =
     "                  |-- context             the users' order, and how their browsers are set up\n"
     "                  |-- screenshots/        every page as drawn, with --screenshot; not for git\n"
     "                  |   `-- 01-open.Alice.1.chromium.png\n"
-    "                  |-- recordings/         every tab filmed, with --record; not for git\n"
-    "                  |   |-- Alice.1.chromium.webm\n"
-    "                  |   |-- Alice.1.chromium.vtt a cue per action: the step, the action, the page's time\n"
-    "                  |   `-- index.html      plays them, with the cues\n"
+    "                  |-- recordings/         every user filmed, with --record; not for git\n"
+    "                  |   |-- Alice.chromium.webm\n"
+    "                  |   |-- Alice.chromium.vtt  a cue per line: the step and the line\n"
+    "                  |   `-- index.html      plays a run's films together\n"
     "                  `-- interaction/\n"
     "                      |-- 01-open.step      what each user does\n"
     "                      |-- 01-open.timeline  what happened when: every line, every request\n"
@@ -270,12 +270,15 @@ static const char usage_text[] =
     "the run's screenshots/ as NAME.USER.TAB.ENGINE.png, the directory emptied\n"
     "first: pictures to look at when a record wants explaining, which git ignores\n"
     "and nothing compares, since no two engines draw alike; the records are the\n"
-    "same with and without.  With --record, every tab is filmed from its opening to\n"
-    "its closing, a pointer drawn in, under the run's recordings/ as\n"
-    "USER.TAB.ENGINE.webm, with a USER.TAB.ENGINE.vtt beside it that has a cue per\n"
-    "action (the step, the action, the page's time) and an index.html that plays\n"
-    "them with their cues; the same rules as for the screenshots, and the records\n"
-    "the same with and without, too.\n"
+    "same with and without.  With --record, every user is filmed on the run's\n"
+    "clock, under the run's recordings/ as USER.ENGINE.webm: their tab in front,\n"
+    "under a strip with their tabs, the clock and the line they are at, the pointer\n"
+    "and any dialog drawn in.  A frame is taken every T (--record=T, 16ms unless\n"
+    "given) at which anything shown may have changed, the clock stopping on those\n"
+    "while anything moves that will stop; a USER.ENGINE.vtt beside it has a cue\n"
+    "per line, and an index.html plays a run's films together, each in a box to\n"
+    "move and size at will.  The same rules as for the screenshots, and the records\n"
+    "the same with and without, and whatever T, too.\n"
     "There is one clock, for the pages, the server and the users.  It starts at the\n"
     "epoch and moves from one thing due to the next, as fast as they get done,\n"
     "nothing waiting on the wall clock: an act takes the time it takes a person (a\n"
@@ -322,7 +325,7 @@ static const char usage_text[] =
     "  urt snapshot [PATH...]                     update the snapshots below the given projects\n"
     "  urt snapshot --whine [PATH...]             fail on a diff (you want this in CI)\n"
     "  urt snapshot --screenshot [PATH...]        also shoot every page of the browser runs\n"
-    "  urt snapshot --record [PATH...]            also film every tab of the browser runs\n"
+    "  urt snapshot --record[=T] [PATH...]        also film every user of the browser runs\n"
     "  urt snapshot --list [PATH...]              list the cases matching the given path(s)\n"
     "  urt snapshot --create [PROJECT] [CASE...]  create cases for the given project\n"
     "  urt snapshot --create-run [PATH] [RUN...]  create runs for the one case at the given path\n"
@@ -416,6 +419,7 @@ static const char *artifact_names(void) {
 /* ------------------------------------------------------------- settings */
 
 static int opt_check = 0, opt_create = 0, opt_create_run = 0, opt_list = 0, opt_edit = 0, opt_screenshot = 0, opt_record = 0;
+static const char *opt_frame = NULL;   /* --record=T: the time between a film's frames, as given */
 static const char *me = "urt snapshot";   /* how to invoke us, for messages */
 static char urweb[PATHLEN];               /* the compiler, absolute */
 static struct strlist urweb_flags;        /* what it always gets */
@@ -2426,10 +2430,11 @@ static int run_app(const char *run_dir, const char *exe, const char *engine, con
         if (d) {
             /* The screenshots and the recordings, when asked for, go
              * straight into the run, emptied of the last ones by run_run. */
-            done = child_say(d, fmt("run %s %s %s%s%s\n", shell_quoted(fmt("http://127.0.0.1:%d", serving.port)),
+            done = child_say(d, fmt("run %s %s %s%s%s%s\n", shell_quoted(fmt("http://127.0.0.1:%d", serving.port)),
                                      shell_quoted(run_dir), shell_quoted(fmt("%s/interaction", rw)),
                                      opt_screenshot ? fmt(" screenshots=%s", shell_quoted(fmt("%s/screenshots", run_dir))) : "",
-                                     opt_record ? fmt(" recordings=%s", shell_quoted(fmt("%s/recordings", run_dir))) : "")) == 0
+                                     opt_record ? fmt(" recordings=%s", shell_quoted(fmt("%s/recordings", run_dir))) : "",
+                                     opt_frame ? fmt(" frame=%s", shell_quoted(opt_frame)) : "")) == 0
                    && child_lines(d, "done", on_browse_line, &b);
         }
         /* What the driver said to stderr during this run, beside the run's
@@ -3897,6 +3902,14 @@ int snapshot_main(int argc, char **argv) {
             opt_screenshot = 1;
         } else if (!strcmp(a, "--record")) {
             opt_record = 1;
+        } else if (!strncmp(a, "--record=", 9)) {
+            long long ms;
+            if (parse_duration(a + 9, &ms) < 0 || ms < 1) {
+                die(fmt("%s takes the time between a film's frames, a number and its unit, not %s", key("--record=T"),
+                        key(a + 9)), "as in --record=16ms (the default) or --record=33ms", NULL);
+            }
+            opt_record = 1;
+            opt_frame = a + 9;
         } else if (!strcmp(a, "--create") || !strcmp(a, "-c")) {
             opt_create = 1;
             i++;
@@ -3923,7 +3936,7 @@ int snapshot_main(int argc, char **argv) {
             break;
         } else if (a[0] == '-') {
             die(fmt("unrecognised option %s", key(a)),
-                fmt("usage: %s", cmd(fmt("%s [--whine|-w | --list|-l] [--screenshot] [--record] [PATH...]", me))),
+                fmt("usage: %s", cmd(fmt("%s [--whine|-w | --list|-l] [--screenshot] [--record[=T]] [PATH...]", me))),
                 fmt("       %s", cmd(fmt("%s (--create|-c) [PROJECT] [CASE...]", me))),
                 fmt("       %s", cmd(fmt("%s --create-run [PATH] [RUN...]", me))),
                 fmt("       %s", cmd(fmt("%s --create-browser-run [PATH] [RUN...]", me))),

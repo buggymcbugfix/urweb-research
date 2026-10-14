@@ -4,6 +4,8 @@ urt snapshot runs/web
 urt snapshot -w runs/web
 urt snapshot --screenshot runs/web
 urt snapshot --record runs/web
+urt snapshot --record=fast runs/web
+urt snapshot --record=0ms runs/web
 urt snapshot --screenshot --create-browser-run runs/web
 urt snapshot --record --edit runs/web
 urt snapshot --create-browser-run runs/web

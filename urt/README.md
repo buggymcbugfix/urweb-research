@@ -177,12 +177,26 @@ every step as well, the whole page as the engine draws it, into the
 run's `screenshots/` as `NAME.USER.TAB.ENGINE.png`: for looking at when
 a record wants explaining, not for comparing, since no two engines draw
 alike; git ignores the directory, and the records are the same with and
-without.  `urt snapshot --record` films every tab from its opening to
-its closing, into the run's `recordings/` as `USER.TAB.ENGINE.webm`, a
-pointer drawn in since a headless engine draws none, with a
-`USER.TAB.ENGINE.vtt` beside it, a cue per action saying the step, the
-action and the page's time, and an `index.html` that plays them with
-their cues; the same rules.  Every run is driven through three engines,
+without.  `urt snapshot --record` films every user on the run's clock, into the
+run's `recordings/` as `USER.ENGINE.webm`: their tab in front as the
+engine draws it, under a strip with their tabs, the clock and the line
+they are at, the pointer and any dialog drawn in (by the driver, around
+the page: nothing is put into the page, and a dialog's page cannot be
+shot).  A frame is a point of a grid on the clock, every 16ms or every T
+with `--record=T`, at which anything shown may have changed; the clock
+stops on the grid while anything in the page moves that will stop (an
+endless animation, a spinner, is filmed with whatever else changes), and
+between frames
+the picture stands, so that a still minute costs a frame a second (the
+strip's clock) and nothing else.  The frames are composed on a canvas in
+the engine's own browser and encoded by the ffmpeg Playwright brings
+along, from JPEG at quality 100 (all it reads, and as good as PNG once
+encoded) to VP8 at a quality that keeps text sharp, each at its own
+millisecond.  Beside each film a `USER.ENGINE.vtt` has a cue per line,
+and an `index.html` plays a run's films together, users and engines, on
+one clock, every one in a box to move by its title and size by its
+corner; the same rules, and the records the same with and without, and
+whatever T.  Every run is driven through three engines,
 Chromium, Firefox and WebKit (an `engines` file in the run names fewer),
 by `urt-browse` beside `urt`, through Playwright for Python: `urt
 snapshot` starts the application as for a request-response run, once

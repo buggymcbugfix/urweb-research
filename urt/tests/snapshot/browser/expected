@@ -181,6 +181,14 @@ FAIL runs/web.urt/snapshot/1 (no application for its 1 run)
 
 1 case: 1 failed, in T
 exit 1
+$ urt snapshot --record=fast runs/web
+ERROR --record=T takes the time between a film's frames, a number and its unit, not fast
+as in --record=16ms (the default) or --record=33ms
+exit 2
+$ urt snapshot --record=0ms runs/web
+ERROR --record=T takes the time between a film's frames, a number and its unit, not 0ms
+as in --record=16ms (the default) or --record=33ms
+exit 2
 $ urt snapshot --screenshot --create-browser-run runs/web
 ERROR --create-browser-run goes with neither --whine, --list, --screenshot nor --record
 exit 2
