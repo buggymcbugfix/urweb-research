@@ -1339,10 +1339,12 @@ static void steps_of(const char *interaction, struct strlist *names) {
         list_dir(interaction, LS_FILES, &files);
     }
     for (i = 0; i < files.n; i++) {
-        if (has_suffix(files.v[i], ".request") || has_suffix(files.v[i], ".wait")) {
+        /* The one suffix: a request may be called X.wait, and a wait X.request. */
+        const char *suffix = has_suffix(files.v[i], ".request") ? ".request"
+                           : has_suffix(files.v[i], ".wait") ? ".wait" : NULL;
+        if (suffix) {
             snprintf(name, sizeof name, "%s", files.v[i]);
-            strip_suffix(name, ".request");
-            strip_suffix(name, ".wait");
+            strip_suffix(name, suffix);
             sl_push(names, name);
         }
     }

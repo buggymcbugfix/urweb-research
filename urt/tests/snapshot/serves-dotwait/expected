@@ -1,9 +1,16 @@
 $ urt snapshot runs/serves-dotwait
-ERROR runs/serves-dotwait.urt/snapshot/1/request-response/a/interaction/02.request: No such file or directory
-0 cases, in T
-exit 1
+UPDATED runs/serves-dotwait.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-dotwait.urt/snapshot/1/request-response/a (interaction/01.response, interaction/02.wait.response)
+1 case and 1 run: 2 updated, in T
+exit 0
 $ ls runs/serves-dotwait.urt/snapshot/1/request-response/a/interaction
 01.request
+01.response
 02.wait.request
+02.wait.response
 exit 0
 $ changes
+added: ./runs/serves-dotwait.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-dotwait.urt/snapshot/1/expected/exitcode
+added (147 bytes): ./runs/serves-dotwait.urt/snapshot/1/request-response/a/interaction/01.response
+added (152 bytes): ./runs/serves-dotwait.urt/snapshot/1/request-response/a/interaction/02.wait.response
