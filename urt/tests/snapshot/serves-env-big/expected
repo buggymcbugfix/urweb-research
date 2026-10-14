@@ -3,6 +3,7 @@ exit 0
 $ urt snapshot runs/serves-env-big
 UPDATED runs/serves-env-big.urt/snapshot/1 (exitcode)
 ERROR the application does not start for runs/serves-env-big.urt/snapshot/1/request-response/a: it exited with status 127 before it was listening
+cannot run runs/serves-env-big.urt/snapshot/1/app.exe: Argument list too long
 1 case and 1 run: 1 updated, in T
 exit 1
 $ changes

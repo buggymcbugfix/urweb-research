@@ -469,6 +469,9 @@ char *run_fd3(char *const argv[], const char *out_path, const char *err_path, in
             close(fds[1]);
         }
         execvp(argv[0], argv);
+        /* Where the server's own complaints would have gone, for the
+         * caller to show: a server that is never run says nothing else. */
+        dprintf(STDERR_FILENO, "cannot run %s: %s\n", argv[0], strerror(errno));
         _exit(127);
     }
     close(fds[1]);
