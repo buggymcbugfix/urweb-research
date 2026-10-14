@@ -1,0 +1,17 @@
+$ urt snapshot runs/serves-nul
+UPDATED runs/serves-nul.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-nul.urt/snapshot/1/request-response/a (interaction/01.response, interaction/02-b.stdout, out/shutdown.stdout)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ cd runs/serves-nul.urt/snapshot/1/request-response/a && for f in interaction/* out/*; do case $f in *.stdout|*.stderr) echo "== $f"; tr '\0' @ < "$f";; esac; done
+== interaction/02-b.stdout
+task: a@b
+== out/shutdown.stdout
+task: b again
+exit 0
+$ changes
+added: ./runs/serves-nul.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-nul.urt/snapshot/1/expected/exitcode
+added (194 bytes): ./runs/serves-nul.urt/snapshot/1/request-response/a/interaction/01.response
+added (10 bytes): ./runs/serves-nul.urt/snapshot/1/request-response/a/interaction/02-b.stdout
+added (14 bytes): ./runs/serves-nul.urt/snapshot/1/request-response/a/out/shutdown.stdout

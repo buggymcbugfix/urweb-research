@@ -1,0 +1,2 @@
+urt snapshot runs/serves-banner
+cd runs/serves-banner.urt/snapshot/1/request-response/a && ls interaction && for f in interaction/* out/*; do case $f in *.stdout|*.stderr) echo "== $f"; cat "$f";; esac; done

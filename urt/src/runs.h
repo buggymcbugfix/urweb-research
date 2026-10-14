@@ -53,4 +53,7 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
 /* Stop it and wait until it is gone.  Safe to call twice. */
 void server_stop(struct server *s);
 
+/* Whether it is still there: running, and not dead and unreaped. */
+int server_alive(const struct server *s);
+
 #endif

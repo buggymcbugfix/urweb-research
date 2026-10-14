@@ -217,8 +217,8 @@ exit 0
 $ urt snapshot -w runs/serves
 ERROR runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.response answers no request
 there is no runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request; delete the one, or write the other
-ERROR runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.stderr answers no request
-there is no runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request; delete the one, or write the other
+ERROR runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.stderr belongs to no request or wait
+there is neither runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request nor runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.wait; delete it, or write one of them
 0 cases, in T
 exit 1
 $ changes
