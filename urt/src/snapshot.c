@@ -484,9 +484,15 @@ static int layout_run(const char *e, const char *rest) {
         strcpy(strrchr(request, '.'), ".request");
         snprintf(wait, sizeof wait, "%s", e);
         strcpy(strrchr(wait, '.'), ".wait");
-        if (has_suffix(part[2], ".response") ? !is_file(request) : !is_file(request) && !is_file(wait)) {
-            die_later(fmt("%s answers no request", path(e)),
-                      fmt("there is no %s; delete the one, or write the other", path(request)), NULL);
+        if (has_suffix(part[2], ".response")) {
+            if (!is_file(request)) {
+                die_later(fmt("%s answers no request", path(e)),
+                          fmt("there is no %s; delete the one, or write the other", path(request)), NULL);
+            }
+        } else if (!is_file(request) && !is_file(wait)) {
+            die_later(fmt("%s belongs to no request or wait", path(e)),
+                      fmt("there is neither %s nor %s; delete it, or write one of them", path(request), path(wait)),
+                      NULL);
         }
     } else if (n == 3 && !strcmp(part[1], "out") && is_file(e)
                && (!strcmp(part[2], "startup.sql") || !strcmp(part[2], "startup.stdout") || !strcmp(part[2], "startup.stderr")
