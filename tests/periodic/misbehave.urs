@@ -16,3 +16,14 @@ val boundedRetry : string -> transaction unit
 (* Commit the database transaction behind the runtime's back, then fail:
    the runtime's ROLLBACK then fails, since no transaction is active. *)
 val fatalWithoutTransaction : string -> transaction unit
+
+(* Leave a write statement in progress on the connection (an INSERT ...
+   RETURNING stepped once and not finished), so that the runtime's COMMIT
+   fails with SQLITE_BUSY and the database transaction stays open: the
+   state a COMMIT that timed out on a lock leaves behind. *)
+val pendingWrite : transaction unit
+
+
+(* Finish that statement (its transaction has to be over by then): an
+   unfinished statement would fail every later COMMIT on the connection. *)
+val finishPendingWrite : transaction unit
