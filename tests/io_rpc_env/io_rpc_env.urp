@@ -1,0 +1,4 @@
+database dbname=io_rpc_env.db
+allow env REMOTE_USER
+
+io_rpc_env
