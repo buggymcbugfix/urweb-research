@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 176
+
+<!DOCTYPE html><html><head></head><body>up to the boundary: starts where measured yes, ends on it yes, writable yes; then one byte: page-aligned yes, writable yes</body></html>
