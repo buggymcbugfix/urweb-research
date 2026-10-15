@@ -17,6 +17,7 @@ int report_failed = 0;
 int report_problems = 0;
 
 static int colour = 0;
+static int merged = 0;          /* report_merge */
 
 /* The palette: four muted tones from the 256-colour set, bold for a
  * verdict and for a name inside running text, grey for what is an aside.
@@ -136,21 +137,63 @@ void say(enum style s, const char *verdict, const char *test_dir, const char *no
     printf("%s %s%s\n", word(s, verdict), subject(test_dir), note);
 }
 
+void report_merge(void) {
+    merged = 1;
+}
+
+/* Text for stderr: there, or under report_merge onto stdout, every line
+ * marked. */
+static void err_text(const char *text) {
+    const char *p = text, *nl;
+    size_t n;
+    if (!merged) {
+        fputs(text, stderr);
+        return;
+    }
+    while (*p) {
+        nl = strchr(p, '\n');
+        n = nl ? (size_t) (nl - p) + 1 : strlen(p);
+        putchar(REPORT_STDERR_MARK);
+        fwrite(p, 1, n, stdout);
+        if (!nl) {
+            putchar('\n');
+        }
+        p += n;
+    }
+}
+
+void report_err(const char *format, ...) {
+    va_list ap;
+    char *text;
+    int n;
+    va_start(ap, format);
+    n = vsnprintf(NULL, 0, format, ap);
+    va_end(ap);
+    if (n < 0 || !(text = malloc((size_t) n + 1))) {
+        return;
+    }
+    va_start(ap, format);
+    vsnprintf(text, (size_t) n + 1, format, ap);
+    va_end(ap);
+    err_text(text);
+    free(text);
+}
+
 void warn(const char *msg) {
-    fprintf(stderr, "%s %s\n", word(ST_WARN, "WARN"), msg);
+    report_err("%s %s\n", word(ST_WARN, "WARN"), msg);
 }
 
 /* The explanation lines of die and die_later. */
 static void explain(va_list ap) {
     const char *line;
     while ((line = va_arg(ap, const char *))) {
-        fprintf(stderr, "%s\n", info(line));
+        report_err("%s\n", info(line));
     }
 }
 
 void die(const char *msg, ...) {
     va_list ap;
-    fprintf(stderr, "%s %s\n", word(ST_BAD, "ERROR"), msg);
+    report_err("%s %s\n", word(ST_BAD, "ERROR"), msg);
     va_start(ap, msg);
     explain(ap);
     va_end(ap);
@@ -161,7 +204,7 @@ void die_later(const char *msg, ...) {
     va_list ap;
     report_failed = 1;
     report_problems++;
-    fprintf(stderr, "%s %s\n", word(ST_BAD, "ERROR"), msg);
+    report_err("%s %s\n", word(ST_BAD, "ERROR"), msg);
     va_start(ap, msg);
     explain(ap);
     va_end(ap);

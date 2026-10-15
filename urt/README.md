@@ -10,7 +10,9 @@ NB: Urt is a tool I slopped together as a prototype. If this evolves into someth
 Create, validate and manage snapshots of the compilation pipeline for an
 Ur/Web project: `urt snapshot --help` describes the layout and the usage.
 The compiler is the one `URWEB` names, or else the in-tree build,
-`bin/urweb`; never one found on the PATH.
+`bin/urweb`; never one found on the PATH.  With `-j` the projects go
+several at once, N with `-j N`, or one per core, each in a process of its
+own; what is printed is what a plain run prints, in the same order.
 
 A case can go on to run the application it compiles and snapshot what it
 answers: the runs under `request-response/`, each with its own database

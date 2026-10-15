@@ -71,4 +71,14 @@ void die_later(const char *msg, ...);
 extern int report_failed;     /* die_later was called */
 extern int report_problems;   /* how many times */
 
+/* A line, or lines, for stderr, formatted: what warn, die and die_later
+ * write goes through here. */
+void report_err(const char *format, ...) URT_PRINTF(1, 2);
+
+/* With -j, a worker's stderr lines go to its stdout instead, each with
+ * REPORT_STDERR_MARK in front, for the process that reads the two as one
+ * to put each back where it belongs, in its place. */
+#define REPORT_STDERR_MARK '\002'
+void report_merge(void);
+
 #endif
