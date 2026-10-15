@@ -38,7 +38,15 @@ int parse_request(const char *text, char *method, size_t method_size, char *url_
 
 /* --------------------------------------------------------------- servers */
 
-struct server { long pid; int port; };
+/* How long a server gets to say it is listening, and a FastCGI program's
+ * socket to be there.  The real one has its database to open and its
+ * initialize task to run first; a hung one would otherwise hang the run
+ * for good. */
+#define START_SECONDS 10
+
+/* A server: its process, the port it listens on (0 for a socket), and
+ * whether it is this process's child, to be reaped when it is stopped. */
+struct server { long pid; int port; int ours; };
 
 /* Start exe, an Ur/Web application with the built-in HTTP server, with
  * args and then the flags that make it listen on a free port of the
@@ -49,6 +57,51 @@ struct server { long pid; int port; };
  * within ten seconds. */
 int server_start(const char *exe, const struct strlist *args, const char *out_path, const char *err_path,
                  struct server *s, char *why, size_t why_size);
+
+/* Start exe, a FastCGI program, with args, as spawn-fcgi starts one in
+ * production: a Unix socket at sock_path, listening, as its descriptor 0,
+ * where it takes its connections from.  spawn-fcgi has to be on the PATH.
+ * stdout and stderr go to the files named.  It is started and not waited
+ * for: nothing says when the socket is there, nor when the program is
+ * ready, and a connection made before the one fails while one made
+ * before the other waits in the socket's queue.  0 with the server filled
+ * in, or -1 with why. */
+int fastcgi_start(const char *exe, const struct strlist *args, const char *sock_path, const char *out_path,
+                  const char *err_path, struct server *s, char *why, size_t why_size);
+
+/* What came of a request besides its status: the id of the first record
+ * that was for another request, -1 when every record was for this one;
+ * and the protocolStatus of its FCGI_END_REQUEST, 0 (FCGI_REQUEST_COMPLETE)
+ * unless the program refused the request. */
+struct fastcgi_oddity { int request_id; int protocol_status; };
+
+/* The id urt gives the one request a connection carries. */
+#define FCGI_REQUEST_ID 1
+
+/* What fastcgi_request returns besides a program's status for a request. */
+#define FASTCGI_NO_END (-1)       /* the connection ended before FCGI_END_REQUEST */
+#define FASTCGI_REFUSED (-2)      /* there was no connection to be had */
+#define FASTCGI_TIMEOUT (-3)      /* no FCGI_END_REQUEST within the time given */
+#define FASTCGI_UNWRITABLE (-4)   /* the response or stream file could not be written */
+
+/* Send one request to the FastCGI program listening at sock_path, as a web
+ * server would: FCGI_BEGIN_REQUEST for a responder, then params, a list of
+ * NAME=value, as its parameters, and what the file body holds as its stdin,
+ * all in one write.  What the program answers on its stdout stream goes
+ * into the file response, and what it logs on its stderr stream, which a
+ * web server puts in its error log, into the file stream.  Both files are
+ * written, empty if nothing came.  Returns the program's status for the
+ * request from its FCGI_END_REQUEST, as a process's exit status would have
+ * it: the low byte, so 255 for Ur/Web's failure; or one of the FASTCGI_
+ * values above.  What was odd about the answer goes into *odd.  The
+ * answer has seconds to come. */
+int fastcgi_request(const char *sock_path, const struct strlist *params, const char *body, const char *response,
+                    const char *stream, int seconds, struct fastcgi_oddity *odd);
+
+/* Whether a server started as our child (fastcgi_start) has exited: then
+ * it is reaped, the server forgotten, and its exit status (128 + the
+ * signal for one killed) is in *status. */
+int server_exited(struct server *s, int *status);
 
 /* Stop it and wait until it is gone.  Safe to call twice. */
 void server_stop(struct server *s);

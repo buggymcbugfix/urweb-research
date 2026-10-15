@@ -94,6 +94,25 @@ int run(char *const argv[], const char *out_path, const char *err_path);
 /* The same, with its stdin from the file named (NULL: inherited). */
 int run_in(char *const argv[], const char *in_path, const char *out_path, const char *err_path);
 
+/* How a program run by run_in_for ended: on its own (the status is its
+ * exit status, or 128 + the signal); killed by the alarm (status 142,
+ * 128 + SIGALRM); or never started, since it could not be run (127). */
+enum run_end { RUN_ENDED, RUN_TIMED_OUT, RUN_NOT_STARTED };
+
+/* The same, killed by SIGALRM if it has not exited within the seconds
+ * given; 0 for no limit.  The alarm is set in the child before it
+ * becomes the program, and outlives that, so the program has its whole
+ * time, and one that sets its own alarm takes the limit away.  How it
+ * ended into *how, if not NULL: a program that exits 142 or 127 itself
+ * is told apart from the alarm and from a failed exec. */
+int run_in_for(char *const argv[], const char *in_path, const char *out_path, const char *err_path,
+               unsigned seconds, enum run_end *how);
+
+/* Start argv with descriptor in_fd as its stdin, and its stdout and stderr
+ * to the files named (NULL: inherited), without waiting for it: its pid,
+ * or -1 if it could not be forked.  One that cannot be run exits 127. */
+long spawn_on(char *const argv[], int in_fd, const char *out_path, const char *err_path);
+
 /* The same as run(), for a program that reports on descriptor 3, as a
  * server started with -d3 does: what it and its offspring wrote there,
  * malloc'd, once all of them have closed it and the program itself has
@@ -106,6 +125,10 @@ char *run_fd3(char *const argv[], const char *out_path, const char *err_path, in
 
 /* Whether the PATH has a program of that name. */
 int on_path(const char *name);
+
+/* The first program of that name on the PATH, into dst (PATHLEN); 0 if
+ * there is none. */
+int find_on_path(const char *name, char *dst);
 
 /* Remembers argv[0], for program_dir. */
 void fs_set_argv0(const char *argv0);

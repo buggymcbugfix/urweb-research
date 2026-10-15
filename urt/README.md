@@ -43,6 +43,22 @@ dumped, in its safe mode, where no dot-command reaches outside the
 database) on the PATH; the compiler's `nix-shell` and package have
 both.
 
+An application built with `-protocol cgi` or `-protocol static` is
+started once for every request instead, as a web server starts a CGI
+program, or with the path, as a static one is; its stdout is the
+response, and an exit status other than 0 goes beside it as
+`NAME.exitcode`.  One built with `-protocol fastcgi` is started once on
+a Unix socket by `spawn-fcgi`, as in production (the compiler's
+`nix-shell` has it), and urt sends it each request itself, as a web
+server would; what the program writes on its FastCGI stderr stream, which
+a web server puts in its error log, goes beside the response as
+`NAME.fcgi-stderr`, and `NAME.exitcode` holds its status for the request
+when not 0, or says that the connection ended before the program had
+said the request was over, that the answer came as another request, or
+that the program refused the request.  Either way the program gets the
+request as the CGI variables a web server would set.  `urt snapshot
+--help` has the details.
+
 Not there yet:
 
 - What an application does beside serving requests (`task periodic`,

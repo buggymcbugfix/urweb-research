@@ -14,6 +14,7 @@
   postgresql,
   python3,
   runCommand,
+  spawn_fcgi,
   sqlite,
   stdenv,
   # The commit `urweb -version` names, `<hash>` or `<hash>-dirty`.
@@ -115,6 +116,7 @@ stdenv.mkDerivation (finalAttrs: {
   # test dependencies
   nativeCheckInputs = [
     curl # the demo test's requests, and libcurl for tests/io_curl
+    spawn_fcgi # which starts that program on its socket
     python3 # tests/io_curl's stub server; urt's pty cases and stand-in server
   ];
 

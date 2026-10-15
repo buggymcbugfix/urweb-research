@@ -121,6 +121,7 @@ arun runs/stray.urt/snapshot/1/request-response/a
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/02.response
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/04.stderr
+: > runs/stray.urt/snapshot/1/request-response/a/interaction/05.exitcode
 : > runs/stray.urt/snapshot/1/request-response/a/interaction/notes
 mkdir -p runs/stray.urt/snapshot/1/request-response/a/out/more
 : > runs/stray.urt/snapshot/1/request-response/a/out/more/stdout
@@ -213,6 +214,82 @@ snap runs/serves-env-bad.urt/snapshot/1 exitcode
 arun runs/serves-env-bad.urt/snapshot/1/request-response/bad
 printf 'TZ=Europe/Berlin\nno assignment\n1APP=x\nAPP_TWICE=1\nAPP_TWICE=2\n' \
     > runs/serves-env-bad.urt/snapshot/1/request-response/bad/env
+# Projects built as programs rather than servers, which a run starts for
+# every request: a CGI one, whose answers show the request as it was
+# given; a static one; and one of each whose runs ask for what such a
+# program cannot be given.  Then one built for fastcgi, a server reached
+# through cgi-fcgi, and one for a protocol there is none of.
+proj runs serves-cgi
+snap runs/serves-cgi.urt/snapshot/1 exitcode
+printf -- '-protocol cgi\n' > runs/serves-cgi.urt/snapshot/1/args
+arun runs/serves-cgi.urt/snapshot/1/request-response/cgi
+cd runs/serves-cgi.urt/snapshot/1/request-response/cgi
+printf 'CREATE TABLE t (id INTEGER);\nINSERT INTO t VALUES (1);\n' > db.sql
+printf 'APP_GREETING=hello, program\n' > env
+printf 'GET /Shop/main?x=1&y=two\n' > interaction/01.request
+printf "POST /Shop/add -d 'name=kettle' -d 'price=12' -b 'visitor=somebody' -b 'lang=en'\n" > interaction/02-form.request
+printf "    -H 'Accept: text/html' -H 'X-Empty;' -H 'X-Gone:' -H 'x-mixed-Case: yes'\n" >> interaction/02-form.request
+printf "PUT /Shop/raw -d 'not a form' -H 'Content-Type: text/x-custom'\n" > interaction/03-raw.request
+printf 'GET /err\n' > interaction/04-err.request
+printf 'GET /dml\n' > interaction/05-dml.request
+printf 'GET /fail\n' > interaction/06-fail.request
+# A header given twice, which a web server joins; and one longer than the
+# 8 KiB of urt's message buffers.
+printf "GET /dup -H 'X-Dup: 1' -H 'X-Dup: 2'\n" > interaction/07-dup.request
+printf "GET /long -H 'X-Long: %s'\n" "$(printf '%8200s' '' | tr ' ' x)" > interaction/08-long.request
+cd "$root"
+# A CGI program that exits with the status of one killed by SIGALRM.
+arun runs/serves-cgi.urt/snapshot/1/request-response/exit142
+rm runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01.request
+printf 'GET /exit142\n' > runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.request
+proj runs serves-static
+snap runs/serves-static.urt/snapshot/1 exitcode
+printf -- '-protocol static\n' > runs/serves-static.urt/snapshot/1/args
+arun runs/serves-static.urt/snapshot/1/request-response/pages
+printf 'GET /Site/about\n' > runs/serves-static.urt/snapshot/1/request-response/pages/interaction/02-about.request
+printf 'GET /fail\n' > runs/serves-static.urt/snapshot/1/request-response/pages/interaction/03-fail.request
+proj runs serves-cgi-bad
+snap runs/serves-cgi-bad.urt/snapshot/1 exitcode
+printf -- '-dbms sqlite -protocol cgi\n' > runs/serves-cgi-bad.urt/snapshot/1/args
+arun runs/serves-cgi-bad.urt/snapshot/1/request-response/bad
+printf -- '-q\n' > runs/serves-cgi-bad.urt/snapshot/1/request-response/bad/args
+printf 'until ready\n' > runs/serves-cgi-bad.urt/snapshot/1/request-response/bad/interaction/02-ready.wait
+proj runs serves-static-bad
+snap runs/serves-static-bad.urt/snapshot/1 exitcode
+printf -- '-protocol static\n' > runs/serves-static-bad.urt/snapshot/1/args
+arun runs/serves-static-bad.urt/snapshot/1/request-response/bad
+cd runs/serves-static-bad.urt/snapshot/1/request-response/bad
+printf 'POST /Site/about\n' > interaction/02-post.request
+printf 'GET /Site/about?x=1\n' > interaction/03-query.request
+printf "GET /Site/about -b 'visitor=somebody'\n" > interaction/04-cookie.request
+cd "$root"
+proj runs serves-fastcgi
+snap runs/serves-fastcgi.urt/snapshot/1 exitcode
+printf -- '-protocol fastcgi\n' > runs/serves-fastcgi.urt/snapshot/1/args
+arun runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi
+cd runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi
+printf 'APP_GREETING=hello, server\n' > env
+printf "POST /Shop/add?x=1 -d 'name=kettle' -b 'visitor=somebody' -H 'Accept: text/html'\n" > interaction/02-form.request
+printf 'GET /debug\n' > interaction/03-debug.request
+printf 'GET /err\n' > interaction/04-err.request
+printf 'GET /dml\n' > interaction/05-dml.request
+printf 'GET /env/APP_GREETING\n' > interaction/06-env.request
+printf 'GET /log\n' > interaction/07-log.request
+printf 'GET /noend\n' > interaction/08-noend.request
+printf 'GET /proto3\n' > interaction/09-proto3.request
+printf 'GET /id2\n' > interaction/10-id2.request
+printf 'GET /after\n' > interaction/11-after.request
+cd "$root"
+# A FastCGI program that exits before its first request.
+proj runs serves-fastcgi-dead
+snap runs/serves-fastcgi-dead.urt/snapshot/1 exitcode
+printf -- '-protocol fastcgi\n' > runs/serves-fastcgi-dead.urt/snapshot/1/args
+arun runs/serves-fastcgi-dead.urt/snapshot/1/request-response/dead
+printf 'APP_MODE=exit1\n' > runs/serves-fastcgi-dead.urt/snapshot/1/request-response/dead/env
+proj runs serves-gopher
+snap runs/serves-gopher.urt/snapshot/1 exitcode
+printf -- '-protocol gopher\n' > runs/serves-gopher.urt/snapshot/1/args
+arun runs/serves-gopher.urt/snapshot/1/request-response/1
 # A project whose server does something a while after a request, which a
 # run waits for; one with waits that cannot be read; and one whose server
 # is gone before what is waited for comes.

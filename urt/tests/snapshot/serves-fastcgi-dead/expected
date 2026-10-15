@@ -1,0 +1,9 @@
+$ urt snapshot runs/serves-fastcgi-dead
+UPDATED runs/serves-fastcgi-dead.urt/snapshot/1 (exitcode)
+ERROR runs/serves-fastcgi-dead.urt/snapshot/1/request-response/dead/interaction/01.request could not be sent: the program exited with status 1 before answering
+fastcgi: refusing to start
+1 case and 1 run: 1 updated, in T
+exit 1
+$ changes
+added: ./runs/serves-fastcgi-dead.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-fastcgi-dead.urt/snapshot/1/expected/exitcode
