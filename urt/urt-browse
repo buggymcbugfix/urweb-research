@@ -1231,6 +1231,7 @@ COMPOSE_JS = r"""
         if (g.roundRect) { g.roundRect(x, y, w, h, r); } else { g.rect(x, y, w, h); }
     };
     globalThis.compose = async (f) => {
+        const t0 = performance.now();
         if (f.picture !== undefined) {
             picture = null;
             if (f.picture !== null) {
@@ -1238,6 +1239,7 @@ COMPOSE_JS = r"""
                 picture = await createImageBitmap(new Blob([bytes], {type: f.type}));
             }
         }
+        const t1 = performance.now();
         const w = f.w, h = f.h, cw = w + (w & 1), ch = h + BAR + ((h + BAR) & 1);
         if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
         g.fillStyle = '#ffffff'; g.fillRect(0, 0, cw, ch);
@@ -1310,11 +1312,15 @@ COMPOSE_JS = r"""
             g.shadowBlur = 0; g.strokeStyle = '#ffffff'; g.lineWidth = 1.5; g.lineJoin = 'round'; g.stroke(arrow);
             g.restore();
         }
+        const t2 = performance.now();
         const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 1.0));
+        const t3 = performance.now();
         const bytes = new Uint8Array(await blob.arrayBuffer());
         let out = '';
         for (let i = 0; i < bytes.length; i += 0x8000) { out += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); }
-        return btoa(out);
+        // The frame, and where the time went in the page: the picture
+        // decoded, the frame drawn, the JPEG made, and the rest.
+        return [btoa(out), [t1 - t0, t2 - t1, t3 - t2, performance.now() - t3]];
     };
 })()
 """
@@ -3588,9 +3594,13 @@ class Run:
             mkv = Matroska(width + (width & 1), height + BAR + ((height + BAR) & 1), end - e)
             proc.stdin.write(mkv.head)
             last = object()
+            began = time.monotonic()
+            spent = [0.0, 0.0]          # composing, and handing to ffmpeg
+            slowest = (0.0, 0, [])
             for k, (t, picture, (tabs, path, pointer, dialog, line)) in enumerate(frames):
                 f = {'w': width, 'h': height, 'tabs': tabs, 'path': path, 'pointer': pointer, 'dialog': dialog,
                      'line': line, 'clock': self.stamp(t)}
+                w0 = time.monotonic()
                 for again in (False, True):
                     if picture != last:
                         last = picture
@@ -3601,8 +3611,9 @@ class Run:
                                 f['picture'] = base64.b64encode(fp.read()).decode()
                             f['type'] = 'image/jpeg' if picture.endswith('.jpeg') else 'image/png'
                     try:
-                        jpeg = base64.b64decode(await within(page.evaluate('f => compose(f)', f),
-                                                             'frame %d of %d' % (k + 1, len(frames))))
+                        made, parts = await within(page.evaluate('f => compose(f)', f),
+                                                   'frame %d of %d' % (k + 1, len(frames)))
+                        jpeg = base64.b64decode(made)
                         break
                     except OSError as ex:
                         # A frame takes 40ms; a page that has not made one in
@@ -3616,13 +3627,25 @@ class Run:
                         context = None
                         context, page = await composer()
                         last = object()
+                w1 = time.monotonic()
                 proc.stdin.write(mkv.frame(t - e, jpeg))
                 await proc.stdin.drain()
+                w2 = time.monotonic()
+                spent[0] += w1 - w0
+                spent[1] += w2 - w1
+                slowest = max(slowest, (w2 - w0, k + 1, parts))
             proc.stdin.write(mkv.flush())
             await proc.stdin.drain()
             proc.stdin.close()
             err = await proc.stderr.read()
             trace('developed', name)
+            if slowest[0] >= 2:
+                # A frame takes 40ms, 200 with three films at once on two
+                # cores: one of seconds is said, and where the time went.
+                print('urt-browse: %s: %d frames developed in %.1fs (composing %.1fs, ffmpeg %.1fs), frame %d in %.1fs'
+                      ' (in the page: picture %.2fs, drawing %.2fs, JPEG %.2fs, the rest %.2fs)'
+                      % ((name, len(frames), time.monotonic() - began, spent[0], spent[1], slowest[1], slowest[0])
+                         + tuple(ms / 1000 for ms in slowest[2])), file=sys.stderr)
             if await proc.wait() != 0:
                 print('urt-browse: no film for %s: %s' % (name, err.decode(errors='replace').strip()), file=sys.stderr)
         except (self.PlaywrightError, OSError) as ex:
