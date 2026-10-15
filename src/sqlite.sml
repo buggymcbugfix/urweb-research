@@ -69,10 +69,26 @@ fun checkRel (table, checkNullable) (s, xts) =
              newline,
              newline,
 
-             string "while ((res = sqlite3_step(stmt)) == SQLITE_BUSY)",
+             (* busy_timeout has had sqlite3_step wait for the lock
+              * already.  The check runs on the first connection only,
+              * before any thread starts (see uw_db_validate), so failing
+              * here ends the start-up, and the caller sees it in the exit
+              * status; waiting on had no bound and said nothing. *)
+             string "res = sqlite3_step(stmt);",
              newline,
-             box [string "sleep(1);",
+             newline,
+             string "if (res == SQLITE_BUSY) {",
+             newline,
+             box [string "sqlite3_finalize(stmt);",
+                  newline,
+                  string "sqlite3_close(conn->conn);",
+                  newline,
+                  string "uw_error(ctx, FATAL, \"Database is busy; can't validate:<br />",
+                  string q,
+                  string "\");",
                   newline],
+             string "}",
+             newline,
              newline,
              string "if (res == SQLITE_DONE) {",
              newline,
