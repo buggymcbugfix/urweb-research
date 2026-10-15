@@ -84,12 +84,13 @@ users' input, users in the tie order.  A run comes out the same every
 time, whatever the machine.  On Linux the engines' own wall clock is the
 run's as well, through liburtclock (urt/src/urtclock.c), which the
 driver loads into every process of theirs: what goes by it inside an
-engine, a cookie's expiry first of all, goes by the run's time.
-There the driver also drops a cookie past its expiry from the user's
-context before it forwards a request, since Playwright fills in a
-Cookie header from the context's cookies for a request without one,
-and Firefox and WebKit list expired ones with the rest.  Elsewhere the
-engines keep the wall clock.
+engine, a cookie's expiry first of all, goes by the run's time; a
+driver that cannot find the library, beside it or in ../lib/urt from
+there, does not start.  There the driver also drops a cookie past its
+expiry from the user's context before it forwards a request, since
+Playwright fills in a Cookie header from the context's cookies for a
+request without one, and Firefox and WebKit list expired ones with the
+rest.  Elsewhere the engines keep the wall clock.
 
 What moves on its own in a page is on the clock too.  An animation (a
 CSS transition or animation, element.animate()) is held where the clock
@@ -3809,24 +3810,26 @@ class Run:
         return ok
 # ------------------------------------------------------------- the driver
 
+def clock_library():
+    """liburtclock.so as shipped with this driver: beside it, as in the
+    tree, or in ../lib/urt, as installed; None if it is not there."""
+    here = os.path.dirname(os.path.realpath(__file__))
+    for lib in (os.path.join(here, 'liburtclock.so'), os.path.join(here, '..', 'lib', 'urt', 'liburtclock.so')):
+        if os.path.exists(lib):
+            return os.path.realpath(lib)
+    return None
+
+
 class Clock:
     """The engines' wall clock on the run's: liburtclock (urt/src/urtclock.c)
     in every process of theirs, reading the time from a file of 8 bytes
-    that the driver writes whenever its clock moves.  Linux only, the
-    library found beside the driver, as in the tree, or in ../lib/urt;
-    without it the engines keep the wall clock, and only the pages' is the
-    run's."""
+    that the driver writes whenever its clock moves.  Linux only: lib is
+    None elsewhere, where the engines keep the wall clock, and only the
+    pages' is the run's."""
 
-    def __init__(self):
-        self.lib = self.path = self.map = self.word = None
-        if not sys.platform.startswith('linux'):
-            return
-        here = os.path.dirname(os.path.realpath(__file__))
-        for lib in (os.path.join(here, 'liburtclock.so'), os.path.join(here, '..', 'lib', 'urt', 'liburtclock.so')):
-            if os.path.exists(lib):
-                self.lib = os.path.realpath(lib)
-                break
-        else:
+    def __init__(self, lib):
+        self.lib, self.path, self.map, self.word = lib, None, None, None
+        if lib is None:
             return
         fd, self.path = tempfile.mkstemp(prefix='urt-clock-')
         try:
@@ -3867,13 +3870,13 @@ class Driver:
     """The engines, each started at the first pass that needs it and kept,
     and the runs done through them."""
 
-    def __init__(self, args, playwright_error):
+    def __init__(self, args, playwright_error, clock_lib):
         self.args = args
         self.PlaywrightError = playwright_error
         self.playwright = None
         self.browsers = {}
         self.launching = {}         # engine -> the lock of its start
-        self.clock = Clock()
+        self.clock = Clock(clock_lib)
 
     def complaint(self, e):
         """What Playwright said, less its call log, which narrates what the
@@ -4053,10 +4056,19 @@ def main():
             for c in complaints:
                 print(c, file=sys.stderr)
             return 2
+    # On Linux the engines' clock is the run's, or there is no run: one
+    # on the wall clock would be recorded as if it were right.
+    clock_lib = None
+    if sys.platform.startswith('linux'):
+        clock_lib = clock_library()
+        if clock_lib is None:
+            print('urt-browse: no liburtclock.so beside %s or in ../lib/urt from there; `make -C urt` builds it'
+                  % os.path.realpath(__file__), file=sys.stderr)
+            return 2
     # Playwright is imported here so that --check needs only python3.
     from playwright.async_api import Error as PlaywrightError, async_playwright
     unstack_playwright()
-    return asyncio.run(Driver(args, PlaywrightError).main(async_playwright))
+    return asyncio.run(Driver(args, PlaywrightError, clock_lib).main(async_playwright))
 
 
 def unstack_playwright():
