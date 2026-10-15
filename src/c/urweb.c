@@ -485,9 +485,9 @@ struct uw_context {
   int transaction_started;
 
   // An io context (uw_io_prepare): the heap is a reserved mapping that grows
-  // in place, since io code cannot be run again after a failure.
+  // in place, since io code cannot be run again after a failure; heap.max is
+  // the size of the reservation.
   int io;
-  size_t heap_reserved;
   // Why the last transaction of an io computation failed, for
   // Basis.io_errorMessage; empty when it committed.  Apart from
   // error_message, which says whether the code running now has failed.
@@ -626,7 +626,6 @@ uw_context uw_init(int id, uw_loggers *lg) {
   ctx->db = NULL;
   ctx->transaction_started = 0;
   ctx->io = 0;
-  ctx->heap_reserved = 0;
   ctx->io_error_message[0] = 0;
   ctx->transactionals_base = 0;
   ctx->cleanup_base = 0;
@@ -742,8 +741,8 @@ void uw_free(uw_context ctx) {
   if (ctx->io) {
     // In pieces: Fil-C's munmap refuses a range of 8 GiB.
     size_t done = 0, piece = 1ULL << 30;
-    while (done < ctx->heap_reserved) {
-      size_t n = ctx->heap_reserved - done < piece ? ctx->heap_reserved - done : piece;
+    while (done < ctx->heap.max) {
+      size_t n = ctx->heap.max - done < piece ? ctx->heap.max - done : piece;
       munmap(ctx->heap.start + done, n);
       done += n;
     }
@@ -1453,15 +1452,29 @@ static size_t page_size(void) {
   return sz;
 }
 
-static void uw_io_heap_grow(uw_context ctx, uw_buffer *b, size_t desired) {
-  size_t used = b->back - b->start, next = used ? used : page_size(), ps = page_size();
+// The size to grow a buffer of [have] bytes to, for [desired]: doubled
+// until that fits, at most [max], and when doubling would go past the
+// limit, [desired] itself if it fits; 0 when it does not.
+static size_t uw_grown_size(size_t have, size_t desired, size_t max) {
+  size_t next = have ? have : 1;
+
   while (next < desired)
     next *= 2;
-  if (next > ctx->heap_reserved)
-    next = ctx->heap_reserved;
-  next = (next + ps - 1) / ps * ps;
-  if (next > ctx->heap_reserved || next < desired)
+
+  if (next > max)
+    next = desired <= max ? desired : 0;
+
+  return next;
+}
+
+static void uw_io_heap_grow(uw_context ctx, uw_buffer *b, size_t desired) {
+  size_t used = b->back - b->start, ps = page_size();
+  size_t next = uw_grown_size(used, desired, b->max);
+
+  if (!next)
     uw_error(ctx, FATAL, "Memory limit exceeded (heap)");
+  // Whole pages, within the reservation, which is whole pages itself.
+  next = (next + ps - 1) / ps * ps;
   if (mprotect(b->start + used, next - used, PROT_READ | PROT_WRITE))
     uw_error(ctx, FATAL, "Cannot commit memory for the io heap: %s", strerror(errno));
   b->back = b->start + next;
@@ -1477,17 +1490,9 @@ static void uw_buffer_check_ctx(uw_context ctx, const char *kind, uw_buffer *b, 
       return;
     }
 
-    next = b->back - b->start;
-    if (next == 0)
-      next = 1;
-    for (; next < desired; next *= 2);
-
-    if (next > b->max) {
-      if (desired <= b->max)
-        next = desired;
-      else
-        uw_error(ctx, FATAL, "Memory limit exceeded (%s)", kind);
-    }
+    next = uw_grown_size(b->back - b->start, desired, b->max);
+    if (!next)
+      uw_error(ctx, FATAL, "Memory limit exceeded (%s)", kind);
 
     new_heap = realloc(b->start, next);
     b->front = new_heap + (b->front - b->start);
@@ -5057,7 +5062,6 @@ void uw_io_prepare(uw_context ctx) {
   ctx->heap.start = ctx->heap.front = map;
   ctx->heap.back = map + initial;
   ctx->heap.max = reserve;
-  ctx->heap_reserved = reserve;
   ctx->io = 1;
 }
 
