@@ -178,7 +178,13 @@ check-urt: urt
 check-io-curl: bin/urweb
 	tests/io_curl/run.sh
 
-check-local: bin/urweb check-io-curl
+# io code under contention, several clients at once: see
+# tests/io_concurrent/README.md.  Needs curl and sqlite3.
+.PHONY: check-io-concurrent
+check-io-concurrent: bin/urweb
+	tests/io_concurrent/run.sh
+
+check-local: bin/urweb check-io-curl check-io-concurrent
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \

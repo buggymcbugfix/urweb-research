@@ -1,0 +1,49 @@
+client A made
+client B made
+client C made
+client D made
+slowA: answered after 3 s or more
+slowB: answered after 3 s or more
+slowC: answered after 3 s or more
+slowD: answered after 3 s or more
+quickA1: answered after 3 s or more
+quickA2: answered after 3 s or more
+quickA3: answered after 3 s or more
+quickB1: answered after 3 s or more
+quickB2: answered after 3 s or more
+quickB3: answered after 3 s or more
+quickC1: answered after 3 s or more
+quickC2: answered after 3 s or more
+quickC3: answered after 3 s or more
+quickD1: answered after 3 s or more
+quickD2: answered after 3 s or more
+quickD3: answered after 3 s or more
+quickA1: quick+A
+quickA2: quick+A
+quickA3: quick+A
+quickB1: quick+B
+quickB2: quick+B
+quickB3: quick+B
+quickC1: quick+C
+quickC2: quick+C
+quickC3: quick+C
+quickD1: quick+D
+quickD2: quick+D
+quickD3: quick+D
+polls of A answered with ticks: 3 of 3
+polls of B answered with ticks: 3 of 3
+polls of C answered with ticks: 3 of 3
+polls of D answered with ticks: 3 of 3
+> database
+  A: 0 0 0 4000
+  B: 0 0 0 4000
+  C: 0 0 0 4000
+  D: 0 0 0 4000
+  | effect: slow A begins
+  | effect: slow A ends
+  | effect: slow B begins
+  | effect: slow B ends
+  | effect: slow C begins
+  | effect: slow C ends
+  | effect: slow D begins
+  | effect: slow D ends
