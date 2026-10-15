@@ -126,8 +126,6 @@ fun functionInside known =
     U.Con.exists {kind = fn _ => false,
                   con = fn TFun _ => true
                          | TCFun _ => true
-                         | CFfi ("Basis", "transaction") => true
-                         | CFfi ("Basis", "io") => true
                          | CFfi ("Basis", "eq") => true
                          | CFfi ("Basis", "num") => true
                          | CFfi ("Basis", "ord") => true
@@ -135,6 +133,7 @@ fun functionInside known =
                          | CFfi ("Basis", "read") => true
                          | CFfi ("Basis", "sql_injectable_prim") => true
                          | CFfi ("Basis", "sql_injectable") => true
+                         | CFfi ("Basis", m) => Settings.isThunkMonad m
                          | CNamed n => IS.member (known, n)
                          | _ => false}
 

@@ -565,14 +565,11 @@ fun corifyExp st (e, loc) =
                 case St.lookupValByName st x of
                     St.ENormal n => (L'.ENamed n, loc)
                   | St.EFfi (m, t) =>
-                    case t of
-                        (L'.CApp ((L'.CFfi ("Basis", "transaction"), _), dom), _) =>
+                    case (CoreUtil.Con.thunkMonadArg t, t) of
+                        (SOME dom, _) =>
                         (L'.EAbs ("arg", dom, (L'.TRecord (L'.CRecord ((L'.KType, loc), []), loc), loc),
                                   (L'.EFfiApp (m, x, []), loc)), loc)
-                      | (L'.CApp ((L'.CFfi ("Basis", "io"), _), dom), _) =>
-                        (L'.EAbs ("arg", dom, (L'.TRecord (L'.CRecord ((L'.KType, loc), []), loc), loc),
-                                  (L'.EFfiApp (m, x, []), loc)), loc)
-                      | t as (L'.TFun _, _) =>
+                      | (NONE, t as (L'.TFun _, _)) =>
                         let
                             fun getArgs (all as (t, _), args) =
                                 case t of
@@ -580,16 +577,12 @@ fun corifyExp st (e, loc) =
                                   | _ => (all, rev args)
 
                             val (result, args) = getArgs (t, [])
-                            (* A function into [transaction] or [io] is
-                             * called when the thunk is, not when it is
-                             * applied. *)
+                            (* A function into a thunk monad is called when
+                             * the thunk is, not when it is applied. *)
                             val (isTransaction, result) =
-                                case result of
-                                    (L'.CApp ((L'.CFfi ("Basis", "transaction"), _),
-                                              result), _) => (true, result)
-                                  | (L'.CApp ((L'.CFfi ("Basis", "io"), _),
-                                              result), _) => (true, result)
-                                  | _ => (false, result)
+                                case CoreUtil.Con.thunkMonadArg result of
+                                    SOME result => (true, result)
+                                  | NONE => (false, result)
 
                             fun makeApp n =
                                 let
@@ -657,8 +650,7 @@ fun corifyExp st (e, loc) =
 fun isTransactional (c, _) =
     case c of
         L'.TFun (_, c) => isTransactional c
-      | L'.CApp ((L'.CFfi ("Basis", "transaction"), _), _) => true
-      | L'.CApp ((L'.CFfi ("Basis", "io"), _), _) => true
+      | L'.CApp ((L'.CFfi ("Basis", m), _), _) => Settings.isThunkMonad m
       | _ => false
 
 fun corifyDecl mods (all as (d, loc : EM.span), st) =
@@ -862,7 +854,7 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                                         * called when the thunk is: their
                                         * cons, by number, for transactify. *)
                                        val trans =
-                                           if x = "transaction" orelse x = "io" then
+                                           if Settings.isThunkMonad x then
                                                (n, x) :: trans
                                            else
                                                trans

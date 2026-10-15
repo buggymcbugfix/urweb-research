@@ -179,6 +179,10 @@ fun monoType env =
                      Print.eprefaces' [("Constructor", CorePrint.p_con env all)];
                      dummyTyp)
             in
+                case CoreUtil.Con.thunkMonadArg all of
+                    (* A thunk monad, transaction or io: a function of unit. *)
+                    SOME t => (L'.TFun ((L'.TRecord [], loc), mt env dtmap t), loc)
+                  | NONE =>
                 case c of
                     L.TFun (c1, c2) => (L'.TFun (mt env dtmap c1, mt env dtmap c2), loc)
                   | L.TCFun _ => poly ()
@@ -273,10 +277,6 @@ fun monoType env =
                   | L.CApp ((L.CFfi ("Basis", "serialized"), _), _) =>
                     (L'.TFfi ("Basis", "string"), loc)
 
-                  | L.CApp ((L.CFfi ("Basis", "transaction"), _), t) =>
-                    (L'.TFun ((L'.TRecord [], loc), mt env dtmap t), loc)
-                  | L.CApp ((L.CFfi ("Basis", "io"), _), t) =>
-                    (L'.TFun ((L'.TRecord [], loc), mt env dtmap t), loc)
                   | L.CApp ((L.CFfi ("Basis", "source"), _), t) =>
                     (L'.TSource, loc)
                   | L.CApp ((L.CFfi ("Basis", "signal"), _), t) =>
@@ -4362,7 +4362,7 @@ fun monoDecl (env, fm) (all as (d, loc)) =
                                       fun maybeTransaction (t, e) =
                                           case (#1 t, #1 e) of
                                               (L.CApp ((L.CFfi ("Basis", m), _), _), _) =>
-                                              if m = "transaction" orelse m = "io" then
+                                              if Settings.isThunkMonad m then
                                                   SOME (L.EAbs ("_",
                                                                 (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc),
                                                                 t,
@@ -4406,12 +4406,11 @@ fun monoDecl (env, fm) (all as (d, loc)) =
                 fun unwind (t, args) =
                     case #1 t of
                         L.TFun (dom, ran) => unwind (ran, dom :: args)
-                      | L.CApp ((L.CFfi ("Basis", "transaction"), _), t) =>
-                        unwind (t, (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc) :: args)
-                      | L.CApp ((L.CFfi ("Basis", "io"), _), t) =>
-                        (* An io RPC: a thunk as well. *)
-                        unwind (t, (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc) :: args)
-                      | _ => (rev args, t)
+                      | _ =>
+                        case CoreUtil.Con.thunkMonadArg t of
+                            (* A thunk monad, transaction or io: the thunk's argument. *)
+                            SOME t' => unwind (t', (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc) :: args)
+                          | NONE => (rev args, t)
 
                 val (ts, ran) = unwind (t, [])
                 val ts = map (monoType env) ts

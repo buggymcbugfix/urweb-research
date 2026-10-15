@@ -4566,7 +4566,7 @@ and elabDecl (dAll as (d, loc), (env, denv, gs)) =
                     checkCon env e2' t2 t2';
                     (case hnormCon env marg of
                          (L'.CModProj (basis, [], m), _) =>
-                         if basis = !basis_r andalso (m = "transaction" orelse m = "io") then
+                         if basis = !basis_r andalso Settings.isThunkMonad m then
                              ()
                          else
                              expError env (TaskMonad loc)

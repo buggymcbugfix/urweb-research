@@ -95,6 +95,13 @@ signature SETTINGS = sig
     val addClientOnly : ffi -> unit
     val isClientOnly : ffi -> bool
 
+    (* The Basis monads whose computations are thunks in the server's code:
+     * transaction and io.  A value of one monoizes to a function of unit,
+     * run when it is applied, an FFI value of one is called when the thunk
+     * is, and a function into one is called when its thunk is.  The passes
+     * that tell these monads from other type constructors ask here. *)
+    val isThunkMonad : string -> bool
+
     (* Which FFI functions may only be run on servers? *)
     val setServerOnly : ffi list -> unit
     val addServerOnly : ffi -> unit
