@@ -9,6 +9,11 @@
 typedef struct uw_rc *uw_request_context;
 
 void uw_request_init(uw_app *app, uw_loggers* ls);
+// The heaps of the contexts the server is about to make, reserved ahead
+// (uw_heap_prepare): one per worker thread, the client pruner's, and one
+// per periodic task.  After uw_request_init, before the server says it is
+// listening or forks.
+void uw_request_prepare_heaps(uw_app *app, int workers);
 void uw_request_start_threads(uw_app *app, uw_loggers *ls);
 void uw_sign(const char *in, char *out);
 

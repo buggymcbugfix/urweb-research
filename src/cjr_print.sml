@@ -3881,7 +3881,8 @@ fun p_file env (ds, ps) =
                             | SOME s => "\"" ^ Prim.toCString s ^ "\""),
                          "uw_served_files",
                          (* io_handlers: whether a request may run io code,
-                          * which needs the heap that never moves *)
+                          * for which the contexts that serve requests are
+                          * marked (uw_io_prepare) *)
                          if List.exists (fn (IoRpc _, _, _, _, _, _, _, _) => true
                                           | _ => false) ps then
                              "1"
