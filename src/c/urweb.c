@@ -815,18 +815,24 @@ int uw_has_error(uw_context ctx) {
   return ctx->error_message[0] != 0;
 }
 
-__attribute__((noreturn)) void uw_error(uw_context ctx, failure_kind fk, const char *fmt, ...) {
+// Run the cleanups the transaction registered, and take them off the
+// stack.
+static void uw_run_cleanups(uw_context ctx) {
   cleanup *cl;
-
-  va_list ap;
-  va_start(ap, fmt);
-
-  vsnprintf(ctx->error_message, ERROR_BUF_LEN, fmt, ap);
 
   for (cl = ctx->cleanup; cl < ctx->cleanup_front; ++cl)
     cl->func(cl->arg);
 
   ctx->cleanup_front = ctx->cleanup;
+}
+
+__attribute__((noreturn)) void uw_error(uw_context ctx, failure_kind fk, const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+
+  vsnprintf(ctx->error_message, ERROR_BUF_LEN, fmt, ap);
+
+  uw_run_cleanups(ctx);
 
   longjmp(ctx->jmp_buf, fk);
 }
@@ -3737,25 +3743,46 @@ uw_unit uw_Basis_send(uw_context ctx, uw_Basis_channel chn, uw_Basis_string msg)
   return uw_unit_v;
 }
 
-int uw_rollback(uw_context ctx, int will_retry) {
+// The transactionals the transaction registered, latest first: their free
+// callbacks; their rollback callbacks and then their free callbacks; their
+// commit callbacks, those with a rollback callback or those without, which
+// is 0 once one of them reports an error.
+static void uw_free_transactionals(uw_context ctx, int will_retry) {
   int i;
-  cleanup *cl;
 
-  if (ctx->client)
-    release_client(ctx->client);
+  for (i = ctx->used_transactionals-1; i >= 0; --i)
+    if (ctx->transactionals[i].free)
+      ctx->transactionals[i].free(ctx->transactionals[i].data, will_retry);
+}
 
-  for (cl = ctx->cleanup; cl < ctx->cleanup_front; ++cl)
-    cl->func(cl->arg);
-
-  ctx->cleanup_front = ctx->cleanup;
+static void uw_undo_transactionals(uw_context ctx, int will_retry) {
+  int i;
 
   for (i = ctx->used_transactionals-1; i >= 0; --i)
     if (ctx->transactionals[i].rollback != NULL)
       ctx->transactionals[i].rollback(ctx->transactionals[i].data);
 
+  uw_free_transactionals(ctx, will_retry);
+}
+
+static int uw_commit_transactionals(uw_context ctx, int with_rollback) {
+  int i;
+
   for (i = ctx->used_transactionals-1; i >= 0; --i)
-    if (ctx->transactionals[i].free)
-      ctx->transactionals[i].free(ctx->transactionals[i].data, will_retry);
+    if ((ctx->transactionals[i].rollback != NULL) == with_rollback && ctx->transactionals[i].commit) {
+      ctx->transactionals[i].commit(ctx->transactionals[i].data);
+      if (uw_has_error(ctx))
+        return 0;
+    }
+
+  return 1;
+}
+
+int uw_rollback(uw_context ctx, int will_retry) {
+  if (ctx->client)
+    release_client(ctx->client);
+  uw_run_cleanups(ctx);
+  uw_undo_transactionals(ctx, will_retry);
 
   if (ctx->app && ctx->transaction_started) {
     ctx->transaction_started = 0;
@@ -3796,20 +3823,10 @@ int uw_commit(uw_context ctx) {
   int i;
   char *sig;
 
-  if (uw_has_error(ctx)) {
+  if (uw_has_error(ctx) || !uw_commit_transactionals(ctx, 1)) {
     uw_rollback(ctx, 0);
     return 0;
   }
-
-  for (i = ctx->used_transactionals-1; i >= 0; --i)
-    if (ctx->transactionals[i].rollback != NULL)
-      if (ctx->transactionals[i].commit) {
-        ctx->transactionals[i].commit(ctx->transactionals[i].data);
-        if (uw_has_error(ctx)) {
-          uw_rollback(ctx, 0);
-          return 0;
-        }
-      }
 
   // Here's an important lock to provide the abstraction that all messages from one transaction are sent as an atomic unit.
   if (ctx->used_deltas > 0)
@@ -3829,14 +3846,7 @@ int uw_commit(uw_context ctx) {
         // This case is for a serialization failure, which is not really an "error."
         // The transaction will restart, so we should rollback any transactionals
         // that triggered above.
-
-        for (i = ctx->used_transactionals-1; i >= 0; --i)
-          if (ctx->transactionals[i].rollback != NULL)
-            ctx->transactionals[i].rollback(ctx->transactionals[i].data);
-
-        for (i = ctx->used_transactionals-1; i >= 0; --i)
-          if (ctx->transactionals[i].free)
-            ctx->transactionals[i].free(ctx->transactionals[i].data, 1);
+        uw_undo_transactionals(ctx, 1);
 
         // The database has ended the transaction.  A retry has to BEGIN again,
         // which uw_ensure_transaction does only while this is clear, and the
@@ -3846,9 +3856,7 @@ int uw_commit(uw_context ctx) {
         return 1;
       }
 
-      for (i = ctx->used_transactionals-1; i >= 0; --i)
-        if (ctx->transactionals[i].free)
-          ctx->transactionals[i].free(ctx->transactionals[i].data, 0);
+      uw_free_transactionals(ctx, 0);
 
       uw_set_error_message(ctx, "Error running SQL COMMIT");
       return 0;
@@ -3857,28 +3865,16 @@ int uw_commit(uw_context ctx) {
 
   ctx->transaction_started = 0;
 
-  for (i = ctx->used_transactionals-1; i >= 0; --i)
-    if (ctx->transactionals[i].rollback == NULL)
-      if (ctx->transactionals[i].commit) {
-        ctx->transactionals[i].commit(ctx->transactionals[i].data);
-        if (uw_has_error(ctx)) {
-          if (ctx->used_deltas > 0)
-            pthread_mutex_unlock(&message_send_mutex);
+  if (!uw_commit_transactionals(ctx, 0)) {
+    if (ctx->used_deltas > 0)
+      pthread_mutex_unlock(&message_send_mutex);
 
-          if (ctx->client)
-            release_client(ctx->client);
+    if (ctx->client)
+      release_client(ctx->client);
+    uw_undo_transactionals(ctx, 0);
 
-          for (i = ctx->used_transactionals-1; i >= 0; --i)
-            if (ctx->transactionals[i].rollback != NULL)
-              ctx->transactionals[i].rollback(ctx->transactionals[i].data);
-
-          for (i = ctx->used_transactionals-1; i >= 0; --i)
-            if (ctx->transactionals[i].free)
-              ctx->transactionals[i].free(ctx->transactionals[i].data, 0);
-
-          return 0;
-        }
-      }
+    return 0;
+  }
 
   for (i = 0; i < ctx->used_deltas; ++i) {
     delta *d = &ctx->deltas[i];
@@ -3894,10 +3890,7 @@ int uw_commit(uw_context ctx) {
 
   if (ctx->client)
     release_client(ctx->client);
-
-  for (i = ctx->used_transactionals-1; i >= 0; --i)
-    if (ctx->transactionals[i].free)
-      ctx->transactionals[i].free(ctx->transactionals[i].data, 0);
+  uw_free_transactionals(ctx, 0);
 
   uw_check(ctx, 1);
   *ctx->page.front = 0;
@@ -4435,7 +4428,6 @@ static char *old_headers(uw_context ctx) {
 }
 
 __attribute__((noreturn)) void uw_return_blob(uw_context ctx, uw_Basis_blob b, uw_Basis_string mimeType) {
-  cleanup *cl;
   int len;
   char *oldh;
 
@@ -4459,10 +4451,7 @@ __attribute__((noreturn)) void uw_return_blob(uw_context ctx, uw_Basis_blob b, u
 
   ctx_uw_buffer_append(ctx, "page", &ctx->page, b.data, b.size);
 
-  for (cl = ctx->cleanup; cl < ctx->cleanup_front; ++cl)
-    cl->func(cl->arg);
-
-  ctx->cleanup_front = ctx->cleanup;
+  uw_run_cleanups(ctx);
 
   longjmp(ctx->jmp_buf, RETURN_INDIRECTLY);
 }
@@ -4495,7 +4484,6 @@ int uw_serve_file(uw_context ctx, const char *request, const char *last_modified
 }
 
 __attribute__((noreturn)) void uw_return_blob_from_page(uw_context ctx, uw_Basis_string mimeType) {
-  cleanup *cl;
   int len;
   char *oldh;
 
@@ -4516,16 +4504,12 @@ __attribute__((noreturn)) void uw_return_blob_from_page(uw_context ctx, uw_Basis
   uw_write_header(ctx, "\r\n");
   if (oldh) uw_write_header(ctx, oldh);
 
-  for (cl = ctx->cleanup; cl < ctx->cleanup_front; ++cl)
-    cl->func(cl->arg);
-
-  ctx->cleanup_front = ctx->cleanup;
+  uw_run_cleanups(ctx);
 
   longjmp(ctx->jmp_buf, RETURN_INDIRECTLY);
 }
 
 __attribute__((noreturn)) void uw_redirect(uw_context ctx, uw_Basis_string url) {
-  cleanup *cl;
   char *s;
   char *oldh;
 
@@ -4567,10 +4551,7 @@ __attribute__((noreturn)) void uw_redirect(uw_context ctx, uw_Basis_string url) 
   uw_write_header(ctx, "\r\n");
   if (oldh) uw_write_header(ctx, oldh);
 
-  for (cl = ctx->cleanup; cl < ctx->cleanup_front; ++cl)
-    cl->func(cl->arg);
-
-  ctx->cleanup_front = ctx->cleanup;
+  uw_run_cleanups(ctx);
 
   longjmp(ctx->jmp_buf, RETURN_INDIRECTLY);
 }
