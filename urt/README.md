@@ -99,13 +99,15 @@ the request-response runs are but with `NAME.step` files under
 `USER:` alone with the user's lines under it indented with a tab
 (`Alice: open /Shop/main [target=1]`, `Alice: fill 'input[name=name]'
 kettle`, `Alice: click 'text=Add'`, `Alice: drag 'text=Pooh'
-'text=Edward'`, `Bernd: until 'text=1 item'`; `urt-browse --help` has
-them all, the locators are Playwright's, and an action's parameters
-follow it in brackets: its time, `[2s]`, a position on the element,
-`[at=50%,80%]`, the tab it opens, `[target=2]`).  A user is a browser of
-their own, cookies and all; their tabs are pages in it, each a client to
-the application, called by the name the action that opens it gives
-(`Alice.1`, `Alice.2`, `Bernd.1`), and their lines act on the tab in front
+'text=Edward'`, `Alice: upload 'input[type=file]' photo.png`, the
+file under the run's `files/`, `Bernd: until 'text=1 item'`;
+`urt-browse --help` has them all, the locators are Playwright's,
+and an action's parameters follow it in brackets: its time, `[2s]`,
+a position on the element, `[at=50%,80%]`, the tab it opens,
+`[target=2]`).  A user is a browser of their own, cookies and all;
+their tabs are pages in it, each a client to the application,
+called by the name the action that opens it gives (`Alice.1`,
+`Alice.2`, `Bernd.1`), and their lines act on the tab in front
 (`tab NAME` brings one there, `close` closes it, `quit` closes the
 browser).  The users of a step go side by side, each through their lines
 in order, and wait for one another with labels (`label "sent"`, `after

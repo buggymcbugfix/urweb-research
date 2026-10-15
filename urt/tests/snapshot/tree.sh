@@ -378,6 +378,7 @@ printf 'firefox\n' > runs/webstray.urt/snapshot/1/browser/a/engines
 : > runs/webstray.urt/snapshot/1/browser/a/a.b.context
 : > runs/webstray.urt/snapshot/1/browser/a/screenshots
 : > runs/webstray.urt/snapshot/1/browser/a/recordings
+: > runs/webstray.urt/snapshot/1/browser/a/files
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.html
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.response
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.png
@@ -446,6 +447,9 @@ user: after Bernd."nope"
 user: wait 1s [async]
 user: click 'x' (at=1,1)
 user: fill 'a' "b"
+user: upload 'input[type=file]'
+user: upload 'input[type=file]' ../secret
+user: upload 'input[type=file]' photo.png
 STEP
 printf '# nothing yet\n' > 03.step
 printf "user: open /main 'never closed\n" > 04.step

@@ -205,6 +205,7 @@ static const char usage_text[] =
     "          `-- browser/\n"
     "              `-- checkout/             a run; args, env, secret, db.sql and out/ as above\n"
     "                  |-- context             the users' order, and how their browsers are set up\n"
+    "                  |-- files/              what the steps upload\n"
     "                  |-- screenshots/        every page as drawn, with --screenshot; not for git\n"
     "                  |   `-- 01-open.Alice.1.chromium.png\n"
     "                  |-- recordings/         every user filmed, with --record; not for git\n"
@@ -895,6 +896,13 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
         if (!is_file(e)) {
             die_later(fmt("%s should be a file", path(e)), NULL);
         }
+    } else if (n == 2 && kind == RUN_BROWSER && !strcmp(part[1], "files")) {
+        /* What the steps upload, called by their names there: any file,
+         * read by the driver. */
+        if (!is_dir(e)) {
+            die_later(fmt("%s should be a directory", path(e)), NULL);
+        }
+        return 1;
     } else if (n == 2 && kind == RUN_BROWSER && (!strcmp(part[1], "screenshots") || !strcmp(part[1], "recordings"))) {
         /* Pictures for looking at, --screenshot's and --record's, never
          * read; what is under them is passed over. */
@@ -957,7 +965,7 @@ static int layout_run(const char *e, const char *rest, enum run_kind kind) {
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
                   kind == RUN_BROWSER
-                      ? "a browser run holds args, env, secret, db.sql, context, screenshots/, recordings/ and README.md; NAME.step, and per tab"
+                      ? "a browser run holds args, env, secret, db.sql, context, files/, screenshots/, recordings/ and README.md; NAME.step, and per tab"
                       : "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,",
                   kind == RUN_BROWSER
                       ? "NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step"

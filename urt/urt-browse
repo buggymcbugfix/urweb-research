@@ -135,6 +135,8 @@ top-left corner.
     type L TEXT [T]         type TEXT into it, a key at a time; T a key
     press KEY [on=L] [T]    Enter, Tab, ArrowDown, Control+a, ...
     select L VALUE... [T]   choose in a select
+    upload L FILE... [T]    choose files for a file field, each a name under
+                            the run's files/
     back [T]                also forward, reload
     close [T]               close the tab in front; the tab after it in the
                             order of opening comes to the front, or the one
@@ -186,8 +188,9 @@ before the first line [USER], and that user with what is under it:
                             says: click 400ms, dblclick, hover, check, uncheck
                             400ms, drag 1s, swipe 300ms, wheel 300ms, type
                             150ms a key, fill 200ms, press 100ms, select
-                            500ms, focus 100ms, tab 300ms, dialog 1s, until
-                            10s at most; open, back, forward, reload, close 0
+                            500ms, upload 2s, focus 100ms, tab 300ms, dialog
+                            1s, until 10s at most; open, back, forward,
+                            reload, close 0
     viewport WxH            the window; 1024x768 unless given
     device_scale_factor N   1
     color_scheme light|dark|no-preference
@@ -218,6 +221,7 @@ import functools
 import heapq
 import html
 import json
+import mimetypes
 import os
 import re
 import shlex
@@ -439,7 +443,7 @@ def unquote(s):
 # its flags, and whether it takes a time.  Page actions take [target=NAME]
 # and [async] besides.
 PAGE_ACTIONS = ('open', 'click', 'dblclick', 'hover', 'focus', 'check', 'uncheck', 'drag', 'swipe', 'wheel',
-                'fill', 'type', 'press', 'select', 'back', 'forward', 'reload', 'close')
+                'fill', 'type', 'press', 'select', 'upload', 'back', 'forward', 'reload', 'close')
 
 VERBS = {
     # verb:      (positional, required, optional, flags, time)
@@ -457,6 +461,7 @@ VERBS = {
     'type':     (('L', 'TEXT'), (), (), (), True),
     'press':    (('KEY',), (), ('on',), (), True),
     'select':   (('L', 'VALUE...'), (), (), (), True),
+    'upload':   (('L', 'FILE...'), (), (), (), True),
     'back':     ((), (), (), (), True),
     'forward':  ((), (), (), (), True),
     'reload':   ((), (), (), (), True),
@@ -475,7 +480,7 @@ VERBS = {
 DEFAULT_TIMES = {
     'click': 400, 'dblclick': 400, 'hover': 400, 'check': 400, 'uncheck': 400,
     'drag': 1000, 'swipe': 300, 'wheel': 300, 'type': 150, 'fill': 200, 'press': 100,
-    'select': 500, 'focus': 100, 'tab': 300, 'dialog': 1000,
+    'select': 500, 'upload': 2000, 'focus': 100, 'tab': 300, 'dialog': 1000,
     'open': 0, 'back': 0, 'forward': 0, 'reload': 0, 'close': 0, 'until': 10000,
 }
 DEFAULT_RTT = 100
@@ -594,6 +599,12 @@ def check_shape(a):
     elif verb == 'select':
         if len(args) < 2 or not strings:
             raise Complaint('select takes a locator and the values')
+    elif verb == 'upload':
+        if len(args) < 2 or not strings:
+            raise Complaint("upload takes a locator and the files, each a name under the run's files/")
+        for f in args[1:]:
+            if not f or f.startswith('/') or '..' in f.split('/'):
+                raise Complaint("upload takes files under the run's files/, by their names there, not '%s'" % f)
     elif verb in ('back', 'forward', 'reload', 'close', 'quit'):
         need(0)
     elif verb == 'tab':
@@ -789,6 +800,33 @@ def parse_option(option, value):
     return value
 
 
+# A file's type by its name, from Python's own table alone, which no
+# system's files change.
+MIME_TYPES = mimetypes.MimeTypes()
+
+
+def refill(body, ctype, files):
+    """A multipart/form-data body with the files the users uploaded put
+    back in: Chromium and WebKit hand a request to the driver with every
+    file of it empty, and WebKit with its type application/octet-stream
+    where the host has no table of types; Firefox whole.  The parts of a
+    file of that name get its contents and its type, whatever the engine.
+    files: name -> (type, contents)."""
+    m = re.search(r'boundary=("?)([^";]+)\1', ctype)
+    if not m:
+        return body
+    sep = b'--' + m.group(2).encode('latin-1')
+    pieces = body.split(sep)
+    for i in range(1, len(pieces) - 1):
+        head, gap, content = pieces[i].partition(b'\r\n\r\n')
+        name = re.search(rb'filename="([^"]*)"', head)
+        if gap and name and name.group(1).decode('utf-8', 'replace') in files:
+            kind, data = files[name.group(1).decode('utf-8', 'replace')]
+            head = re.sub(rb'(?im)^content-type:[^\r\n]*', b'Content-Type: ' + kind.encode('latin-1'), head)
+            pieces[i] = head + gap + data + b'\r\n'
+    return sep.join(pieces)
+
+
 # The engines, in the order that names a pass and settles a tie between
 # passes' records.
 ENGINES = ('chromium', 'firefox', 'webkit')
@@ -962,6 +1000,12 @@ def read_run(run_dir):
             continue
         steps.append(read_step(name, text, file, complaints, users))
     check_steps(steps, complaints)
+    for step in steps:
+        for a in step.actions:
+            if a.verb == 'upload':
+                for f in a.args[1:]:
+                    if not os.path.isfile(os.path.join(run_dir, 'files', f)):
+                        complaints.append("%s: upload: there is no files/%s in the run" % (a.where, f))
     setup = Setup()
     path = os.path.join(run_dir, 'context')
     if os.path.exists(path):
@@ -2377,6 +2421,15 @@ class User:
         elif verb == 'select':
             loc = await self.wait_ready(tab, a.args[0], 'enabled')
             await self.input(tab, run.now + D, lambda: loc.select_option(a.args[1:]))
+        elif verb == 'upload':
+            # The time it takes to pick them; the field has them at its end.
+            loc = await self.wait_ready(tab, a.args[0], 'enabled')
+            files = [os.path.join(run.run_dir, 'files', f) for f in a.args[1:]]
+            for f in files:
+                with open(f, 'rb') as fp:
+                    run.uploaded[os.path.basename(f)] = (MIME_TYPES.guess_type(f)[0] or 'application/octet-stream',
+                                                         fp.read())
+            await self.input(tab, run.now + D, lambda: loc.set_input_files(files))
         elif verb == 'wheel':
             # The page's own: dispatched where the pointer is, and the
             # scroll exact and at once (MOTION_JS).
@@ -2485,6 +2538,7 @@ class Run:
         self.heldmap = {}           # request -> Held
         self.frames = set()         # frame stops to come
         self.docs = 0               # the documents delivered, which number them
+        self.uploaded = {}          # a file's name -> its type and contents, for every one the users upload
 
     # ---- the queue
 
@@ -3013,9 +3067,14 @@ class Run:
         if h.poll:
             h.task = asyncio.ensure_future(self.fetch_poll(h, headers))
             return
+        body = None
+        ctype = next((v for k, v in headers.items() if k.lower() == 'content-type'), '')
+        if self.uploaded and ctype.lower().startswith('multipart/form-data'):
+            body = refill(h.req.post_data_buffer or b'', ctype, self.uploaded)
+            headers = {k: v for k, v in headers.items() if k.lower() != 'content-length'}
         try:
             h.response = await h.route.fetch(url=self.server + self.path_of(h.req.url), headers=headers, max_redirects=0,
-                                             timeout=self.args.timeout * 1000)
+                                             post_data=body, timeout=self.args.timeout * 1000)
         except self.PlaywrightError as e:
             h.error = e
             trace('fetch failed', self.path_of(h.req.url), str(e).splitlines()[0])

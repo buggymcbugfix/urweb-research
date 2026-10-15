@@ -193,6 +193,7 @@ same time, each with its application:
           `-- browser/
               `-- checkout/             a run; args, env, secret, db.sql and out/ as above
                   |-- context             the users' order, and how their browsers are set up
+                  |-- files/              what the steps upload
                   |-- screenshots/        every page as drawn, with --screenshot; not for git
                   |   `-- 01-open.Alice.1.chromium.png
                   |-- recordings/         every user filmed, with --record; not for git
