@@ -290,7 +290,10 @@ static const char usage_text[] =
     "while anything moves that will stop; a USER.PASS.vtt beside it has a cue\n"
     "per line, and an index.html plays a run's films together, each in a box to\n"
     "move and size at will.  The same rules as for the screenshots, and the records\n"
-    "the same with and without, and whatever T, too.\n"
+    "the same with and without, and whatever T, too.  What a driver says on its own\n"
+    "account, in its lines that start urt-browse: -- a film it could not make, a\n"
+    "frame it had to make again, a film slow to make -- comes under the run's\n"
+    "verdict, whatever the verdict.\n"
     "There is one clock, for the pages, the server and the users.  It starts at the\n"
     "epoch and moves from one thing due to the next, as fast as they get done,\n"
     "nothing waiting on the wall clock: an act takes the time it takes a person (a\n"
@@ -2918,6 +2921,28 @@ static void say_stopped(enum run_kind kind, const char *run_dir, const char *rw,
     free(text);
 }
 
+/* What the drivers of a browser run said that is no failure to run it
+ * -- a film they could not make, a frame they had to make again -- as
+ * notes under its verdict, pass by pass: their lines that start
+ * "urt-browse:", the rest of what goes to their stderr being Python's
+ * and Playwright's. */
+static void driver_notes(int n, char rws[][PATHLEN]) {
+    int i;
+    for (i = 0; i < n; i++) {
+        char *text = read_text(fmt("%s/browse.stderr", rws[i])), *line, *end;
+        for (line = text; line && *line; line = end ? end + 1 : NULL) {
+            end = strchr(line, '\n');
+            if (end) {
+                *end = 0;
+            }
+            if (has_prefix(line, "urt-browse:")) {
+                printf("    %s\n", info(line));
+            }
+        }
+        free(text);
+    }
+}
+
 /* One run: the application started once and sent the requests, or once
  * per pass and driven through, and what came of it compared or
  * recorded.  A run that stopped at a request or a step is recorded as
@@ -3028,6 +3053,9 @@ static void run_run(const char *run_dir, const char *exe) {
                 say_stopped(kind, run_dir, rws[i], stopped[i], kind == RUN_BROWSER && n < engs.n ? fmt(" [%s]", who) : "");
             }
         }
+        if (kind == RUN_BROWSER) {
+            driver_notes(engs.n, rws);
+        }
         putchar('\n');
         set_at_blank(1);
         n_bad++;
@@ -3039,6 +3067,9 @@ static void run_run(const char *run_dir, const char *exe) {
         } else {
             say(ST_OK, "OK", run_dir, note);
             n_ok++;
+        }
+        if (kind == RUN_BROWSER) {
+            driver_notes(engs.n, rws);
         }
         set_at_blank(0);
     }

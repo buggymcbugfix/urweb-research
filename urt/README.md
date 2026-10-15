@@ -201,7 +201,10 @@ that keeps text sharp, each at its own millisecond.  Beside each film a `USER.PA
 and an `index.html` plays a run's films together, users and passes, on
 one clock, every one in a box to move by its title and size by its
 corner; the same rules, and the records the same with and without, and
-whatever T.  Every run is driven through in passes by `urt-browse`
+whatever T.  What a driver says on its own account (its lines that start
+`urt-browse:`: a film it could not make, a frame it had to make again in a
+new page, a film slow to make, and where the time went) comes under the
+run's verdict.  Every run is driven through in passes by `urt-browse`
 beside `urt`, through Playwright for Python.  A pass puts every user on
 an engine, Chromium, Firefox or WebKit, and there are as many as it
 takes to drive each user through all of theirs, every user's being all
