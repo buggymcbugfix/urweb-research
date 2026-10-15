@@ -1,0 +1,39 @@
+$ urt snapshot runs/serves-static
+UPDATED runs/serves-static.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-static.urt/snapshot/1/request-response/pages (interaction/01.response, interaction/02-about.response, interaction/03-fail.exitcode, interaction/03-fail.response, interaction/03-fail.stderr)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ urt snapshot -w runs/serves-static
+OK runs/serves-static.urt/snapshot/1
+OK runs/serves-static.urt/snapshot/1/request-response/pages
+1 case and 1 run: 2 ok, in T
+exit 0
+$ cd runs/serves-static.urt/snapshot/1/request-response/pages && for f in interaction/*; do echo "== $f"; cat "$f"; done
+== interaction/01.request
+GET /
+== interaction/01.response
+<html><body>1 argument: /</body></html>
+URWEB_REPRODUCIBLE_EPOCH=946684800
+URWEB_REPRODUCIBLE_PRNG_SEED=0
+== interaction/02-about.request
+GET /Site/about
+== interaction/02-about.response
+<html><body>1 argument: /Site/about</body></html>
+URWEB_REPRODUCIBLE_EPOCH=946684801
+URWEB_REPRODUCIBLE_PRNG_SEED=11400714819323198485
+== interaction/03-fail.exitcode
+1
+== interaction/03-fail.request
+GET /fail
+== interaction/03-fail.response
+== interaction/03-fail.stderr
+Error: as asked
+exit 0
+$ changes
+added: ./runs/serves-static.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-static.urt/snapshot/1/expected/exitcode
+added (106 bytes): ./runs/serves-static.urt/snapshot/1/request-response/pages/interaction/01.response
+added (135 bytes): ./runs/serves-static.urt/snapshot/1/request-response/pages/interaction/02-about.response
+added (2 bytes): ./runs/serves-static.urt/snapshot/1/request-response/pages/interaction/03-fail.exitcode
+added (0 bytes): ./runs/serves-static.urt/snapshot/1/request-response/pages/interaction/03-fail.response
+added (16 bytes): ./runs/serves-static.urt/snapshot/1/request-response/pages/interaction/03-fail.stderr

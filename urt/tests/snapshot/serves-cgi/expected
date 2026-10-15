@@ -1,0 +1,149 @@
+$ urt snapshot runs/serves-cgi
+UPDATED runs/serves-cgi.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-cgi.urt/snapshot/1/request-response/cgi (interaction/01.response, interaction/02-form.response, interaction/03-raw.response, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-fail.exitcode, interaction/06-fail.response, out/db_final.sql)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ urt snapshot -w runs/serves-cgi
+OK runs/serves-cgi.urt/snapshot/1
+OK runs/serves-cgi.urt/snapshot/1/request-response/cgi
+1 case and 1 run: 2 ok, in T
+exit 0
+$ cd runs/serves-cgi.urt/snapshot/1/request-response/cgi && for f in interaction/*.response interaction/*.exitcode interaction/*.stderr interaction/*.sql out/*; do echo "== $f"; tr -d '\r' < "$f"; done
+== interaction/01.response
+Content-type: text/plain
+
+0 arguments
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/Shop/main
+QUERY_STRING=x=1&y=two
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+URWEB_REPRODUCIBLE_EPOCH=946684800
+URWEB_REPRODUCIBLE_PRNG_SEED=0
+body: []
+== interaction/02-form.response
+Content-type: text/plain
+
+0 arguments
+CONTENT_LENGTH=20
+CONTENT_TYPE=application/x-www-form-urlencoded
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=text/html
+HTTP_COOKIE=visitor=somebody; lang=en
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+HTTP_X_EMPTY=
+HTTP_X_MIXED_CASE=yes
+PATH_INFO=/Shop/add
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=POST
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+URWEB_REPRODUCIBLE_EPOCH=946684801
+URWEB_REPRODUCIBLE_PRNG_SEED=11400714819323198485
+body: [name=kettle&price=12]
+== interaction/03-raw.response
+Content-type: text/plain
+
+0 arguments
+CONTENT_LENGTH=10
+CONTENT_TYPE=text/x-custom
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/Shop/raw
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=PUT
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+URWEB_REPRODUCIBLE_EPOCH=946684802
+URWEB_REPRODUCIBLE_PRNG_SEED=4354685564936845354
+body: [not a form]
+== interaction/04-err.response
+Content-type: text/plain
+
+0 arguments
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/err
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+URWEB_REPRODUCIBLE_EPOCH=946684803
+URWEB_REPRODUCIBLE_PRNG_SEED=15755400384260043839
+body: []
+== interaction/05-dml.response
+Content-type: text/plain
+
+0 arguments
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/dml
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+URWEB_REPRODUCIBLE_EPOCH=946684804
+URWEB_REPRODUCIBLE_PRNG_SEED=8709371129873690708
+body: []
+== interaction/06-fail.response
+Status: 500 Internal Server Error
+Content-type: text/plain
+
+Fatal error: as asked
+== interaction/06-fail.exitcode
+1
+== interaction/04-err.stderr
+cgi: a line on stderr
+== interaction/05-dml.sql
+INSERT INTO t VALUES (2);
+== out/db_final.sql
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE t (id INTEGER);
+INSERT INTO t VALUES(1);
+COMMIT;
+exit 0
+$ changes
+added: ./runs/serves-cgi.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-cgi.urt/snapshot/1/expected/exitcode
+added (377 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/01.response
+added (552 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/02-form.response
+added (440 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/03-raw.response
+added (381 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/04-err.response
+added (22 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/04-err.stderr
+added (380 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/05-dml.response
+added (26 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/05-dml.sql
+added (2 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/06-fail.exitcode
+added (85 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/06-fail.response
+added (106 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/out/db_final.sql

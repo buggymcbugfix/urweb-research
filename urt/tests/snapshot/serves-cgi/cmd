@@ -1,0 +1,3 @@
+urt snapshot runs/serves-cgi
+urt snapshot -w runs/serves-cgi
+cd runs/serves-cgi.urt/snapshot/1/request-response/cgi && for f in interaction/*.response interaction/*.exitcode interaction/*.stderr interaction/*.sql out/*; do echo "== $f"; tr -d '\r' < "$f"; done

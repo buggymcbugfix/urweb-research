@@ -1,0 +1,2 @@
+HTTP_PROXY=http://proxy.invalid:3128
+HTTP_ACCEPT=text/inherited

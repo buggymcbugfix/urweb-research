@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -102,6 +103,7 @@ static const char usage_text[] =
     "                  |   |-- 01-add.sql      what that changed in the database, if anything\n"
     "                  |   |-- 01-add.stdout   what the server printed meanwhile, if anything\n"
     "                  |   |-- 01-add.stderr\n"
+    "                  |   |-- 01-add.exitcode a program's status, if not 0 (cgi, static, fastcgi)\n"
     "                  |   |-- 02-pay.request\n"
     "                  |   |-- 02-pay.response\n"
     "                  |   |-- 03-mail.wait    a line to wait for the server to print\n"
@@ -151,6 +153,35 @@ static const char usage_text[] =
     "which then is not under out/: a task starts with the server, and whether its\n"
     "first lines come before the server says it is listening or after is a matter\n"
     "of chance.\n"
+    "\n"
+    "An application built with -protocol cgi or -protocol static (in the case's\n"
+    "args) is not a server.  A run starts it once for every request instead, and\n"
+    "what it prints on stdout is the response, as the program writes it; what it\n"
+    "prints on stderr is NAME.stderr, and an exit status other than 0 NAME.exitcode.\n"
+    "A CGI program gets the request as a web server would give it: the method,\n"
+    "SCRIPT_NAME empty, the path as PATH_INFO, as written and not percent-decoded,\n"
+    "what follows a ? as QUERY_STRING, the fields as the body on stdin, as curl\n"
+    "would send them, with CONTENT_TYPE and CONTENT_LENGTH, and the headers as\n"
+    "HTTP_NAME, Host, User-Agent and Accept among them as curl sends them; none of\n"
+    "the HTTP_ variables of urt's environment or the run's env.  A static program is\n"
+    "given the path and nothing else, so its requests are a GET with no query,\n"
+    "fields, cookies or headers.  Either is given the clock and the random numbers\n"
+    "the server would give that request, so that it answers as the server would.\n"
+    "Its run can have no args and no waits, there being no server to give flags to\n"
+    "and nothing running between requests; out/ has only db_final.sql.  A program\n"
+    "that has not finished within 30 seconds ends the run.\n"
+    "\n"
+    "An application built with -protocol fastcgi is started once, as a server is,\n"
+    "by spawn-fcgi, on a Unix socket it is handed as its descriptor 0, and each\n"
+    "request reaches it through cgi-fcgi (from the FastCGI development kit; both\n"
+    "have to be on the PATH), as from a web server: the CGI variables above as its\n"
+    "parameters, and nothing else, and the body.  The response is what the program\n"
+    "wrote, and its status for the request, if not 0, is NAME.exitcode.  What it\n"
+    "logged for the request, which a web server would put in its error log, goes\n"
+    "in NAME.stderr after what it printed on its stderr meanwhile.  Nothing says\n"
+    "when it is ready: a request is sent again while its socket is not there yet,\n"
+    "for up to 10 seconds, and what the program does while starting goes with the\n"
+    "first step rather than under out/.  Otherwise its run is as a server's.\n"
     "\n"
     "Runs share nothing.  Each has its own database -- SQLite, so the case's args\n"
     "need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows\n"
@@ -484,14 +515,14 @@ static int layout_run(const char *e, const char *rest) {
                && (has_suffix(part[2], ".request") || has_suffix(part[2], ".wait"))) {
         ;
     } else if (n == 3 && !strcmp(part[1], "interaction") && is_file(e)
-               && (has_suffix(part[2], ".response") || has_suffix(part[2], ".sql")
+               && (has_suffix(part[2], ".response") || has_suffix(part[2], ".exitcode") || has_suffix(part[2], ".sql")
                    || has_suffix(part[2], ".stdout") || has_suffix(part[2], ".stderr"))) {
         char request[PATHLEN + 8], wait[PATHLEN + 8];
         snprintf(request, sizeof request, "%s", e);
         strcpy(strrchr(request, '.'), ".request");
         snprintf(wait, sizeof wait, "%s", e);
         strcpy(strrchr(wait, '.'), ".wait");
-        if (has_suffix(part[2], ".response")) {
+        if (has_suffix(part[2], ".response") || has_suffix(part[2], ".exitcode")) {
             if (!is_file(request)) {
                 die_later(fmt("%s answers no request", path(e)),
                           fmt("there is no %s; delete the one, or write the other", path(request)), NULL);
@@ -508,9 +539,9 @@ static int layout_run(const char *e, const char *rest) {
         ;
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
-                  "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.sql,",
-                  "NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,",
-                  "shutdown.stderr and db_final.sql under out/", NULL);
+                  "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response,",
+                  "NAME.exitcode, NAME.sql, NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout,",
+                  "startup.stderr, shutdown.stdout, shutdown.stderr and db_final.sql under out/", NULL);
         return is_dir(e);
     }
     return 0;
@@ -1055,6 +1086,44 @@ static const char *no_application(const struct strlist *extra) {
     return NULL;
 }
 
+/* What a case's application speaks, as far as its runs go: the built-in
+ * HTTP server, or a FastCGI program, which a run starts once and sends its
+ * requests to; a CGI or a static program, which a run starts once for
+ * every request; or a protocol the compiler will refuse. */
+enum protocol { PROTO_HTTP, PROTO_FASTCGI, PROTO_CGI, PROTO_STATIC, PROTO_OTHER };
+
+/* The protocol the compiler builds a case's application for: the last
+ * -protocol among its standing flags and then the case's args, as the
+ * compiler reads them, or http.  Its name into *name, for messages. */
+static enum protocol protocol_of(const struct strlist *extra, const char **name) {
+    const char *p = "http";
+    int i;
+    for (i = 0; i + 1 < urweb_flags.n; i++) {
+        if (!strcmp(urweb_flags.v[i], "-protocol")) {
+            p = urweb_flags.v[i + 1];
+        }
+    }
+    for (i = 0; i + 1 < extra->n; i++) {
+        if (!strcmp(extra->v[i], "-protocol")) {
+            p = extra->v[i + 1];
+        }
+    }
+    *name = p;
+    if (!strcmp(p, "http")) {
+        return PROTO_HTTP;
+    }
+    if (!strcmp(p, "fastcgi")) {
+        return PROTO_FASTCGI;
+    }
+    if (!strcmp(p, "cgi")) {
+        return PROTO_CGI;
+    }
+    if (!strcmp(p, "static")) {
+        return PROTO_STATIC;
+    }
+    return PROTO_OTHER;
+}
+
 /* Where the compiler says it puts the application: the Exe line of the
  * job as -saveSettings dumped it, which knows of the project's name, an
  * exe directive and -output alike.  "" if the file does not say. */
@@ -1084,11 +1153,17 @@ static void exe_of(const char *settings, char *exe) {
  * program's own debug output included, and that comes in order, since
  * the requests do.
  *
+ * A FastCGI program says the same on stderr, its threads in no fixed
+ * order, some of it as "DEBUG: " lines, and its stderr is filtered too
+ * (fastcgi_lines).
+ *
  * Returns 0 when the line is to be dropped.  The banner ends in a blank
  * line, which goes only there: *after_banner says that its last line has
  * just been seen.  The server's lines about each connection and request
  * ("Accepted connection.", "Serving URI ...", "Processed request for
  * messages ...") go the same way: they narrate what the runner did. */
+static int fastcgi_lines;  /* the run is a FastCGI program's: filter its stderr as well */
+
 static int keep_server_line(const char *line, int *after_banner) {
     static const char *const start[] = {
         "Database connection initialized.\n",
@@ -1111,6 +1186,8 @@ static int keep_server_line(const char *line, int *after_banner) {
     }
     return !has_prefix(line, "Forking to PID ") && !has_prefix(line, "Listening on port ")
         && !has_prefix(line, "Error triggers unlimited retry: Couldn't allocate new ")
+        && !has_prefix(line, "DEBUG: Error triggers unlimited retry: Couldn't allocate new ")
+        && strcmp(line, "DEBUG: Database connection initialized.\n") != 0
         && strcmp(line, "Accepted connection.\n") != 0 && !has_prefix(line, "Handling connection with thread #")
         && !has_prefix(line, "Serving URI ");
 }
@@ -1127,7 +1204,7 @@ static ssize_t recorded_line(char *line, ssize_t n, int is_stdout, int *after_ba
         return n;
     }
     strip_work(line);
-    if (is_stdout && !keep_server_line(line, after_banner)) {
+    if ((is_stdout || fastcgi_lines) && !keep_server_line(line, after_banner)) {
         return -1;
     }
     return (ssize_t) strlen(line);
@@ -1491,10 +1568,342 @@ static int wait_for(const char *what, const char *out, long out_at, const char *
     }
 }
 
+/* ------------------------------------------------- programs, not servers */
+
+extern char **environ;
+
+/* Variables of this process's environment set for a while, for a program
+ * it starts, with what they were before: a name, then the old value, or
+ * NULL where there was none. */
+static char **saved_env;
+static int n_saved_env, cap_saved_env;
+
+/* Set name to value, or unset it for NULL, until restore_env. */
+static void set_env_for_now(const char *name, const char *value) {
+    const char *old = getenv(name);
+    int i;
+    for (i = 0; i < n_saved_env && strcmp(saved_env[2 * i], name); i++) {
+        ;
+    }
+    if (i == n_saved_env) {
+        if (n_saved_env == cap_saved_env) {
+            cap_saved_env = cap_saved_env ? 2 * cap_saved_env : 32;
+            saved_env = realloc(saved_env, sizeof *saved_env * 2 * (size_t) cap_saved_env);
+            if (!saved_env) {
+                die("out of memory", NULL);
+            }
+        }
+        saved_env[2 * i] = xstrdup(name);
+        saved_env[2 * i + 1] = old ? xstrdup(old) : NULL;
+        n_saved_env++;
+    }
+    if (value) {
+        setenv(name, value, 1);
+    } else {
+        unsetenv(name);
+    }
+}
+
+/* Put back what set_env_for_now changed. */
+static void restore_env(void) {
+    int i;
+    for (i = n_saved_env - 1; i >= 0; i--) {
+        if (saved_env[2 * i + 1]) {
+            setenv(saved_env[2 * i], saved_env[2 * i + 1], 1);
+        } else {
+            unsetenv(saved_env[2 * i]);
+        }
+        free(saved_env[2 * i]);
+        free(saved_env[2 * i + 1]);
+    }
+    n_saved_env = 0;
+}
+
+/* The CGI meta-variable for a header: HTTP_ and the name in capitals, -
+ * as _, but for the two that have their own (RFC 3875, 4.1). */
+static const char *cgi_header_var(const char *name, size_t n) {
+    static char var[256];
+    size_t i;
+    if (n == strlen("Content-Type") && !strncasecmp(name, "Content-Type", n)) {
+        return "CONTENT_TYPE";
+    }
+    if (n == strlen("Content-Length") && !strncasecmp(name, "Content-Length", n)) {
+        return "CONTENT_LENGTH";
+    }
+    snprintf(var, sizeof var, "HTTP_%.*s", (int) (n < sizeof var - 6 ? n : sizeof var - 6), name);
+    for (i = 5; var[i]; i++) {
+        var[i] = var[i] == '-' ? '_' : (char) toupper((unsigned char) var[i]);
+    }
+    return var;
+}
+
+/* Set NAME to value in vars, a list of NAME=value; or take it out, for
+ * NULL. */
+static void var_set(struct strlist *vars, const char *name, const char *value) {
+    size_t n = strlen(name);
+    int i, j;
+    for (i = 0; i < vars->n; i++) {
+        if (!strncmp(vars->v[i], name, n) && vars->v[i][n] == '=') {
+            free(vars->v[i]);
+            for (j = i; j + 1 < vars->n; j++) {
+                vars->v[j] = vars->v[j + 1];
+            }
+            vars->n--;
+            break;
+        }
+    }
+    if (value) {
+        sl_push(vars, fmt("%s=%s", name, value));
+    }
+}
+
+/* The CGI meta-variables of one request (RFC 3875), as a web server gives
+ * them, into vars as NAME=value, sorted; its body, the fields joined as
+ * curl joins them, into the file body. */
+static void cgi_variables(const char *method, const char *url_path, const struct strlist *options, const char *body,
+                          struct strlist *vars) {
+    struct strlist fields = { 0, 0, 0 };
+    char path_info[PATHLEN], *data = NULL, *cookies = NULL;
+    const char *q = strchr(url_path, '?');
+    size_t len = 0;
+    int i;
+
+    snprintf(path_info, sizeof path_info, "%.*s", q ? (int) (q - url_path) : (int) strlen(url_path), url_path);
+    var_set(vars, "GATEWAY_INTERFACE", "CGI/1.1");
+    var_set(vars, "SERVER_PROTOCOL", "HTTP/1.1");
+    var_set(vars, "SERVER_SOFTWARE", "urt");
+    var_set(vars, "SERVER_NAME", "localhost");
+    var_set(vars, "SERVER_PORT", "80");
+    var_set(vars, "REMOTE_ADDR", "127.0.0.1");
+    var_set(vars, "REQUEST_METHOD", method);
+    var_set(vars, "SCRIPT_NAME", "");
+    var_set(vars, "PATH_INFO", path_info);
+    var_set(vars, "QUERY_STRING", q ? q + 1 : "");
+    var_set(vars, "HTTP_HOST", "localhost");
+    var_set(vars, "HTTP_USER_AGENT", "urt");
+    var_set(vars, "HTTP_ACCEPT", "*/*");
+
+    /* What curl does with the options, in send_request's order: the
+     * fields, joined with &, as a form; the cookies as one header; the
+     * headers last, so that one names a content type of its own. */
+    for (i = 0; i + 1 < options->n; i += 2) {
+        if (!strcmp(options->v[i], "-d")) {
+            sl_push(&fields, options->v[i + 1]);
+        }
+    }
+    for (i = 0; i < fields.n; i++) {
+        len += strlen(fields.v[i]) + 1;
+    }
+    data = xmalloc(len + 1);
+    *data = 0;
+    for (i = 0; i < fields.n; i++) {
+        if (i) {
+            strcat(data, "&");
+        }
+        strcat(data, fields.v[i]);
+    }
+    if (write_text(body, data) < 0) {
+        die(fmt("cannot write %s: %s", path(body), strerror(errno)), NULL);
+    }
+    if (fields.n) {
+        var_set(vars, "CONTENT_TYPE", "application/x-www-form-urlencoded");
+        var_set(vars, "CONTENT_LENGTH", fmt("%lu", (unsigned long) strlen(data)));
+    }
+    free(data);
+    sl_free(&fields);
+    for (i = 0; i + 1 < options->n; i += 2) {
+        if (!strcmp(options->v[i], "-b")) {
+            const char *v = options->v[i + 1];
+            char *joined = xmalloc((cookies ? strlen(cookies) + 2 : 0) + strlen(v) + 1);
+            sprintf(joined, "%s%s%s", cookies ? cookies : "", cookies ? "; " : "", v);
+            free(cookies);
+            cookies = joined;
+        }
+    }
+    if (cookies) {
+        var_set(vars, "HTTP_COOKIE", cookies);
+        free(cookies);
+    }
+    /* NAME: VALUE, NAME; for an empty value, NAME: for no such header at
+     * all, as curl reads them. */
+    for (i = 0; i + 1 < options->n; i += 2) {
+        const char *v = options->v[i + 1], *name = v, *sep, *value;
+        size_t n;
+        if (strcmp(options->v[i], "-H")) {
+            continue;
+        }
+        while (*name == ' ' || *name == '\t') {
+            name++;
+        }
+        sep = name + strcspn(name, ":;");
+        for (n = (size_t) (sep - name); n && (name[n - 1] == ' ' || name[n - 1] == '\t'); n--) {
+            ;
+        }
+        for (value = sep + 1; *value == ' ' || *value == '\t'; value++) {
+            ;
+        }
+        var_set(vars, cgi_header_var(name, n), *sep == ';' ? "" : *value ? value : NULL);
+    }
+    sl_sort(vars);
+}
+
+/* Set the CGI variables of one request in this process's environment, for
+ * a CGI program it starts, until restore_env.  None of the HTTP_ variables
+ * it had are left, nor CONTENT_TYPE or CONTENT_LENGTH: they would read as
+ * headers the request never had. */
+static void cgi_environment(const struct strlist *vars) {
+    struct strlist inherited = { 0, 0, 0 };
+    char **e;
+    int i;
+    for (e = environ; *e; e++) {
+        if ((has_prefix(*e, "HTTP_") || has_prefix(*e, "CONTENT_TYPE=") || has_prefix(*e, "CONTENT_LENGTH="))
+            && strchr(*e, '=')) {
+            sl_push(&inherited, fmt("%.*s", (int) (strchr(*e, '=') - *e), *e));
+        }
+    }
+    for (i = 0; i < inherited.n; i++) {
+        set_env_for_now(inherited.v[i], NULL);
+    }
+    sl_free(&inherited);
+    for (i = 0; i < vars->n; i++) {
+        const char *eq = strchr(vars->v[i], '=');
+        set_env_for_now(fmt("%.*s", (int) (eq - vars->v[i]), vars->v[i]), eq + 1);
+    }
+}
+
+/* Send one request to the FastCGI program listening at socket_path, through
+ * cgi-fcgi, which hands it over as a web server would: the CGI variables of
+ * the request, and only those, as its parameters, and the body as its
+ * stdin.  What the program answered goes into the file response, and what
+ * it logged for the request (its FastCGI stderr, which a web server would
+ * put in its error log) into stream, where cgi-fcgi's own complaints go as
+ * well.  Returns cgi-fcgi's status: the program's for the request (0, or
+ * 255 for a failure), the errno of a connection that failed, 127 when
+ * cgi-fcgi could not be run, 128 + SIGALRM when there was no whole answer
+ * within WAIT_SECONDS. */
+static int send_fastcgi(const char *method, const char *url_path, const struct strlist *options,
+                        const char *socket_path, const char *response, const char *stream, const char *rw) {
+    struct strlist vars = { 0, 0, 0 }, argv = { 0, 0, 0 };
+    char body[PATHLEN], cgi_fcgi[PATHLEN], **command;
+    int i, status;
+
+    if (!find_on_path("cgi-fcgi", cgi_fcgi)) {
+        return 127;
+    }
+    join(body, rw, "body");
+    cgi_variables(method, url_path, options, body, &vars);
+    /* cgi-fcgi passes on its whole environment, so it has nothing else. */
+    sl_push(&argv, "env");
+    sl_push(&argv, "-i");
+    for (i = 0; i < vars.n; i++) {
+        sl_push(&argv, vars.v[i]);
+    }
+    sl_push(&argv, cgi_fcgi);
+    sl_push(&argv, "-bind");
+    sl_push(&argv, "-connect");
+    sl_push(&argv, socket_path);
+    command = sl_argv(&argv);
+    status = run_in_for(command, body, response, stream, WAIT_SECONDS);
+    free(command);
+    sl_free(&argv);
+    sl_free(&vars);
+    return status;
+}
+
+#define FASTCGI_START_SECONDS 10   /* for its socket to be there, as long as a server gets to say it listens */
+
+/* What a status of cgi-fcgi's means when the request never reached the
+ * program, and so is nothing to record, as cgi-fcgi said it in stream;
+ * NULL for the others, the program's own status among them. */
+static const char *never_sent_fastcgi(int status, const char *stream) {
+    char *said;
+    int refused;
+    if (status == 127) {
+        return "cgi-fcgi could not be run";
+    }
+    if (status == 128 + SIGALRM) {
+        return "cgi-fcgi waited 30 seconds for the whole answer and gave up";
+    }
+    said = status ? read_text(stream) : NULL;
+    refused = said && has_prefix(said, "Could not connect to ");
+    free(said);
+    return refused ? "cgi-fcgi could not connect" : NULL;
+}
+
+/* What is in from, after what is in to, which may not be there yet. */
+static void append_file(const char *from, const char *to) {
+    char *text = is_file(from) ? read_text(from) : NULL;
+    FILE *f;
+    if (text && *text) {
+        if (!(f = fopen(to, "ab"))) {
+            die(fmt("cannot write %s: %s", path(to), strerror(errno)), NULL);
+        }
+        fputs(text, f);
+        fclose(f);
+    }
+    free(text);
+}
+
+/* One request to a CGI or a static program, the request numbered k in its
+ * run (from 1): the program started for it, as a web server starts a CGI
+ * program, or with the path, as a static one is; its stdout the response,
+ * its stderr NAME.stderr, and its exit status NAME.exitcode if not 0, all
+ * under rw/interaction.  It is given the clock and the random numbers the
+ * k-th request to a server gets (see reproducible.c: the server takes the
+ * time and the stream of request k from its epoch and seed and k).  0, or
+ * -1 once the run has failed (die_later). */
+static int program_request(enum protocol proto, const char *exe, const char *request_file, const char *method,
+                           const char *url_path, const struct strlist *options, long k, const char *rw,
+                           const char *name) {
+    char body[PATHLEN], response[PATHLEN], err[PATHLEN];
+    char *argv[3];
+    unsigned long long epoch = strtoull(RUN_TIME, NULL, 10), seed = strtoull(RUN_SEED, NULL, 10);
+    int status;
+
+    pathf(response, "%s/interaction/%s.response", rw, name);
+    pathf(err, "%s/interaction/%s.stderr", rw, name);
+    join(body, rw, "body");
+    set_env_for_now("URWEB_REPRODUCIBLE_EPOCH", fmt("%llu", epoch + (unsigned long long) (k - 1)));
+    set_env_for_now("URWEB_REPRODUCIBLE_PRNG_SEED",
+                    fmt("%llu", seed + (unsigned long long) (k - 1) * 0x9e3779b97f4a7c15ULL));
+    argv[0] = (char *) exe;
+    if (proto == PROTO_CGI) {
+        struct strlist vars = { 0, 0, 0 };
+        cgi_variables(method, url_path, options, body, &vars);
+        cgi_environment(&vars);
+        sl_free(&vars);
+        argv[1] = NULL;
+    } else {
+        if (write_text(body, "") < 0) {
+            die(fmt("cannot write %s: %s", path(body), strerror(errno)), NULL);
+        }
+        argv[1] = (char *) url_path;
+    }
+    argv[2] = NULL;
+    status = run_in_for(argv, body, response, err, WAIT_SECONDS);
+    restore_env();
+    bail_if_interrupted();
+
+    if (status == 127) {
+        die_later(fmt("%s: the program could not be started", path(request_file)), head_of(err, NULL), NULL);
+        return -1;
+    }
+    if (status == 128 + SIGALRM) {
+        die_later(fmt("%s: the program had not finished after %d seconds", path(request_file), WAIT_SECONDS),
+                  "it was killed; it may be hung", head_of(err, NULL), NULL);
+        return -1;
+    }
+    if (status != 0 && write_text(fmt("%s/interaction/%s.exitcode", rw, name), fmt("%d\n", status)) < 0) {
+        die(fmt("cannot write %s: %s", path(rw), strerror(errno)), NULL);
+    }
+    return 0;
+}
+
 /* Whether a run has what it takes -- a secret, args that leave the
- * threads alone, and requests that can be read -- which is looked into
+ * threads alone, and requests that can be read, and that the program
+ * can be given when it is not a server (proto) -- which is looked into
  * before the compiler is kept busy. */
-static int run_ready(const char *run_dir) {
+static int run_ready(const char *run_dir, enum protocol proto) {
     char f[PATHLEN], interaction[PATHLEN], *args;
     struct strlist files = { 0, 0, 0 };
     int i, before = report_problems;
@@ -1511,7 +1920,13 @@ static int run_ready(const char *run_dir) {
     if (is_file(f) && (args = read_text(f))) {
         struct strlist words = { 0, 0, 0 };
         split_words(args, &words);
-        for (i = 0; i < words.n; i++) {
+        if ((proto == PROTO_CGI || proto == PROTO_STATIC) && words.n) {
+            die_later(fmt("%s gives the program flags", path(f)),
+                      proto == PROTO_CGI ? "a CGI program is started with no arguments, as a web server starts it"
+                                         : "a static program is started with the path to answer, and nothing else",
+                      "take them out", NULL);
+        }
+        for (i = 0; (proto == PROTO_HTTP || proto == PROTO_FASTCGI) && i < words.n; i++) {
             if (!strcmp(words.v[i], "--")) {
                 /* After it the server takes no options, ours included. */
                 die_later(fmt("%s ends the options with %s", path(f), key("--")),
@@ -1553,6 +1968,11 @@ static int run_ready(const char *run_dir) {
         }
         if (!is_wait) {
             pathf(f, "%s/%s.request", interaction, files.v[i]);
+        } else if (proto == PROTO_CGI || proto == PROTO_STATIC) {
+            die_later(fmt("%s waits, and the program only runs for a request", path(f)),
+                      "a cgi or static program is started for each request and is gone after it,",
+                      "so nothing runs in between to wait for", NULL);
+            continue;
         }
         if (!*files.v[i]) {
             die_later(fmt("%s has no name", path(f)),
@@ -1569,6 +1989,10 @@ static int run_ready(const char *run_dir) {
         } else if (is_wait ? parse_wait(text, what, sizeof what, err, sizeof err) < 0
                            : parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
             die_later(fmt("%s: %s", path(f), err), NULL);
+        } else if (proto == PROTO_STATIC && (strcmp(method, "GET") || options.n || strchr(url_path, '?'))) {
+            die_later(fmt("%s cannot be given to a static program", path(f)),
+                      "it is started with the path alone, so a request is a GET with no query, fields, cookies or headers",
+                      NULL);
         }
         free(text);
         sl_free(&options);
@@ -1578,20 +2002,22 @@ static int run_ready(const char *run_dir) {
 }
 
 /* One run of the application exe: start it, send the requests, stop it,
- * and compare or record what came of it. */
-static void run_run(const char *run_dir, const char *exe) {
+ * and compare or record what came of it.  A cgi or static program (proto)
+ * is started for each request instead. */
+static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
     char rw[PATHLEN], f[PATHLEN], g[PATHLEN], db[PATHLEN], dml[PATHLEN], interaction[PATHLEN];
-    char server_out[PATHLEN], server_err[PATHLEN], why[256];
+    char server_out[PATHLEN], server_err[PATHLEN], socket_path[PATHLEN], why[256];
     long out_at = 0, err_at = 0;
     char bad[PATHLEN] = "", changed[PATHLEN] = "", failed[PATHLEN] = "", note[512] = "";
     struct strlist args = { 0, 0, 0 }, files = { 0, 0, 0 }, outputs = { 0, 0, 0 }, diffs = { 0, 0, 0 };
     struct strlist env_names = { 0, 0, 0 }, env_values = { 0, 0, 0 };
     char *text, **env_saved;
-    int i, has_db, started, before = report_problems;
-    long t0 = tenths_now();
+    int i, has_db, started = 0, before = report_problems, is_server = proto == PROTO_HTTP || proto == PROTO_FASTCGI;
+    long t0 = tenths_now(), n_requests = 0;
 
     /* The outputs land under rw as they are laid out under the run. */
     n_runs++;
+    fastcgi_lines = proto == PROTO_FASTCGI;
     join(rw, work, "run");
     rm_rf(rw);
     if (mkdir_p(fmt("%s/interaction", rw)) < 0 || mkdir_p(fmt("%s/out", rw)) < 0) {
@@ -1644,7 +2070,8 @@ static void run_run(const char *run_dir, const char *exe) {
     free(text);
 
     /* The run's own environment, for the server only: what was there
-     * before is put back once it has started, for the next run. */
+     * before is put back once it has started, for the next run; or once
+     * the last request is done, for a program started for each. */
     join(f, run_dir, "env");
     if (is_file(f)) {
         read_run_env(f, &env_names, &env_values);  /* run_ready has seen that it reads */
@@ -1658,8 +2085,14 @@ static void run_run(const char *run_dir, const char *exe) {
 
     join(server_out, rw, "server.stdout");
     join(server_err, rw, "server.stderr");
-    started = server_start(exe, &args, server_out, server_err, &serving, why, sizeof why);
-    for (i = 0; i < env_names.n; i++) {
+    serving.pid = 0;
+    if (proto == PROTO_HTTP) {
+        started = server_start(exe, &args, server_out, server_err, &serving, why, sizeof why);
+    } else if (proto == PROTO_FASTCGI) {
+        join(socket_path, rw, "fcgi.sock");
+        started = fastcgi_start(exe, &args, socket_path, server_out, server_err, &serving, why, sizeof why);
+    }
+    for (i = 0; is_server && i < env_names.n; i++) {
         if (env_saved[i]) {
             setenv(env_names.v[i], env_saved[i], 1);
             free(env_saved[i]);
@@ -1667,9 +2100,11 @@ static void run_run(const char *run_dir, const char *exe) {
             unsetenv(env_names.v[i]);
         }
     }
-    free(env_saved);
-    sl_free(&env_names);
-    sl_free(&env_values);
+    if (is_server) {
+        free(env_saved);
+        sl_free(&env_names);
+        sl_free(&env_values);
+    }
     if (started < 0) {
         bail_if_interrupted();
         die_later(fmt("the application does not start for %s: %s", test(run_dir), why), head_of(server_err, NULL), NULL);
@@ -1683,10 +2118,11 @@ static void run_run(const char *run_dir, const char *exe) {
      * first step is a wait, all of that goes with the wait instead: the
      * tasks it waits for start with the server, and whether their first
      * lines come before the handshake or after it is the scheduler's
-     * business. */
+     * business.  A FastCGI program says nothing when it is ready, so what
+     * it did while starting goes with the first step. */
     join(interaction, run_dir, "interaction");
     steps_of(interaction, &files);
-    if (!(files.n && is_file(fmt("%s/%s.wait", interaction, files.v[0])))) {
+    if (proto == PROTO_HTTP && !(files.n && is_file(fmt("%s/%s.wait", interaction, files.v[0])))) {
         if (exists(dml) && rename(dml, fmt("%s/out/startup.sql", rw)) < 0) {
             die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
         }
@@ -1742,14 +2178,55 @@ static void run_run(const char *run_dir, const char *exe) {
         text = read_text(f);
         if (!text || parse_request(text, method, sizeof method, url_path, sizeof url_path, &options, err, sizeof err) < 0) {
             die_later(fmt("%s: %s", path(f), text ? err : strerror(errno)), NULL);
+        } else if (!is_server) {
+            if (program_request(proto, exe, f, method, url_path, &options, ++n_requests, rw, name) == 0) {
+                sl_push(&outputs, fmt("interaction/%s.response", name));
+                sl_push(&outputs, fmt("interaction/%s.exitcode", name));
+                sl_push(&outputs, fmt("interaction/%s.stderr", name));
+                if (exists(dml) && rename(dml, fmt("%s/interaction/%s.sql", rw, name)) < 0) {
+                    die(fmt("cannot move %s: %s", path(dml), strerror(errno)), NULL);
+                }
+                sl_push(&outputs, fmt("interaction/%s.sql", name));
+            }
         } else {
-            int status = send_request(method, url_path, &options, serving.port, fmt("%s/interaction/%s.response", rw, name));
-            if (never_sent(status)) {
+            char response[PATHLEN], stream[PATHLEN];
+            int status;
+            const char *unsent;
+            pathf(response, "%s/interaction/%s.response", rw, name);
+            pathf(stream, "%s/interaction/%s.fcgi-stderr", rw, name);
+            if (proto == PROTO_FASTCGI) {
+                /* The program says nothing when its socket is there:
+                 * until it is, cgi-fcgi cannot connect, and nothing has
+                 * reached the program, so the request is sent again. */
+                long deadline = tenths_now() + FASTCGI_START_SECONDS * 10L;
+                struct timespec nap = { 0, 20 * 1000 * 1000 };
+                for (;;) {
+                    status = send_fastcgi(method, url_path, &options, socket_path, response, stream, rw);
+                    unsent = never_sent_fastcgi(status, stream);
+                    if (!unsent || strcmp(unsent, "cgi-fcgi could not connect") || !server_alive(&serving)
+                        || tenths_now() >= deadline || fs_interrupted) {
+                        break;
+                    }
+                    nanosleep(&nap, NULL);
+                }
+            } else {
+                status = send_request(method, url_path, &options, serving.port, response);
+                unsent = never_sent(status);
+            }
+            if (unsent) {
                 /* The run ends here, and nothing of it is recorded: the
                  * requests after this one count on it. */
-                die_later(fmt("%s could not be sent: %s (exit %d)", path(f), never_sent(status), status),
-                          status == 7 || status == 28 ? "the server may have died, or be hung" : NULL,
-                          head_of(server_err, NULL), NULL);
+                die_later(fmt("%s could not be sent: %s (exit %d)", path(f), unsent, status),
+                          status == 7 || status == 28 || (proto == PROTO_FASTCGI && status != 127)
+                              ? "the server may have died, or be hung" : NULL,
+                          head_of(proto == PROTO_FASTCGI ? stream : server_err, NULL), NULL);
+            } else if (proto == PROTO_FASTCGI) {
+                /* The program's status for the request, as a CGI
+                 * program's exit status. */
+                if (status != 0 && write_text(fmt("%s/interaction/%s.exitcode", rw, name), fmt("%d\n", status)) < 0) {
+                    die(fmt("cannot write %s: %s", path(rw), strerror(errno)), NULL);
+                }
+                sl_push(&outputs, fmt("interaction/%s.exitcode", name));
             } else if (status != 0) {
                 list_add(failed, sizeof failed, name);
             }
@@ -1765,6 +2242,9 @@ static void run_run(const char *run_dir, const char *exe) {
              * it goes, and all of a request's come before its answer. */
             cut_output(server_out, &out_at, -1, fmt("%s/interaction/%s.stdout", rw, name));
             cut_output(server_err, &err_at, -1, fmt("%s/interaction/%s.stderr", rw, name));
+            /* What a FastCGI program logged for the request, after what
+             * it printed on its own stderr meanwhile. */
+            append_file(stream, fmt("%s/interaction/%s.stderr", rw, name));
             sl_push(&outputs, fmt("interaction/%s.stdout", name));
             sl_push(&outputs, fmt("interaction/%s.stderr", name));
         }
@@ -1775,6 +2255,19 @@ static void run_run(const char *run_dir, const char *exe) {
         }
     }
     server_stop(&serving);
+    for (i = 0; !is_server && i < env_names.n; i++) {
+        if (env_saved[i]) {
+            setenv(env_names.v[i], env_saved[i], 1);
+            free(env_saved[i]);
+        } else {
+            unsetenv(env_names.v[i]);
+        }
+    }
+    if (!is_server) {
+        free(env_saved);
+        sl_free(&env_names);
+        sl_free(&env_values);
+    }
     bail_if_interrupted();
     if (report_problems != before) {
         sl_free(&files);
@@ -1782,8 +2275,10 @@ static void run_run(const char *run_dir, const char *exe) {
         return;
     }
 
-    cut_output(server_out, &out_at, -1, fmt("%s/out/shutdown.stdout", rw));
-    cut_output(server_err, &err_at, -1, fmt("%s/out/shutdown.stderr", rw));
+    if (is_server) {
+        cut_output(server_out, &out_at, -1, fmt("%s/out/shutdown.stdout", rw));
+        cut_output(server_err, &err_at, -1, fmt("%s/out/shutdown.stderr", rw));
+    }
     sl_push(&outputs, "out/shutdown.stdout");
     sl_push(&outputs, "out/shutdown.stderr");
     if (has_db) {
@@ -1843,9 +2338,10 @@ static void run_case(const char *case_dir, const char *project) {
     char want_dir[PATHLEN], f[PATHLEN], now[PATHLEN], exe[PATHLEN], settings[PATHLEN], built[PATHLEN];
     struct strlist entries = { 0, 0, 0 }, argv = { 0, 0, 0 }, extra = { 0, 0, 0 }, runs = { 0, 0, 0 };
     char missing[PATHLEN] = "", bad[PATHLEN] = "", changed[PATHLEN] = "", note[512] = "";
-    const char *stop = "parseJob", *stopper;
+    const char *stop = "parseJob", *stopper, *proto_name;
     char *args, **command;
     int maxrank = 0, i, status, own_stop = 0, no_exe;
+    enum protocol proto;
     long t0, elapsed;
 
     join(want_dir, case_dir, "expected");
@@ -1906,8 +2402,25 @@ static void run_case(const char *case_dir, const char *project) {
         sl_free(&runs);
         return;
     }
+    proto = protocol_of(&extra, &proto_name);
+    if (runs.n && (proto == PROTO_OTHER || (proto == PROTO_FASTCGI && (!on_path("cgi-fcgi") || !on_path("spawn-fcgi"))))) {
+        if (proto == PROTO_OTHER) {
+            die_later(fmt("%s has runs, and builds its application with -protocol %s", test(case_dir), key(proto_name)),
+                      "a run knows the protocols http, fastcgi, cgi and static", NULL);
+        } else {
+            die_later(fmt("%s has runs of a FastCGI program, and they need %s and %s on the PATH", test(case_dir),
+                          cmd("spawn-fcgi"), cmd("cgi-fcgi")),
+                      "the one starts the program on a socket, the other hands it each request, as a web server would;",
+                      "nixpkgs has them as spawn_fcgi and fcgi", NULL);
+        }
+        sl_free(&entries);
+        sl_free(&argv);
+        sl_free(&extra);
+        sl_free(&runs);
+        return;
+    }
     for (i = 0, no_exe = 0; i < runs.n; i++) {
-        no_exe |= !run_ready(runs.v[i]);
+        no_exe |= !run_ready(runs.v[i], proto);
     }
     if (no_exe) {
         sl_free(&entries);
@@ -2051,7 +2564,7 @@ static void run_case(const char *case_dir, const char *project) {
         at_blank = 0;
     }
     for (i = 0; !no_exe && i < runs.n; i++) {
-        run_run(runs.v[i], exe);
+        run_run(runs.v[i], exe, proto);
     }
     sl_free(&entries);
     sl_free(&argv);
