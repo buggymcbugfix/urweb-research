@@ -1,0 +1,6 @@
+4.200 4.300 Eun-ji.2: GET /Threads/main 200
+4.200 4.400 Eun-ji: open /Threads/main [target=2]
+4.300 4.400 Eun-ji.2: GET /app.FC33A241F614F02E7F03AC9537E04C2385566458.js 200
+4.300 4.400 Eun-ji.2: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+4.400 9.400 Eun-ji: wait 5s
+9.400 9.700 Eun-ji: tab 1

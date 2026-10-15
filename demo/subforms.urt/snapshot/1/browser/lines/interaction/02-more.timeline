@@ -1,0 +1,6 @@
+0.100 1.100 Carlos: wait 1s
+1.100 1.600 Carlos: click 'text=One more blank'
+1.500 1.600 Carlos.1: GET /Subforms/form/2 200
+1.600 2.100 Carlos: wait 500ms
+2.100 2.600 Carlos: click 'text=One more blank'
+2.500 2.600 Carlos.1: GET /Subforms/form/3 200

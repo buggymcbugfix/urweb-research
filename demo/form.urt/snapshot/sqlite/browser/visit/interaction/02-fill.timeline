@@ -1,0 +1,9 @@
+0.100 0.500 Divya: click 'input[name=A]'
+0.500 1.250 Divya: type 'input[name=A]' 'Divya' [150ms]
+1.250 1.350 Divya: press Tab
+1.350 3.600 Divya: type 'input[name=B]' 'here, and there' [150ms]
+3.600 3.700 Divya: press Tab
+3.700 3.800 Divya: press Space
+3.800 4.800 Divya: wait 1s
+4.800 5.300 Divya: click 'input[type=submit]'
+5.200 5.300 Divya.1: POST /Form/handler 200

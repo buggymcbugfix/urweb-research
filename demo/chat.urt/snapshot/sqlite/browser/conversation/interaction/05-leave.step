@@ -1,0 +1,8 @@
+Carlos:
+	wait 5s
+	close
+Divya:
+	until 'text=I do, coming'
+	wait 1s
+	type 'input[type=text]' 'thanks!' [120ms]
+	click 'text=Send:'

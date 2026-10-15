@@ -1,0 +1,20 @@
+6.590 6.590 Farid: until 'text=who has the kettle?'
+6.590 8.590 Farid: wait 2s
+6.590 10.050 Carlos.1: POST /.msgs 200
+6.590 10.050 Carlos: after Farid."answered"
+6.590 10.050 Divya.1: POST /.msgs 200
+6.590 10.050 Farid.1: POST /.msgs 200
+8.590 9.550 Farid: type 'input[type=text]' 'not me' [160ms]
+9.550 10.050 Farid: click 'text=Send:'
+9.950 10.050 Farid.1: POST /Chat/speak/1/not.20me 200
+10.050 10.050 Farid: label "answered"
+10.050 13.050 Carlos: wait 3s
+10.050 15.230 Carlos.1: POST /.msgs 200
+10.050 15.230 Divya.1: POST /.msgs 200
+10.050 15.230 Farid.1: POST /.msgs 200
+13.050 14.730 Carlos: type 'input[type=text]' 'I do, coming' [140ms]
+14.730 15.230 Carlos: click 'text=Send:'
+15.130 15.230 Carlos.1: POST /Chat/speak/1/I.20do.2C.20coming 200
+15.230 ... Carlos.1: POST /.msgs ...
+15.230 ... Divya.1: POST /.msgs ...
+15.230 ... Farid.1: POST /.msgs ...

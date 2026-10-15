@@ -1,0 +1,5 @@
+2.600 3.000 Divya: click 'input[name=Url]'
+3.000 6.870 Divya: type 'input[name=Url]' 'http://en.wikipedia.org/wiki/Type_inference' [90ms]
+6.870 7.670 Divya: wait 800ms
+7.670 7.770 Divya.1: POST /Url/yourChoice 200
+7.670 7.770 Divya: press Enter

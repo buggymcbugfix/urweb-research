@@ -1,0 +1,3 @@
+0.100 3.100 Bernd: wait 3s
+3.100 3.500 Bernd: hover 'text="Hello world!"'
+3.500 5.500 Bernd: wait 2s

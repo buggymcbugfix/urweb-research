@@ -1,0 +1,6 @@
+4.100 6.100 Eun-ji: wait 2s
+6.100 6.200 Eun-ji.1: GET /Upload/main 200
+6.100 6.200 Eun-ji: back
+6.200 9.200 Eun-ji: upload 'input[type=file]' dot.png [3s]
+9.200 9.700 Eun-ji: click 'input[type=submit]'
+9.600 9.700 Eun-ji.1: POST /Upload/echo 200

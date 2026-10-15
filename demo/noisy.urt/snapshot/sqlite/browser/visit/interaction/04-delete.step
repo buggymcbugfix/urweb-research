@@ -1,0 +1,4 @@
+Carlos:
+	click 'input >> nth=2'
+	type 'input >> nth=2' '2'
+	click 'text=Delete'

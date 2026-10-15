@@ -1,0 +1,5 @@
+5.240 7.240 Carlos: wait 2s
+7.240 7.340 Carlos.1: GET /Subforms/form/3 200
+7.240 7.340 Carlos: back
+7.340 7.840 Carlos: click 'text=One fewer blank'
+7.740 7.840 Carlos.1: GET /Subforms/form/2 200

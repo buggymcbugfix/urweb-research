@@ -1,0 +1,5 @@
+Divya:
+	wait 1s
+	click 'text=Click me!'
+	wait 1s
+	click 'text=Click me!'

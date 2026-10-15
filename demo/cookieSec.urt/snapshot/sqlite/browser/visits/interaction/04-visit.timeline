@@ -1,0 +1,3 @@
+2.800 3.800 Alice: wait 1s
+3.800 4.300 Alice: click 'input[type=submit] >> nth=1'
+4.200 4.300 Alice.1: POST /CookieSec/imHere 200

@@ -1,0 +1,8 @@
+Carlos:
+	click 'input[type=text] >> nth=0'
+	type 'input[type=text] >> nth=0' '1'
+	press Tab
+	type 'input[type=text] >> nth=1' 'kettle'
+	press Tab
+	type 'input[type=text] >> nth=2' '24.5'
+	click 'text=Batch it'

@@ -1,0 +1,6 @@
+0.200 0.600 Carlos: click 'input >> nth=0'
+0.600 0.750 Carlos: type 'input >> nth=0' '2'
+0.750 0.850 Carlos: press Tab
+0.850 1.750 Carlos: type 'input >> nth=1' 'second'
+1.750 2.250 Carlos: click 'text=Add'
+2.150 2.250 Carlos.1: POST /Noisy/add/2/second 200

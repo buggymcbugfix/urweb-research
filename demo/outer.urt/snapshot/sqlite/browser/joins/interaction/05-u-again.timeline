@@ -1,0 +1,9 @@
+5.450 5.750 Farid: type 'input[name=Id] >> nth=1' '11'
+5.750 5.850 Farid: press Tab
+5.850 6.000 Farid: type 'input[name=Link]' '1'
+6.000 6.100 Farid: press Tab
+6.100 7.000 Farid: type 'input[name=C]' 'eleven'
+7.000 7.100 Farid: press Tab
+7.100 7.550 Farid: type 'input[name=D]' '0.5'
+7.550 7.650 Farid.1: POST /Outer/addU 200
+7.550 7.650 Farid: press Enter

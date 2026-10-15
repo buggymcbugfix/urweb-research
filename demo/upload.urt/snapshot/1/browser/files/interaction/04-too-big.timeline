@@ -1,0 +1,6 @@
+9.700 11.200 Eun-ji: wait 1500ms
+11.200 11.300 Eun-ji.1: GET /Upload/main 200
+11.200 11.300 Eun-ji: back
+11.300 13.300 Eun-ji: upload 'input[type=file]' big.txt
+13.300 13.800 Eun-ji: click 'input[type=submit]'
+13.700 13.800 Eun-ji.1: POST /Upload/echo 200

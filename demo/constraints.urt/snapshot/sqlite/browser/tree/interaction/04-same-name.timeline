@@ -1,0 +1,5 @@
+3.770 3.920 Carlos: type 'input[name=Id]' '3'
+3.920 4.020 Carlos: press Tab
+4.020 4.620 Carlos: type 'input[name=Nam]' 'leaf'
+4.620 5.120 Carlos: click 'input[type=submit]'
+5.020 5.120 Carlos.1: POST /Constraints/add 500

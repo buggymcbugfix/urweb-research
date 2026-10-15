@@ -1,0 +1,6 @@
+13.590 13.690 Divya.1: GET /Url/main 200
+13.590 13.690 Divya: back
+13.690 13.890 Divya: fill 'input[name=Url]' ''
+13.890 17.740 Divya: type 'input[name=Url]' 'htp://en.wikipedia.org/wiki/Haskell' [110ms]
+17.740 17.840 Divya.1: POST /Url/yourChoice 200
+17.740 17.840 Divya: press Enter

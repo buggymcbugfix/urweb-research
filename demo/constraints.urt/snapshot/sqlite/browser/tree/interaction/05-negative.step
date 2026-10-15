@@ -1,0 +1,7 @@
+Carlos:
+	wait 2s
+	open /Constraints/main
+	type 'input[name=Id]' '-4'
+	press Tab
+	type 'input[name=Nam]' 'minus'
+	press Enter

@@ -1,0 +1,4 @@
+Eun-ji:
+	open /Threads/main [target=2]
+	wait 5s
+	tab 1

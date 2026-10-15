@@ -1,0 +1,4 @@
+0.200 1.200 Divya: wait 1s
+1.200 1.600 Divya: click 'text=Click me!'
+1.600 2.600 Divya: wait 1s
+2.600 3.000 Divya: click 'text=Click me!'

@@ -1,0 +1,11 @@
+Carlos:
+	click 'input[name=A]'
+	type 'input[name=A]' '12'
+	press Tab
+	type 'input[name=B]' 'dozen'
+	press Tab
+	type 'input[name=C]' '12.0'
+	press Tab
+	press Space
+	wait 500ms
+	click 'input[type=submit]'

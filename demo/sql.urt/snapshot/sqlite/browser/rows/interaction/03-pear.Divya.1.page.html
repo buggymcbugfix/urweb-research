@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!-- /Sql/add -->
+<html>
+  <head></head>
+  <body>
+    <p>Row added.</p>
+    <table border="1">
+      <tbody>
+        <tr>
+          <th>A</th>
+          <th>B</th>
+          <th>C</th>
+          <th>D</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>2.5</td>
+          <td>apple</td>
+          <td>True</td>
+          <td>
+            <form method="post" action="/Sql/delete/1">
+              <input type="submit" value="Delete">
+            </form>
+          </td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>0.75</td>
+          <td>pear</td>
+          <td>False</td>
+          <td>
+            <form method="post" action="/Sql/delete/2">
+              <input type="submit" value="Delete">
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <hr>
+    <br>
+    <form method="post" action="/Sql/add">
+      <table>
+        <tbody>
+          <tr>
+            <th>A:</th>
+            <td>
+              <input type="text" name="A" value="">
+            </td>
+          </tr>
+          <tr>
+            <th>B:</th>
+            <td>
+              <input type="text" name="B" value="">
+            </td>
+          </tr>
+          <tr>
+            <th>C:</th>
+            <td>
+              <input type="text" name="C" value="">
+            </td>
+          </tr>
+          <tr>
+            <th>D:</th>
+            <td>
+              <input type="checkbox" name="D">
+            </td>
+          </tr>
+          <tr>
+            <th></th>
+            <td>
+              <input type="submit" value="Add Row">
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </form>
+  </body>
+</html>

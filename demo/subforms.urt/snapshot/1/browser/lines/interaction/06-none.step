@@ -1,0 +1,5 @@
+Carlos:
+	click 'text=One fewer blank'
+	click 'text=One fewer blank'
+	wait 500ms
+	click 'input[type=submit]'

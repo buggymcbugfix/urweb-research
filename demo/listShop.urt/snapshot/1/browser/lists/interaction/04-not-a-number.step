@@ -1,0 +1,3 @@
+Farid:
+	type 'input[name=X]' 'five' [150ms]
+	press Enter

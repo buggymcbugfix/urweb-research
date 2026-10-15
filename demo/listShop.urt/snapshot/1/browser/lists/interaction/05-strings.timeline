@@ -1,0 +1,11 @@
+2.050 3.550 Farid: wait 1500ms
+3.550 3.650 Farid.1: GET /ListShop/main 200
+3.550 3.650 Farid: open /ListShop/main
+3.650 4.150 Farid: click 'text=Strings'
+4.050 4.150 Farid.1: GET /ListShop/SL/main 200
+4.150 4.930 Farid: type 'input[name=X]' 'kettle' [130ms]
+4.930 5.030 Farid.1: POST /ListShop/SL/cons/Nil 200
+4.930 5.030 Farid: press Enter
+5.030 5.550 Farid: type 'input[name=X]' 'cups' [130ms]
+5.550 5.650 Farid.1: POST /ListShop/SL/cons/Cons/kettle/Nil 200
+5.550 5.650 Farid: press Enter

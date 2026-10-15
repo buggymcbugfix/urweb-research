@@ -1,0 +1,5 @@
+8.350 68.350 Alice: wait 1min
+68.350 68.450 Alice.1: GET /CookieSec/main 200
+68.350 68.450 Alice: open /CookieSec/main
+68.450 68.950 Alice: click 'input[type=submit] >> nth=1'
+68.850 68.950 Alice.1: POST /CookieSec/imHere 200

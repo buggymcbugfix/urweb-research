@@ -1,0 +1,5 @@
+Carlos:
+	wait 1s
+	click 'text=One more blank'
+	wait 500ms
+	click 'text=One more blank'

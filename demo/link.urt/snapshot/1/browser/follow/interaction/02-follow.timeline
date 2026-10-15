@@ -1,0 +1,5 @@
+0.100 1.600 Carlos: wait 1500ms
+1.600 2.000 Carlos: hover 'text="Go there"'
+2.000 2.700 Carlos: wait 700ms
+2.700 3.200 Carlos: click 'text="Go there"'
+3.100 3.200 Carlos.1: GET /Link/target 200

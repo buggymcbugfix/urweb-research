@@ -1,0 +1,8 @@
+Farid:
+	wait 1500ms
+	open /ListShop/main
+	click 'text=Strings'
+	type 'input[name=X]' 'kettle' [130ms]
+	press Enter
+	type 'input[name=X]' 'cups' [130ms]
+	press Enter

@@ -1,0 +1,3 @@
+0.100 2.100 Eun-ji: wait 2s
+2.100 2.500 Eun-ji: hover 'text=a quote'
+2.500 4.000 Eun-ji: wait 1500ms

@@ -1,0 +1,5 @@
+Divya:
+	click 'text=[Update]'
+	fill 'input[type=text] >> nth=0' ''
+	type 'input[type=text] >> nth=0' 'coffee'
+	click 'input[type=submit]'

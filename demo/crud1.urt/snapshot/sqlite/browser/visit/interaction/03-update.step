@@ -1,0 +1,9 @@
+Carlos:
+	wait 1s
+	click 'text=[Update]'
+	fill 'input[name=B]' ''
+	type 'input[name=B]' 'baker'\''s dozen'
+	fill 'input[name=A]' ''
+	type 'input[name=A]' '13'
+	uncheck 'input[name=D]'
+	click 'input[type=submit]'

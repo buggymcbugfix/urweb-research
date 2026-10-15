@@ -1,0 +1,8 @@
+Divya:
+	reload
+	type 'input[name=Id]' '2' [170ms]
+	press Tab
+	type 'input[name=Nam]' 'leaf' [170ms]
+	press Tab
+	type 'input[name=Parent]' '1' [170ms]
+	press Enter

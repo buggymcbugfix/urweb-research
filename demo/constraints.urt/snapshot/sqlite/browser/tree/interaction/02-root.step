@@ -1,0 +1,7 @@
+Carlos:
+	click 'input[name=Id]'
+	type 'input[name=Id]' '1'
+	press Tab
+	type 'input[name=Nam]' 'root'
+	wait 500ms
+	click 'input[type=submit]'

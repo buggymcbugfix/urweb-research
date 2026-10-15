@@ -1,0 +1,5 @@
+1.600 3.600 Alice: wait 2s
+3.600 3.700 Alice.1: GET /Ref/main 200
+3.600 3.700 Alice: back
+3.700 4.200 Alice: click 'input[type=submit]'
+4.100 4.200 Alice.1: POST /Ref/mutate 200

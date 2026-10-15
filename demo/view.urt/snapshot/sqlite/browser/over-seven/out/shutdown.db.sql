@@ -1,0 +1,12 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE uw_View_t (
+    uw_A integer NOT NULL
+);
+INSERT INTO uw_View_t VALUES(3);
+INSERT INTO uw_View_t VALUES(9);
+INSERT INTO uw_View_t VALUES(12);
+INSERT INTO uw_View_t VALUES(7);
+CREATE VIEW uw_View_v AS
+SELECT T_T.uw_A AS uw_A FROM uw_View_t AS T_T WHERE (T_T.uw_A > 7);
+COMMIT;

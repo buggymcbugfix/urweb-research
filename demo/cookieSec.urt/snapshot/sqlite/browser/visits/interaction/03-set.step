@@ -1,0 +1,4 @@
+Alice:
+	click 'input[name=User]'
+	type 'input[name=User]' 'alice' [140ms]
+	press Enter

@@ -1,0 +1,5 @@
+Bernd:
+	dialog accept [500ms]
+	dialog accept [700ms]
+	click 'text="Click me!"'
+	click 'text="Click me!"'

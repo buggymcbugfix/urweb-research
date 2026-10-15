@@ -1,0 +1,7 @@
+Divya:
+	click 'input[name=X]'
+	type 'input[name=X]' '3' [250ms]
+	press Tab
+	type 'input[name=Y]' '4' [250ms]
+	wait 700ms
+	click 'input[type=submit]'

@@ -1,0 +1,9 @@
+Divya:
+	click 'input[name=A]'
+	type 'input[name=A]' 'Divya' [150ms]
+	press Tab
+	type 'input[name=B]' 'here, and there' [150ms]
+	press Tab
+	press Space
+	wait 1s
+	click 'input[type=submit]'

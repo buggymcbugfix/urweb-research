@@ -1,0 +1,5 @@
+Carlos:
+	type 'input[name=Id]' '3'
+	press Tab
+	type 'input[name=Nam]' 'leaf'
+	click 'input[type=submit]'

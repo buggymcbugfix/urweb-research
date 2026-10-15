@@ -1,0 +1,4 @@
+Bernd:
+	wait 3s
+	hover 'text="Hello world!"'
+	wait 2s

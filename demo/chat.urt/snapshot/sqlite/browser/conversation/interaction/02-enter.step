@@ -1,0 +1,5 @@
+Divya: click 'text=Enter'
+Farid: open /Chat/main [target=1]
+Farid: click 'text=Enter'
+Carlos: open /Chat/main [target=1]
+Carlos: click 'text=Enter'

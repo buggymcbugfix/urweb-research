@@ -1,0 +1,5 @@
+Eun-ji:
+	click 'text="Update" >> nth=1'
+	fill 'input[type=text] >> nth=0' ''
+	type 'input[type=text] >> nth=0' '42'
+	click 'text="Save"'

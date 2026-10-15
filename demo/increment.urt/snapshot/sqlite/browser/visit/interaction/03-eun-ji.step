@@ -1,0 +1,3 @@
+Eun-ji:
+	wait 1s
+	click 'text=Update'

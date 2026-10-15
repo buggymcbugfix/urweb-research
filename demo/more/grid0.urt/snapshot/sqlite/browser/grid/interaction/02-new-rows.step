@@ -1,0 +1,5 @@
+Eun-ji:
+	wait 1s
+	click 'text=New row'
+	click 'text=New row'
+	click 'text=New row'

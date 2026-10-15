@@ -1,0 +1,5 @@
+Farid:
+	click 'text=[Update] >> nth=0'
+	wait 500ms
+	select 'select[name=Ready]' 'Ready'
+	click 'input[type=submit]'

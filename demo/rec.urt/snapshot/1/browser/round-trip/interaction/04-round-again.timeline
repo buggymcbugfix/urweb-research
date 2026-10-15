@@ -1,0 +1,6 @@
+3.100 3.500 Farid: click 'text="Go to the other one!"' [300ms]
+3.400 3.500 Farid.1: GET /Rec/other 200
+3.500 3.900 Farid: click 'text=Return to' [300ms]
+3.800 3.900 Farid.1: GET /Rec/main 200
+3.900 4.300 Farid: click 'text="Go to the other one!"' [300ms]
+4.200 4.300 Farid.1: GET /Rec/other 200

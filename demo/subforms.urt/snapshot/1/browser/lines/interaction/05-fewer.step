@@ -1,0 +1,4 @@
+Carlos:
+	wait 2s
+	back
+	click 'text=One fewer blank'

@@ -1,0 +1,3 @@
+Carlos:
+	wait 1s
+	drag 'text=Budvar' 'text=Deuchars' [1200ms]

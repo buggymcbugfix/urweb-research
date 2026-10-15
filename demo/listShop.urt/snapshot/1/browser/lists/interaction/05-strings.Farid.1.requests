@@ -1,0 +1,4 @@
+GET /ListShop/main 200
+GET /ListShop/SL/main 200
+POST /ListShop/SL/cons/Nil 200
+POST /ListShop/SL/cons/Cons/kettle/Nil 200

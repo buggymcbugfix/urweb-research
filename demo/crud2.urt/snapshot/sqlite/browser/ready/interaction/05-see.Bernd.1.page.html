@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!-- /Crud2/delete/2 -->
+<html>
+  <head></head>
+  <body>
+    <p>The deed is done.</p>
+    <table border="1">
+      <tbody>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Ready</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>Farid</td>
+          <td>Ready!</td>
+          <td>
+            <a href="/Crud2/upd/1">[Update]</a>
+            <a href="/Crud2/confirm/1">[Delete]</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <hr>
+    <br>
+    <form method="post" action="/Crud2/create">
+      <p>
+        Name:
+        <input type="text" name="Name" value="">
+      </p>
+      <p>
+        Ready:
+        <select name="Ready" value="Ready">
+          <option selected hidden>Ready</option>
+          <option hidden>Not ready</option>
+        </select>
+      </p>
+      <input type="submit">
+    </form>
+  </body>
+</html>

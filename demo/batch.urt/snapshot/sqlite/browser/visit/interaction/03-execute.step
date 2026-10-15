@@ -1,0 +1,4 @@
+Alice:
+	wait 2s
+	click 'text=Execute'
+	click 'text=Update'

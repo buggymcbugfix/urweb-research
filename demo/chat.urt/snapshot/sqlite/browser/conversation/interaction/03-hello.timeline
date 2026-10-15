@@ -1,0 +1,11 @@
+2.110 6.590 Divya.1: POST /.msgs 200
+2.210 4.490 Divya: type 'input[type=text]' 'who has the kettle?' [120ms]
+2.210 6.590 Carlos.1: POST /.msgs 200
+2.210 6.590 Farid.1: POST /.msgs 200
+4.490 4.590 Divya: press Enter
+4.590 6.090 Divya: wait 1500ms
+6.090 6.590 Divya: click 'text=Send:'
+6.490 6.590 Divya.1: POST /Chat/speak/1/who.20has.20the.20kettle.3F 200
+6.590 ... Carlos.1: POST /.msgs ...
+6.590 ... Divya.1: POST /.msgs ...
+6.590 ... Farid.1: POST /.msgs ...

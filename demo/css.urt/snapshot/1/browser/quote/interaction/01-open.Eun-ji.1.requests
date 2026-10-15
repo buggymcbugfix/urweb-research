@@ -1,0 +1,2 @@
+GET /Css/main 200
+GET http://adam.chlipala.net/style.css refused

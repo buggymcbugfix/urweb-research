@@ -1,0 +1,6 @@
+0.100 0.500 Farid: click 'input[name=Id] >> nth=0'
+0.500 0.650 Farid: type 'input[name=Id] >> nth=0' '1'
+0.650 0.750 Farid: press Tab
+0.750 1.200 Farid: type 'input[name=B]' 'one'
+1.200 1.300 Farid.1: POST /Outer/addT 200
+1.200 1.300 Farid: press Enter

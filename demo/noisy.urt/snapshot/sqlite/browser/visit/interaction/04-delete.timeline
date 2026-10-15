@@ -1,0 +1,4 @@
+7.450 7.850 Carlos: click 'input >> nth=2'
+7.850 8.000 Carlos: type 'input >> nth=2' '2'
+8.000 8.500 Carlos: click 'text=Delete'
+8.400 8.500 Carlos.1: POST /Noisy/del/2 200

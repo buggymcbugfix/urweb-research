@@ -1,0 +1,5 @@
+9.400 9.900 Eun-ji: click 'text="Delete" >> nth=0'
+9.800 9.900 Eun-ji.1: POST /Grid0/delete/1 200
+9.900 10.900 Eun-ji: wait 1s
+10.900 11.400 Eun-ji: click 'text="Refresh"'
+11.300 11.400 Eun-ji.1: POST /Grid0/list 200

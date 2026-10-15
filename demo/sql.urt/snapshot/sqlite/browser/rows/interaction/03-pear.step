@@ -1,0 +1,7 @@
+Divya:
+	type 'input[name=A]' '2' [160ms]
+	press Tab
+	type 'input[name=B]' '0.75' [160ms]
+	press Tab
+	type 'input[name=C]' 'pear' [160ms]
+	click 'text=Add Row'

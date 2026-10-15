@@ -1,0 +1,11 @@
+Farid:
+	click 'input[name=Id] >> nth=1'
+	type 'input[name=Id] >> nth=1' '10'
+	press Tab
+	type 'input[name=Link]' '1'
+	press Tab
+	type 'input[name=C]' 'ten'
+	press Tab
+	type 'input[name=D]' '2.5'
+	wait 800ms
+	click 'input[type=submit] >> nth=1'

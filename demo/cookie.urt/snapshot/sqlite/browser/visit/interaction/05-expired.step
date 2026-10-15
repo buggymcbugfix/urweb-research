@@ -1,0 +1,9 @@
+Eun-ji:
+	open /Cookie/main
+	click 'input[name=A] >> nth=1'
+	type 'input[name=A] >> nth=1' 'old' [170ms]
+	press Tab
+	type 'input[name=B] >> nth=1' '1' [170ms]
+	press Tab
+	type 'input[name=C] >> nth=1' '1' [170ms]
+	click 'input[type=submit] >> nth=1'

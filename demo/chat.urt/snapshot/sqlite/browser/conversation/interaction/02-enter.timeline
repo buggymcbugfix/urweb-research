@@ -1,0 +1,19 @@
+1.510 1.610 Carlos.1: GET /Chat/main 200
+1.510 1.610 Carlos: open /Chat/main [target=1]
+1.510 1.610 Farid.1: GET /Chat/main 200
+1.510 1.610 Farid: open /Chat/main [target=1]
+1.510 2.110 Divya: click 'text=Enter'
+1.610 2.210 Carlos: click 'text=Enter'
+1.610 2.210 Farid: click 'text=Enter'
+1.910 2.010 Divya.1: POST /Chat/chat/1 200
+2.010 2.110 Carlos.1: POST /Chat/chat/1 200
+2.010 2.110 Divya.1: GET /app.BDF8CEA4B7C84D05AEF6BC6F61FBFEE183CB1E21.js 200
+2.010 2.110 Divya.1: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+2.010 2.110 Farid.1: POST /Chat/chat/1 200
+2.110 2.210 Carlos.1: GET /app.BDF8CEA4B7C84D05AEF6BC6F61FBFEE183CB1E21.js 200
+2.110 2.210 Carlos.1: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+2.110 2.210 Farid.1: GET /app.BDF8CEA4B7C84D05AEF6BC6F61FBFEE183CB1E21.js 200
+2.110 2.210 Farid.1: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+2.110 ... Divya.1: POST /.msgs ...
+2.210 ... Carlos.1: POST /.msgs ...
+2.210 ... Farid.1: POST /.msgs ...

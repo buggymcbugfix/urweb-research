@@ -1,0 +1,3 @@
+GET /Counter/counter/1 200
+GET /Counter/counter/2 200
+GET /Counter/counter/3 200

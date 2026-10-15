@@ -1,0 +1,2 @@
+0.000 0.100 Alice.1: GET /Metaform1/main 200
+0.000 0.100 Alice: open /Metaform1/main [target=1]

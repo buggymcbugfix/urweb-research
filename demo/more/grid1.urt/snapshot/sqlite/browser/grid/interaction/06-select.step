@@ -1,0 +1,4 @@
+Bernd:
+	check 'tr.Grid1_row >> nth=1 >> input[type=checkbox] >> nth=0'
+	wait 1s
+	uncheck 'input[type=checkbox] >> nth=-1'

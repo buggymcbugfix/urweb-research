@@ -1,0 +1,6 @@
+2.600 3.000 Carlos: click 'input[type=text] >> nth=0'
+3.000 3.700 Carlos: type 'input[type=text] >> nth=0' 'three' [140ms]
+3.700 3.800 Carlos: press Tab
+3.800 4.220 Carlos: type 'input[type=text] >> nth=1' 'two' [140ms]
+4.220 4.320 Carlos: press Tab
+4.320 4.740 Carlos: type 'input[type=text] >> nth=2' 'one' [140ms]

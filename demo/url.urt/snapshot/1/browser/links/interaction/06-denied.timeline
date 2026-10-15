@@ -1,0 +1,4 @@
+9.370 9.570 Divya: fill 'input[name=Url]' ''
+9.570 13.090 Divya: type 'input[name=Url]' 'http://en.wikipedia.org/wiki/PHP' [110ms]
+13.090 13.590 Divya: click 'input[type=submit]'
+13.490 13.590 Divya.1: POST /Url/yourChoice 200

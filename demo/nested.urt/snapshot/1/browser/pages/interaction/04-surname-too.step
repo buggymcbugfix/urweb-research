@@ -1,0 +1,7 @@
+Farid:
+	click 'input[name=Forename]'
+	type 'input[name=Forename]' 'Farid' [160ms]
+	press Tab
+	press Space
+	wait 500ms
+	click 'input[type=submit]'

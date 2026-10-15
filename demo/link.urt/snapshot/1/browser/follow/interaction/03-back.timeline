@@ -1,0 +1,3 @@
+3.200 5.200 Carlos: wait 2s
+5.200 5.300 Carlos.1: GET /Link/main 200
+5.200 5.300 Carlos: back

@@ -1,0 +1,7 @@
+0.100 0.500 Carlos: click 'input[name=Id]'
+0.500 0.650 Carlos: type 'input[name=Id]' '1'
+0.650 0.750 Carlos: press Tab
+0.750 1.350 Carlos: type 'input[name=Nam]' 'root'
+1.350 1.850 Carlos: wait 500ms
+1.850 2.350 Carlos: click 'input[type=submit]'
+2.250 2.350 Carlos.1: POST /Constraints/add 200

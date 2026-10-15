@@ -1,0 +1,8 @@
+5.120 7.120 Carlos: wait 2s
+7.120 7.220 Carlos.1: GET /Constraints/main 200
+7.120 7.220 Carlos: open /Constraints/main
+7.220 7.520 Carlos: type 'input[name=Id]' '-4'
+7.520 7.620 Carlos: press Tab
+7.620 8.370 Carlos: type 'input[name=Nam]' 'minus'
+8.370 8.470 Carlos.1: POST /Constraints/add 500
+8.370 8.470 Carlos: press Enter

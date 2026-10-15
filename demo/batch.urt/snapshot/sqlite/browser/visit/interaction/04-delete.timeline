@@ -1,0 +1,5 @@
+7.800 8.300 Alice: click 'text=Delete >> nth=1'
+8.200 8.300 Alice.1: POST /Batch/del/7 200
+8.300 9.300 Alice: wait 1s
+9.300 9.800 Alice: click 'text=Update'
+9.700 9.800 Alice.1: POST /Batch/allRows/_ 200

@@ -1,0 +1,4 @@
+Divya:
+	wait 1500ms
+	open /Sql/main
+	click 'input[value=Delete] >> nth=0'

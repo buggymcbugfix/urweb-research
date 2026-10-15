@@ -1,0 +1,4 @@
+0.100 0.500 Farid: click 'input[name=Nam]'
+0.500 1.480 Farid: type 'input[name=Nam]' 'kitchen' [140ms]
+1.480 1.580 Farid.1: POST /Tree/add/None 200
+1.480 1.580 Farid: press Enter

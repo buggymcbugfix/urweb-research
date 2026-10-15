@@ -1,0 +1,5 @@
+Eun-ji:
+	click 'tr:has-text("Filters") >> input >> nth=1'
+	type 'tr:has-text("Filters") >> input >> nth=1' '42'
+	wait 1500ms
+	fill 'tr:has-text("Filters") >> input >> nth=1' ''

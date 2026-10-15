@@ -1,0 +1,8 @@
+Carlos:
+	open /Crud1/main
+	type 'input[name=A]' 'x'
+	press Tab
+	type 'input[name=B]' 'wrong'
+	press Tab
+	type 'input[name=C]' '1'
+	click 'input[type=submit]'

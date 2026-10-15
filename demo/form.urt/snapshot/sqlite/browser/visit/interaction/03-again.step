@@ -1,0 +1,5 @@
+Divya:
+	wait 2s
+	back
+	uncheck 'input[name=C]'
+	click 'input[type=submit]'

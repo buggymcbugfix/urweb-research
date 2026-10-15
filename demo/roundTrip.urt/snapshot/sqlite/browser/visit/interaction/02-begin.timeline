@@ -1,0 +1,6 @@
+0.100 1.100 Bernd: wait 1s
+1.100 1.700 Bernd: click 'text=Begin demo'
+1.500 1.600 Bernd.1: POST /RoundTrip/action 200
+1.600 1.700 Bernd.1: GET /app.7B8AF21EB5F74E41607DB6479F09E9C972EE6E36.js 200
+1.600 1.700 Bernd.1: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+1.700 ... Bernd.1: POST /.msgs ...

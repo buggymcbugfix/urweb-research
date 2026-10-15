@@ -1,0 +1,10 @@
+3.550 4.550 Carlos: wait 1s
+4.550 5.050 Carlos: click 'text=[Update]'
+4.950 5.050 Carlos.1: GET /Crud1/upd/1 200
+5.050 5.250 Carlos: fill 'input[name=B]' ''
+5.250 7.200 Carlos: type 'input[name=B]' 'baker'\''s dozen'
+7.200 7.400 Carlos: fill 'input[name=A]' ''
+7.400 7.700 Carlos: type 'input[name=A]' '13'
+7.700 8.100 Carlos: uncheck 'input[name=D]'
+8.100 8.600 Carlos: click 'input[type=submit]'
+8.500 8.600 Carlos.1: POST /Crud1/save/1 200

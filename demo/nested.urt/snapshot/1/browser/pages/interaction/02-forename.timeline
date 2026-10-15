@@ -1,0 +1,5 @@
+0.100 0.500 Farid: click 'input[name=Forename]'
+0.500 1.300 Farid: type 'input[name=Forename]' 'Farid' [160ms]
+1.300 1.900 Farid: wait 600ms
+1.900 2.400 Farid: click 'input[type=submit]'
+2.300 2.400 Farid.1: POST /Nested/fromA 200

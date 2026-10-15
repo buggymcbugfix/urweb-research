@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<!-- /CookieSec/set -->
+<html>
+  <head></head>
+  <body>
+    Cookie: alice
+    <br>
+    <table>
+      <tbody>
+        <tr>
+          <th>User</th>
+          <th>Last Visit</th>
+        </tr>
+      </tbody>
+    </table>
+    <h2>Set cookie value</h2>
+    <form method="post" action="/CookieSec/set">
+      <input type="text" name="User" value="">
+      <input type="submit">
+    </form>
+    <h2>Record your visit</h2>
+    <form method="post" action="/CookieSec/imHere">
+      <input type="hidden" name="Sig" value="9339E3D0966F98B17E13654632A7B0600D455C5619709D08CDD61B4BAC16B27D" hidden>
+      <input type="submit">
+    </form>
+  </body>
+</html>

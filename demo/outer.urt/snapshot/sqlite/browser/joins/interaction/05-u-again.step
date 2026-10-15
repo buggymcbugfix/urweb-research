@@ -1,0 +1,9 @@
+Farid:
+	type 'input[name=Id] >> nth=1' '11'
+	press Tab
+	type 'input[name=Link]' '1'
+	press Tab
+	type 'input[name=C]' 'eleven'
+	press Tab
+	type 'input[name=D]' '0.5'
+	press Enter

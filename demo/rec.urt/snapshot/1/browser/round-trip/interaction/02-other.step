@@ -1,0 +1,3 @@
+Farid:
+	wait 1s
+	click 'text="Go to the other one!"'

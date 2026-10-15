@@ -1,0 +1,4 @@
+Eun-ji:
+	wait 2s
+	hover 'text=a quote'
+	wait 1500ms

@@ -1,0 +1,3 @@
+GET /CookieSec/main 200
+POST /CookieSec/set 200
+POST /CookieSec/imHere 200

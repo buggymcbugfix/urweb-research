@@ -1,0 +1,4 @@
+2.330 3.330 Eun-ji: wait 1s
+3.330 3.430 Eun-ji.1: GET /Cookie/main 200
+3.330 3.430 Eun-ji: open /Cookie/main
+3.430 5.430 Eun-ji: wait 2s

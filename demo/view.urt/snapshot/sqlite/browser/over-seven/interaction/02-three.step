@@ -1,0 +1,4 @@
+Eun-ji:
+	click 'input[name=A]'
+	type 'input[name=A]' '3'
+	press Enter

@@ -1,0 +1,3 @@
+0.100 1.100 Divya: wait 1s
+1.100 1.600 Divya: click 'text=See something shiny!'
+1.500 1.600 Divya.1: GET /Metaform2/diversion 200

@@ -1,0 +1,3 @@
+Carlos:
+	wait 2s
+	drag 'text=Pooh' 'text=Budvar' [1500ms]

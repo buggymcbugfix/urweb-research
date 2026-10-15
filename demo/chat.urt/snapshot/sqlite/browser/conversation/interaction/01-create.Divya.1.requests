@@ -1,0 +1,2 @@
+GET /Chat/main 200
+POST /Chat/create 200

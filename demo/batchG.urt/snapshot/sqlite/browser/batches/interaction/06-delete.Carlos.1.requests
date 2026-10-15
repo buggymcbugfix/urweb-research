@@ -1,0 +1,2 @@
+POST /BatchG/del/2 200
+POST /BatchG/allRows/_ 200

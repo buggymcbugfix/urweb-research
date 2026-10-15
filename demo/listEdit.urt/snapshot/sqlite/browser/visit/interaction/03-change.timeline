@@ -1,0 +1,4 @@
+2.860 3.860 Farid: wait 1s
+3.860 4.060 Farid: fill 'input >> nth=1' ''
+4.060 5.180 Farid: type 'input >> nth=1' 'oat milk' [140ms]
+5.180 5.580 Farid: click 'text=Change to: >> nth=0'

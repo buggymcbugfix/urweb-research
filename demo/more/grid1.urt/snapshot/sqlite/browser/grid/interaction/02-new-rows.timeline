@@ -1,0 +1,7 @@
+0.300 1.300 Bernd: wait 1s
+1.300 1.900 Bernd: click 'text=New row'
+1.700 1.800 Bernd.1: POST /Grid1/new 200
+1.800 1.900 Bernd.1: POST /Grid1/F/getChoice/0 200
+1.900 2.500 Bernd: click 'text=New row'
+2.300 2.400 Bernd.1: POST /Grid1/new 200
+2.400 2.500 Bernd.1: POST /Grid1/F/getChoice/0 200

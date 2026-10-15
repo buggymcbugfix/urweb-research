@@ -1,0 +1,4 @@
+4.200 5.200 Eun-ji: wait 1s
+5.200 5.600 Eun-ji: click 'th >> text="A"'
+5.600 6.600 Eun-ji: wait 1s
+6.600 7.000 Eun-ji: click 'text="No sort"'

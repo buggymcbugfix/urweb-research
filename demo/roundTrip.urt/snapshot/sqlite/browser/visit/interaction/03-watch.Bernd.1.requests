@@ -1,0 +1,5 @@
+POST /RoundTrip/writeBack/_/0/0 200
+POST /.msgs 200
+POST /RoundTrip/writeBack/!/1/1.23 200
+POST /.msgs ...
+POST /.msgs 200 (sent in 02-begin)

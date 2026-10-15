@@ -1,0 +1,13 @@
+Alice:
+	wait 1s
+	click 'input >> nth=0'
+	type 'input >> nth=0' '7'
+	press Tab
+	type 'input >> nth=1' 'seven'
+	click 'text=Batch it'
+	fill 'input >> nth=0' ''
+	type 'input >> nth=0' '8'
+	press Tab
+	fill 'input >> nth=1' ''
+	type 'input >> nth=1' 'eight'
+	click 'text=Batch it'

@@ -1,0 +1,9 @@
+Alice:
+	click 'input[name=A]'
+	type 'input[name=A]' 'X' [200ms]
+	press Tab
+	type 'input[name=B]' 'O' [200ms]
+	press Tab
+	type 'input[name=C]' 'X' [200ms]
+	wait 1s
+	press Enter
