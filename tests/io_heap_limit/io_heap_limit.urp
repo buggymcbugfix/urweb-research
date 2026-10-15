@@ -8,7 +8,7 @@ allow url /Io_heap_limit/big
 safeGet Io_heap_limit/main
 safeGet Io_heap_limit/rows
 safeGet Io_heap_limit/big
-limit heap 300000000
+limit heap 64000000
 
 $/option
 $/string

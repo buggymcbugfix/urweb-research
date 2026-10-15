@@ -189,17 +189,14 @@ static const char usage_text[] =
     "same requests get the same answers, the application's clock is pinned (the\n"
     "first request is served at 2000-01-01 00:00:00 UTC, each further one a second\n"
     "later, and the database agrees), as are its random numbers and its time zone,\n"
-    "UTC; its heap starts at 256 MiB, unless the run's env says otherwise, so\n"
-    "that no handler is run a second time for the heap to grow; every request is\n"
-    "for the host 'localhost', from the user agent 'urt'.\n"
+    "UTC; every request is for the host 'localhost', from the user agent 'urt'.\n"
     "\n"
     "A run's env adds to the application's environment, NAME=value a line, the\n"
     "value taken as written, though it holds no control character but a tab;\n"
     "blank lines and lines starting with # are skipped.\n"
     "What urt sets itself for the above cannot be set there: URWEB_SIGFILE_PATH,\n"
     "URWEB_SQLITE_DB_PATH, URWEB_DML_LOG, URWEB_REPRODUCIBLE_EPOCH,\n"
-    "URWEB_REPRODUCIBLE_PRNG_SEED and TZ.  URWEB_MIN_HEAP can, for a run that is\n"
-    "to grow the heap.\n"
+    "URWEB_REPRODUCIBLE_PRNG_SEED and TZ.\n"
     "\n"
     "A case with runs is compiled all the way, so its args cannot hold -stop or\n"
     "-tc, and it fails if that does not give an application.  The compiler builds\n"
@@ -947,19 +944,10 @@ static void show_diff(const char *file) {
  * and its random numbers are pinned (URWEB_REPRODUCIBLE_*, see
  * src/c/reproducible.c), its time zone is UTC, and curl always introduces
  * itself the same way and asks for the same host, whatever port the
- * server found free.  Its heap starts large (URWEB_MIN_HEAP): the runtime
- * runs a handler again from the start whenever the heap has had to move
- * while growing, and whether realloc moves it is the libc's business, so
- * what a handler prints with debug would come once per attempt, and the
- * count of attempts would be the allocator's.  A heap that never grows
- * is never moved.  256 MiB of it costs nothing until it is written to;
- * an application whose heap limit is below that refuses to start, and
- * the run fails with its message.  A run's env may set a smaller one, for
- * a run that is meant to grow the heap. */
+ * server found free. */
 
 #define RUN_TIME "946684800"    /* 2000-01-01 00:00:00 UTC, the first request; a second more for every further one */
 #define RUN_SEED "0"
-#define RUN_MIN_HEAP "268435456"    /* 256 MiB */
 
 /* What urt sets in the application's environment itself, above and in
  * run_run, and a run's env therefore cannot. */
@@ -2059,7 +2047,6 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
     setenv("URWEB_DML_LOG", dml, 1);
     setenv("URWEB_REPRODUCIBLE_EPOCH", RUN_TIME, 1);
     setenv("URWEB_REPRODUCIBLE_PRNG_SEED", RUN_SEED, 1);
-    setenv("URWEB_MIN_HEAP", RUN_MIN_HEAP, 1);
     setenv("TZ", "UTC", 1);
 
     join(f, run_dir, "args");

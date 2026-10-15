@@ -177,17 +177,14 @@ to start with; within a run, the requests build on each other.  So that the
 same requests get the same answers, the application's clock is pinned (the
 first request is served at 2000-01-01 00:00:00 UTC, each further one a second
 later, and the database agrees), as are its random numbers and its time zone,
-UTC; its heap starts at 256 MiB, unless the run's env says otherwise, so
-that no handler is run a second time for the heap to grow; every request is
-for the host 'localhost', from the user agent 'urt'.
+UTC; every request is for the host 'localhost', from the user agent 'urt'.
 
 A run's env adds to the application's environment, NAME=value a line, the
 value taken as written, though it holds no control character but a tab;
 blank lines and lines starting with # are skipped.
 What urt sets itself for the above cannot be set there: URWEB_SIGFILE_PATH,
 URWEB_SQLITE_DB_PATH, URWEB_DML_LOG, URWEB_REPRODUCIBLE_EPOCH,
-URWEB_REPRODUCIBLE_PRNG_SEED and TZ.  URWEB_MIN_HEAP can, for a run that is
-to grow the heap.
+URWEB_REPRODUCIBLE_PRNG_SEED and TZ.
 
 A case with runs is compiled all the way, so its args cannot hold -stop or
 -tc, and it fails if that does not give an application.  The compiler builds
