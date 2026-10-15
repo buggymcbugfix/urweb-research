@@ -46,11 +46,11 @@ fun action () =
 
 	return
 		<xml><body>
-			{List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls}
+			<ul>{List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls}</ul>
 			<br />
-			{List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls'}
+			<ul>{List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls'}</ul>
 			<br />
-			{
+			<ul>{
 				List.mapX
 					(
 						fn (s, ro) =>
@@ -62,7 +62,7 @@ fun action () =
 							</li></xml>
 					)
 					lsS
-			}
+			}</ul>
 		</body></xml>
 
 fun main () =

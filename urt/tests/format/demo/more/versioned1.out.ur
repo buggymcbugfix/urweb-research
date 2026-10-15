@@ -27,7 +27,7 @@ fun retro vr =
 
 	return
 		<xml><body>
-			{
+			<ul>{
 				List.mapX
 					(
 						fn (k, r) =>
@@ -40,7 +40,7 @@ fun retro vr =
 							</li></xml>
 					)
 					ks
-			}
+			}</ul>
 		</body></xml>
 
 fun expandKey k =
@@ -141,5 +141,5 @@ fun main () =
 
 			<h2>Archive</h2>
 
-			{List.mapX (fn (vr, tm) => <xml><li><a link={retro vr}>{[tm]}</a></li></xml>) times}
+			<ul>{List.mapX (fn (vr, tm) => <xml><li><a link={retro vr}>{[tm]}</a></li></xml>) times}</ul>
 		</body></xml>

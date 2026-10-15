@@ -14,11 +14,11 @@ fun retro vr =
     ks <- List.mapM (fn r => fso <- archive vr r; return (r.Id, fso)) ks;
 
     return <xml><body>
-      {List.mapX (fn (k, r) => <xml><li>
+      <ul>{List.mapX (fn (k, r) => <xml><li>
         {[k]}: {case r of
                     None => <xml>Whoa!</xml>
                   | Some r => <xml>{[r.Nam]}, {[r.ShoeSize]}</xml>}
-      </li></xml>) ks}
+      </li></xml>) ks}</ul>
     </body></xml>
 
 fun expandKey k =
@@ -76,5 +76,5 @@ fun main () =
 
       <h2>Archive</h2>
 
-      {List.mapX (fn (vr, tm) => <xml><li><a link={retro vr}>{[tm]}</a></li></xml>) times}
+      <ul>{List.mapX (fn (vr, tm) => <xml><li><a link={retro vr}>{[tm]}</a></li></xml>) times}</ul>
     </body></xml>
