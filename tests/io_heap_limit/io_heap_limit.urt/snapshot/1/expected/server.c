@@ -9,7 +9,7 @@
    #include "include/urweb/urweb.h"
  
  static void uw_setup_limits() {
-  uw_heap_max = 300000000;
+  uw_heap_max = 64000000;
    }
   
   void uw_global_custom() {
@@ -289,7 +289,7 @@
               ({
                uw_Basis_string
                tmp;
-               uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:14:43-14:84: pattern match failure");
+               uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:13:43-13:84: pattern match failure");
                tmp;
                });
             }));
@@ -435,7 +435,7 @@
                                       ({
                                        uw_unit
                                        tmp;
-                                       uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:28:4-32:47: pattern match failure");
+                                       uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:27:4-31:47: pattern match failure");
                                        tmp;
                                        });
                                     }));
@@ -465,7 +465,7 @@
                                             }
                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
-                                           if (sqlite3_bind_int64(stmt, 1, arg1) != SQLITE_OK) uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:31:4-31:59: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
+                                           if (sqlite3_bind_int64(stmt, 1, arg1) != SQLITE_OK) uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:30:4-30:59: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
                                             
                                            int r;
                                             if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
@@ -473,11 +473,11 @@
                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                              }
                                             
-                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:31:4-31:59: DML step failed: %s<br />%s", 
+                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:30:4-30:59: DML step failed: %s<br />%s", 
                                                                    "INSERT INTO uw_Io_heap_limit_t (uw_N) VALUES (\?)", sqlite3_errmsg(conn->conn));
                                                                    else if (uw_dml_log_enabled()) {
                                             char *expanded = sqlite3_expanded_sql(stmt);
-                                             uw_log_dml(ctx, "tests/io_heap_limit/io_heap_limit.ur:31:4-31:59", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                             uw_log_dml(ctx, "tests/io_heap_limit/io_heap_limit.ur:30:4-30:59", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
                                              sqlite3_free(expanded);
                                              }
                                             uw_pop_cleanup(ctx);
@@ -511,7 +511,7 @@
                   ({
                    uw_Basis_int
                    tmp;
-                   uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:31:4-32:47: pattern match failure");
+                   uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:30:4-31:47: pattern match failure");
                    tmp;
                    });
                 });
@@ -599,7 +599,7 @@
                                                                                (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
                                                                                ({uw_Basis_int
                                                                                tmp;
-                                                                               uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:56:20-56:26: Unexpectedly NULL field #0");
+                                                                               uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:54:20-54:26: Unexpectedly NULL field #0");
                                                                                tmp;
                                                                                }) : 
                                                                                sqlite3_column_int64(stmt, 0));
@@ -621,7 +621,7 @@
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
-                                                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:56:20-56:26: query step failed: %s<br />%s", 
+                                                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:54:20-54:26: query step failed: %s<br />%s", 
                                                                                "SELECT T_T.uw_N FROM uw_Io_heap_limit_t AS T_T ORDER BY T_T.uw_N", sqlite3_errmsg(conn->conn));
                                                                                
                                                                                uw_pop_cleanup(ctx);
@@ -800,7 +800,7 @@
                                      ({
                                       uw_unit
                                       tmp;
-                                      uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:41:8-45:57: pattern match failure");
+                                      uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:40:8-44:57: pattern match failure");
                                       tmp;
                                       });
                                    }));
@@ -844,7 +844,7 @@
            ({
             uw_unit
             tmp;
-            uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:40:8-45:57: pattern match failure");
+            uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:39:8-44:57: pattern match failure");
             tmp;
             });
          })
@@ -852,7 +852,7 @@
         ({
          uw_unit
          tmp;
-         uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:35:4-47:17: pattern match failure");
+         uw_error(ctx, FATAL, "tests/io_heap_limit/io_heap_limit.ur:34:4-46:17: pattern match failure");
          tmp;
          });
       });
@@ -917,7 +917,7 @@
    }
   
   
-  if (!strcmp(request, "/app.4809095F845257AAB2BAE8E52F173E0D476E82D6.js")) {
+  if (!strcmp(request, "/app.4811DC4C6CD62D1D126EE24433535008DCAB05AF.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -934,7 +934,7 @@
    uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
     uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.4809095F845257AAB2BAE8E52F173E0D476E82D6.js\"></script>\n");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.4811DC4C6CD62D1D126EE24433535008DCAB05AF.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 0);
   uw_set_needs_push(ctx, 0);

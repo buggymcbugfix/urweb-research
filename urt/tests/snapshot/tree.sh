@@ -192,9 +192,9 @@ proj runs serves-cr
 snap runs/serves-cr.urt/snapshot/1 exitcode
 arun runs/serves-cr.urt/snapshot/1/request-response/continued
 printf 'POST /fields -d "x=1" \\\r\n  -d "y=2"\r\n' > runs/serves-cr.urt/snapshot/1/request-response/continued/interaction/02-continued.request
-# A project with a run that has an environment of its own, a smaller
-# heap among it, which the stand-in server reports back, and a run after
-# it that has none; and one whose env says what it may not.
+# A project with a run that has an environment of its own, a heap size
+# among it, which the stand-in server reports back, and a run after it
+# that has none; and one whose env says what it may not.
 proj runs serves-env
 snap runs/serves-env.urt/snapshot/1 exitcode
 arun runs/serves-env.urt/snapshot/1/request-response/env
