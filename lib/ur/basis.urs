@@ -1281,8 +1281,10 @@ val runTransaction : t ::: Type -> transaction t -> io t
    [io_errorMessage] then has the message.  The transaction has been rolled
    back, unless the failure came from an FFI transactional's commit callback
    that ran after the database's COMMIT: then the database has committed, and
-   only what the callback was to do is missing.  [tryRunTransaction], in Top,
-   packages the two as a [result]. *)
+   the rest of the transaction is dropped all the same, as for a request
+   that fails there: its messages are not sent, its cookies, headers and
+   sources are not kept, and its value is not returned.  [tryRunTransaction],
+   in Top, packages the two as a [result]. *)
 val attemptTransaction : t ::: Type -> transaction t -> io (option t)
 val io_errorMessage : io string
 
