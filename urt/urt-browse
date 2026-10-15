@@ -55,19 +55,21 @@ a grid on the clock, every T (--frame, 16ms unless given), at which
 anything shown may have changed, the clock stopping on the grid while
 anything in the page moves that will stop (an endless animation, a
 spinner, is filmed with whatever else changes); between the frames the
-picture stands, and the strip's clock goes on a second at a time.  The
-lines are the cues (USER.PASS.vtt), and DIR's index.html plays a run's
-films together, every one in a box to move and size at will.  The
-records are the same with and without either.  After each step a line
-'step NAME' is printed; a step that cannot be done prints 'fail NAME'
-and ends the run; 'done' ends it otherwise.  With --serve, a pass of a
-run is done for every line 'run URL RUN OUT [pass=NAME]
-[screenshots=DIR] [recordings=DIR] [frame=T]' read from stdin, quoted
-as for a shell, an engine started at the first pass that needs it and
-kept for the rest.  With --check, the step and context files are read
-and nothing is run: what is wrong with them is printed, a line each, and
-the exit status is 1 if anything was; and if nothing was, the run's
-passes, a line 'pass NAME' each.
+picture stands, and the strip's clock goes on a second at a time.  A
+step's wait for everyone is filmed without its idle time: after its
+start and after each change in any film of the pass a second is kept,
+and the strip's clock jumps over the rest.  The lines are the cues
+(USER.PASS.vtt), and DIR's index.html plays a run's films together,
+every one in a box to move and size at will.  The records are the same
+with and without either.  After each step a line 'step NAME' is printed;
+a step that cannot be done prints 'fail NAME' and ends the run; 'done'
+ends it otherwise.  With --serve, a pass of a run is done for every line
+'run URL RUN OUT [pass=NAME] [screenshots=DIR] [recordings=DIR]
+[frame=T]' read from stdin, quoted as for a shell, an engine started at
+the first pass that needs it and kept for the rest.  With --check, the
+step and context files are read and nothing is run: what is wrong with
+them is printed, a line each, and the exit status is 1 if anything was;
+and if nothing was, the run's passes, a line 'pass NAME' each.
 
 The clock.  There is one, for the pages (Playwright's clock, moved by
 the driver), the server (told the time of every request, and moved
@@ -1057,6 +1059,21 @@ def read_run(run_dir):
 # The strip drawn above a user's tab in front: their tabs, the clock and
 # the line they are at.
 BAR = 40
+
+# What a film keeps of a step's wait for everyone after each change: the
+# rest, in which only the strip's clock would move, is cut.
+HOLD = 1000
+
+
+def film_ms(t, cuts, epoch):
+    """The run's time t on a film, in ms from its start: less the cuts
+    before it, a time within one being the cut's start."""
+    out = t - epoch
+    for c0, c1 in cuts:
+        if t <= c0:
+            break
+        out -= min(t, c1) - c0
+    return out
 
 
 class Reel:
@@ -2586,6 +2603,7 @@ class Run:
         self.refused = set()
         self.heldmap = {}           # request -> Held
         self.frames = set()         # frame stops to come
+        self.waits = []             # the steps' waits for everyone, (start, end)
         self.docs = 0               # the documents delivered, which number them
         self.uploaded = {}          # a file's name -> its type and contents, for every one the users upload
 
@@ -3499,6 +3517,7 @@ class Run:
                 user.line, user.changed = None, True
                 if user.name in self.reels:
                     self.reels[user.name].lines.append((waited[0], self.now, waited[1]))
+            self.waits.append((waited[0], self.now))
         for user in self.users.values():
             if user.task is not None and not user.task.done():
                 user.task.cancel()
@@ -3576,18 +3595,34 @@ class Run:
         elif not reel.frames or reel.frames[-1][1:] != frame[1:]:
             reel.frames.append(frame)
 
-    async def develop(self, reel, end):
+    def cuts(self):
+        """What the films leave out of the steps' waits for everyone: after
+        every change in any user's film, and after the wait's start, what
+        is more than HOLD before the next change or the wait's end, in which
+        only the strips' clocks would move.  The same for every film of the
+        pass, which keeps them together."""
+        changes = sorted({f[0] for reel in self.reels.values() for f in reel.frames})
+        cuts = []
+        for start, end in self.waits:
+            points = [start] + [t for t in changes if start < t < end] + [end]
+            for a, b in zip(points, points[1:]):
+                if b - a > HOLD:
+                    cuts.append((a + HOLD, b))
+        return cuts
+
+    async def develop(self, reel, end, cuts):
         """The user's film, USER.PASS.webm in the recordings: every frame
         composed in a page of Chromium's, whose canvas makes a JPEG fastest
         (WebKit's takes three times as long), or of the user's engine if
-        Chromium does not start, and handed to ffmpeg at its time; between
-        frames the picture stands, a frame a second for the strip's clock.
-        And its cues, USER.PASS.vtt."""
+        Chromium does not start, and handed to ffmpeg at its time on the
+        film, which is the run's less the cuts; between frames the picture
+        stands, a frame a second for the strip's clock, and at a cut's end
+        the strip's clock jumps to it.  And its cues, USER.PASS.vtt."""
         name = '%s.%s' % (reel.user, self.pass_name)
         e = self.epoch_ms()
         viewport = self.setup.options_of(reel.user)['viewport']
         width, height = viewport['width'], viewport['height']
-        cues = [((start - e) / 1000, ((stop if stop is not None else end) - e) / 1000, text)
+        cues = [(film_ms(start, cuts, e) / 1000, film_ms(stop if stop is not None else end, cuts, e) / 1000, text)
                 for start, stop, text in reel.lines]
         write_vtt(os.path.join(self.recordings, name + '.vtt'), (width + (width & 1), height + BAR + ((height + BAR) & 1)),
                   cues)
@@ -3597,6 +3632,7 @@ class Run:
                   % name, file=sys.stderr)
             return
         frames = []
+        ends = sorted(c1 for _, c1 in cuts)
         for k, (t, picture, overlay) in enumerate(reel.frames):
             frames.append((t, picture, overlay))
             until = reel.frames[k + 1][0] if k + 1 < len(reel.frames) else end
@@ -3604,6 +3640,14 @@ class Run:
             while s < until:
                 frames.append((s, picture, overlay))
                 s += 1000
+            # The strip's clock jumps at a cut's end, also where this film's
+            # picture does not change.
+            for c1 in ends:
+                if t < c1 < until:
+                    frames.append((c1, picture, overlay))
+        frames.sort(key=lambda f: f[0])
+        frames = [f for k, f in enumerate(frames)
+                  if not any(c0 < f[0] < c1 for c0, c1 in cuts) and (k + 1 == len(frames) or frames[k + 1][0] != f[0])]
         if frames[-1][0] < end:
             frames.append((end,) + frames[-1][1:])
         trace('develop', name, len(frames))
@@ -3640,7 +3684,7 @@ class Run:
                                                         stdin=asyncio.subprocess.PIPE,
                                                         stdout=asyncio.subprocess.DEVNULL,
                                                         stderr=asyncio.subprocess.PIPE)
-            mkv = Matroska(width + (width & 1), height + BAR + ((height + BAR) & 1), end - e)
+            mkv = Matroska(width + (width & 1), height + BAR + ((height + BAR) & 1), film_ms(end, cuts, e))
             proc.stdin.write(mkv.head)
             last = object()
             began = time.monotonic()
@@ -3677,7 +3721,7 @@ class Run:
                         context, page = await composer()
                         last = object()
                 w1 = time.monotonic()
-                proc.stdin.write(mkv.frame(t - e, jpeg))
+                proc.stdin.write(mkv.frame(film_ms(t, cuts, e), jpeg))
                 await proc.stdin.drain()
                 w2 = time.monotonic()
                 spent[0] += w1 - w0
@@ -3802,7 +3846,8 @@ class Run:
         if self.reels:
             # Every user's film at once, each composed in a page of its own
             # and encoded by an ffmpeg of its own.
-            await asyncio.gather(*(self.develop(reel, self.now) for reel in self.reels.values()))
+            cuts = self.cuts()
+            await asyncio.gather(*(self.develop(reel, self.now, cuts) for reel in self.reels.values()))
             write_index(self.recordings, self.frame_ms)
             shutil.rmtree(self.pictures, ignore_errors=True)
         self.closed_port.close()
