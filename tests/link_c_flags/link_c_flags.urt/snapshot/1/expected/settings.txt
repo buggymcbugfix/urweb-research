@@ -1,6 +1,6 @@
 Prefix: /
 Database: (none)
-Exe: tests/link_c_flags/link_c_flags.exe
+Exe: app.exe
 SQL file: (none)
 Endpoints file: (none)
 Debug: false

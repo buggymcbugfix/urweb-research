@@ -184,8 +184,9 @@ static const char usage_text[] =
     "\n"
     "A case with runs is compiled all the way, so its args cannot hold -stop or\n"
     "-tc, and it fails if that does not give an application.  The compiler builds\n"
-    "it where the project has it built, and from there it is moved into the case\n"
-    "as app.exe, where it stays, to be started by hand if need be.\n"
+    "it in urt's scratch directory, whatever the project says (-output), and from\n"
+    "there it is moved into the case as app.exe, where it stays, to be started by\n"
+    "hand if need be.\n"
     "A run's args cannot hold -t: its requests are sent one after the other, and\n"
     "with more threads than one it is a matter of chance which of them answers.\n"
     "Nor --, after which the server would ignore the flags urt adds (the address,\n"
@@ -3097,11 +3098,13 @@ static void run_case(const char *case_dir, const char *project) {
         }
     }
     /* With runs the compiler goes all the way, and builds the application
-     * where the project has it built.  From there it is moved into the
-     * case, beside expected/: out of the project's way, and still there
-     * afterwards, to be started by hand when a run needs looking into.
-     * The one from last time goes first, lest it stand in for one that
-     * does not build. */
+     * in the work directory, whatever the project says: an exe directive
+     * can name a file another project names too (/tmp/webapp, in tests/),
+     * and two cases built at once would swap applications.  From there it
+     * is moved into the case, beside expected/: out of the project's way,
+     * and still there afterwards, to be started by hand when a run needs
+     * looking into.  The one from last time goes first, lest it stand in
+     * for one that does not build. */
     join(exe, case_dir, "app.exe");
     join(settings, work, "settings.txt");
     if (runs.n) {
@@ -3112,6 +3115,8 @@ static void run_case(const char *case_dir, const char *project) {
             sl_push(&argv, "-saveSettings");
             sl_push(&argv, settings);
         }
+        sl_push(&argv, "-output");
+        sl_push(&argv, fmt("%s/app.exe", work));
     } else if (!own_stop) {
         sl_push(&argv, "-stop");
         sl_push(&argv, stop);
