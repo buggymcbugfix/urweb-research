@@ -33,6 +33,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
  
+  // The global set-up, as in the other protocols: the project's limits, the
+  // signing key, the reproducible clock, the DML log.
+  uw_global_init();
+  uw_app_init(&uw_application);
+
   ctx = uw_init(0, &loggers);
   uw_set_app(ctx, &uw_application);
   uw_set_headers(ctx, get_header, NULL);
