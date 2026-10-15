@@ -1,0 +1,14 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.2E2F166624F71CFA5D60C7170C70D0CC563B9677.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Io_sqlcache_rollback/main", "content-type": null},
+                                                                               
+   {"method": "GET", "url": "Io_sqlcache_rollback/read", "content-type": null},
+                                                                               
+   {"method": "POST", "url": "Io_sqlcache_rollback/rw", "content-type": null},
+                                                                              
+   {"method": "POST", "url": "Io_sqlcache_rollback/rwRetry", "content-type": null}]}

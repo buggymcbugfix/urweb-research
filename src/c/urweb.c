@@ -5153,6 +5153,11 @@ static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int comm
     *ctx->script.front = 0;
     ctx->heap.front = t->heap_front;
     ctx->regions = t->regions;
+    // The page recordings the SQL cache opened for the attempt's misses are
+    // still open; its stores went with its rollback, since the cache's
+    // transactional is the attempt's own (the lock calls are the first
+    // statements of the body).
+    ctx->numRecording = t->num_recording;
   }
 }
 
@@ -5167,6 +5172,7 @@ void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
   t->regions = ctx->regions;
   t->transactionals_base = ctx->transactionals_base;
   t->cleanup_base = ctx->cleanup_base;
+  t->num_recording = ctx->numRecording;
   ctx->transactionals_base = ctx->used_transactionals;
   ctx->cleanup_base = ctx->cleanup_front - ctx->cleanup;
   ctx->used_deltas = 0;

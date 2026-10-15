@@ -1,0 +1,11 @@
+database dbname=io_sqlcache_rollback.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_sqlcache_rollback/main
+allow url /Io_sqlcache_rollback/read
+safeGet Io_sqlcache_rollback/main
+safeGet Io_sqlcache_rollback/read
+
+$/option
+io_sqlcache_rollback

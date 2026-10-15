@@ -1508,6 +1508,16 @@ fun cacheTree (effs : IS.set) ((env, exp as (exp', loc)), state) =
           (* ASK: | EClosure (n, es) => ? *)
           | EUnurlify (e, t, b) => wrap1 (fn e => EUnurlify (e, t, b)) e
           | EQuery q => (cacheQuery (effs, env, q), state)
+          (* A transaction run from io code: its body is cached as a
+           * handler's body is, under the locks taken for the whole
+           * computation.  The transaction itself is an effect, run once per
+           * attempt with its BEGIN and COMMIT, and is never cached whole. *)
+          | ERunTransaction (e, t, try) =>
+            let
+                val (e, state) = runSubexp (cacheTree effs ((env, e), state))
+            in
+                (Impure (ERunTransaction (e, t, try), loc), state)
+            end
           | _ => (if effectful effs env exp
                   then Impure exp
                   else Cachable (InvalInfo.empty,
@@ -1618,6 +1628,15 @@ fun addFlushing ((file, {tableToIndices, indexToInvalInfo, ffiInfo, ...} : state
 (* Locking *)
 (***********)
 
+(* The body of a transaction run from io code (ERunTransaction) takes its
+ * locks for itself, see addLocking, so what an expression needs is counted
+ * with those bodies blanked out: an io function needs nothing of its own,
+ * since a query runs only inside a transaction. *)
+val blankTransactions =
+    MonoUtil.Exp.map {typ = fn t => t,
+                      exp = fn ERunTransaction _ => ERecord []
+                             | e => e}
+
 (* TODO: do this less evilly by not relying on specific FFI names, please? *)
 fun locksNeeded (lockMap : {store : IIMM.multimap, flush : IIMM.multimap}) =
     MonoUtil.Exp.fold
@@ -1636,6 +1655,7 @@ fun locksNeeded (lockMap : {store : IIMM.multimap, flush : IIMM.multimap}) =
             flush = IS.union (flush, IIMM.findSet (#flush lockMap, n))}
          | (_, state) => state}
         {store = IS.empty, flush = IS.empty}
+    o blankTransactions
 
 fun lockMapOfFile file =
     transitiveAnalysis
@@ -1655,10 +1675,13 @@ fun exports (decls, _) =
                IS.empty
                decls
 
+fun lockFirst (locks, (exp', loc)) =
+    (List.foldr (fn (l, e') => sequence [lock l, e']) exp' locks, loc)
+
 fun wrapLocks (locks, (exp', loc)) =
     case exp' of
         EAbs (s, t1, t2, exp) => (EAbs (s, t1, t2, wrapLocks (locks, exp)), loc)
-      | _ => (List.foldr (fn (l, e') => sequence [lock l, e']) exp' locks, loc)
+      | _ => lockFirst (locks, (exp', loc))
 
 fun addLocking file =
     let
@@ -1684,8 +1707,19 @@ fun addLocking file =
           | (DValRec vs, loc) => (DValRec (map doVal vs), loc)
           | (DTask (exp1, exp2), loc) => (DTask (exp1, wrapLocks (locksOfExp exp2, exp2)), loc)
           | decl => decl
+        (* A transaction run from io code takes the locks its body needs as
+         * its first statements, on every attempt, and the runtime releases
+         * them at the attempt's commit or rollback, with the stores applied
+         * or dropped: as a handler does for a request.  The io computation
+         * around it holds no lock between its transactions, where it may
+         * wait on the network.  The value may be a function, so the locks
+         * go before the body, not inside it. *)
+        val lockTransaction =
+         fn ERunTransaction (body, t, try) =>
+            ERunTransaction (lockFirst (locksOfExp body, body), t, try)
+          | e => e
     in
-        mapFst (map doDecl) file
+        fileMap lockTransaction (mapFst (map doDecl) file)
     end
 
 
