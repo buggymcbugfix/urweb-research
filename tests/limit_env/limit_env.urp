@@ -1,0 +1,4 @@
+rewrite all Limit_env/*
+limit heap 1000000
+
+limit_env
