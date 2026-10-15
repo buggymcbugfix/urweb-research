@@ -382,6 +382,8 @@ extern void uw_global_custom();
 extern void uw_init_crypto();
 
 static void uw_heap_from_env();
+static void uw_heap_init(uw_context ctx);
+static void uw_heap_spare(uw_context ctx);
 
 void uw_global_init() {
   clients = malloc(0);
@@ -475,6 +477,11 @@ struct uw_context {
   void *get_env_data;
 
   uw_buffer outHeaders, page, heap, script;
+  // The heap is a reservation of address space that never moves (see "The
+  // heap" below): heap_reserved bytes mapped at heap.start, of which the
+  // first heap.back - heap.start are readable and writable; heap.max is
+  // the heap limit.
+  size_t heap_reserved;
   int allowed_to_return_indirectly, returning_indirectly;
   input *inputs, *subinputs, *cur_container;
   size_t sz_inputs, n_subinputs, used_subinputs;
@@ -484,9 +491,7 @@ struct uw_context {
   void *db;
   int transaction_started;
 
-  // An io context (uw_io_prepare): the heap is a reserved mapping that grows
-  // in place, since io code cannot be run again after a failure; heap.max is
-  // the size of the reservation.
+  // Set by uw_io_prepare: the context runs io computations (uw_runIo).
   int io;
   // Why the last transaction of an io computation failed, for
   // Basis.io_errorMessage; empty when it committed.  Apart from
@@ -638,7 +643,7 @@ uw_context uw_init(int id, uw_loggers *lg) {
   uw_buffer_init(uw_page_max, &ctx->page, 1);
   ctx->page.start[0] = 0;
   ctx->allowed_to_return_indirectly = ctx->returning_indirectly = 0;
-  uw_buffer_init(uw_heap_max, &ctx->heap, uw_min_heap);
+  uw_heap_init(ctx);
   uw_buffer_init(uw_script_max, &ctx->script, 1);
   ctx->script.start[0] = 0;
 
@@ -762,16 +767,7 @@ void uw_free(uw_context ctx) {
   uw_buffer_free(&ctx->outHeaders);
   uw_buffer_free(&ctx->script);
   uw_buffer_free(&ctx->page);
-  if (ctx->io) {
-    // In pieces: Fil-C's munmap refuses a range of 8 GiB.
-    size_t done = 0, piece = 1ULL << 30;
-    while (done < ctx->heap.max) {
-      size_t n = ctx->heap.max - done < piece ? ctx->heap.max - done : piece;
-      munmap(ctx->heap.start + done, n);
-      done += n;
-    }
-  } else
-    uw_buffer_free(&ctx->heap);
+  uw_heap_spare(ctx);
   free(ctx->inputs);
   free(ctx->subinputs);
   free(ctx->cleanup);
@@ -1472,10 +1468,21 @@ void uw_set_at_most_one_query(uw_context ctx, int n) {
 }
 
 
-// The io heap: a reservation of address space, committed page by page as the
-// heap grows, so that growth never moves it.  Nothing is charged until a page
-// is made writable (the reservation is PROT_NONE, which counts against no
-// overcommit limit).
+// The heap.  A context's heap is a reservation of address space, made once
+// in uw_init and never moved: heap_reserved bytes mapped PROT_NONE, which
+// counts against no overcommit limit, of which pages are made readable and
+// writable as the heap grows (uw_heap_grow).  Growing therefore never
+// invalidates a pointer into the heap, so no request is run again for its
+// heap to grow, and io code, which cannot be run again, allocates like any
+// other.  What is reserved is the heap limit when there is one, else
+// UW_HEAP_DEFAULT_RESERVATION, which then is the limit in effect; the
+// reservation is all a heap costs until it is used.
+#if SIZE_MAX > 0xffffffffULL
+#define UW_HEAP_DEFAULT_RESERVATION (8ULL * 1024 * 1024 * 1024)
+#else
+#define UW_HEAP_DEFAULT_RESERVATION (256UL * 1024 * 1024)
+#endif
+
 static size_t page_size(void) {
   static size_t sz = 0;
   if (!sz) {
@@ -1483,6 +1490,16 @@ static size_t page_size(void) {
     sz = l > 0 ? (size_t)l : 4096;
   }
   return sz;
+}
+
+// n rounded up to whole pages, at least one; 0 if that does not fit.
+static size_t whole_pages(size_t n) {
+  size_t ps = page_size();
+  if (n <= ps)
+    return ps;
+  if (n > SIZE_MAX - (ps - 1))
+    return 0;
+  return (n + ps - 1) / ps * ps;
 }
 
 // The size to grow a buffer of [have] bytes to, for [desired]: doubled
@@ -1500,48 +1517,125 @@ static size_t uw_grown_size(size_t have, size_t desired, size_t max) {
   return next;
 }
 
-static void uw_io_heap_grow(uw_context ctx, uw_buffer *b, size_t desired) {
-  size_t used = b->back - b->start, ps = page_size();
-  size_t next = uw_grown_size(used, desired, b->max);
+// The heaps of contexts that were freed, kept for the next contexts to be
+// made rather than unmapped.  A heap's reservation is the same size for
+// every context, so one can always take another's.  Unmapping would be
+// wrong under Fil-C: its munmap refuses a range of 8 GiB, and a range it
+// does unmap, in smaller pieces, then counts against the overcommit limit,
+// so that the fork of a daemonizing server (-d) fails for want of memory
+// once the initializer's context has been freed.  Kept, a heap costs its
+// address space and nothing else, and no more heaps are kept than were
+// ever in use at once.
+typedef struct uw_heap_spare {
+  char *start;
+  size_t reserved, committed;
+  struct uw_heap_spare *next;
+} uw_heap_spare_t;
 
+static uw_heap_spare_t *uw_heap_spares;
+static pthread_mutex_t uw_heap_spares_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// The heap of ctx, which is being freed, to the spares: its pages given
+// back, and its committed part still writable.
+static void uw_heap_spare(uw_context ctx) {
+  uw_heap_spare_t *h = malloc(sizeof *h);
+  size_t committed = ctx->heap.back - ctx->heap.start;
+
+  if (!h)
+    return;   // the reservation stays mapped and unused
+#if defined(MADV_DONTNEED)
+  madvise(ctx->heap.start, committed, MADV_DONTNEED);
+#elif defined(MADV_FREE)
+  madvise(ctx->heap.start, committed, MADV_FREE);
+#endif
+  h->start = ctx->heap.start;
+  h->reserved = ctx->heap_reserved;
+  h->committed = committed;
+  pthread_mutex_lock(&uw_heap_spares_mutex);
+  h->next = uw_heap_spares;
+  uw_heap_spares = h;
+  pthread_mutex_unlock(&uw_heap_spares_mutex);
+}
+
+// A spare heap reserved to the size given, taken from the spares, or NULL;
+// how much of it is committed into *committed.
+static char *uw_heap_take_spare(size_t reserve, size_t *committed) {
+  uw_heap_spare_t **p, *h;
+  char *start = NULL;
+
+  pthread_mutex_lock(&uw_heap_spares_mutex);
+  for (p = &uw_heap_spares; *p && (*p)->reserved != reserve; p = &(*p)->next);
+  if ((h = *p)) {
+    *p = h->next;
+    start = h->start;
+    *committed = h->committed;
+  }
+  pthread_mutex_unlock(&uw_heap_spares_mutex);
+  free(h);
+  return start;
+}
+
+// Called by uw_init, before the context has a jmp_buf to fail through, so
+// a heap that cannot be reserved or started ends the process, saying how
+// much was asked for and where that comes from.
+static void uw_heap_init(uw_context ctx) {
+  size_t limit = uw_heap_max == SIZE_MAX ? UW_HEAP_DEFAULT_RESERVATION : uw_heap_max;
+  size_t reserve = whole_pages(limit), initial = whole_pages(uw_min_heap), committed = 0;
+  char *map = reserve ? uw_heap_take_spare(reserve, &committed) : NULL;
+
+  if (map) {
+    // A spare: what it had committed is writable, and zero.
+    if (initial < committed)
+      initial = committed;
+  } else if (reserve)
+    map = mmap(NULL, reserve, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS
+#ifdef MAP_NORESERVE
+               | MAP_NORESERVE
+#endif
+               , -1, 0);
+  else
+    map = MAP_FAILED;
+  if (map == MAP_FAILED) {
+    fprintf(stderr, "Cannot reserve %zu bytes of address space for a heap: %s\n"
+            "(Each request-handling thread and task reserves the heap limit, URWEB_LIMIT_HEAP or `limit heap` in the .urp,"
+            " or %llu bytes when there is none.)\n",
+            limit, strerror(reserve ? errno : EOVERFLOW), (unsigned long long)UW_HEAP_DEFAULT_RESERVATION);
+    exit(1);
+  }
+
+  if (initial > reserve)
+    initial = reserve;
+  if (initial > committed && mprotect(map + committed, initial - committed, PROT_READ | PROT_WRITE)) {
+    fprintf(stderr, "Cannot commit the first %zu bytes of a heap: %s\n", initial, strerror(errno));
+    exit(1);
+  }
+
+  ctx->heap.start = ctx->heap.front = map;
+  ctx->heap.back = map + initial;
+  ctx->heap.max = limit;
+  ctx->heap_reserved = reserve;
+}
+
+// Room for extra more bytes at heap.front: what is available doubles until
+// it holds them, within the limit, and the pages that takes are made
+// writable.
+static void uw_heap_grow(uw_context ctx, size_t extra) {
+  uw_buffer *b = &ctx->heap;
+  size_t used = b->front - b->start, have = b->back - b->start, next;
+
+  next = extra > b->max - used || used > b->max ? 0 : uw_grown_size(have, used + extra, b->max);
   if (!next)
     uw_error(ctx, FATAL, "Memory limit exceeded (heap)");
-  // Whole pages, within the reservation, which is whole pages itself.
-  next = (next + ps - 1) / ps * ps;
-  if (mprotect(b->start + used, next - used, PROT_READ | PROT_WRITE))
-    uw_error(ctx, FATAL, "Cannot commit memory for the io heap: %s", strerror(errno));
+  // Whole pages, within the reservation, which is the limit in whole pages.
+  next = whole_pages(next);
+  if (mprotect(b->back, next - have, PROT_READ | PROT_WRITE))
+    uw_error(ctx, FATAL, "Cannot commit %zu more bytes of heap: %s", next - have, strerror(errno));
   b->back = b->start + next;
 }
 
-static void uw_buffer_check_ctx(uw_context ctx, const char *kind, uw_buffer *b, size_t extra, const char *desc) {
-  if (b->back - b->front < extra) {
-    size_t desired = b->front - b->start + extra, next;
-    char *new_heap;
-
-    if (ctx->io && b == &ctx->heap) {
-      uw_io_heap_grow(ctx, b, desired);
-      return;
-    }
-
-    next = uw_grown_size(b->back - b->start, desired, b->max);
-    if (!next)
-      uw_error(ctx, FATAL, "Memory limit exceeded (%s)", kind);
-
-    new_heap = realloc(b->start, next);
-    b->front = new_heap + (b->front - b->start);
-    b->back = new_heap + next;
-
-    if (new_heap != b->start) {
-      b->start = new_heap;
-      uw_error(ctx, UNLIMITED_RETRY, "Couldn't allocate new %s contiguously; increasing size to %llu", desc, (unsigned long long)next);
-    }
-
-    b->start = new_heap;
-  }
-}
-
 void uw_check_heap(uw_context ctx, size_t extra) {
-  uw_buffer_check_ctx(ctx, "heap", &ctx->heap, extra, "heap chunk");
+  if ((size_t)(ctx->heap.back - ctx->heap.front) < extra)
+    uw_heap_grow(ctx, extra);
 }
 
 char *uw_heap_front(uw_context ctx) {
@@ -5053,46 +5147,10 @@ failure_kind uw_runCallback(uw_context ctx, void (*callback)(uw_context)) {
 }
 
 // io computations.  The body runs with no transaction open and is never run
-// again after a failure, so its heap must not move under it: uw_io_prepare
-// replaces the context's heap with a reservation of address space that grows
-// in place (uw_io_heap_grow).  How much is reserved is the heap limit when
-// one is set, else 8 GiB; the reservation costs nothing until used.
-
-#define UW_IO_HEAP_DEFAULT_RESERVATION (8ULL * 1024 * 1024 * 1024)
-
+// again after a failure; it allocates like any other code, since a heap
+// never moves (see "The heap").  uw_io_prepare marks the context as one
+// that runs them, which uw_runIo and uw_io_request_begin require.
 void uw_io_prepare(uw_context ctx) {
-  size_t reserve = uw_heap_max == SIZE_MAX ? UW_IO_HEAP_DEFAULT_RESERVATION : uw_heap_max;
-  size_t ps = page_size(), initial;
-  char *map;
-
-  if (ctx->io)
-    return;
-
-  reserve = (reserve + ps - 1) / ps * ps;
-  map = mmap(NULL, reserve, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS
-#ifdef MAP_NORESERVE
-             | MAP_NORESERVE
-#endif
-             , -1, 0);
-  if (map == MAP_FAILED) {
-    fprintf(stderr, "Cannot reserve %llu bytes of address space for an io heap: %s\n",
-            (unsigned long long)reserve, strerror(errno));
-    exit(1);
-  }
-
-  initial = uw_min_heap < ps ? ps : (uw_min_heap + ps - 1) / ps * ps;
-  if (initial > reserve)
-    initial = reserve;
-  if (mprotect(map, initial, PROT_READ | PROT_WRITE)) {
-    fprintf(stderr, "Cannot commit the first %llu bytes of an io heap: %s\n",
-            (unsigned long long)initial, strerror(errno));
-    exit(1);
-  }
-
-  uw_buffer_free(&ctx->heap);
-  ctx->heap.start = ctx->heap.front = map;
-  ctx->heap.back = map + initial;
-  ctx->heap.max = reserve;
   ctx->io = 1;
 }
 
@@ -5121,7 +5179,7 @@ failure_kind uw_runIo(uw_context ctx, void (*callback)(uw_context)) {
   int r;
 
   if (!ctx->io) {
-    uw_set_error_message(ctx, "uw_runIo on a context without an io heap");
+    uw_set_error_message(ctx, "uw_runIo on a context not prepared for io (uw_io_prepare)");
     return FATAL;
   }
 
@@ -5313,10 +5371,9 @@ uw_Basis_string uw_Basis_io_errorMessage(uw_context ctx) {
 // transaction of the request's, runs its own (uw_io_transaction_*), and is
 // never run again, so a failure that reaches this level is re-raised to
 // uw_request as FATAL whatever its kind -- a retry from inside a transaction
-// never gets here, and one from outside cannot be honoured.  For the same
-// reason the context must have the io heap (uw_io_prepare), which the runtime
-// gives every request context of an application with io handlers: a heap
-// that moved would ask for a retry.
+// never gets here, and one from outside cannot be honoured.  The context must
+// be prepared for io (uw_io_prepare), which the runtime does for every
+// request context of an application with io handlers.
 //
 // The client uw_login found or made stays held and named across the inner
 // transactions (release_client_of), for the request's own commit or rollback
@@ -5332,7 +5389,7 @@ uw_Basis_string uw_Basis_io_errorMessage(uw_context ctx) {
 // waits on the network, as it is kept waiting by any request.
 void uw_io_request_begin(uw_context ctx, uw_io_request *r) {
   if (!ctx->io)
-    uw_error(ctx, FATAL, "io code in a request on a context without an io heap");
+    uw_error(ctx, FATAL, "io code in a request on a context not prepared for io (uw_io_prepare)");
   memcpy(&r->outer, &ctx->jmp_buf, sizeof(jmp_buf));
   ctx->io_request = 1;
 }

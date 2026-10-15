@@ -1,10 +1,1 @@
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 8192
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 131072
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 262144
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 524288
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 1048576
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 2097152
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 4194304
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 8388608
-Error triggers unlimited retry in periodic: Couldn't allocate new heap chunk contiguously; increasing size to 16777216
-periodic tick 10: 4194304 bytes
+periodic tick 1: 4194304 bytes
