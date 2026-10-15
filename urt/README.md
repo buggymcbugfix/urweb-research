@@ -160,7 +160,11 @@ library into every process of theirs (`urt/src/urtclock.c`) that makes
 the realtime clock read the run's time, which the driver writes to a
 file the library maps, so that a cookie expires at its time; the
 monotonic clocks, by which the engines time their own work, are left
-alone.  Elsewhere the engines keep the wall clock.
+alone.  There the driver also drops a cookie past its expiry from the
+user's context before it forwards a request, since Playwright fills in
+a Cookie header from the context's cookies for a request without one,
+and Firefox and WebKit list expired ones with the rest.  Elsewhere the
+engines keep the wall clock.
 An element is ready to act on when it is shown, enabled and still: no
 animation of its own or around it under way and, while anything else
 in the page moves, the same box on two frames in a row.  A run comes

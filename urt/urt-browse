@@ -85,7 +85,11 @@ time, whatever the machine.  On Linux the engines' own wall clock is the
 run's as well, through liburtclock (urt/src/urtclock.c), which the
 driver loads into every process of theirs: what goes by it inside an
 engine, a cookie's expiry first of all, goes by the run's time.
-Elsewhere the engines keep the wall clock.
+There the driver also drops a cookie past its expiry from the user's
+context before it forwards a request, since Playwright fills in a
+Cookie header from the context's cookies for a request without one,
+and Firefox and WebKit list expired ones with the rest.  Elsewhere the
+engines keep the wall clock.
 
 What moves on its own in a page is on the clock too.  An animation (a
 CSS transition or animation, element.animate()) is held where the clock
@@ -3124,10 +3128,38 @@ class Run:
         rtt = self.setup.rtt_of(tab.user.name)
         self.push(self.now + rtt // 2, PHASE_SERVER, tab.user.rank, functools.partial(self.arrive, h))
 
+    async def expire_cookies(self, h):
+        """The user's cookies past their expiry when the page sent the
+        request, out of their context, where liburtclock has put the
+        engine's jar on the run's clock: route.fetch writes a Cookie header
+        from the context's cookies for a request that has none (WebKit's
+        never has one here, Firefox's not when it has nothing to send), and
+        Firefox and WebKit list a cookie past its expiry with the rest.
+        Without the library the engines' jars, and the expiries they report
+        (Chromium and Firefox cap them at 400 days from their now), go by
+        the wall clock, and so do the cookies."""
+        context = h.tab.user.context
+        if context is None or self.drv.clock.lib is None:
+            return
+        try:
+            gone = [c for c in await context.cookies() if c['expires'] != -1 and c['expires'] * 1000 <= h.sent]
+            if gone:
+                # Expired by an expired copy, as clear_cookies does, but alive
+                # again first: Firefox sets nothing for an expired copy of a
+                # cookie already past its time, which stays in the list.  No
+                # page sends a request in between: they are quiet while a
+                # request arrives.
+                kept = ('name', 'value', 'domain', 'path', 'httpOnly', 'secure', 'sameSite')
+                await context.add_cookies([dict({k: c[k] for k in kept}, expires=-1) for c in gone])
+                await context.add_cookies([dict({k: c[k] for k in kept}, value='', expires=0) for c in gone])
+        except self.PlaywrightError:
+            pass
+
     async def arrive(self, h):
         h.arrived = self.now
         trace('arrive', h.tab.label, self.path_of(h.req.url))
         headers = {k: v for k, v in h.req.headers.items() if k.lower() not in ('host', 'x-urt-sent')}
+        await self.expire_cookies(h)
         headers['urweb-time'] = str(self.now)
         if h.poll:
             h.task = asyncio.ensure_future(self.fetch_poll(h, headers))
