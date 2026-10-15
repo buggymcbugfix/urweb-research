@@ -14,16 +14,20 @@ fun draggableList title items =
 										onmousedown={fn _ => set draggingItem (Some itemSource)}
 										onmouseup={fn _ => set draggingItem None}
 										onmouseover={
-											fn _ =>
+											fn ev =>
 												di <- get draggingItem;
 												case di of
 												| None => return ()
 												| Some di =>
-													original <- get di;
-													movedOver <- get itemSource;
-													set di movedOver;
-													set itemSource original;
-													set draggingItem (Some itemSource)
+													if not ev.Buttons.Left then
+														(* Let go somewhere else. *)
+														set draggingItem None
+													else
+														original <- get di;
+														movedOver <- get itemSource;
+														set di movedOver;
+														set itemSource original;
+														set draggingItem (Some itemSource)
 										}
 									>
 										<dyn signal={Monad.mp cdata (signal itemSource)} />
