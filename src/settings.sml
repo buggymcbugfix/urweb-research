@@ -762,6 +762,26 @@ val sigFile = ref (NONE : string option)
 fun setSigFile v = sigFile := v
 fun getSigFile () = !sigFile
 
+fun globalCustom () =
+    let
+        open Print.PD Print
+    in
+        box [string "void uw_global_custom() {",
+             newline,
+             case getSigFile () of
+                 NONE => box []
+               | SOME sf => box [string "extern char *uw_sig_file;",
+                                 newline,
+                                 string "uw_sig_file = \"",
+                                 string sf,
+                                 string "\";",
+                                 newline],
+             string "uw_setup_limits();",
+             newline,
+             string "}",
+             newline]
+    end
+
 val fileCache = ref (NONE : string option)
 fun setFileCache v =
     (if Option.isSome v andalso (case #supportsSHA512 (currentDbms ()) of NONE => true

@@ -35,20 +35,7 @@ val () = addProtocol {name = "http",
                       linkStatic = "liburweb_http.a",
                       linkDynamic = "-lurweb_http",
                       persistent = true,
-                      code = fn () => box [string "void uw_global_custom() {",
-                                           newline,
-                                           case getSigFile () of
-                                               NONE => box []
-                                             | SOME sf => box [string "extern char *uw_sig_file;",
-                                                               newline,
-                                                               string "uw_sig_file = \"",
-                                                               string sf,
-                                                               string "\";",
-                                                               newline],
-                                           string "uw_setup_limits();",
-                                           newline,
-                                           string "}",
-                                           newline]}
+                      code = globalCustom}
 
 val () = setProtocol "http"
 

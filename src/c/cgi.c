@@ -75,8 +75,8 @@ int main(int argc, char *argv[]) {
   (void)argc;
   (void)argv;
 
-  uw_context ctx = uw_request_new_context(0, &uw_application, &ls);
-  uw_request_context rc = uw_new_request_context();
+  uw_context ctx;
+  uw_request_context rc;
   request_result rr;
   char *method = getenv("REQUEST_METHOD"),
     *path = getenv("SCRIPT_NAME"), *path_info = getenv("PATH_INFO"),
@@ -120,10 +120,18 @@ int main(int argc, char *argv[]) {
   }
 
   uw_set_on_success("");
-  uw_set_headers(ctx, get_header, NULL);
-  uw_set_env(ctx, get_env, NULL);
+  // The global set-up reads the project's limits (uw_global_custom), which
+  // a context is made with: its heap's maximum among them.  So it comes
+  // first, as in the other protocols.
   uw_request_init(&uw_application, &ls);
   uw_request_start_threads(&uw_application, &ls);
+
+  ctx = uw_request_new_context(0, &uw_application, &ls);
+  if (!ctx)
+    exit(1);
+  rc = uw_new_request_context();
+  uw_set_headers(ctx, get_header, NULL);
+  uw_set_env(ctx, get_env, NULL);
 
   body[body_pos] = 0;
   rr = uw_request(rc, ctx, method, path, query_string, body, body_pos,

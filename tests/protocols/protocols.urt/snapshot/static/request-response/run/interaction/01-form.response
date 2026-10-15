@@ -1,5 +1,5 @@
 Content-type: text/html; charset=utf-8
 
 <!DOCTYPE html><html><head></head><body>
-<form method="post" action="/add"><input type="hidden" name="Sig" value="374708FFF7719DD5979EC875D56CD2286F6D3CF7EC317A3B25632AAB28EC37BB" /><input type="text" name="Text" /><input type="submit" /></form>
+<form method="post" action="/add"><input type="hidden" name="Sig" value="DB59E95E0D7E6F68C1DD705803A1396D7DC4F674236BF9F4DACDAE420D13F608" /><input type="text" name="Text" /><input type="submit" /></form>
 </body></html>
