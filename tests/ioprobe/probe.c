@@ -184,3 +184,20 @@ uw_unit uw_Probe_finishPendingWriteIo(uw_context ctx) { return finish(ctx); }
 
 uw_unit uw_Probe_sleepIo(uw_context ctx, uw_Basis_int ms) { (void)ctx; usleep(ms * 1000); return uw_unit_v; }
 uw_unit uw_Probe_sleepT(uw_context ctx, uw_Basis_int ms) { (void)ctx; usleep(ms * 1000); return uw_unit_v; }
+
+/* The statements SQLite runs, as it runs them: BEGIN and COMMIT as well as
+   the program's own, with the parameters filled in. */
+static int trace_statement(unsigned type, void *c, void *stmt, void *x) {
+  (void)type;
+  (void)x;
+  char *sql = sqlite3_expanded_sql(stmt);
+  say(c, "sql:", sql ? sql : "?");
+  sqlite3_free(sql);
+  return 0;
+}
+
+uw_unit uw_Probe_traceSqlIo(uw_context ctx) {
+  sqlite3 *db = *(sqlite3 **)uw_get_db(ctx);
+  sqlite3_trace_v2(db, SQLITE_TRACE_STMT, trace_statement, ctx);
+  return uw_unit_v;
+}

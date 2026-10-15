@@ -26,3 +26,4 @@ uw_unit uw_Probe_finishPendingWrite(uw_context);
 uw_unit uw_Probe_finishPendingWriteIo(uw_context);
 uw_unit uw_Probe_sleepIo(uw_context, uw_Basis_int);
 uw_unit uw_Probe_sleepT(uw_context, uw_Basis_int);
+uw_unit uw_Probe_traceSqlIo(uw_context);

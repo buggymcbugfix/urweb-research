@@ -28,6 +28,7 @@ database dbname=io_outside.db
     val finishPendingWriteIo : io unit
     val sleepIo : int -> io unit
     val sleepT : int -> transaction unit
+    val traceSqlIo : io unit
    end
  
  structure List :

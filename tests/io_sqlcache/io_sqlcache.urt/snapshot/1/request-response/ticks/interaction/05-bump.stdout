@@ -1,0 +1,6 @@
+sql: BEGIN
+sql: UPDATE uw_Io_sqlcache_counter SET uw_V = 5 WHERE (uw_Id = 1)
+sql: COMMIT
+sql: BEGIN
+sql: SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)
+sql: COMMIT

@@ -60,3 +60,7 @@ val finishPendingWriteIo : io unit
 (* Sleep, in milliseconds. *)
 val sleepIo : int -> io unit
 val sleepT : int -> transaction unit
+
+(* From now on, every SQL statement this context's connection runs is a line
+   in the log, "sql: " and the statement.  SQLite only. *)
+val traceSqlIo : io unit

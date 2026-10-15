@@ -1508,6 +1508,16 @@ fun cacheTree (effs : IS.set) ((env, exp as (exp', loc)), state) =
           (* ASK: | EClosure (n, es) => ? *)
           | EUnurlify (e, t, b) => wrap1 (fn e => EUnurlify (e, t, b)) e
           | EQuery q => (cacheQuery (effs, env, q), state)
+          (* A transaction run from io code: its body is cached as a
+           * handler's body is, under the locks taken for the whole
+           * computation.  The transaction itself is an effect, run once per
+           * attempt with its BEGIN and COMMIT, and is never cached whole. *)
+          | ERunTransaction (e, t, try) =>
+            let
+                val (e, state) = runSubexp (cacheTree effs ((env, e), state))
+            in
+                (Impure (ERunTransaction (e, t, try), loc), state)
+            end
           | _ => (if effectful effs env exp
                   then Impure exp
                   else Cachable (InvalInfo.empty,

@@ -229,26 +229,26 @@
     
  
  /* No global setup for LRU cache. */
-  static uw_Sqlcache_Cache cacheStruct0 = {
+  static uw_Sqlcache_Cache cacheStruct2 = {
      .lockIn = PTHREAD_RWLOCK_INITIALIZER,
      .lockOut = PTHREAD_RWLOCK_INITIALIZER,
      .table = NULL,
      .numKeys = 0,
      .timeInvalid = 0,
      .timeNow = 0};
-   static uw_Sqlcache_Cache *cache0 = &cacheStruct0;
+   static uw_Sqlcache_Cache *cache2 = &cacheStruct2;
    
-   static void uw_Sqlcache_rlock0(uw_context ctx) {
-     uw_Sqlcache_rlock(ctx, cache0);
+   static void uw_Sqlcache_rlock2(uw_context ctx) {
+     uw_Sqlcache_rlock(ctx, cache2);
    }
    
-   static void uw_Sqlcache_wlock0(uw_context ctx) {
-     uw_Sqlcache_wlock(ctx, cache0);
+   static void uw_Sqlcache_wlock2(uw_context ctx) {
+     uw_Sqlcache_wlock(ctx, cache2);
    }
    
-   static uw_Basis_string uw_Sqlcache_check0(uw_context ctx) {
+   static uw_Basis_string uw_Sqlcache_check2(uw_context ctx) {
      char *ks[] = {};
-     uw_Sqlcache_Value *v = uw_Sqlcache_check(ctx, cache0, ks);
+     uw_Sqlcache_Value *v = uw_Sqlcache_check(ctx, cache2, ks);
      if (v && v->output != NULL) {
        uw_write(ctx, v->output);
        uw_write_script(ctx, v->scriptOutput);
@@ -259,28 +259,123 @@
      }
    }
    
-   static uw_unit uw_Sqlcache_store0(uw_context ctx, uw_Basis_string s) {
+   static uw_unit uw_Sqlcache_store2(uw_context ctx, uw_Basis_string s) {
      char *ks[] = {};
      uw_Sqlcache_Value *v = malloc(sizeof(uw_Sqlcache_Value));
      v->result = strdup(s);
      v->output = uw_recordingRead(ctx);
      v->scriptOutput = uw_recordingReadScript(ctx);
-     uw_Sqlcache_store(ctx, cache0, ks, v);
+     uw_Sqlcache_store(ctx, cache2, ks, v);
      return uw_unit_v;
    }
    
-   static uw_unit uw_Sqlcache_flush0(uw_context ctx) {
+   static uw_unit uw_Sqlcache_flush2(uw_context ctx) {
      char *ks[] = {};
-     uw_Sqlcache_flush(ctx, cache0, ks);
+     uw_Sqlcache_flush(ctx, cache2, ks);
      return uw_unit_v;
    }
    
-   
+   static uw_Sqlcache_Cache cacheStruct1 = {
+      .lockIn = PTHREAD_RWLOCK_INITIALIZER,
+      .lockOut = PTHREAD_RWLOCK_INITIALIZER,
+      .table = NULL,
+      .numKeys = 0,
+      .timeInvalid = 0,
+      .timeNow = 0};
+    static uw_Sqlcache_Cache *cache1 = &cacheStruct1;
+    
+    static void uw_Sqlcache_rlock1(uw_context ctx) {
+      uw_Sqlcache_rlock(ctx, cache1);
+    }
+    
+    static void uw_Sqlcache_wlock1(uw_context ctx) {
+      uw_Sqlcache_wlock(ctx, cache1);
+    }
+    
+    static uw_Basis_string uw_Sqlcache_check1(uw_context ctx) {
+      char *ks[] = {};
+      uw_Sqlcache_Value *v = uw_Sqlcache_check(ctx, cache1, ks);
+      if (v && v->output != NULL) {
+        uw_write(ctx, v->output);
+        uw_write_script(ctx, v->scriptOutput);
+        return v->result;
+      } else {
+        uw_recordingStart(ctx);
+        return NULL;
+      }
+    }
+    
+    static uw_unit uw_Sqlcache_store1(uw_context ctx, uw_Basis_string s) {
+      char *ks[] = {};
+      uw_Sqlcache_Value *v = malloc(sizeof(uw_Sqlcache_Value));
+      v->result = strdup(s);
+      v->output = uw_recordingRead(ctx);
+      v->scriptOutput = uw_recordingReadScript(ctx);
+      uw_Sqlcache_store(ctx, cache1, ks, v);
+      return uw_unit_v;
+    }
+    
+    static uw_unit uw_Sqlcache_flush1(uw_context ctx) {
+      char *ks[] = {};
+      uw_Sqlcache_flush(ctx, cache1, ks);
+      return uw_unit_v;
+    }
+    
+    static uw_Sqlcache_Cache cacheStruct0 = {
+       .lockIn = PTHREAD_RWLOCK_INITIALIZER,
+       .lockOut = PTHREAD_RWLOCK_INITIALIZER,
+       .table = NULL,
+       .numKeys = 0,
+       .timeInvalid = 0,
+       .timeNow = 0};
+     static uw_Sqlcache_Cache *cache0 = &cacheStruct0;
+     
+     static void uw_Sqlcache_rlock0(uw_context ctx) {
+       uw_Sqlcache_rlock(ctx, cache0);
+     }
+     
+     static void uw_Sqlcache_wlock0(uw_context ctx) {
+       uw_Sqlcache_wlock(ctx, cache0);
+     }
+     
+     static uw_Basis_string uw_Sqlcache_check0(uw_context ctx) {
+       char *ks[] = {};
+       uw_Sqlcache_Value *v = uw_Sqlcache_check(ctx, cache0, ks);
+       if (v && v->output != NULL) {
+         uw_write(ctx, v->output);
+         uw_write_script(ctx, v->scriptOutput);
+         return v->result;
+       } else {
+         uw_recordingStart(ctx);
+         return NULL;
+       }
+     }
+     
+     static uw_unit uw_Sqlcache_store0(uw_context ctx, uw_Basis_string s) {
+       char *ks[] = {};
+       uw_Sqlcache_Value *v = malloc(sizeof(uw_Sqlcache_Value));
+       v->result = strdup(s);
+       v->output = uw_recordingRead(ctx);
+       v->scriptOutput = uw_recordingReadScript(ctx);
+       uw_Sqlcache_store(ctx, cache0, ks, v);
+       return uw_unit_v;
+     }
+     
+     static uw_unit uw_Sqlcache_flush0(uw_context ctx) {
+       char *ks[] = {};
+       uw_Sqlcache_flush(ctx, cache0, ks);
+       return uw_unit_v;
+     }
+     
+     
  
   
   struct __uws_1 {
    uw_Basis_int __uwf_1;
     };
+  
+  static char jslib[] = "*runtime elided*";
+   static char jsapp[] = "*script elided*";
   
   static uw_unit __uwn_initializer_1(uw_context ctx, uw_unit __uwr___0)
    {
@@ -296,17 +391,573 @@
    
   
   
-  static uw_unit
-   __uwn_wrap_main_3(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+  static uw_Basis_int
+   __uwn_bump_3(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr___1)
    {
-   return((uw_begin_region(ctx), uw_Sqlcache_rlock0(ctx),
+   return((uw_begin_region(ctx), uw_Sqlcache_wlock0(ctx),
+           uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock1(ctx),
+                                uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock2(ctx
+                                                                            ),
+                                                     uw_end_region(ctx), ({
+                                                                          uw_unit
+                                                                          __uwr___2
+                                                                          =
+                                                                          (uw_begin_region(ctx),
+                                                                           uw_Probe_traceSqlIo(ctx
+                                                                            ));
+                                                                          uw_end_region(ctx);
+                                                                           ({
+                                                                            uw_unit
+                                                                            __uwr___3
+                                                                            =
+                                                                            (uw_begin_region(ctx),
+                                                                             ({
+                                                                              uw_io_transaction __uwt;
+                                                                              uw_unit
+                                                                              __uwr;
+                                                                              uw_io_transaction_begin(ctx, &__uwt);
+                                                                              while (1) {
+                                                                              int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                               if (__uwfk == 0) {
+                                                                               __uwr =
+                                                                               (uw_begin_region(ctx),
+                                                                               (uw_begin_region(ctx),
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Sqlcache_flush0(ctx
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               uw_Sqlcache_flush1(ctx
+                                                                               )),
+                                                                               uw_end_region(ctx),
+                                                                               uw_Sqlcache_flush2(ctx
+                                                                               )),
+                                                                               uw_end_region(ctx),
+                                                                               (uw_begin_region(ctx), ({
+                                                                               uw_Basis_int
+                                                                               arg1
+                                                                               =
+                                                                               __uwr_n_0;
+                                                                               
+                                                                               uw_ensure_transaction(ctx);
+                                                                               
+                                                                               uw_conn *conn = uw_get_db(ctx);
+                                                                               sqlite3_stmt *stmt = conn->p0;
+                                                                               
+                                                                               if (stmt == NULL) {
+                                                                               if (sqlite3_prepare_v2(conn->conn, "UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)<br />%s", sqlite3_errmsg(conn->conn));
+                                                                               conn->p0 = stmt;
+                                                                               }
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+                                                                               if (
+                                                                               sqlite3_bind_int64(stmt, 1, 
+                                                                               arg1) != SQLITE_OK) uw_error(ctx, FATAL, ":0:0-0:0: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
+                                                                               
+                                                                               int r;
+                                                                               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                                                                               sleep(1);
+                                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                               }
+                                                                               
+                                                                               if (r != SQLITE_DONE) 
+                                                                               uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
+                                                                               "UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)", sqlite3_errmsg(conn->conn));
+                                                                               else if (uw_dml_log_enabled()) {
+                                                                               char *expanded = sqlite3_expanded_sql(stmt);
+                                                                               uw_log_dml(ctx, ":0:0-0:0", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                                                               sqlite3_free(expanded);
+                                                                               }
+                                                                               uw_pop_cleanup(ctx);
+                                                                               uw_pop_cleanup(ctx);
+                                                                               
+                                                                               
+                                                                               uw_end_region(ctx);
+                                                                               0;
+                                                                               })));
+                                                                               uw_io_transaction_commit(ctx, &__uwt);
+                                                                               break;
+                                                                               } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                               break;
+                                                                               }
+                                                                               }
+                                                                              uw_io_transaction_end(ctx, &__uwt, 1);
+                                                                              __uwr;
+                                                                              }));
+                                                                            uw_end_region(ctx);
+                                                                             ({
+                                                                              uw_io_transaction __uwt;
+                                                                              uw_Basis_int
+                                                                              __uwr;
+                                                                              uw_io_transaction_begin(ctx, &__uwt);
+                                                                              while (1) {
+                                                                              int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                               if (__uwfk == 0) {
+                                                                               __uwr =
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1*
+                                                                               disc
+                                                                               =
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               disc
+                                                                               =
+                                                                               uw_Sqlcache_check0(ctx
+                                                                               );
+                                                                               
+                                                                               disc
+                                                                               ==
+                                                                               NULL
+                                                                               ?
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1*
+                                                                               __uwr_q_4
+                                                                               =
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1*
+                                                                               acc
+                                                                               =
+                                                                               NULL;
+                                                                               int dummy = (uw_begin_region(ctx), 0);
+                                                                               uw_ensure_transaction(ctx);
+                                                                               
+                                                                               
+                                                                               uw_conn *conn = uw_get_db(ctx);
+                                                                               sqlite3_stmt *stmt = conn->p1;
+                                                                               
+                                                                               if (stmt == NULL) {
+                                                                               if (sqlite3_prepare_v2(conn->conn, "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)<br />%s", sqlite3_errmsg(conn->conn));
+                                                                               conn->p1 = stmt;
+                                                                               }
+                                                                               
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+                                                                               
+                                                                               
+                                                                               int r;
+                                                                               sqlite3_reset(stmt);
+                                                                               uw_end_region(ctx);
+                                                                               while ((r = sqlite3_step(stmt)) == SQLITE_ROW) {
+                                                                               struct __uws_1 __uwr_r_4;
+                                                                               struct
+                                                                               __uws_1*
+                                                                               __uwr_acc_5
+                                                                               =
+                                                                               acc;
+                                                                               
+                                                                               __uwr_r_4.__uwf_1
+                                                                               =
+                                                                               (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
+                                                                               ({uw_Basis_int
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, ":0:0-0:0: Unexpectedly NULL field #0");
+                                                                               tmp;
+                                                                               }) : 
+                                                                               sqlite3_column_int64(stmt, 0));
+                                                                               
+                                                                               
+                                                                               acc
+                                                                               =
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1
+                                                                               *tmp
+                                                                               =
+                                                                               uw_malloc(ctx, sizeof(
+                                                                               struct
+                                                                               __uws_1));
+                                                                               *tmp
+                                                                               =
+                                                                               __uwr_r_4;
+                                                                               tmp;
+                                                                               });
+                                                                               }
+                                                                               
+                                                                               if (r == SQLITE_BUSY) {
+                                                                               sleep(1);
+                                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                               }
+                                                                               
+                                                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: query step failed: %s<br />%s", 
+                                                                               "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", sqlite3_errmsg(conn->conn));
+                                                                               
+                                                                               uw_pop_cleanup(ctx);
+                                                                               uw_pop_cleanup(ctx);
+                                                                               
+                                                                               acc;
+                                                                               })
+                                                                               ;
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Sqlcache_store0(ctx,
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1*
+                                                                               disc
+                                                                               =
+                                                                               __uwr_q_4;
+                                                                               
+                                                                               disc
+                                                                               ==
+                                                                               NULL
+                                                                               ?
+                                                                               "None"
+                                                                               
+                                                                               :
+                                                                               disc
+                                                                               !=
+                                                                               NULL
+                                                                               &&
+                                                                               1
+                                                                               ?
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1
+                                                                               __uwr_x_5
+                                                                               =
+                                                                               (*disc);
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               arg0
+                                                                               =
+                                                                               "Some/";
+                                                                               
+                                                                               uw_Basis_string
+                                                                               arg1
+                                                                               =
+                                                                               uw_Basis_urlifyInt(ctx,
+                                                                               __uwr_x_5.__uwf_1
+                                                                               );
+                                                                               uw_Basis_strcat(ctx, 
+                                                                               arg0
+                                                                               ,
+                                                                               
+                                                                               arg1
+                                                                               );
+                                                                               });
+                                                                               })
+                                                                               
+                                                                               :
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "$/basis.urs:133:23-133:24: pattern match failure");
+                                                                               tmp;
+                                                                               });
+                                                                               })
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               __uwr_q_4);
+                                                                               })
+                                                                               
+                                                                               :
+                                                                               disc
+                                                                               !=
+                                                                               NULL
+                                                                               &&
+                                                                               1
+                                                                               ?
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               __uwr_hit_4
+                                                                               =
+                                                                               disc;
+                                                                               ({
+                                                                               uw_Basis_string request = uw_maybe_strdup(ctx, __uwr_hit_4);
+                                                                               
+                                                                               (request[0] == '/' ? ++request : request, ((!strncmp(request, "None", 4) && (request[4] == 0 || request[4] == '/')) ? (request += (request[4] == 0 ? 4 : 5), NULL) : ((!strncmp(request, "Some", 4) && request[4] == '/') ? (request += 5, 
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1
+                                                                               *tmp
+                                                                               =
+                                                                               uw_malloc(ctx, sizeof(
+                                                                               struct
+                                                                               __uws_1));
+                                                                               *tmp
+                                                                               =
+                                                                               ({
+                                                                               uw_Basis_int
+                                                                               uwr_1
+                                                                               =
+                                                                               uw_Basis_unurlifyInt(ctx, &request);
+                                                                               struct
+                                                                               __uws_1
+                                                                               tmp
+                                                                               =
+                                                                               {
+                                                                               uwr_1
+                                                                               };
+                                                                               tmp;
+                                                                               });
+                                                                               tmp;
+                                                                               })) :
+                                                                               (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+                                                                               });
+                                                                               })
+                                                                               
+                                                                               :
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1*
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, ":0:0-0:0: pattern match failure");
+                                                                               tmp;
+                                                                               });
+                                                                               });
+                                                                               
+                                                                               disc
+                                                                               ==
+                                                                               NULL
+                                                                               ?
+                                                                               ({
+                                                                               uw_Basis_int
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
+                                                                               "Query returned no rows");
+                                                                               tmp;
+                                                                               })
+                                                                               
+                                                                               :
+                                                                               disc
+                                                                               !=
+                                                                               NULL
+                                                                               &&
+                                                                               1
+                                                                               ?
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1
+                                                                               __uwr_r_4
+                                                                               =
+                                                                               (*disc);
+                                                                               __uwr_r_4.__uwf_1;
+                                                                               })
+                                                                               
+                                                                               :
+                                                                               ({
+                                                                               uw_Basis_int
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "tests/io_sqlcache/io_sqlcache.ur:29:4-29:84: pattern match failure");
+                                                                               tmp;
+                                                                               });
+                                                                               });
+                                                                               uw_io_transaction_commit(ctx, &__uwt);
+                                                                               break;
+                                                                               } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                               break;
+                                                                               }
+                                                                               }
+                                                                              uw_io_transaction_end(ctx, &__uwt, 1);
+                                                                              __uwr;
+                                                                              });
+                                                                            });
+                                                                          })))));
+   }
+  
+  static uw_Basis_int
+   __uwn_read_4(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   {
+   return((uw_begin_region(ctx), uw_Sqlcache_rlock1(ctx),
+           uw_end_region(ctx), ({
+                                uw_unit __uwr___2 =
+                                (uw_begin_region(ctx), uw_Probe_traceSqlIo(ctx));
+                                uw_end_region(ctx);
+                                 ({
+                                  uw_io_transaction __uwt;
+                                  uw_Basis_int
+                                  __uwr;
+                                  uw_io_transaction_begin(ctx, &__uwt);
+                                  while (1) {
+                                  int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                   if (__uwfk == 0) {
+                                   __uwr =
+                                    ({
+                                     struct __uws_1* disc =
+                                     ({
+                                      uw_Basis_string disc =
+                                      uw_Sqlcache_check1(ctx);
+                                      
+                                      disc == NULL ?
+                                       ({
+                                        struct __uws_1* __uwr_q_3 =
+                                        ({
+                                         struct __uws_1* acc =
+                                         NULL;
+                                         int dummy = (uw_begin_region(ctx), 0);
+                                         uw_ensure_transaction(ctx);
+                                         
+                                          
+                                          uw_conn *conn = uw_get_db(ctx);
+                                           sqlite3_stmt *stmt = conn->p1;
+                                            
+                                            if (stmt == NULL) {
+                                            if (sqlite3_prepare_v2(conn->conn, "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)<br />%s", sqlite3_errmsg(conn->conn));
+                                           conn->p1 = stmt;
+                                            }
+                                            
+                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+                                            
+                                           
+                                           int r;
+                                            sqlite3_reset(stmt);
+                                            uw_end_region(ctx);
+                                            while ((r = sqlite3_step(stmt)) == SQLITE_ROW) {
+                                            struct __uws_1 __uwr_r_3;
+                                             struct __uws_1* __uwr_acc_4 =
+                                             acc;
+                                             
+                                             __uwr_r_3.__uwf_1 =
+                                              (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
+                                               ({uw_Basis_int
+                                                tmp;
+                                                uw_error(ctx, FATAL, ":0:0-0:0: Unexpectedly NULL field #0");
+                                                tmp;
+                                                }) : sqlite3_column_int64(stmt, 0));
+                                              
+                                             
+                                             acc =
+                                             ({
+                                              struct __uws_1 *tmp =
+                                              uw_malloc(ctx, sizeof(struct
+                                                                     __uws_1));
+                                              *tmp = __uwr_r_3;
+                                              tmp;
+                                              });
+                                             }
+                                            
+                                            if (r == SQLITE_BUSY) {sleep(1);
+                                                                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                    }
+                                            
+                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: query step failed: %s<br />%s", 
+                                            "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", sqlite3_errmsg(conn->conn));
+                                            
+                                            uw_pop_cleanup(ctx);
+                                           uw_pop_cleanup(ctx);
+                                            
+                                         acc;
+                                         });
+                                        (uw_begin_region(ctx), uw_Sqlcache_store1(ctx,
+                                                                ({
+                                                                 struct __uws_1*
+                                                                 disc =
+                                                                 __uwr_q_3;
+                                                                 
+                                                                 disc == NULL ?
+                                                                  "None"
+                                                                   :
+                                                                  disc != NULL
+                                                                   && 1 ?
+                                                                   ({struct
+                                                                      __uws_1
+                                                                      __uwr_x_4
+                                                                      =
+                                                                      (*disc);
+                                                                      ({
+                                                                       uw_Basis_string
+                                                                        arg0 =
+                                                                        "Some/";
+                                                                        
+                                                                        uw_Basis_string
+                                                                         arg1 =
+                                                                         uw_Basis_urlifyInt(ctx,
+                                                                          __uwr_x_4.__uwf_1
+                                                                          );
+                                                                         uw_Basis_strcat(ctx, 
+                                                                       arg0, 
+                                                                        arg1);
+                                                                       });
+                                                                    })
+                                                                    :
+                                                                   ({
+                                                                    uw_Basis_string
+                                                                    tmp;
+                                                                    uw_error(ctx, FATAL, "$/basis.urs:133:23-133:24: pattern match failure");
+                                                                    tmp;
+                                                                    });
+                                                                 })),
+                                         uw_end_region(ctx), __uwr_q_3);
+                                        })
+                                        :
+                                       disc != NULL && 1 ?
+                                        ({uw_Basis_string __uwr_hit_3 = disc;
+                                           ({
+                                            uw_Basis_string request = uw_maybe_strdup(ctx, __uwr_hit_3);
+                                            
+                                            (request[0] == '/' ? ++request : request, ((!strncmp(request, "None", 4) && (request[4] == 0 || request[4] == '/')) ? (request += (request[4] == 0 ? 4 : 5), NULL) : ((!strncmp(request, "Some", 4) && request[4] == '/') ? (request += 5, 
+                                             ({
+                                              struct __uws_1 *tmp =
+                                              uw_malloc(ctx, sizeof(struct
+                                                                     __uws_1));
+                                              *tmp =
+                                              ({
+                                               uw_Basis_int uwr_1 =
+                                                uw_Basis_unurlifyInt(ctx, &request);
+                                                struct __uws_1 tmp = { uwr_1
+                                               };
+                                               tmp;
+                                               });
+                                              tmp;
+                                              })) :
+                                             (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+                                            });
+                                         })
+                                         :
+                                        ({
+                                         struct __uws_1*
+                                         tmp;
+                                         uw_error(ctx, FATAL, ":0:0-0:0: pattern match failure");
+                                         tmp;
+                                         });
+                                      });
+                                     
+                                     disc == NULL ?
+                                      ({
+                                       uw_Basis_int
+                                       tmp;
+                                       uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
+                                       "Query returned no rows");
+                                       tmp;
+                                       })
+                                       :
+                                      disc != NULL && 1 ?
+                                       ({struct __uws_1 __uwr_r_3 = (*disc);
+                                          __uwr_r_3.__uwf_1;
+                                        })
+                                        :
+                                       ({
+                                        uw_Basis_int
+                                        tmp;
+                                        uw_error(ctx, FATAL, "tests/io_sqlcache/io_sqlcache.ur:33:4-33:84: pattern match failure");
+                                        tmp;
+                                        });
+                                     });
+                                    uw_io_transaction_commit(ctx, &__uwt);
+                                    break;
+                                    } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                   break;
+                                    }
+                                   }
+                                  uw_io_transaction_end(ctx, &__uwt, 1);
+                                  __uwr;
+                                  });
+                                })));
+   }
+  
+  static uw_unit
+   __uwn_wrap_main_5(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   {
+   return((uw_begin_region(ctx), uw_Sqlcache_rlock2(ctx),
            uw_end_region(ctx), ({
                                 uw_Basis_int __uwr_v_2 =
                                 (uw_begin_region(ctx), ({
                                                         struct __uws_1* disc =
                                                         ({
                                                          uw_Basis_string disc =
-                                                         uw_Sqlcache_check0(ctx);
+                                                         uw_Sqlcache_check2(ctx);
                                                          
                                                          disc == NULL ?
                                                           ({
@@ -377,7 +1028,7 @@
                                                             acc;
                                                             });
                                                            (uw_begin_region(ctx),
-                                                             uw_Sqlcache_store0(ctx,
+                                                             uw_Sqlcache_store2(ctx,
                                                               ({
                                                                struct __uws_1*
                                                                disc =
@@ -474,28 +1125,80 @@
                                                           ({
                                                            uw_Basis_int
                                                            tmp;
-                                                           uw_error(ctx, FATAL, "tests/io_sqlcache/io_sqlcache.ur:18:4-20:3: pattern match failure");
+                                                           uw_error(ctx, FATAL, "tests/io_sqlcache/io_sqlcache.ur:36:4-43:3: pattern match failure");
                                                            tmp;
                                                            });
                                                         }));
                                 uw_end_region(ctx);
-                                 ((uw_write(ctx, "<body"), 0),
-                                  (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
-                                                                         uw_Basis_get_settings(ctx,
-                                                                          0))), 0),
-                                   uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, 
+                                 ({
+                                  uw_Basis_source __uwr_s_3 =
+                                  uw_Basis_new_client_source(ctx,
+                                   ({
+                                    uw_Basis_string arg0 = "{c:\"c\",v:";
+                                     
+                                     uw_Basis_string arg1 =
+                                      uw_Basis_htmlifyInt(ctx, 0LL);
+                                      uw_Basis_string arg2 = "}";
+                                       uw_Basis_mstrcat(ctx, arg0, arg1, arg2,
+                                                                              NULL);
+                                    }));
+                                  ((uw_write(ctx, "<body"), 0),
+                                   (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
+                                                                          uw_Basis_get_settings(ctx,
+                                                                           0))), 0),
+                                    uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, 
                                                                                uw_Basis_maybe_onunload(ctx,
                                                                                ""
                                                                                )), 0),
-                                                        uw_end_region(ctx), ((uw_write(ctx, 
-                                                                              ">v = "), 0),
-                                                                             (uw_begin_region(ctx),
+                                                         uw_end_region(ctx), ((uw_write(ctx, 
+                                                                               ">v = "), 0),
+                                                                              (uw_begin_region(ctx),
                                                                                uw_Basis_htmlifyInt_w(ctx,
                                                                                __uwr_v_2
                                                                                ),
-                                                                              uw_end_region(ctx),
+                                                                               uw_end_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "\n<button onclick='uw_event=event;exec("), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:1},x:{c:\"c\",v:"), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Basis_htmlifySource_w(ctx,
+                                                                               __uwr_s_3
+                                                                               ),
+                                                                               uw_end_region(ctx),
                                                                                (uw_write(ctx, 
-                                                                               "</body>"), 0))))));
+                                                                               "}},x:{c:\"c\",v:null}}"), 0))),
+                                                                               uw_end_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               ")'>bump</button>\n<button onclick='uw_event=event;exec("), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:2},x:{c:\"c\",v:"), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Basis_htmlifySource_w(ctx,
+                                                                               __uwr_s_3
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               (uw_write(ctx, 
+                                                                               "}},x:{c:\"c\",v:null}}"), 0))),
+                                                                               uw_end_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               ")'>read</button>\n<script type=\"text/javascript\">dyn(\"span\", execD("), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:3},x:{c:\"c\",v:"), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Basis_htmlifySource_w(ctx,
+                                                                               __uwr_s_3
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               (uw_write(ctx, 
+                                                                               "}},x:{c:\"c\",v:null}}"), 0))),
+                                                                               uw_end_region(ctx),
+                                                                               (uw_write(ctx, 
+                                                                               "))</script>\n</body>"), 0))))))))))));
+                                  });
                                 })));
    }
  
@@ -505,182 +1208,281 @@
  static void uw_periodic0(uw_context ctx) {
   uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
    (uw_begin_region(ctx), uw_Sqlcache_wlock0(ctx),
-    uw_end_region(ctx), ({
-                         uw_Basis_int __uwr_k_2 =
-                         (uw_begin_region(ctx), uw_Probe_step(ctx));
-                         uw_end_region(ctx);
-                          ({
-                           uw_unit __uwr___3 =
-                           (uw_begin_region(ctx), ({
-                                                   uw_io_transaction __uwt;
-                                                   uw_unit
-                                                   __uwr;
-                                                   uw_io_transaction_begin(ctx, &__uwt);
-                                                   while (1) {
-                                                   int __uwfk = setjmp(*uw_jmp_buf(ctx));
-                                                    if (__uwfk == 0) {
-                                                    __uwr =
-                                                     (uw_begin_region(ctx), uw_Sqlcache_flush0(ctx
-                                                                             ),
-                                                      uw_end_region(ctx), (uw_begin_region(ctx), ({
-                                                                           uw_Basis_int
-                                                                            arg1
-                                                                            =
-                                                                            __uwr_k_2;
-                                                                            
-                                                                            uw_ensure_transaction(ctx);
-                                                                            
-                                                                            uw_conn *conn = uw_get_db(ctx);
-                                                                             sqlite3_stmt *stmt = conn->p0;
-                                                                             
-                                                                             if (stmt == NULL) {
-                                                                             if (sqlite3_prepare_v2(conn->conn, "UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)<br />%s", sqlite3_errmsg(conn->conn));
-                                                                              conn->p0 = stmt;
-                                                                              }
-                                                                             uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
-                                                                             uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
-                                                                             if (
-                                                                              sqlite3_bind_int64(stmt, 1, 
+    uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock1(ctx),
+                         uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock2(ctx
+                                                                     ),
+                                              uw_end_region(ctx), ({
+                                                                   uw_Basis_int
+                                                                   __uwr_k_2 =
+                                                                   (uw_begin_region(ctx),
+                                                                    uw_Probe_step(ctx
+                                                                     ));
+                                                                   uw_end_region(ctx);
+                                                                    ({
+                                                                     uw_Basis_bool
+                                                                     disc =
+                                                                     !
+                                                                      (__uwr_k_2
+                                                                        <= 2LL);
+                                                                     
+                                                                     disc ==
+                                                                          uw_Basis_True
+                                                                       ? 0
+                                                                       :
+                                                                      disc ==
+                                                                           uw_Basis_False
+                                                                        ?
+                                                                       ({
+                                                                        uw_unit
+                                                                        __uwr___3
+                                                                        =
+                                                                        (uw_begin_region(ctx),
+                                                                         ({
+                                                                          uw_io_transaction __uwt;
+                                                                          uw_unit
+                                                                          __uwr;
+                                                                          uw_io_transaction_begin(ctx, &__uwt);
+                                                                          while (1) {
+                                                                          int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                           if (__uwfk == 0) {
+                                                                           __uwr =
+                                                                            (uw_begin_region(ctx),
+                                                                              (uw_begin_region(ctx),
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Sqlcache_flush0(ctx
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               uw_Sqlcache_flush1(ctx
+                                                                               )),
+                                                                               uw_end_region(ctx),
+                                                                               uw_Sqlcache_flush2(ctx
+                                                                               )),
+                                                                             uw_end_region(ctx),
+                                                                              (uw_begin_region(ctx), ({
+                                                                               uw_Basis_int
+                                                                               arg1
+                                                                               =
+                                                                               __uwr_k_2;
+                                                                               
+                                                                               uw_ensure_transaction(ctx);
+                                                                               
+                                                                               uw_conn *conn = uw_get_db(ctx);
+                                                                               sqlite3_stmt *stmt = conn->p0;
+                                                                               
+                                                                               if (stmt == NULL) {
+                                                                               if (sqlite3_prepare_v2(conn->conn, "UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)<br />%s", sqlite3_errmsg(conn->conn));
+                                                                               conn->p0 = stmt;
+                                                                               }
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+                                                                               if (
+                                                                               sqlite3_bind_int64(stmt, 1, 
                                                                                arg1) != SQLITE_OK) uw_error(ctx, FATAL, ":0:0-0:0: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
-                                                                              
-                                                                             int r;
-                                                                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                              sleep(1);
+                                                                               
+                                                                               int r;
+                                                                               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
-                                                                              
-                                                                              if (r != SQLITE_DONE) 
-                                                                              uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
+                                                                               
+                                                                               if (r != SQLITE_DONE) 
+                                                                               uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
                                                                                "UPDATE uw_Io_sqlcache_counter SET uw_V = \? WHERE (uw_Id = 1)", sqlite3_errmsg(conn->conn));
                                                                                else if (uw_dml_log_enabled()) {
-                                                                              char *expanded = sqlite3_expanded_sql(stmt);
+                                                                               char *expanded = sqlite3_expanded_sql(stmt);
                                                                                uw_log_dml(ctx, ":0:0-0:0", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
                                                                                sqlite3_free(expanded);
                                                                                }
-                                                                              uw_pop_cleanup(ctx);
-                                                                             uw_pop_cleanup(ctx);
+                                                                               uw_pop_cleanup(ctx);
+                                                                               uw_pop_cleanup(ctx);
+                                                                               
+                                                                               
+                                                                               uw_end_region(ctx);
+                                                                               0;
+                                                                               })));
+                                                                            uw_io_transaction_commit(ctx, &__uwt);
+                                                                            break;
+                                                                            } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                           break;
+                                                                            }
+                                                                           }
+                                                                          uw_io_transaction_end(ctx, &__uwt, 1);
+                                                                          __uwr;
+                                                                          }));
+                                                                        uw_end_region(ctx);
+                                                                         uw_Basis_debug(ctx,
+                                                                          ({
+                                                                           uw_Basis_string
+                                                                            arg0
+                                                                            =
+                                                                            "tick ";
+                                                                            
+                                                                            uw_Basis_string
+                                                                             arg1
+                                                                             =
+                                                                             uw_Basis_intToString(ctx,
+                                                                              __uwr_k_2
+                                                                              );
                                                                              
-                                                                           
-                                                                           uw_end_region(ctx);
-                                                                           0;
-                                                                           })));
-                                                     uw_io_transaction_commit(ctx, &__uwt);
-                                                     break;
-                                                     } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
-                                                    break;
-                                                     }
-                                                    }
-                                                   uw_io_transaction_end(ctx, &__uwt, 1);
-                                                   __uwr;
-                                                   }));
-                           uw_end_region(ctx);
-                            uw_Basis_debug(ctx,
-                             ({
-                              uw_Basis_string arg0 = "tick ";
-                               
-                               uw_Basis_string arg1 =
-                                uw_Basis_intToString(ctx, __uwr_k_2);
-                                uw_Basis_string arg2 = " done, v = ";
-                                 
-                               uw_Basis_string arg3 =
-                                uw_Basis_intToString(ctx,
-                                 ({
-                                  uw_io_transaction __uwt;
-                                  uw_Basis_int
-                                  __uwr;
-                                  uw_io_transaction_begin(ctx, &__uwt);
-                                  while (1) {
-                                  int __uwfk = setjmp(*uw_jmp_buf(ctx));
-                                   if (__uwfk == 0) {
-                                   __uwr =
-                                    ({
-                                     struct __uws_1* disc =
-                                     ({
-                                      struct __uws_1* acc =
-                                      NULL;
-                                      int dummy = (uw_begin_region(ctx), 0);
-                                      uw_ensure_transaction(ctx);
-                                      
-                                       
-                                       uw_conn *conn = uw_get_db(ctx);
-                                        sqlite3_stmt *stmt;
-                                         if (sqlite3_prepare_v2(conn->conn, "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)<br />%s", sqlite3_errmsg(conn->conn));
-                                        uw_push_cleanup(ctx, (void (*)(void *))sqlite3_finalize, stmt);
-                                         
-                                        
-                                        int r;
-                                         sqlite3_reset(stmt);
-                                         uw_end_region(ctx);
-                                         while ((r = sqlite3_step(stmt)) == SQLITE_ROW) {
-                                         struct __uws_1 __uwr_r_4;
-                                          struct __uws_1* __uwr_acc_5 =
-                                          acc;
-                                          
-                                          __uwr_r_4.__uwf_1 =
-                                           (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
-                                            ({uw_Basis_int
-                                             tmp;
-                                             uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
-                                             tmp;
-                                             }) : sqlite3_column_int64(stmt, 0));
-                                           
-                                          
-                                          acc =
-                                          ({
-                                           struct __uws_1 *tmp =
-                                           uw_malloc(ctx, sizeof(struct __uws_1));
-                                           *tmp = __uwr_r_4;
-                                           tmp;
-                                           });
-                                          }
-                                         
-                                         if (r == SQLITE_BUSY) {sleep(1);
-                                                                 uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                 }
-                                         
-                                         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
-                                         "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", sqlite3_errmsg(conn->conn));
-                                         
-                                         uw_pop_cleanup(ctx);
-                                        
-                                      acc;
-                                      });
-                                     
-                                     disc == NULL ?
-                                      ({
-                                       uw_Basis_int
-                                       tmp;
-                                       uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
-                                       "Query returned no rows");
-                                       tmp;
-                                       })
-                                       :
-                                      disc != NULL && 1 ?
-                                       ({struct __uws_1 __uwr_r_4 = (*disc);
-                                          __uwr_r_4.__uwf_1;
-                                        })
-                                        :
-                                       ({
-                                        uw_Basis_int
-                                        tmp;
-                                        uw_error(ctx, FATAL, "tests/io_sqlcache/io_sqlcache.ur:14:9-14:89: pattern match failure");
-                                        tmp;
-                                        });
-                                     });
-                                    uw_io_transaction_commit(ctx, &__uwt);
-                                    break;
-                                    } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
-                                   break;
-                                    }
-                                   }
-                                  uw_io_transaction_end(ctx, &__uwt, 1);
-                                  __uwr;
-                                  }));
-                                uw_Basis_mstrcat(ctx, arg0, arg1, arg2, arg3,
-                                                                             NULL);
-                              }));
-                           });
-                         }));
+                                                                            uw_Basis_string
+                                                                             arg2
+                                                                             =
+                                                                             " done, v = ";
+                                                                             
+                                                                            uw_Basis_string
+                                                                             arg3
+                                                                             =
+                                                                             uw_Basis_intToString(ctx,
+                                                                              ({
+                                                                               uw_io_transaction __uwt;
+                                                                               uw_Basis_int
+                                                                               __uwr;
+                                                                               uw_io_transaction_begin(ctx, &__uwt);
+                                                                               while (1) {
+                                                                               int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                               if (__uwfk == 0) {
+                                                                               __uwr =
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1*
+                                                                               disc
+                                                                               =
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1*
+                                                                               acc
+                                                                               =
+                                                                               NULL;
+                                                                               int dummy = (uw_begin_region(ctx), 0);
+                                                                               uw_ensure_transaction(ctx);
+                                                                               
+                                                                               
+                                                                               uw_conn *conn = uw_get_db(ctx);
+                                                                               sqlite3_stmt *stmt;
+                                                                               if (sqlite3_prepare_v2(conn->conn, "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)<br />%s", sqlite3_errmsg(conn->conn));
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_finalize, stmt);
+                                                                               
+                                                                               
+                                                                               int r;
+                                                                               sqlite3_reset(stmt);
+                                                                               uw_end_region(ctx);
+                                                                               while ((r = sqlite3_step(stmt)) == SQLITE_ROW) {
+                                                                               struct __uws_1 __uwr_r_4;
+                                                                               struct
+                                                                               __uws_1*
+                                                                               __uwr_acc_5
+                                                                               =
+                                                                               acc;
+                                                                               
+                                                                               __uwr_r_4.__uwf_1
+                                                                               =
+                                                                               (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
+                                                                               ({uw_Basis_int
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
+                                                                               tmp;
+                                                                               }) : 
+                                                                               sqlite3_column_int64(stmt, 0));
+                                                                               
+                                                                               
+                                                                               acc
+                                                                               =
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1
+                                                                               *tmp
+                                                                               =
+                                                                               uw_malloc(ctx, sizeof(
+                                                                               struct
+                                                                               __uws_1));
+                                                                               *tmp
+                                                                               =
+                                                                               __uwr_r_4;
+                                                                               tmp;
+                                                                               });
+                                                                               }
+                                                                               
+                                                                               if (r == SQLITE_BUSY) {
+                                                                               sleep(1);
+                                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                               }
+                                                                               
+                                                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
+                                                                               "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", sqlite3_errmsg(conn->conn));
+                                                                               
+                                                                               uw_pop_cleanup(ctx);
+                                                                               
+                                                                               acc;
+                                                                               })
+                                                                               ;
+                                                                               
+                                                                               disc
+                                                                               ==
+                                                                               NULL
+                                                                               ?
+                                                                               ({
+                                                                               uw_Basis_int
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
+                                                                               "Query returned no rows");
+                                                                               tmp;
+                                                                               })
+                                                                               
+                                                                               :
+                                                                               disc
+                                                                               !=
+                                                                               NULL
+                                                                               &&
+                                                                               1
+                                                                               ?
+                                                                               ({
+                                                                               struct
+                                                                               __uws_1
+                                                                               __uwr_r_4
+                                                                               =
+                                                                               (*disc);
+                                                                               __uwr_r_4.__uwf_1;
+                                                                               })
+                                                                               
+                                                                               :
+                                                                               ({
+                                                                               uw_Basis_int
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "tests/io_sqlcache/io_sqlcache.ur:23:13-23:93: pattern match failure");
+                                                                               tmp;
+                                                                               });
+                                                                               });
+                                                                               uw_io_transaction_commit(ctx, &__uwt);
+                                                                               break;
+                                                                               } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                               break;
+                                                                               }
+                                                                               }
+                                                                               uw_io_transaction_end(ctx, &__uwt, 1);
+                                                                               __uwr;
+                                                                               })
+                                                                              );
+                                                                             uw_Basis_mstrcat(ctx, 
+                                                                           arg0,
+                                                                               
+                                                                            arg1
+                                                                            , 
+                                                                            arg2
+                                                                            , 
+                                                                            arg3
+                                                                           ,
+                                                                            NULL);
+                                                                           }));
+                                                                        })
+                                                                        :
+                                                                       ({
+                                                                        uw_unit
+                                                                        tmp;
+                                                                        uw_error(ctx, FATAL, "tests/io_sqlcache/io_sqlcache.ur:18:4-24:60: pattern match failure");
+                                                                        tmp;
+                                                                        });
+                                                                     });
+                                                                   }))));
    }
   
   static uw_periodic my_periodics[] = {{uw_periodic0, 1, 1},{NULL}};
@@ -730,16 +1532,33 @@
   return;
   }
  
- 
+ if (!strcmp(request, "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js")) {
+  uw_write_header(ctx, "Content-Type: text/javascript\r\n");
+   uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
+   uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
+   uw_write(ctx, jslib);
+   return;
+   }
+  
+  
+  if (!strcmp(request, "/app.04B23734F768C28F4E1C6FCC601B7D87549B2706.js")) {
+   uw_write_header(ctx, "Content-Type: text/javascript\r\n");
+    uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
+    uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
+    uw_write(ctx, jsapp);
+    return;
+    }
+   
  if (uw_serve_file(ctx, request, "Thu, 01 Jan 1970 00:00:00 GMT")) return;
  
  if (!strncmp(request, "/Io_sqlcache/main", 17) && (request[17] == 0 || request[17] == '/')) {
   request += 17;
   if (*request == '/') ++request;
   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
-   uw_write(ctx, uw_begin_html5);
+   uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
+    uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.04B23734F768C28F4E1C6FCC601B7D87549B2706.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 1);
   uw_set_needs_push(ctx, 0);
@@ -747,11 +1566,79 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_3(ctx, arg0, 0);
+    __uwn_wrap_main_5(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     return;
    }
    }
+  
+  if (!strncmp(request, "/Io_sqlcache/bump", 17) && (request[17] == 0 || request[17] == '/')) {
+   request += 17;
+   if (*request == '/') ++request;
+   if (uw_hasPostBody(ctx)) {
+    uw_Basis_postBody pb = uw_getPostBody(ctx);
+     if (pb.data[0])
+     request = uw_Basis_strcat(ctx, request, pb.data);
+     }
+    uw_write_header(ctx, "Content-type: text/plain\r\n");
+     uw_set_could_write_db(ctx, 1);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     uw_Basis_int it0 =
+      __uwn_bump_3(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, uw_get_real_script(ctx));
+      uw_write(ctx, "\n");
+      uw_Basis_urlifyInt_w(ctx, it0);
+       return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_sqlcache/read", 17) && (request[17] == 0 || request[17] == '/')) {
+   request += 17;
+   if (*request == '/') ++request;
+   if (uw_hasPostBody(ctx)) {
+    uw_Basis_postBody pb = uw_getPostBody(ctx);
+     if (pb.data[0])
+     request = uw_Basis_strcat(ctx, request, pb.data);
+     }
+    uw_write_header(ctx, "Content-type: text/plain\r\n");
+     uw_set_could_write_db(ctx, 1);
+   uw_set_at_most_one_query(ctx, 1);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     uw_Basis_int it0 =
+      __uwn_read_4(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, uw_get_real_script(ctx));
+      uw_write(ctx, "\n");
+      uw_Basis_urlifyInt_w(ctx, it0);
+       return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
  uw_clear_headers(ctx);
  uw_write_header(ctx, uw_supports_direct_status ? "HTTP/1.1 404 Not Found\r\n" : "Status: 404 Not Found\r\n");
  uw_write_header(ctx, "Content-type: text/plain\r\n");
@@ -798,5 +1685,5 @@
                                                                   NULL,
                                                                        
                            uw_served_files,
-                                           0};
+                                           1};
  

@@ -28,6 +28,7 @@ database dbname=io_sqlcache.db
     val finishPendingWriteIo : io unit
     val sleepIo : int -> io unit
     val sleepT : int -> transaction unit
+    val traceSqlIo : io unit
    end
  
  structure Io_sqlcache : sig
@@ -43,39 +44,105 @@ database dbname=io_sqlcache.db
        {} =>
         Basis.bind Probe.step
          (fn k =>
-           Basis.bind
-            (runTransaction
-              (dml
-                (Basis.update [(_ :: {Type})] {V = Basis.sql_inject k} counter
-                  (Basis.sql_binary Basis.sql_eq (Basis.sql_field [#T] [#Id])
-                    (Basis.sql_inject 1)))))
-            (fn _ : {} =>
+           case Basis.gt k 2 of
+            Basis.True => return {} | 
+             Basis.False =>
               Basis.bind
                (runTransaction
-                 (oneRowE1
-                   (Basis.sql_query
-                     {Rows =
-                       Basis.sql_query1 [[#Counter = ()]]
-                        {Distinct = Basis.False, 
-                          From = Basis.sql_from_table [#Counter] counter, 
-                          Where =
-                           Basis.sql_binary Basis.sql_eq
-                            (Basis.sql_field [#Counter] [#Id])
-                            (Basis.sql_inject 1), 
-                          GroupBy = Basis.sql_subset_all [(_ :: {{Type}})], 
-                          Having = Basis.sql_inject Basis.True, 
-                          SelectFields =
-                           Basis.sql_subset [[#Counter = ([], (_ :: {Type}))]], 
-                          SelectExps =
-                           {1 =
-                             Basis.sql_window (Basis.sql_field [#Counter] [#V])}
-                         }, OrderBy = Basis.sql_order_by_Nil [(_ :: {Type})], 
-                       Limit = Basis.sql_no_limit, Offset = Basis.sql_no_offset})))
-               (fn v =>
-                 io_debug
-                  (Basis.strcat "tick "
-                    (Basis.strcat (show k)
-                      (Basis.strcat " done, v = " (show v)))))))
+                 (dml
+                   (Basis.update [(_ :: {Type})] {V = Basis.sql_inject k}
+                     counter
+                     (Basis.sql_binary Basis.sql_eq
+                       (Basis.sql_field [#T] [#Id]) (Basis.sql_inject 1)))))
+               (fn _ : {} =>
+                 Basis.bind
+                  (runTransaction
+                    (oneRowE1
+                      (Basis.sql_query
+                        {Rows =
+                          Basis.sql_query1 [[#Counter = ()]]
+                           {Distinct = Basis.False, 
+                             From = Basis.sql_from_table [#Counter] counter, 
+                             Where =
+                              Basis.sql_binary Basis.sql_eq
+                               (Basis.sql_field [#Counter] [#Id])
+                               (Basis.sql_inject 1), 
+                             GroupBy = Basis.sql_subset_all [(_ :: {{Type}})], 
+                             Having = Basis.sql_inject Basis.True, 
+                             SelectFields =
+                              Basis.sql_subset
+                               [[#Counter = ([], (_ :: {Type}))]], 
+                             SelectExps =
+                              {1 =
+                                Basis.sql_window
+                                 (Basis.sql_field [#Counter] [#V])}}, 
+                          OrderBy = Basis.sql_order_by_Nil [(_ :: {Type})], 
+                          Limit = Basis.sql_no_limit, 
+                          Offset = Basis.sql_no_offset})))
+                  (fn v =>
+                    io_debug
+                     (Basis.strcat "tick "
+                       (Basis.strcat (show k)
+                         (Basis.strcat " done, v = " (show v)))))))
+    
+    val rec
+     bump : int -> io int =
+      fn n : int =>
+       Basis.bind Probe.traceSqlIo
+        (fn _ : {} =>
+          Basis.bind
+           (runTransaction
+             (dml
+               (Basis.update [(_ :: {Type})] {V = Basis.sql_inject n} counter
+                 (Basis.sql_binary Basis.sql_eq (Basis.sql_field [#T] [#Id])
+                   (Basis.sql_inject 1)))))
+           (fn _ : {} =>
+             runTransaction
+              (oneRowE1
+                (Basis.sql_query
+                  {Rows =
+                    Basis.sql_query1 [[#Counter = ()]]
+                     {Distinct = Basis.False, 
+                       From = Basis.sql_from_table [#Counter] counter, 
+                       Where =
+                        Basis.sql_binary Basis.sql_eq
+                         (Basis.sql_field [#Counter] [#Id])
+                         (Basis.sql_inject 1), 
+                       GroupBy = Basis.sql_subset_all [(_ :: {{Type}})], 
+                       Having = Basis.sql_inject Basis.True, 
+                       SelectFields =
+                        Basis.sql_subset [[#Counter = ([], (_ :: {Type}))]], 
+                       SelectExps =
+                        {1 = Basis.sql_window (Basis.sql_field [#Counter] [#V])}
+                      }, OrderBy = Basis.sql_order_by_Nil [(_ :: {Type})], 
+                    Limit = Basis.sql_no_limit, Offset = Basis.sql_no_offset}))))
+    
+    val rec
+     read : (_ :: Type) -> io int =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind Probe.traceSqlIo
+          (fn _ : {} =>
+            runTransaction
+             (oneRowE1
+               (Basis.sql_query
+                 {Rows =
+                   Basis.sql_query1 [[#Counter = ()]]
+                    {Distinct = Basis.False, 
+                      From = Basis.sql_from_table [#Counter] counter, 
+                      Where =
+                       Basis.sql_binary Basis.sql_eq
+                        (Basis.sql_field [#Counter] [#Id]) (Basis.sql_inject 1),
+                                                                               
+                      GroupBy = Basis.sql_subset_all [(_ :: {{Type}})], 
+                      Having = Basis.sql_inject Basis.True, 
+                      SelectFields =
+                       Basis.sql_subset [[#Counter = ([], (_ :: {Type}))]], 
+                      SelectExps =
+                       {1 = Basis.sql_window (Basis.sql_field [#Counter] [#V])}}
+                   , OrderBy = Basis.sql_order_by_Nil [(_ :: {Type})], 
+                   Limit = Basis.sql_no_limit, Offset = Basis.sql_no_offset})))
     
     val rec
      main : (_ :: Type) -> transaction page =
@@ -101,8 +168,46 @@ database dbname=io_sqlcache.db
                 OrderBy = Basis.sql_order_by_Nil [(_ :: {Type})], 
                 Limit = Basis.sql_no_limit, Offset = Basis.sql_no_offset}))
           (fn v =>
-            return
-             (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
-               (body {}) (Basis.join (Basis.cdata "v = ") (Top.txt v))))
+            Basis.bind (source 0)
+             (fn s =>
+               return
+                (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
+                  (body {})
+                  (Basis.join (Basis.cdata "v = ")
+                    (Basis.join (Top.txt v)
+                      (Basis.join (Basis.cdata "\n")
+                        (Basis.join (Basis.cdata "      ")
+                          (Basis.join
+                            (Basis.tag Basis.null Basis.None Basis.noStyle
+                              Basis.None
+                              {Value = "bump", 
+                                Onclick =
+                                 fn _ =>
+                                  Basis.bind (io_rpc (bump 5))
+                                   (fn v => set s v)} (button {})
+                              (Basis.cdata ""))
+                            (Basis.join (Basis.cdata "\n")
+                              (Basis.join (Basis.cdata "      ")
+                                (Basis.join
+                                  (Basis.tag Basis.null Basis.None
+                                    Basis.noStyle Basis.None
+                                    {Value = "read", 
+                                      Onclick =
+                                       fn _ =>
+                                        Basis.bind (io_rpc (read {}))
+                                         (fn v => set s v)} (button {})
+                                    (Basis.cdata ""))
+                                  (Basis.join (Basis.cdata "\n")
+                                    (Basis.join (Basis.cdata "      ")
+                                      (Basis.join
+                                        (Basis.tag Basis.null Basis.None
+                                          Basis.noStyle Basis.None
+                                          {Signal =
+                                            Basis.bind (signal s)
+                                             (fn v => return (Top.txt v))}
+                                          (dyn {})
+                                          (Basis.cdata [(_ :: _)] [[]] ""))
+                                        (Basis.join (Basis.cdata "\n")
+                                          (Basis.cdata "    "))))))))))))))))
    end
  export Io_sqlcache
