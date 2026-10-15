@@ -1,0 +1,12 @@
+database dbname=request_retries.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Request_retries/main
+allow url /Request_retries/flaky
+allow url /Request_retries/once
+safeGet Request_retries/main
+safeGet Request_retries/flaky
+safeGet Request_retries/once
+
+request_retries
