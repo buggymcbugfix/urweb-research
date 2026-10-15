@@ -3054,6 +3054,16 @@ class Run:
         url = req.url
         if not any(url == b or url.startswith(b + '/') for b in (self.base, self.server)):
             self.refused.add(req)
+            # A navigation away, which the page counted: seen, though it
+            # goes nowhere.
+            try:
+                page = req.frame.page
+                tab = self.page_tab.get(page) if page is not None else None
+                if (tab is not None and tab.sent is not None and req.is_navigation_request()
+                        and req.frame == page.main_frame):
+                    tab.left_by[tab.sent[0]] = tab.left_by.get(tab.sent[0], 0) + 1
+            except self.PlaywrightError:
+                pass
             await route.abort()
             return
         try:
