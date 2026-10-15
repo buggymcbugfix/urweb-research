@@ -9,7 +9,7 @@
    #include "include/urweb/urweb.h"
  
  static void uw_setup_limits() {
-  uw_heap_max = 320000000;
+  uw_heap_max = 100000000;
    }
   
   void uw_global_custom() {
