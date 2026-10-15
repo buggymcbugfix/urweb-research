@@ -1,3 +1,5 @@
-Content-type: text/html; charset=utf-8
+Status: 500 Internal Server Error
+Content-type: text/html
 
-<!DOCTYPE html><html><head></head><body>65536 bytes</body></html>
+<html><head><title>Fatal Error</title></head><body>Fatal error: Memory limit exceeded (heap)
+</body></html>
