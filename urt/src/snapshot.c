@@ -158,16 +158,17 @@ static const char usage_text[] =
     "same requests get the same answers, the application's clock is pinned (the\n"
     "first request is served at 2000-01-01 00:00:00 UTC, each further one a second\n"
     "later, and the database agrees), as are its random numbers and its time zone,\n"
-    "UTC; its heap starts at 256 MiB, so that no handler is run a second time\n"
-    "for the heap to grow; every request is for the host 'localhost', from the\n"
-    "user agent 'urt'.\n"
+    "UTC; its heap starts at 256 MiB, unless the run's env says otherwise, so\n"
+    "that no handler is run a second time for the heap to grow; every request is\n"
+    "for the host 'localhost', from the user agent 'urt'.\n"
     "\n"
     "A run's env adds to the application's environment, NAME=value a line, the\n"
     "value taken as written, though it holds no control character but a tab;\n"
     "blank lines and lines starting with # are skipped.\n"
     "What urt sets itself for the above cannot be set there: URWEB_SIGFILE_PATH,\n"
     "URWEB_SQLITE_DB_PATH, URWEB_DML_LOG, URWEB_REPRODUCIBLE_EPOCH,\n"
-    "URWEB_REPRODUCIBLE_PRNG_SEED, URWEB_MIN_HEAP and TZ.\n"
+    "URWEB_REPRODUCIBLE_PRNG_SEED and TZ.  URWEB_MIN_HEAP can, for a run that is\n"
+    "to grow the heap.\n"
     "\n"
     "A case with runs is compiled all the way, so its args cannot hold -stop or\n"
     "-tc, and it fails if that does not give an application.  The compiler builds\n"
@@ -922,7 +923,8 @@ static void show_diff(const char *file) {
  * count of attempts would be the allocator's.  A heap that never grows
  * is never moved.  256 MiB of it costs nothing until it is written to;
  * an application whose heap limit is below that refuses to start, and
- * the run fails with its message. */
+ * the run fails with its message.  A run's env may set a smaller one, for
+ * a run that is meant to grow the heap. */
 
 #define RUN_TIME "946684800"    /* 2000-01-01 00:00:00 UTC, the first request; a second more for every further one */
 #define RUN_SEED "0"
@@ -932,7 +934,7 @@ static void show_diff(const char *file) {
  * run_run, and a run's env therefore cannot. */
 static const char *const run_env_reserved[] = {
     "URWEB_SIGFILE_PATH", "URWEB_SQLITE_DB_PATH", "URWEB_DML_LOG", "URWEB_REPRODUCIBLE_EPOCH",
-    "URWEB_REPRODUCIBLE_PRNG_SEED", "URWEB_MIN_HEAP", "TZ",
+    "URWEB_REPRODUCIBLE_PRNG_SEED", "TZ",
 };
 
 /* Whether s can name an environment variable: letters, digits and _, not

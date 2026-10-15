@@ -31,8 +31,9 @@ pinned through its environment (`URWEB_REPRODUCIBLE_EPOCH`,
 compiler's tree), and its heap starts at 256 MiB (`URWEB_MIN_HEAP`), so
 that no handler is run a second time for the heap to have grown and
 moved; a run repeats byte for byte.  (A project whose `limit heap` is
-below 256 MiB cannot have runs yet: the application refuses to start
-with a heap above its limit, and the run fails with its message.)  The
+below 256 MiB has to set a smaller `URWEB_MIN_HEAP` in its runs' `env`:
+the application refuses to start with a heap above its limit, and the
+run fails with its message.  So does a run meant to grow the heap.)  The
 application is
 built where the project has it built and then moved into the case, as
 `app.exe` beside `expected/`, where it stays: git ignores it, and it is
