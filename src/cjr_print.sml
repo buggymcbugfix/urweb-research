@@ -1708,7 +1708,6 @@ and p_exp' par tail env (e, loc) =
       | EApp (f, args) =>
         let
             fun getSig n =
-
                 let
                     val (_, t) = E.lookupENamed env n
 
@@ -3155,7 +3154,7 @@ fun p_file env (ds, ps) =
 
                 (* An RPC of either kind answers a value, not a page; an io
                  * RPC runs its function outside any transaction. *)
-                val isRpc = case ek of Rpc _ => true | IoRpc _ => true | _ => false
+                val isRpc = Export.isRpc ek
                 val isIoRpc = case ek of IoRpc _ => true | _ => false
 
                 val s =

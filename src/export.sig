@@ -40,6 +40,10 @@ datatype export_kind =
        | Extern of effect
 
 val p_effect : effect Print.printer
+
+(* An RPC of either kind: it answers a value rather than a page, and is
+ * called by the client's script. *)
+val isRpc : export_kind -> bool
 val p_export_kind : export_kind Print.printer
 
 end

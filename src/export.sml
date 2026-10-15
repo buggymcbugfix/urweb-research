@@ -42,6 +42,10 @@ datatype export_kind =
        | IoRpc of effect (* an RPC whose function is an io computation *)
        | Extern of effect
 
+fun isRpc (Rpc _) = true
+  | isRpc (IoRpc _) = true
+  | isRpc _ = false
+
 fun p_effect ef =
     case ef of
         ReadOnly => string "r"

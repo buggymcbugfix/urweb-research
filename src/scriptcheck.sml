@@ -122,10 +122,8 @@ fun classify (ds, ps) =
 
         fun decl ((d, _), rpcs) =
             case d of
-                DExport (Mono.Rpc _, fcall, n, _, _, _) =>
-                insert (rpcs, fcall, n)
-              | DExport (Mono.IoRpc _, fcall, n, _, _, _) =>
-                insert (rpcs, fcall, n)
+                DExport (ek, fcall, n, _, _, _) =>
+                if Export.isRpc ek then insert (rpcs, fcall, n) else rpcs
               | _ => rpcs
 
         val rpcs = foldl decl (Module SM.empty) ds
