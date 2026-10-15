@@ -23,10 +23,11 @@ sanitizers' options reach the application.
   against a client whose io RPC runs for seven seconds: pages are served
   meanwhile, the client polls and stays, and once it stops polling it is
   expunged.
-- cache-lock: with -sqlcache, an io RPC that updates a cached table holds
-  the cache's write lock while it sleeps; a page reading the table waits
-  for it and then reads the new value, a page reading another table does
-  not wait, and two such RPCs take turns.
+- cache-lock: with -sqlcache, an io RPC that updates a cached table takes
+  the cache's write lock inside its transactions, not across the sleep
+  between them; a page reading the table during the sleep is served at
+  once with the committed value, a page reading another table too, and two
+  such RPCs sleep side by side.
 - writers: eight writers at once, transactions overlapping, run again by
   the runtime (write), by the function (writeAttempt), and read-pause-write
   on one counter (increment): every call answered, every row there, the

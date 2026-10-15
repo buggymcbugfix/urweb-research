@@ -1,10 +1,10 @@
-# The SQL cache's locks across an io RPC's wait.  With -sqlcache, an io
-# RPC that updates the counter holds the write lock of every cache on the
-# table for the whole computation, its four-second sleep outside any
-# transaction included: a page reading the counter waits for the RPC to
-# end, and then reads the new value; a page reading another table is
-# served at once.  Two such RPCs at once take turns, and the counter has
-# both updates.
+# The SQL cache's locks around an io RPC's wait.  With -sqlcache, an io
+# RPC that updates the counter takes the write lock of every cache on the
+# table inside each of its transactions, not across its four-second sleep
+# between them: a page reading the counter during the sleep is served at
+# once, with the value the first transaction committed; a page reading
+# another table too.  Two such RPCs at once sleep side by side, and the
+# counter has both updates.
 seed "INSERT INTO uw_Concurrent_counter (uw_Id, uw_V) VALUES (1, 0);"
 start -cache
 page /Concurrent/readCounter
@@ -22,7 +22,7 @@ show count
 bg_rpc bump2 "" /Concurrent/bumpSlowly/2500
 bg_rpc bump3 "" /Concurrent/bumpSlowly/2500
 wait
-turns bump2 bump3
+together bump2 bump3
 page /Concurrent/readCounter
 rows
 show_log

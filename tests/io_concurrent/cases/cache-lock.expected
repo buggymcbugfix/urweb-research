@@ -2,7 +2,7 @@
 HTTP/1.1 200 OK
 v = 0
 bump: answered after 3 s or more
-counter: answered after 3 s or more
+counter: answered within 1.5 s
 count: answered within 1.5 s
 > bump
 HTTP/1.1 200 OK
@@ -13,7 +13,7 @@ v = 1
 > count
 HTTP/1.1 200 OK
 rows = 0
-bump2, bump3: took turns, one answered after the other
+bump2, bump3: served together, both answered within 3 s
 > GET /Concurrent/readCounter
 HTTP/1.1 200 OK
 v = 3

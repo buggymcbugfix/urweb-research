@@ -5036,8 +5036,6 @@ failure_kind uw_runCallback(uw_context ctx, void (*callback)(uw_context)) {
 
 #define UW_IO_HEAP_DEFAULT_RESERVATION (8ULL * 1024 * 1024 * 1024)
 
-static void uw_Sqlcache_discardFrom(uw_context ctx, uw_Sqlcache_Update *from);
-
 void uw_io_prepare(uw_context ctx) {
   size_t reserve = uw_heap_max == SIZE_MAX ? UW_IO_HEAP_DEFAULT_RESERVATION : uw_heap_max;
   size_t ps = page_size(), initial;
@@ -5155,12 +5153,10 @@ static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int comm
     *ctx->script.front = 0;
     ctx->heap.front = t->heap_front;
     ctx->regions = t->regions;
-    // What the attempt read for the SQL cache is not to land there: it may
-    // reflect the attempt's own writes, undone with it.  The cache's
-    // transactional is the computation's, registered below the marks, so
-    // the rollback above did not reach the stores.  (A flush is immediate
-    // and stays; that costs a few misses.)
-    uw_Sqlcache_discardFrom(ctx, t->cache_update_tail);
+    // The page recordings the SQL cache opened for the attempt's misses are
+    // still open; its stores went with its rollback, since the cache's
+    // transactional is the attempt's own (the lock calls are the first
+    // statements of the body).
     ctx->numRecording = t->num_recording;
   }
 }
@@ -5176,7 +5172,6 @@ void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
   t->regions = ctx->regions;
   t->transactionals_base = ctx->transactionals_base;
   t->cleanup_base = ctx->cleanup_base;
-  t->cache_update_tail = ctx->cacheUpdateTail;
   t->num_recording = ctx->numRecording;
   ctx->transactionals_base = ctx->used_transactionals;
   ctx->cleanup_base = ctx->cleanup_front - ctx->cleanup;
@@ -5607,31 +5602,6 @@ static void uw_Sqlcache_freeValue(uw_Sqlcache_Value *value) {
     free(value->scriptOutput);
     free(value);
   }
-}
-
-// Drop the pending stores made after [from], or all of them when it is
-// NULL: those of an attempt of an io transaction that did not commit.  The
-// values are not in the cache yet, so they go with the updates.
-static void uw_Sqlcache_discardFrom(uw_context ctx, uw_Sqlcache_Update *from) {
-  uw_Sqlcache_Update *update = from ? from->next : ctx->cacheUpdate;
-
-  while (update) {
-    uw_Sqlcache_Update *next = update->next;
-    size_t numKeys = update->cache->numKeys;
-
-    while (numKeys-- > 0)
-      free(update->keys[numKeys]);
-    free(update->keys);
-    uw_Sqlcache_freeValue(update->value);
-    free(update);
-    update = next;
-  }
-
-  if (from)
-    from->next = NULL;
-  else
-    ctx->cacheUpdate = NULL;
-  ctx->cacheUpdateTail = from;
 }
 
 static void uw_Sqlcache_freeEntry(uw_Sqlcache_Entry* entry) {

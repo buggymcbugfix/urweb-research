@@ -96,8 +96,7 @@ typedef struct {
   char *heap_front;
   void *regions;
   size_t transactionals_base, cleanup_base;
-  void *cache_update_tail; // the last of the SQL cache's pending stores
-  int num_recording;       // the page recordings open for those stores
+  int num_recording;       // the page recordings the SQL cache has open
 } uw_io_transaction;
 
 // The state of an io function run by an RPC handler (Basis.io_rpc); see

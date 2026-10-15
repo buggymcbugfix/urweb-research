@@ -148,14 +148,14 @@ took() {
   fi
 }
 
-# turns LABEL1 LABEL2: whether two requests of the same length were served
-# one after the other: one within 3 s, the other after 3 s or more.
-turns() {
+# together LABEL1 LABEL2: whether two requests of the same length were
+# served side by side: both within 3 s.
+together() {
   local a b
   a=$(cat "$out/$transcript_name.$1.ms")
   b=$(cat "$out/$transcript_name.$2.ms")
-  if { [ "$a" -lt 3000 ] && [ "$b" -ge 3000 ]; } || { [ "$b" -lt 3000 ] && [ "$a" -ge 3000 ]; }; then
-    echo "$1, $2: took turns, one answered after the other"
+  if [ "$a" -lt 3000 ] && [ "$b" -lt 3000 ]; then
+    echo "$1, $2: served together, both answered within 3 s"
   else
     echo "$1, $2: answered after $a ms and $b ms"
   fi

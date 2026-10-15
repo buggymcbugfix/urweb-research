@@ -394,25 +394,23 @@
    __uwn_rw_3(uw_context ctx, uw_Basis_int __uwr_n_0, 
                uw_Basis_bool __uwr_abort_1, uw_unit __uwr___2)
    {
-   return((uw_begin_region(ctx), uw_Sqlcache_wlock0(ctx),
-           uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock1(ctx),
-                                uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock2(ctx
-                                                                            ),
-                                                     uw_end_region(ctx), ({
-                                                                          uw_Basis_int*
-                                                                          disc
-                                                                          =
-                                                                          ({
-                                                                           uw_io_transaction __uwt;
-                                                                           uw_Basis_int
-                                                                           *__uwr = NULL;
-                                                                           uw_io_transaction_begin(ctx, &__uwt);
-                                                                           while (1) {
-                                                                           int __uwfk = setjmp(*uw_jmp_buf(ctx));
-                                                                            if (__uwfk == 0) {
-                                                                            uw_Basis_int
-                                                                             __uwv =
-                                                                             ({
+   return(({
+           uw_Basis_int* disc =
+           ({
+            uw_io_transaction __uwt;
+            uw_Basis_int
+            *__uwr = NULL;
+            uw_io_transaction_begin(ctx, &__uwt);
+            while (1) {
+            int __uwfk = setjmp(*uw_jmp_buf(ctx));
+             if (__uwfk == 0) {
+             uw_Basis_int __uwv =
+              (uw_begin_region(ctx), uw_Sqlcache_wlock0(ctx),
+               uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock1(ctx
+                                                           ),
+                                    uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock2(ctx
+                                                                               ),
+                                                         uw_end_region(ctx), ({
                                                                               uw_unit
                                                                               __uwr___3
                                                                               =
@@ -799,127 +797,87 @@
                                                                                });
                                                                                });
                                                                                });
-                                                                              });
-                                                                             __uwr = uw_malloc(ctx, sizeof(
-                                                                             uw_Basis_int));
-                                                                             *__uwr = __uwv;
-                                                                             uw_io_transaction_commit(ctx, &__uwt);
-                                                                             break;
-                                                                             } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
-                                                                            __uwr = NULL;
-                                                                             break;
-                                                                             }
-                                                                            }
-                                                                           uw_io_transaction_end(ctx, &__uwt, 0);
-                                                                           __uwr;
-                                                                           });
-                                                                          
-                                                                          disc
-                                                                           ==
-                                                                           NULL
-                                                                           ?
-                                                                           ({
-                                                                            uw_unit
-                                                                            __uwr___3
-                                                                            =
-                                                                            (uw_begin_region(ctx),
-                                                                             uw_Basis_debug(ctx,
-                                                                              ({
-                                                                               uw_Basis_string
-                                                                               arg0
-                                                                               =
-                                                                               "rw: failed, ";
-                                                                               
-                                                                               uw_Basis_string
-                                                                               arg1
-                                                                               =
-                                                                               uw_Basis_io_errorMessage(ctx
-                                                                               );
-                                                                               uw_Basis_strcat(ctx, 
-                                                                               arg0
-                                                                               ,
-                                                                               
-                                                                               arg1
-                                                                               );
-                                                                               })
-                                                                              ));
-                                                                            uw_end_region(ctx);
-                                                                             -
-                                                                              1LL;
-                                                                            })
-                                                                            :
-                                                                           disc
-                                                                            !=
-                                                                            NULL
-                                                                            &&
-                                                                            1 ?
-                                                                            ({uw_Basis_int
-                                                                               __uwr_v_3
-                                                                               =
-                                                                               (*disc);
-                                                                               ({
-                                                                               uw_unit
-                                                                               __uwr___4
-                                                                               =
-                                                                               (uw_begin_region(ctx),
-                                                                               uw_Basis_debug(ctx,
-                                                                               ({
-                                                                               uw_Basis_string
-                                                                               arg0
-                                                                               =
-                                                                               "rw: read ";
-                                                                               
-                                                                               uw_Basis_string
-                                                                               arg1
-                                                                               =
-                                                                               uw_Basis_intToString(ctx,
-                                                                               __uwr_v_3
-                                                                               );
-                                                                               uw_Basis_strcat(ctx, 
-                                                                               arg0
-                                                                               ,
-                                                                               
-                                                                               arg1
-                                                                               );
-                                                                               })
-                                                                               ));
-                                                                               uw_end_region(ctx);
-                                                                               __uwr_v_3;
-                                                                               });
-                                                                             })
-                                                                             :
-                                                                            ({
-                                                                             uw_Basis_int
-                                                                             tmp;
-                                                                             uw_error(ctx, FATAL, ":0:0-0:0: pattern match failure");
-                                                                             tmp;
-                                                                             });
-                                                                          })))));
+                                                                              }))));
+              __uwr = uw_malloc(ctx, sizeof(uw_Basis_int));
+              *__uwr = __uwv;
+              uw_io_transaction_commit(ctx, &__uwt);
+              break;
+              } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+             __uwr = NULL;
+              break;
+              }
+             }
+            uw_io_transaction_end(ctx, &__uwt, 0);
+            __uwr;
+            });
+           
+           disc == NULL ?
+            ({
+             uw_unit __uwr___3 =
+             (uw_begin_region(ctx), uw_Basis_debug(ctx,
+                                     ({
+                                      uw_Basis_string arg0 = "rw: failed, ";
+                                       
+                                       uw_Basis_string arg1 =
+                                        uw_Basis_io_errorMessage(ctx);
+                                        uw_Basis_strcat(ctx, arg0, arg1);
+                                      })));
+             uw_end_region(ctx);
+              - 1LL;
+             })
+             :
+            disc != NULL && 1 ?
+             ({uw_Basis_int __uwr_v_3 = (*disc);
+                ({
+                 uw_unit __uwr___4 =
+                 (uw_begin_region(ctx), uw_Basis_debug(ctx,
+                                         ({
+                                          uw_Basis_string arg0 = "rw: read ";
+                                           
+                                           uw_Basis_string arg1 =
+                                            uw_Basis_intToString(ctx,
+                                             __uwr_v_3);
+                                            uw_Basis_strcat(ctx, arg0, arg1);
+                                          })));
+                 uw_end_region(ctx);
+                  __uwr_v_3;
+                 });
+              })
+              :
+             ({
+              uw_Basis_int
+              tmp;
+              uw_error(ctx, FATAL, "tests/io_sqlcache_rollback/io_sqlcache_rollback.ur:14:4-25:0: pattern match failure");
+              tmp;
+              });
+           }));
    }
   
   static uw_Basis_int
    __uwn_rwRetry_4(uw_context ctx, uw_Basis_int __uwr_n_0, 
                     uw_Basis_int __uwr_mode_1, uw_unit __uwr___2)
    {
-   return((uw_begin_region(ctx), uw_Sqlcache_wlock0(ctx),
-           uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock1(ctx),
-                                uw_end_region(ctx), (uw_begin_region(ctx), uw_Sqlcache_wlock2(ctx
-                                                                            ),
-                                                     uw_end_region(ctx), ({
-                                                                          uw_Basis_int
-                                                                          __uwr_v_3
-                                                                          =
-                                                                          (uw_begin_region(ctx),
-                                                                           ({
-                                                                            uw_io_transaction __uwt;
-                                                                            uw_Basis_int
-                                                                            __uwr;
-                                                                            uw_io_transaction_begin(ctx, &__uwt);
-                                                                            while (1) {
-                                                                            int __uwfk = setjmp(*uw_jmp_buf(ctx));
-                                                                             if (__uwfk == 0) {
-                                                                             __uwr =
-                                                                              ({
+   return(({
+           uw_Basis_int __uwr_v_3 =
+           (uw_begin_region(ctx), ({
+                                   uw_io_transaction __uwt;
+                                   uw_Basis_int
+                                   __uwr;
+                                   uw_io_transaction_begin(ctx, &__uwt);
+                                   while (1) {
+                                   int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                    if (__uwfk == 0) {
+                                    __uwr =
+                                     (uw_begin_region(ctx), uw_Sqlcache_wlock0(ctx
+                                                             ),
+                                      uw_end_region(ctx), (uw_begin_region(ctx),
+                                                            uw_Sqlcache_wlock1(ctx
+                                                             ),
+                                                           uw_end_region(ctx), (uw_begin_region(ctx),
+                                                                               uw_Sqlcache_wlock2(ctx
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               ({
                                                                                uw_unit
                                                                                __uwr___3
                                                                                =
@@ -1360,47 +1318,31 @@
                                                                                __uwr_v_4;
                                                                                });
                                                                                });
-                                                                               });
-                                                                              uw_io_transaction_commit(ctx, &__uwt);
-                                                                              break;
-                                                                              } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
-                                                                             break;
-                                                                              }
-                                                                             }
-                                                                            uw_io_transaction_end(ctx, &__uwt, 1);
-                                                                            __uwr;
-                                                                            }));
-                                                                          uw_end_region(ctx);
-                                                                           ({
-                                                                            uw_unit
-                                                                            __uwr___4
-                                                                            =
-                                                                            (uw_begin_region(ctx),
-                                                                             uw_Basis_debug(ctx,
-                                                                              ({
-                                                                               uw_Basis_string
-                                                                               arg0
-                                                                               =
-                                                                               "rwRetry: read ";
-                                                                               
-                                                                               uw_Basis_string
-                                                                               arg1
-                                                                               =
-                                                                               uw_Basis_intToString(ctx,
-                                                                               __uwr_v_3
-                                                                               );
-                                                                               uw_Basis_strcat(ctx, 
-                                                                               arg0
-                                                                               ,
-                                                                               
-                                                                               arg1
-                                                                               );
-                                                                               })
-                                                                              ));
-                                                                            uw_end_region(ctx);
-                                                                             __uwr_v_3;
-                                                                            });
-                                                                          })))));
+                                                                               }))));
+                                     uw_io_transaction_commit(ctx, &__uwt);
+                                     break;
+                                     } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                    break;
+                                     }
+                                    }
+                                   uw_io_transaction_end(ctx, &__uwt, 1);
+                                   __uwr;
+                                   }));
+           uw_end_region(ctx);
+            ({
+             uw_unit __uwr___4 =
+             (uw_begin_region(ctx), uw_Basis_debug(ctx,
+                                     ({
+                                      uw_Basis_string arg0 = "rwRetry: read ";
+                                       
+                                       uw_Basis_string arg1 =
+                                        uw_Basis_intToString(ctx, __uwr_v_3);
+                                        uw_Basis_strcat(ctx, arg0, arg1);
+                                      })));
+             uw_end_region(ctx);
+              __uwr_v_3;
+             });
+           }));
    }
   
   static uw_unit

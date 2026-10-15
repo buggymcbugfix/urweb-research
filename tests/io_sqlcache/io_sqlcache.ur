@@ -1,16 +1,16 @@
 (* The SQL cache (-sqlcache) with io code.  The compiler takes the caches'
-   locks at the start of an io task's body and of an io RPC, as for any
-   handler, and registers one transactional to release them at the end.
-   That registration is outside any transaction: the body's transactions
-   must leave it alone, and the end of the computation must run it, or the
-   locks are held for ever and every reader of the table waits.  The task
-   updates the counter on its first two ticks; the page reads it between
-   them.  The queries inside an io RPC's transactions go through the cache
-   as a page's do, each query site with a cache of its own: [bump] updates
-   the counter and reads it, [read] misses its own cache and stores the
-   value when the request ends, twice over, since a cache serves a value
-   only from its second store on, and the third [read] runs no SQL at all,
-   as the log of the statements its connection runs shows. *)
+   locks inside each transaction an io computation runs, as the first
+   statements of every attempt, and the transactional they register
+   releases them at the attempt's commit or rollback, as for a handler's
+   request: between its transactions the computation holds no lock, and a
+   reader of the table is served meanwhile.  The task updates the counter
+   on its first two ticks; the page reads it between them.  The queries
+   inside an io RPC's transactions go through the cache as a page's do,
+   each query site with a cache of its own: [bump] updates the counter and
+   reads it, [read] misses its own cache and stores the value when its
+   transaction commits, twice over, since a cache serves a value only from
+   its second store on, and the third [read] runs no SQL at all, as the log
+   of the statements its connection runs shows. *)
 
 table counter : { Id : int, V : int }
 
