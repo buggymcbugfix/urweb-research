@@ -6,5 +6,4 @@ CREATE TABLE uw_Io_rpc_env_t (
 );
 INSERT INTO uw_Io_rpc_env_t VALUES(1,'alice');
 INSERT INTO uw_Io_rpc_env_t VALUES(3,'alice');
-INSERT INTO uw_Io_rpc_env_t VALUES(4,'alice');
 COMMIT;

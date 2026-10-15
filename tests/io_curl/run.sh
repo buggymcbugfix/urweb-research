@@ -71,6 +71,7 @@ transcript=
 log=
 db=
 port=
+sig=
 log_mark=0
 
 # seed SQL...: rows for the database, before the application starts.
@@ -88,6 +89,13 @@ start() {
              "$exe" "$@" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>> "$log" 2>&1 )"
   [ "${status:-}" = OK ] || { cat "$log" >&2; die "the application did not start"; }
   app_pid=$pid
+  # The cookie signature the page carries, sent with every RPC as the
+  # browser sends it: the payment functions read the provider's address
+  # from the environment, which the compiler counts as a read of request
+  # data (under cgi the environment carries the request), so their handlers
+  # ask for it.  The key is drawn afresh at every start.
+  sig=$(curl -s -m 5 "http://127.0.0.1:$port/Curl_io/main" | sed -n 's/.*sig="\([0-9A-F]*\)".*/\1/p')
+  [ -n "$sig" ] || { cat "$log" >&2; die "the page carries no cookie signature"; }
 }
 
 stop() {
@@ -98,11 +106,11 @@ stop() {
   fi
 }
 
-# rpc PATH: an RPC as the browser sends it; the status line, any cookies,
-# and the body (the script line and the value).
+# rpc PATH: an RPC as the browser sends it, signature included; the status
+# line, any cookies, and the body (the script line and the value).
 rpc() {
   echo "> POST $1"
-  curl -s -i -m 30 -X POST -H 'Content-type: text/plain' "http://127.0.0.1:$port$1" \
+  curl -s -i -m 30 -X POST -H 'Content-type: text/plain' -H "UrWeb-Sig: $sig" "http://127.0.0.1:$port$1" \
     | tr -d '\r' | grep -v -E '^(Date|Server|Content-[Ll]ength|Connection|Content-type):'
 }
 

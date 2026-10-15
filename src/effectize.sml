@@ -81,6 +81,9 @@ fun effectize file =
                 EFfi ("Basis", "getCookie") => true
               | EFfiApp ("Basis", "getHeader", _) => true
               | EFfiApp ("Basis", "getenv", _) => true
+              (* The same read from io code; monoize turns it into getenv,
+               * after this pass. *)
+              | EFfiApp ("Basis", "io_getenv", _) => true
               | ENamed n => IM.inDomain (evs, n)
               | EServerCall (n, _, _, _) => IM.inDomain (evs, n)
               | _ => false

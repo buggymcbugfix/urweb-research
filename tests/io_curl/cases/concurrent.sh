@@ -5,9 +5,9 @@
 seed "INSERT INTO uw_Curl_io_orders VALUES (4, 70, 'slow', 'new', '');" \
      "INSERT INTO uw_Curl_io_orders VALUES (5, 80, 'slow', 'new', '');"
 start -t 3
-curl -s -m 30 -X POST -H 'Content-type: text/plain' "http://127.0.0.1:$port/Curl_io/pay/4" | tr -d '\r' > "$out/concurrent.4" &
+curl -s -m 30 -X POST -H 'Content-type: text/plain' -H "UrWeb-Sig: $sig" "http://127.0.0.1:$port/Curl_io/pay/4" | tr -d '\r' > "$out/concurrent.4" &
 p4=$!
-curl -s -m 30 -X POST -H 'Content-type: text/plain' "http://127.0.0.1:$port/Curl_io/pay/5" | tr -d '\r' > "$out/concurrent.5" &
+curl -s -m 30 -X POST -H 'Content-type: text/plain' -H "UrWeb-Sig: $sig" "http://127.0.0.1:$port/Curl_io/pay/5" | tr -d '\r' > "$out/concurrent.5" &
 p5=$!
 sleep 0.3
 if curl -s -m 0.5 "http://127.0.0.1:$port/Curl_io/state" > /dev/null; then
