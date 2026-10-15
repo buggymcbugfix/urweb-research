@@ -1,0 +1,11 @@
+database dbname=io_rpc_send.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_rpc_send/main
+allow url /Io_rpc_send/rows
+safeGet Io_rpc_send/main
+safeGet Io_rpc_send/rows
+
+$/option
+io_rpc_send

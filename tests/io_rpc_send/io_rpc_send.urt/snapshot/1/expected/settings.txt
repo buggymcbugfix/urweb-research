@@ -1,0 +1,37 @@
+Prefix: /
+Database: dbname=io_rpc_send.db
+Exe: tests/io_rpc_send/io_rpc_send.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Ffi tests/ioprobe/probe
+Link tests/ioprobe/probe.c
+Linker: (none)
+Header tests/ioprobe/probe.h
+JsModule: (none)
+Url allow #*
+Url allow /Io_rpc_send/main
+Url allow /Io_rpc_send/rows
+Source $/option
+Source tests/io_rpc_send/io_rpc_send
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Io_rpc_send/main
+SafeGet Io_rpc_send/rows
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types

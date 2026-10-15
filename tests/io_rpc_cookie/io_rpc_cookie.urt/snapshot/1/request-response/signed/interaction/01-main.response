@@ -1,0 +1,13 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Content-script-type: text/javascript
+Set-Cookie: Io_rpc_cookie/c=visitor; path=/
+Connection: close
+Content-length: 680
+
+<!DOCTYPE html><html><head><script type="text/javascript" src="/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js"></script>
+<script type="text/javascript" src="/app.B0C409F2BEA3C3A1B2963ABFF290C1EFA4FB84EF.js"></script>
+<script type="text/javascript">s0_0=sc(exec({c:"c",v:0}));</script></head><body onload='sig="66BB414ED6D6CC0EDDBB2E8970F99A9AE7B5C8DC1540C15FA29F24653FB93C3E";' onunload='unloading=true;;unload()'>
+<button onclick='uw_event=event;exec({c:"a",f:{c:"a",f:{c:"n",n:1},x:{c:"c",v:s0_0}},x:{c:"c",v:null}})'>copy</button>
+<script type="text/javascript">dyn("span", execD({c:"a",f:{c:"a",f:{c:"n",n:2},x:{c:"c",v:s0_0}},x:{c:"c",v:null}}))</script>
+</body></html>
