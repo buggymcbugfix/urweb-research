@@ -3838,6 +3838,14 @@ class Driver:
         return await run.run()
 
     async def main(self, async_playwright):
+        # A held poll's fetch that Playwright fails once its context is
+        # closed leaves a future no one is waiting on any more: no reason
+        # for a traceback on stderr, where urt looks for what the driver
+        # has to say.
+        def quiet(loop, context):
+            if not isinstance(context.get('exception'), self.PlaywrightError):
+                loop.default_exception_handler(context)
+        asyncio.get_running_loop().set_exception_handler(quiet)
         async with async_playwright() as p:
             self.playwright = p
             if not self.args.serve:
