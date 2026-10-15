@@ -1,0 +1,4 @@
+Carlos:
+	wait 1s
+	hover 'text=Rupert' [800ms]
+	wait 1s
