@@ -35,7 +35,6 @@ val () = addProtocol {name = "static",
                       linkStatic = "liburweb_static.a",
                       linkDynamic = "-lurweb_static",
                       persistent = false,
-                      code = fn () => box [string "void uw_global_custom() { }",
-                                           newline]}
+                      code = globalCustom}
 
 end

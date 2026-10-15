@@ -162,6 +162,10 @@ signature SETTINGS = sig
     val addProtocol : protocol -> unit
     val setProtocol : string -> unit
     val currentProtocol : unit -> protocol
+    (* The uw_global_custom() a protocol's code defines, the same for every
+     * protocol: the signing key's file and the limits from the .urp, which
+     * the runtime's global set-up applies before the first context *)
+    val globalCustom : unit -> Print.PD.pp_desc
 
     (* Different DBMSes *)
     datatype sql_type =
