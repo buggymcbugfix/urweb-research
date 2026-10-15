@@ -311,7 +311,7 @@
   
   static uw_unit __uwn_failing_7(uw_context, uw_Basis_int, uw_unit);
    static uw_unit
-    __uwn_failing_7(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr_y_1)
+    __uwn_failing_7(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr___1)
     {restart:
       
     return(({
@@ -513,7 +513,7 @@
                   uw_unit
                   tmp;
                   __uwr_n_0 = rearg0;
-                   __uwr_y_1 = rearg1;
+                   __uwr___1 = rearg1;
                   goto restart;
                   tmp;
                   });
@@ -523,7 +523,7 @@
               ({
                uw_unit
                tmp;
-               uw_error(ctx, FATAL, "tests/io_heap/io_heap.ur:15:8-15:17: pattern match failure");
+               uw_error(ctx, FATAL, "tests/io_heap/io_heap.ur:13:0-26:23: pattern match failure");
                tmp;
                });
             }));

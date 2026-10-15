@@ -4354,14 +4354,22 @@ fun monoDecl (env, fm) (all as (d, loc)) =
             let
                 val vis = map (fn (x, n, t, e, s) =>
                                   let
+                                      (* A recursive function into [transaction] or [io]
+                                       * gets the thunk's abstraction written out, since the
+                                       * code generator wants a recursive function to be a
+                                       * lambda for each argument of its type, and a body
+                                       * that is a case between calls is not one. *)
                                       fun maybeTransaction (t, e) =
                                           case (#1 t, #1 e) of
-                                              (L.CApp ((L.CFfi ("Basis", "transaction"), _), _), _) =>
-                                              SOME (L.EAbs ("_",
-                                                            (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc),
-                                                            t,
-                                                            (L.EApp (CoreEnv.liftExpInExp 0 e,
-                                                                     (L.ERecord [], loc)), loc)), loc)
+                                              (L.CApp ((L.CFfi ("Basis", m), _), _), _) =>
+                                              if m = "transaction" orelse m = "io" then
+                                                  SOME (L.EAbs ("_",
+                                                                (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc),
+                                                                t,
+                                                                (L.EApp (CoreEnv.liftExpInExp 0 e,
+                                                                         (L.ERecord [], loc)), loc)), loc)
+                                              else
+                                                  NONE
                                             | (L.TFun (dom, ran), L.EAbs (x, _, _, e)) =>
                                               (case maybeTransaction (ran, e) of
                                                    NONE => NONE

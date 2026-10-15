@@ -887,7 +887,7 @@
    static uw_unit
     __uwn_$appPRIME_unpoly_unpoly_10(uw_context ctx, 
                                       struct __uws_1* __uwr_ls_0, 
-                                      uw_unit __uwr_y_1)
+                                      uw_unit __uwr___1)
     {restart:
       
     return(({
@@ -975,7 +975,7 @@
                        uw_unit
                        tmp;
                        __uwr_ls_0 = rearg0;
-                        __uwr_y_1 = rearg1;
+                        __uwr___1 = rearg1;
                        goto restart;
                        tmp;
                        });
@@ -986,7 +986,7 @@
               ({
                uw_unit
                tmp;
-               uw_error(ctx, FATAL, "$/list.ur:432:22-432:31: pattern match failure");
+               uw_error(ctx, FATAL, ":0:0-0:0: pattern match failure");
                tmp;
                });
             }));
@@ -999,7 +999,7 @@
     __uwn_$foldlMPRIME_unpoly_unpoly_unpoly_11(uw_context ctx, 
                                                 uw_Basis_int __uwr_acc_0, 
                                                 struct __uws_1* __uwr_ls_1, 
-                                                uw_unit __uwr_y_2)
+                                                uw_unit __uwr___2)
     {restart:
       
     return(({
@@ -1092,7 +1092,7 @@
                      tmp;
                      __uwr_acc_0 = rearg0;
                       __uwr_ls_1 = rearg1;
-                      __uwr_y_2 = rearg2;
+                      __uwr___2 = rearg2;
                      goto restart;
                      tmp;
                      });
@@ -1102,7 +1102,7 @@
               ({
                uw_Basis_int
                tmp;
-               uw_error(ctx, FATAL, "$/list.ur:361:22-361:32: pattern match failure");
+               uw_error(ctx, FATAL, ":0:0-0:0: pattern match failure");
                tmp;
                });
             }));
@@ -1115,7 +1115,7 @@
     __uwn_$mapMPRIME_unpoly_unpoly_unpoly_12(uw_context ctx, 
                                               struct __uws_1* __uwr_acc_0, 
                                               struct __uws_1* __uwr_ls_1, 
-                                              uw_unit __uwr_y_2)
+                                              uw_unit __uwr___2)
     {restart:
       
     return(({
@@ -1220,7 +1220,7 @@
                      tmp;
                      __uwr_acc_0 = rearg0;
                       __uwr_ls_1 = rearg1;
-                      __uwr_y_2 = rearg2;
+                      __uwr___2 = rearg2;
                      goto restart;
                      tmp;
                      });
@@ -1230,7 +1230,7 @@
               ({
                struct __uws_1*
                tmp;
-               uw_error(ctx, FATAL, "$/list.ur:187:22-187:38: pattern match failure");
+               uw_error(ctx, FATAL, ":0:0-0:0: pattern match failure");
                tmp;
                });
             }));
@@ -1283,7 +1283,7 @@
    uw_Basis_int, uw_Basis_int, uw_unit);
    static uw_Basis_int
     __uwn_loop_14(uw_context ctx, uw_Basis_int __uwr_n_0, 
-                   uw_Basis_int __uwr_acc_1, uw_unit __uwr_y_2)
+                   uw_Basis_int __uwr_acc_1, uw_unit __uwr___2)
     {restart:
       
     return(({
@@ -1363,7 +1363,7 @@
                tmp;
                __uwr_n_0 = rearg0;
                 __uwr_acc_1 = rearg1;
-                __uwr_y_2 = rearg2;
+                __uwr___2 = rearg2;
                goto restart;
                tmp;
                })
@@ -1371,7 +1371,7 @@
               ({
                uw_Basis_int
                tmp;
-               uw_error(ctx, FATAL, "tests/io_shapes/closures/closures.ur:62:18-62:28: pattern match failure");
+               uw_error(ctx, FATAL, "tests/io_shapes/closures/closures.ur:61:0-65:30: pattern match failure");
                tmp;
                });
             }));
@@ -1391,7 +1391,7 @@
   
   static uw_Basis_int __uwn_loop2_16(uw_context, uw_Basis_int, uw_unit);
    static uw_Basis_int
-    __uwn_loop2_16(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr_y_1)
+    __uwn_loop2_16(uw_context ctx, uw_Basis_int __uwr_n_0, uw_unit __uwr___1)
     {restart:
       
     return(({
@@ -1469,7 +1469,7 @@
               ({
                uw_Basis_int
                tmp;
-               uw_error(ctx, FATAL, "tests/io_shapes/closures/closures.ur:71:18-71:26: pattern match failure");
+               uw_error(ctx, FATAL, "tests/io_shapes/closures/closures.ur:70:0-75:22: pattern match failure");
                tmp;
                });
             }));
