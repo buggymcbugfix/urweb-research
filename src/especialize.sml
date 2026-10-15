@@ -127,6 +127,7 @@ fun functionInside known =
                   con = fn TFun _ => true
                          | TCFun _ => true
                          | CFfi ("Basis", "transaction") => true
+                         | CFfi ("Basis", "io") => true
                          | CFfi ("Basis", "eq") => true
                          | CFfi ("Basis", "num") => true
                          | CFfi ("Basis", "ord") => true

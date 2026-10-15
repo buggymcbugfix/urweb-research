@@ -149,7 +149,11 @@ val effectfulBase = basis ["dml",
                            "urlifyFloat_w",
                            "urlifyString_w",
                            "urlifyBool_w",
-                           "urlifyChannel_w"]
+                           "urlifyChannel_w",
+                           (* io code's transactions: polymorphic, so not
+                            * marked by corify with the rest of Basis *)
+                           "runTransaction",
+                           "attemptTransaction"]
 
 val effectful = ref effectfulBase
 fun setEffectful ls = effectful := S.addList (effectfulBase, ls)

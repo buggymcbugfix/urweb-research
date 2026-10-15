@@ -569,6 +569,9 @@ fun corifyExp st (e, loc) =
                         (L'.CApp ((L'.CFfi ("Basis", "transaction"), _), dom), _) =>
                         (L'.EAbs ("arg", dom, (L'.TRecord (L'.CRecord ((L'.KType, loc), []), loc), loc),
                                   (L'.EFfiApp (m, x, []), loc)), loc)
+                      | (L'.CApp ((L'.CFfi ("Basis", "io"), _), dom), _) =>
+                        (L'.EAbs ("arg", dom, (L'.TRecord (L'.CRecord ((L'.KType, loc), []), loc), loc),
+                                  (L'.EFfiApp (m, x, []), loc)), loc)
                       | t as (L'.TFun _, _) =>
                         let
                             fun getArgs (all as (t, _), args) =
@@ -577,9 +580,14 @@ fun corifyExp st (e, loc) =
                                   | _ => (all, rev args)
 
                             val (result, args) = getArgs (t, [])
+                            (* A function into [transaction] or [io] is
+                             * called when the thunk is, not when it is
+                             * applied. *)
                             val (isTransaction, result) =
                                 case result of
                                     (L'.CApp ((L'.CFfi ("Basis", "transaction"), _),
+                                              result), _) => (true, result)
+                                  | (L'.CApp ((L'.CFfi ("Basis", "io"), _),
                                               result), _) => (true, result)
                                   | _ => (false, result)
 
@@ -642,10 +650,15 @@ fun corifyExp st (e, loc) =
 
       | L.ELet (x, t, e1, e2) => (L'.ELet (x, corifyCon st t, corifyExp st e1, corifyExp st e2), loc)
 
+(* Into [transaction] or [io]: run when the thunk is, and effectful.  Not
+ * through constructor binders: a polymorphic FFI value is not marked
+ * effectful here (Basis.query would be, and every handler with it), those
+ * are listed in Settings. *)
 fun isTransactional (c, _) =
     case c of
         L'.TFun (_, c) => isTransactional c
       | L'.CApp ((L'.CFfi ("Basis", "transaction"), _), _) => true
+      | L'.CApp ((L'.CFfi ("Basis", "io"), _), _) => true
       | _ => false
 
 fun corifyDecl mods (all as (d, loc : EM.span), st) =
@@ -845,9 +858,12 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                                    let
                                        val (st, n') = St.bindCon st x n
 
+                                       (* The monads whose FFI values are
+                                        * called when the thunk is: their
+                                        * cons, by number, for transactify. *)
                                        val trans =
-                                           if x = "transaction" then
-                                               SOME n
+                                           if x = "transaction" orelse x = "io" then
+                                               (n, x) :: trans
                                            else
                                                trans
                                    in
@@ -958,19 +974,23 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                                    let
                                        val c =
                                            case trans of
-                                               NONE => corifyCon st c
-                                             | SOME trans =>
+                                               [] => corifyCon st c
+                                             | _ =>
                                                let
                                                    fun transactify (all as (c, loc)) =
                                                        case c of
                                                            L.TFun (dom, ran) =>
                                                            (L'.TFun (corifyCon st dom, transactify ran), loc)
+                                                         | L.TCFun (x, k, ran) =>
+                                                           (L'.TCFun (x, corifyKind k, transactify ran), loc)
+                                                         | L.TKFun (x, ran) =>
+                                                           (L'.TKFun (x, transactify ran), loc)
                                                          | L.CApp ((L.CNamed trans', _), t) =>
-                                                           if trans' = trans then
-                                                               (L'.CApp ((L'.CFfi (m, "transaction"), loc),
-                                                                        corifyCon st t), loc)
-                                                           else
-                                                               corifyCon st all
+                                                           (case List.find (fn (n, _) => n = trans') trans of
+                                                                SOME (_, name) =>
+                                                                (L'.CApp ((L'.CFfi (m, name), loc),
+                                                                         corifyCon st t), loc)
+                                                              | NONE => corifyCon st all)
                                                          | _ => corifyCon st all
                                                in
                                                    transactify c
@@ -994,7 +1014,7 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                                         trans)
                                    end
                                  | _ => (ds, cmap, conmap, st, trans))
-                                                           ([], SM.empty, SM.empty, st, NONE) sgis
+                                                           ([], SM.empty, SM.empty, st, []) sgis
 
                  val st = St.bindStr st m n (St.ffi m cmap conmap)
              in

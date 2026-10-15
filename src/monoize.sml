@@ -275,6 +275,8 @@ fun monoType env =
 
                   | L.CApp ((L.CFfi ("Basis", "transaction"), _), t) =>
                     (L'.TFun ((L'.TRecord [], loc), mt env dtmap t), loc)
+                  | L.CApp ((L.CFfi ("Basis", "io"), _), t) =>
+                    (L'.TFun ((L'.TRecord [], loc), mt env dtmap t), loc)
                   | L.CApp ((L.CFfi ("Basis", "source"), _), t) =>
                     (L'.TSource, loc)
                   | L.CApp ((L.CFfi ("Basis", "signal"), _), t) =>
@@ -1168,6 +1170,71 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                                           loc)), loc)), loc)), loc)), loc),
                  fm)
             end
+
+          | L.ECApp ((L.EFfi ("Basis", "io_return"), _), t) =>
+            let
+                val t = monoType env t
+            in
+                ((L'.EAbs ("x", t,
+                                     (L'.TFun ((L'.TRecord [], loc), t), loc),
+                                     (L'.EAbs ("_", (L'.TRecord [], loc), t,
+                                               (L'.ERel 1, loc)), loc)), loc),
+                 fm)
+            end
+          | L.ECApp ((L.ECApp ((L.EFfi ("Basis", "io_bind"), _), t1), _), t2) =>
+            let
+                val t1 = monoType env t1
+                val t2 = monoType env t2
+                val un = (L'.TRecord [], loc)
+                val mt1 = (L'.TFun (un, t1), loc)
+                val mt2 = (L'.TFun (un, t2), loc)
+            in
+                ((L'.EAbs ("m1", mt1, (L'.TFun ((L'.TFun (t1, mt2), loc), (L'.TFun (un, un), loc)), loc),
+                           (L'.EAbs ("m2", (L'.TFun (t1, mt2), loc), (L'.TFun (un, un), loc),
+                                     (L'.EAbs ("_", un, un,
+                                               (L'.ELet ("r", t1, (L'.EApp ((L'.ERel 2, loc),
+                                                                            (L'.ERecord [], loc)), loc),
+                                                         (L'.EApp (
+                                                          (L'.EApp ((L'.ERel 2, loc), (L'.ERel 0, loc)), loc),
+                                                          (L'.ERecord [], loc)),
+                                                          loc)), loc)), loc)), loc)), loc),
+                 fm)
+            end
+
+          (* The io primitives are the transaction ones, called from a thunk
+             that is run outside any transaction. *)
+          | L.EFfiApp ("Basis", "io_debug", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "debug", es), loc)
+          | L.EFfiApp ("Basis", "io_getenv", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "getenv", es), loc)
+          | L.EFfiApp ("Basis", "io_now", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "now", es), loc)
+          | L.EFfiApp ("Basis", "io_rand", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "rand", es), loc)
+
+          (* runTransaction and attemptTransaction: the transaction, a thunk,
+             is applied inside the FFI argument, so that after reduction the
+             argument is the transaction's body, which the code generator
+             prints inline under the runtime's retry protocol.  For
+             attemptTransaction the block yields an option. *)
+          | L.EApp ((L.ECApp ((L.EFfi ("Basis", "runTransaction"), _), t), _), m) =>
+            let
+                val un = (L'.TRecord [], loc)
+                val t' = monoType env t
+                val (m, fm) = monoExp (env, st, fm) m
+                val body = (L'.EApp (liftExpInExp 0 m, (L'.ERecord [], loc)), loc)
+            in
+                ((L'.EAbs ("_", un, t',
+                           (L'.EFfiApp ("Basis", "runTransaction", [(body, t')]), loc)), loc), fm)
+            end
+          | L.EFfi ("Basis", "runTransaction") => poly ()
+          | L.EApp ((L.ECApp ((L.EFfi ("Basis", "attemptTransaction"), _), t), _), m) =>
+            let
+                val un = (L'.TRecord [], loc)
+                val t' = monoType env t
+                val (m, fm) = monoExp (env, st, fm) m
+                val body = (L'.EApp (liftExpInExp 0 m, (L'.ERecord [], loc)), loc)
+            in
+                ((L'.EAbs ("_", un, (L'.TOption t', loc),
+                           (L'.EFfiApp ("Basis", "attemptTransaction", [(body, t')]), loc)), loc), fm)
+            end
+          | L.EFfi ("Basis", "attemptTransaction") => poly ()
 
           | L.EApp ((L.ECApp ((L.EFfi ("Basis", "recv"), _), t1), _), ch) =>
             let

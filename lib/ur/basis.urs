@@ -1257,12 +1257,51 @@ val blessServedFile : string -> file
 val checkServedFile : string -> option file
 
 
+(** Code outside any transaction *)
+
+(* An [io] computation runs on the server with no database transaction open,
+   so that it may perform side effects that cannot be rolled back (send a
+   message, call another service) and run transactions of its own around
+   them, each committed on its own.  Unlike a transaction, it is never run
+   again after a failure: what it did, it did.
+
+   A value carried from one transaction to a later one may be stale by then:
+   a [channel] read from a table in one transaction may belong to a client
+   that left in between, and a [send] on it then goes to nobody. *)
+con io :: Type -> Type
+val io_monad : monad io
+
+(* Run a transaction, with the usual retries; a fatal error in it ends the
+   [io] computation, as it would a request. *)
+val runTransaction : t ::: Type -> transaction t -> io t
+
+(* Run a transaction, and report a fatal error in it as [None];
+   [io_errorMessage] then has the message.  The transaction has been rolled
+   back, unless the failure came from an FFI transactional's commit callback
+   that ran after the database's COMMIT: then the database has committed, and
+   only what the callback was to do is missing.  [tryRunTransaction], in Top,
+   packages the two as a [result]. *)
+val attemptTransaction : t ::: Type -> transaction t -> io (option t)
+val io_errorMessage : io string
+
+(* The few transaction primitives that make sense outside one. *)
+val io_debug : string -> io unit
+val io_getenv : envVar -> io (option string)
+val io_now : io time
+val io_rand : io int
+
+
 (** Tasks *)
 
 con task_kind :: Type -> Type
 val initialize : task_kind unit
 val clientLeaves : task_kind client
 val periodic : int -> task_kind unit
+(* A periodic task's body may be a [transaction unit], run and committed on
+   every period, or an [io unit], run on every period outside any
+   transaction.  The elaborator turns [periodic n] into [periodic_io n] for
+   the latter; it is not meant to be written directly. *)
+val periodic_io : int -> task_kind unit
 
 
 (** Information flow security *)

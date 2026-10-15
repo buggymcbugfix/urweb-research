@@ -94,6 +94,43 @@ typedef struct {
   uw_app *app;
 } periodic;
 
+// The thread of a periodic task whose body is an io computation: run it
+// outside any transaction, log a failure, sleep, again.  The body runs its
+// own transactions (Basis.runTransaction), each with the retry protocol; the
+// body itself is never run again, whatever failed, since its side effects
+// cannot be undone.  The expunger's lock is taken by those transactions
+// only, not across the body, which may be slow (a network call, say).
+static void *io_periodic_loop(periodic *p) {
+  uw_loggers *ls = p->ls;
+  void *ld = ls->logger_data;
+  uw_context ctx = uw_request_new_context(p->id, p->app, p->ls);
+
+  if (!ctx)
+    exit(1);
+  uw_io_prepare(ctx);
+
+  while (1) {
+    uw_reset(ctx);
+
+    if (uw_runIo(ctx, p->pdic.callback) == SUCCESS) {
+      // What the body registered outside any transaction (an FFI
+      // transactional, say) is committed now that the body is over, as a
+      // request's would be by the request's own commit.
+      uw_commit(ctx);
+      if (uw_has_error(ctx))
+        ls->log_error(ld, "Fatal error in io task, at its end: %s\n", uw_error_message(ctx));
+    } else {
+      ls->log_error(ld, "Fatal error in io task: %s\n", uw_error_message(ctx));
+      // Rolls back what was registered outside any transaction, and a
+      // database transaction if an FFI left one open.
+      if (uw_rollback(ctx, 0))
+        ls->log_error(ld, "Error running SQL ROLLBACK after a failed io task\n");
+    }
+
+    sleep(p->pdic.period);
+  }
+}
+
 // The thread of one periodic task: run it, commit, sleep, again, for the
 // life of the process.  A failure of any kind is logged, and the thread
 // goes on to the next period: there is nobody to answer to, so the log is
@@ -103,7 +140,12 @@ static void *periodic_loop(void *data) {
   periodic *p = (periodic *)data;
   uw_loggers *ls = p->ls;
   void *ld = ls->logger_data;
-  uw_context ctx = uw_request_new_context(p->id, p->app, p->ls);
+  uw_context ctx;
+
+  if (p->pdic.io)
+    return io_periodic_loop(p);
+
+  ctx = uw_request_new_context(p->id, p->app, p->ls);
 
   if (!ctx)
     exit(1);

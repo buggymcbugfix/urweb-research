@@ -1,0 +1,36 @@
+Prefix: /
+Database: dbname=io_retry.db
+Exe: tests/io_retry/io_retry.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Ffi tests/ioprobe/probe
+Link tests/ioprobe/probe.c
+Linker: (none)
+Header tests/ioprobe/probe.h
+JsModule: (none)
+Url allow #*
+Url allow /Io_retry/rows
+Source $/list
+Source $/option
+Source tests/io_retry/io_retry
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Io_retry/rows
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types

@@ -1,0 +1,10 @@
+database dbname=io_outside.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_outside/rows
+safeGet Io_outside/rows
+
+$/list
+$/option
+io_outside

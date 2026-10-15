@@ -1489,6 +1489,11 @@ fun evalExp env (e as (_, loc)) k =
                 St.assert [AReln (Known, [e])];
                 k e
             end
+          (* The body of a transaction run from io code: its queries and
+           * updates are checked like any other, and its value is the
+           * transaction's; attemptTransaction's is an option of it. *)
+          | EFfiApp ("Basis", "runTransaction", [(body, _)]) => evalExp env body k
+          | EFfiApp ("Basis", "attemptTransaction", [(body, _)]) => evalExp env body (fn _ => default ())
           | EFfiApp x => doFfi x
           | EApp ((EFfi (m, s), _), e) => doFfi (m, s, [(e, (TRecord [], loc))])
 

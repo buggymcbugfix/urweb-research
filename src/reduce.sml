@@ -502,6 +502,14 @@ fun kindConAndExp (namedC, namedE) =
                                        (EFfi ("Basis", "transaction_bind"), loc),
                                        bindType (CFfi ("Basis", "transaction"), loc) loc)], loc)
 
+                          | EFfi ("Basis", "io_monad") =>
+                            (ERecord [((CName "Return", loc),
+                                       (EFfi ("Basis", "io_return"), loc),
+                                       returnType (CFfi ("Basis", "io"), loc) loc),
+                                      ((CName "Bind", loc),
+                                       (EFfi ("Basis", "io_bind"), loc),
+                                       bindType (CFfi ("Basis", "io"), loc) loc)], loc)
+
                           | EFfi ("Basis", "signal_monad") =>
                             (ERecord [((CName "Return", loc),
                                        (EFfi ("Basis", "signal_return"), loc),

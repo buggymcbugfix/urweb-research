@@ -1,0 +1,28 @@
+#include <urweb.h>
+
+uw_Basis_int uw_Probe_step(uw_context);
+uw_Basis_int uw_Probe_stepT(uw_context);
+uw_Basis_bool uw_Probe_inTransaction(uw_context);
+uw_Basis_bool uw_Probe_inTransactionT(uw_context);
+uw_unit uw_Probe_effect(uw_context, uw_Basis_string);
+uw_unit uw_Probe_effectT(uw_context, uw_Basis_string);
+uw_unit uw_Probe_failOnce(uw_context, uw_Basis_string);
+uw_unit uw_Probe_boundedRetry(uw_context, uw_Basis_string);
+uw_unit uw_Probe_fatalIo(uw_context, uw_Basis_string);
+uw_unit uw_Probe_retryIo(uw_context, uw_Basis_string);
+uw_unit uw_Probe_armConflict(uw_context, uw_Basis_string);
+uw_unit uw_Probe_register(uw_context, uw_Basis_string);
+uw_unit uw_Probe_registerNoRollback(uw_context, uw_Basis_string);
+uw_unit uw_Probe_registerIo(uw_context, uw_Basis_string);
+uw_unit uw_Probe_failInCommitBeforeDb(uw_context, uw_Basis_string);
+uw_unit uw_Probe_failInCommit(uw_context, uw_Basis_string);
+uw_unit uw_Probe_raiseInCommit(uw_context, uw_Basis_string);
+uw_unit uw_Probe_pushCleanupT(uw_context, uw_Basis_string);
+uw_unit uw_Probe_popCleanupT(uw_context);
+uw_unit uw_Probe_pushCleanupIo(uw_context, uw_Basis_string);
+uw_unit uw_Probe_popCleanupIo(uw_context);
+uw_unit uw_Probe_pendingWrite(uw_context, uw_Basis_string);
+uw_unit uw_Probe_finishPendingWrite(uw_context);
+uw_unit uw_Probe_finishPendingWriteIo(uw_context);
+uw_unit uw_Probe_sleepIo(uw_context, uw_Basis_int);
+uw_unit uw_Probe_sleepT(uw_context, uw_Basis_int);

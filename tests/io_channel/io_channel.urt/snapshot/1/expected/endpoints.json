@@ -1,0 +1,8 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.92151FB4564BBC82ABF6AF0017907A600A4593F1.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Io_channel/main", "content-type": null}]}

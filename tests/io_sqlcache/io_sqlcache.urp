@@ -1,0 +1,8 @@
+database dbname=io_sqlcache.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_sqlcache/main
+safeGet Io_sqlcache/main
+
+io_sqlcache

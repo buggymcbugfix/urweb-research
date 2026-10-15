@@ -1,0 +1,12 @@
+database dbname=io_heap.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_heap/rows
+safeGet Io_heap/rows
+limit heap 320000000
+
+$/list
+$/option
+$/string
+io_heap

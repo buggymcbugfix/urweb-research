@@ -1,0 +1,11 @@
+database dbname=io_task.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow env IO_TASK_ENV
+allow url /Io_task/main
+safeGet Io_task/main
+minHeap 65536
+
+$/option
+io_task
