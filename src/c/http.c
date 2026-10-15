@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -339,6 +340,7 @@ static void *worker(void *data) {
 static void help(char *cmd) {
   printf(
     "Usage: %s [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-q] [-T SEC] [-d[fd]]\n"
+      "The '-p' option sets the port (default 8080); '-p 0' takes any free port, which '-d<fd>' and the 'Listening on port' line report.\n"
       "The '-P' option picks the first free port in the range [p..P], where p is the value of '-p' (default 8080) and P is the value of '-P'.\n"
       "The '-k' option turns on HTTP keepalive.\n"
       "The '-q' option turns off some chatter on stdout.\n"
@@ -366,13 +368,60 @@ union uw_sockaddr {
   struct sockaddr_un un;
 };
 
+// A port number from an option's argument, min to 65535, or -1.  Strictly:
+// atoi would read junk as 0, which -p takes for any free port.
+static int port_arg(const char *s, int min) {
+  char *end;
+  long v;
+
+  errno = 0;
+  v = strtol(s, &end, 10);
+  return *s && !*end && !errno && v >= min && v <= 65535 ? (int)v : -1;
+}
+
+enum listener_step { LISTENER_SOCKET, LISTENER_OPTION, LISTENER_BIND, LISTENER_LISTEN };
+
+static const char *const listener_failure[] = {
+  "Listener socket creation failed",
+  "Listener socket option setting failed",
+  "Listener socket bind failed",
+  "Socket listen failed"
+};
+
+// A socket listening at addr, or -1 with *step saying which call failed and
+// errno as that call left it.  SO_REUSEADDR lets a server come back on its
+// port while connections of an earlier one linger; it also lets two sockets
+// bind one port so long as neither listens, so a port is not ours until
+// listen() has succeeded on it.
+static int listener(union uw_sockaddr *addr, socklen_t size, enum listener_step *step) {
+  int yes = 1, fd, e;
+
+  if ((fd = socket(addr->sa.sa_family, SOCK_STREAM, 0)) < 0) {
+    *step = LISTENER_SOCKET;
+    return -1;
+  }
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0)
+    *step = LISTENER_OPTION;
+  else if (bind(fd, &addr->sa, size) < 0)
+    *step = LISTENER_BIND;
+  else if (listen(fd, uw_backlog) < 0)
+    *step = LISTENER_LISTEN;
+  else
+    return fd;
+  e = errno;
+  close(fd);
+  errno = e;
+  return -1;
+}
+
 int main(int argc, char *argv[]) {
   // The skeleton for this function comes from Beej's sockets tutorial.
-  int sockfd;  // listen on sock_fd
+  int sockfd = -1;  // listen on sock_fd
   union uw_sockaddr my_addr;
   union uw_sockaddr their_addr; // connector's address information
   socklen_t my_size = 0, sin_size;
-  int yes = 1, uw_port = 8080, nthreads = 1, i, *names, opt;
+  int uw_port = 8080, nthreads = 1, i, *names, opt;
+  enum listener_step step = LISTENER_SOCKET;
   int recv_timeout_sec = 5;
   int port_upper = 0; // 0 => -P not given; otherwise inclusive upper bound for port allocation.
   int daemonize = 0; // -d: fork once we are listening, parent exits.
@@ -398,8 +447,8 @@ int main(int argc, char *argv[]) {
       return 0;
 
     case 'p':
-      uw_port = atoi(optarg);
-      if (uw_port <= 0) {
+      uw_port = port_arg(optarg, 0);
+      if (uw_port < 0) {
         fprintf(stderr, "Invalid port number\n");
         help(argv[0]);
         return 1;
@@ -407,8 +456,8 @@ int main(int argc, char *argv[]) {
       break;
 
     case 'P':
-      port_upper = atoi(optarg);
-      if (port_upper <= 0) {
+      port_upper = port_arg(optarg, 1);
+      if (port_upper < 0) {
         fprintf(stderr, "Invalid upper-bound port number\n");
         help(argv[0]);
         return 1;
@@ -499,6 +548,10 @@ int main(int argc, char *argv[]) {
   }
 
   if (port_upper != 0) {
+    if (uw_port == 0) {
+      fprintf(stderr, "-P does not go with -p 0, which takes any free port\n");
+      return 1;
+    }
     if (port_upper <= uw_port) {
       fprintf(stderr, "-P upper bound must be strictly greater than -p lower bound\n");
       return 1;
@@ -512,18 +565,6 @@ int main(int argc, char *argv[]) {
   uw_request_init(&uw_application, &ls);
 
   names = calloc(nthreads, sizeof(int));
-
-  sockfd = socket(my_addr.sa.sa_family, SOCK_STREAM, 0); // do some error checking!
-
-  if (sockfd < 0) {
-    fprintf(stderr, "Listener socket creation failed\n");
-    return 1;
-  }
-
-  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
-    fprintf(stderr, "Listener socket option setting failed\n");
-    return 1;
-  }
 
   switch (my_addr.sa.sa_family)
   {
@@ -544,12 +585,17 @@ int main(int argc, char *argv[]) {
   }
 
   if (port_upper == 0) {
-    if (bind(sockfd, &my_addr.sa, my_size) < 0) {
-      fprintf(stderr, "Listener socket bind failed\n");
+    sockfd = listener(&my_addr, my_size, &step);
+    if (sockfd < 0) {
+      fprintf(stderr, "%s\n", listener_failure[step]);
       return 1;
     }
   } else {
-    // -P was given; try each port in [uw_port..port_upper] until one binds.
+    // -P was given; the first port in [uw_port..port_upper] we get to listen
+    // on.  Binding is not enough: a port that another server has bound but
+    // not listened on yet binds again, and whichever of the two listens
+    // second fails with EADDRINUSE.  That one goes on to the next port, as
+    // after a bind that failed.
     // AF_UNIX was already ruled out above, so only the two IP families apply here.
     int port;
     for (port = uw_port; port <= port_upper; ++port) {
@@ -557,8 +603,13 @@ int main(int argc, char *argv[]) {
         my_addr.ipv4.sin_port = htons(port);
       else
         my_addr.ipv6.sin6_port = htons(port);
-      if (bind(sockfd, &my_addr.sa, my_size) == 0)
+      sockfd = listener(&my_addr, my_size, &step);
+      if (sockfd >= 0)
         break;
+      if (step < LISTENER_BIND || (step == LISTENER_LISTEN && errno != EADDRINUSE)) {
+        fprintf(stderr, "%s\n", listener_failure[step]);
+        return 1;
+      }
     }
     if (port > port_upper) {
       fprintf(stderr, "No free port found in range [%d..%d]\n", uw_port, port_upper);
@@ -567,9 +618,17 @@ int main(int argc, char *argv[]) {
     uw_port = port; // so the existing "Listening on port %d" message reports the chosen one.
   }
 
-  if (listen(sockfd, uw_backlog) < 0) {
-    fprintf(stderr, "Socket listen failed\n");
-    return 1;
+  if (uw_port == 0 && my_addr.sa.sa_family != AF_UNIX) {
+    // -p 0: the port the kernel chose, which it gives no other socket while
+    // this one has it.
+    union uw_sockaddr bound;
+    socklen_t bound_size = sizeof bound;
+
+    if (getsockname(sockfd, &bound.sa, &bound_size) < 0) {
+      fprintf(stderr, "Listener socket name lookup failed\n");
+      return 1;
+    }
+    uw_port = ntohs(bound.sa.sa_family == AF_INET6 ? bound.ipv6.sin6_port : bound.ipv4.sin_port);
   }
 
   sin_size = sizeof their_addr;
