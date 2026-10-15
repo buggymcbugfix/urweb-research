@@ -19,7 +19,6 @@
 #define _DARWIN_C_SOURCE
 #include <ctype.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <poll.h>
 #include <signal.h>
@@ -187,9 +186,9 @@ static const char usage_text[] =
     "\n"
     "A case with runs is compiled all the way, so its args cannot hold -stop or\n"
     "-tc, and it fails if that does not give an application.  The compiler builds\n"
-    "it in urt's scratch directory, whatever the project says (-output), and from\n"
-    "there it is moved into the case as app.exe, where it stays, to be started by\n"
-    "hand if need be.\n"
+    "it in urt's scratch directory, whatever the project says (-output), from C\n"
+    "it writes there too (-saveC), and from there it is moved into the case as\n"
+    "app.exe, where it stays, to be started by hand if need be.\n"
     "A run's args cannot hold -t: its requests are sent one after the other, and\n"
     "with more threads than one it is a matter of chance which of them answers.\n"
     "Nor --, after which the server would ignore the flags urt adds (the address,\n"
@@ -1361,28 +1360,6 @@ static int at_blank = 0;
 #define MARK_AT    '\005'      /* at_blank is now 0 or 1 */
 
 static int in_worker = 0;       /* this process is one of -j's */
-static char turns[PATHLEN];     /* -j's scratch directory, where its workers' locks are */
-
-/* With -j, what the workers do one at a time: a lock file of the run's,
- * held while the descriptor is open; -1 if there is none to take. */
-static int take_turn(const char *what) {
-    int fd;
-    if (!in_worker || (fd = open(fmt("%s/%s.lock", turns, what), O_RDWR | O_CREAT, 0600)) < 0) {
-        return -1;
-    }
-    while (lockf(fd, F_LOCK, 0) < 0) {
-        if (errno != EINTR || fs_interrupted) {
-            break;
-        }
-    }
-    return fd;
-}
-
-static void end_turn(int fd) {
-    if (fd >= 0) {
-        close(fd);
-    }
-}
 
 /* A blank line before a block, unless there is one. */
 static void blank_before(void) {
@@ -3100,22 +3077,6 @@ static void run_run(const char *run_dir, const char *exe) {
     sl_free(&diffs);
 }
 
-/* Whether the project is built in debug mode: its .urp says debug before
- * its first blank line, or the case's args -debug. */
-static int is_debug(const char *project, const struct strlist *extra) {
-    char *text = read_text(fmt("%s.urp", project)), *line, *end;
-    int i, found = 0;
-    for (i = 0; i < extra->n; i++) {
-        found |= !strcmp(extra->v[i], "-debug");
-    }
-    for (line = text; !found && line && *line && *line != '\n'; line = end ? end + 1 : NULL) {
-        end = strchr(line, '\n');
-        found = !strncmp(line, "debug", 5) && (line[5] == '\n' || line[5] == 0 || line[5] == ' ' || line[5] == '\r');
-    }
-    free(text);
-    return found;
-}
-
 /* Run the compiler for one case and compare, or record, what it wrote;
  * then the application, if the case has runs. */
 static void run_case(const char *case_dir, const char *project) {
@@ -3124,7 +3085,7 @@ static void run_case(const char *case_dir, const char *project) {
     char missing[PATHLEN] = "", bad[PATHLEN] = "", changed[PATHLEN] = "", note[512] = "";
     const char *stop = "parseJob", *stopper;
     char *args, **command;
-    int maxrank = 0, i, status, own_stop = 0, no_exe, lock = -1;
+    int maxrank = 0, i, status, own_stop = 0, no_exe;
     long t0, elapsed;
 
     join(want_dir, case_dir, "expected");
@@ -3208,7 +3169,10 @@ static void run_case(const char *case_dir, const char *project) {
      * is moved into the case, beside expected/: out of the project's way,
      * and still there afterwards, to be started by hand when a run needs
      * looking into.  The one from last time goes first, lest it stand in
-     * for one that does not build. */
+     * for one that does not build.  The C is written in the work directory
+     * too (-saveC), and the application built from there: a debug build
+     * otherwise keeps its C in /tmp/webapp.c, as every debug build does,
+     * and two at once would build each other's. */
     join(exe, case_dir, "app.exe");
     join(settings, work, "settings.txt");
     if (runs.n) {
@@ -3218,6 +3182,10 @@ static void run_case(const char *case_dir, const char *project) {
         if (!sl_has(&entries, "settings.txt")) {
             sl_push(&argv, "-saveSettings");
             sl_push(&argv, settings);
+        }
+        if (!sl_has(&entries, "server.c")) {
+            sl_push(&argv, "-saveC");
+            sl_push(&argv, fmt("%s/server.c", work));
         }
         sl_push(&argv, "-output");
         sl_push(&argv, fmt("%s/app.exe", work));
@@ -3233,14 +3201,7 @@ static void run_case(const char *case_dir, const char *project) {
 
     command = sl_argv(&argv);
     t0 = tenths_now();
-    if (runs.n && is_debug(project, &extra)) {
-        /* In debug mode the compiler writes the C to /tmp/webapp.c and
-         * builds it from there, whoever compiles: with -j, one worker at
-         * a time. */
-        lock = take_turn("debug");
-    }
     status = run(command, fmt("%s/stdout.txt", work), fmt("%s/stderr.txt", work));
-    end_turn(lock);
     elapsed = tenths_now() - t0;
     free(command);
     bail_if_interrupted();
@@ -3663,7 +3624,6 @@ static void run_parallel(const struct strlist *snaps) {
     if (!p || !ws || !fds) {
         die("out of memory", NULL);
     }
-    snprintf(turns, sizeof turns, "%s", tmp);
     fflush(stdout);
     fflush(stderr);
     for (i = 0; i < nw; i++) {

@@ -172,9 +172,9 @@ URWEB_REPRODUCIBLE_PRNG_SEED, URWEB_MIN_HEAP and TZ.
 
 A case with runs is compiled all the way, so its args cannot hold -stop or
 -tc, and it fails if that does not give an application.  The compiler builds
-it in urt's scratch directory, whatever the project says (-output), and from
-there it is moved into the case as app.exe, where it stays, to be started by
-hand if need be.
+it in urt's scratch directory, whatever the project says (-output), from C
+it writes there too (-saveC), and from there it is moved into the case as
+app.exe, where it stays, to be started by hand if need be.
 A run's args cannot hold -t: its requests are sent one after the other, and
 with more threads than one it is a matter of chance which of them answers.
 Nor --, after which the server would ignore the flags urt adds (the address,

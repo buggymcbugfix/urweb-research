@@ -52,7 +52,9 @@ the steps after it go, and the run fails, with the complaint under its
 verdict, until it gets past the step again, when `NAME.error` goes.  The
 application is built in urt's scratch directory, whatever the project
 says (`-output`: an `exe` directive may name a file that another
-project's names too), and then moved into the case, as `app.exe` beside
+project's names too), from C written there as well (`-saveC`: a debug
+build would otherwise compile from `/tmp/webapp.c`, which every debug
+build writes), and then moved into the case, as `app.exe` beside
 `expected/`, where it stays: git ignores it, and it is there to start by
 hand when a run needs looking into.  Runs need `curl`
 and `sqlite3` (3.37 or later: db.sql is loaded, and the database
