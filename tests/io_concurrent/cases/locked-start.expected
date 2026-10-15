@@ -1,0 +1,2 @@
+the application gave up within 1.5 s
+  | 1 x Fatal initialization error: Can't enable `PRAGMA synchronous = FULL` for SQLite database

@@ -73,20 +73,43 @@ declare -A client_id client_pass
 # seed SQL...: rows for the database, before the application starts.
 seed() { printf '%s\n' "$@" | sqlite3 "$db"; }
 
-# start [-cache] [FLAGS...]: the application, with eight worker threads
+# launch [-cache] [FLAGS...]: the application, with eight worker threads
 # unless the flags say otherwise, on the case's database; the case's seed
 # must come first.  With -cache, the build with the SQL cache.  The server
 # says pid=, port= and status= on descriptor 3 once it listens (-d3), and
-# goes to the background.
-start() {
+# goes to the background; status is left empty if it gives up instead.
+launch() {
   local exe=$out/concurrent.exe
   if [ "${1:-}" = -cache ]; then exe=$out/concurrent-cache.exe; shift; fi
+  status=
   eval "$( env -i ${LD_LIBRARY_PATH:+LD_LIBRARY_PATH="$LD_LIBRARY_PATH"} PATH="$PATH" \
              ${ASAN_OPTIONS:+ASAN_OPTIONS="$ASAN_OPTIONS"} ${UBSAN_OPTIONS:+UBSAN_OPTIONS="$UBSAN_OPTIONS"} \
              URWEB_SQLITE_DB_PATH="$db" URWEB_MIN_HEAP=$((64 * 1024 * 1024)) \
              "$exe" -t 8 "$@" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>> "$log" 2>&1 )"
+}
+
+# start [-cache] [FLAGS...]: launch, and give up on the case if the
+# application did not start.
+start() {
+  launch "$@"
   [ "${status:-}" = OK ] || { cat "$log" >&2; die "the application did not start"; }
   app_pid=$pid
+}
+
+# try_start [-cache] [FLAGS...]: launch, for a case where the application
+# may not start: whether it started or gave up, and after how long, in
+# buckets.
+try_start() {
+  local s e
+  s=$(date +%s%N)
+  launch "$@"
+  e=$(date +%s%N)
+  if [ "${status:-}" = OK ]; then
+    app_pid=$pid
+    bucket "the application started" $(( (e - s) / 1000000 ))
+  else
+    bucket "the application gave up" $(( (e - s) / 1000000 ))
+  fi
 }
 
 stop() {
