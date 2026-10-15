@@ -171,7 +171,14 @@ in the page moves, the same box on two frames in a row.  A run comes
 out the same every time, on any machine, and
 `NAME.timeline` says what happened when: every line of the step, from
 when the user took it to when it was done, and every request, from when
-the page sent it to when the answer came back.  An action is done when
+the page sent it to when the answer came back.  The driver waits for
+every request a page says it sent, however long it takes in wall time:
+one that does not come within the settling's limit (10 s) fails the
+step, rather than the run going on without it and taking it in at a
+later time.  A request a page takes back in the task that sends it
+counts as never sent: whether an engine hands it over at all is a race
+of its own, so it is left out of the records and never reaches the
+server.  An action is done when
 what it set off is done -- its requests answered, and those sent on
 their answers, the pages it loads loaded, its dialogs answered -- but
 not timers due later, nor the poll; with `[async]` the user goes on

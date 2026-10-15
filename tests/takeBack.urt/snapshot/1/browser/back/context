@@ -1,3 +1,0 @@
-# Only WebKit hands the driver a request taken back at once, every time;
-# Chromium now and then, Firefox never (see the commit).
-engines webkit
