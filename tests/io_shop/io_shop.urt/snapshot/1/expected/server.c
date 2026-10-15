@@ -107,9 +107,14 @@
        uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_watchers' COLLATE NOCASE");
        }
       
-      while ((res = sqlite3_step(stmt)) == SQLITE_BUSY)
-      sleep(1);
-       
+      res = sqlite3_step(stmt);
+      
+      if (res == SQLITE_BUSY) {
+      sqlite3_finalize(stmt);
+       sqlite3_close(conn->conn);
+       uw_error(ctx, FATAL, "Database is busy; can't validate:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_watchers' COLLATE NOCASE");
+       }
+      
       if (res == SQLITE_DONE) {
       sqlite3_finalize(stmt);
        sqlite3_close(conn->conn);
@@ -142,9 +147,14 @@
         uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_payments' COLLATE NOCASE");
         }
        
-       while ((res = sqlite3_step(stmt)) == SQLITE_BUSY)
-       sleep(1);
-        
+       res = sqlite3_step(stmt);
+       
+       if (res == SQLITE_BUSY) {
+       sqlite3_finalize(stmt);
+        sqlite3_close(conn->conn);
+        uw_error(ctx, FATAL, "Database is busy; can't validate:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_payments' COLLATE NOCASE");
+        }
+       
        if (res == SQLITE_DONE) {
        sqlite3_finalize(stmt);
         sqlite3_close(conn->conn);
@@ -177,9 +187,14 @@
         uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_orders' COLLATE NOCASE");
         }
        
-       while ((res = sqlite3_step(stmt)) == SQLITE_BUSY)
-       sleep(1);
-        
+       res = sqlite3_step(stmt);
+       
+       if (res == SQLITE_BUSY) {
+       sqlite3_finalize(stmt);
+        sqlite3_close(conn->conn);
+        uw_error(ctx, FATAL, "Database is busy; can't validate:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_orders' COLLATE NOCASE");
+        }
+       
        if (res == SQLITE_DONE) {
        sqlite3_finalize(stmt);
         sqlite3_close(conn->conn);
@@ -212,9 +227,14 @@
         uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_cart' COLLATE NOCASE");
         }
        
-       while ((res = sqlite3_step(stmt)) == SQLITE_BUSY)
-       sleep(1);
-        
+       res = sqlite3_step(stmt);
+       
+       if (res == SQLITE_BUSY) {
+       sqlite3_finalize(stmt);
+        sqlite3_close(conn->conn);
+        uw_error(ctx, FATAL, "Database is busy; can't validate:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_cart' COLLATE NOCASE");
+        }
+       
        if (res == SQLITE_DONE) {
        sqlite3_finalize(stmt);
         sqlite3_close(conn->conn);
@@ -245,9 +265,14 @@
          uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_orderIds' COLLATE NOCASE");
          }
         
-        while ((res = sqlite3_step(stmt)) == SQLITE_BUSY)
-        sleep(1);
-         
+        res = sqlite3_step(stmt);
+        
+        if (res == SQLITE_BUSY) {
+        sqlite3_finalize(stmt);
+         sqlite3_close(conn->conn);
+         uw_error(ctx, FATAL, "Database is busy; can't validate:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_shop_orderIds' COLLATE NOCASE");
+         }
+        
         if (res == SQLITE_DONE) {
         sqlite3_finalize(stmt);
          sqlite3_close(conn->conn);
