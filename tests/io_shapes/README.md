@@ -16,3 +16,6 @@ a summary of the rows the transactions left:
   datatype, unit, xbody, and `io_tryRpc` of a function that fails.
 - `attempt_types`: `attemptTransaction` at a dozen result types, each
   succeeding and failing, and a failure after the value was computed.
+- `branches`: recursive io functions whose branches are calls rather than
+  binds, so that the body as written is not a thunk: a function calling
+  itself, two calling each other, and one returning a value.

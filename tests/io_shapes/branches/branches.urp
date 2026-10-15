@@ -1,0 +1,8 @@
+database dbname=branches.db
+allow url /Branches/main
+safeGet Branches/main
+
+$/list
+$/option
+$/string
+branches
