@@ -1,0 +1,2 @@
+Error triggers bounded retry in io transaction: first try of retry
+rwRetry: read 0
