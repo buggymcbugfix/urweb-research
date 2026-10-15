@@ -106,7 +106,9 @@ datatype exp' =
 
 withtype exp = exp' located
 
-datatype task = Initialize | ClientLeaves | Periodic of Int64.int | PeriodicIo of Int64.int
+(* A periodic task: its period in seconds, and whether its body is an io
+ * computation, run outside any transaction. *)
+datatype task = Initialize | ClientLeaves | Periodic of Int64.int * bool
 
 datatype index_mode = datatype Mono.index_mode
 

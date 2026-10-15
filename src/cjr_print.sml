@@ -3492,10 +3492,8 @@ fun p_file env (ds, ps) =
                                             SOME (x1, x2, p_exp (E.pushERel (E.pushERel env x1 (TFfi ("Basis", "client"), ErrorMsg.dummySpan))
                                                                             x2 dummyt) e)
                                           | _ => NONE) ds
-        val periodics = List.mapPartial (fn (DTask (Periodic n, x1, x2, e), _) =>
-                                            SOME (n, false, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
-                                          | (DTask (PeriodicIo n, x1, x2, e), _) =>
-                                            SOME (n, true, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
+        val periodics = List.mapPartial (fn (DTask (Periodic (n, io), x1, x2, e), _) =>
+                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
                                           | _ => NONE) ds
 
         val (protos', defs') = ListPair.unzip (latestUrlHandlers ())
