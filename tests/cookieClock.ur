@@ -1,4 +1,4 @@
-(* Cookies on the run's clock: one the server gives an expiry a minute out,
+(* Cookies on the run's clock: one the server gives an expiry an hour out,
    one for the session, and the clearing of that one. *)
 
 cookie session : string
@@ -16,10 +16,10 @@ fun main () =
 
 and login () =
     t <- now;
-    setCookie session {Value = "alice", Expires = Some (addSeconds t 60),
+    setCookie session {Value = "alice", Expires = Some (addSeconds t 3600),
                        Secure = False, HttpOnly = True};
     setCookie pref {Value = "dark", Expires = None, Secure = False, HttpOnly = False};
-    return <xml><body>Logged in until {[addSeconds t 60]}.</body></xml>
+    return <xml><body>Logged in until {[addSeconds t 3600]}.</body></xml>
 
 and forget () =
     clearCookie pref;

@@ -1,3 +1,2 @@
-0.700 50.700 Hana: wait 50s
-50.700 50.800 Hana.1: GET /main 200
-50.700 50.800 Hana: open /main
+3540.700 3540.800 Hana.1: GET /main 200
+3540.700 3540.800 Hana: open /main

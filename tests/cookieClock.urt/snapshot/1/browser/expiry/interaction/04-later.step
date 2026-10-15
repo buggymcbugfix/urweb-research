@@ -1,3 +1,2 @@
-Hana:
-	wait 50s
-	open /main
+Hana: open /main
+wait 2min
