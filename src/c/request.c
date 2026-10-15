@@ -15,8 +15,6 @@
 #include "urweb.h"
 #include "request.h"
 
-#define MAX_RETRIES 5
-
 static int try_rollback(uw_context ctx, int will_retry, void *logger_data, uw_logger log_error) {
   int r = uw_rollback(ctx, will_retry);
 
@@ -44,7 +42,7 @@ static uw_context new_context(int id, uw_app *app, uw_loggers *ls, int serves_re
   uw_logger log_debug = ls->log_debug;
   uw_logger log_error = ls->log_error;
   uw_context ctx = uw_init(id, ls);
-  int retries_left = MAX_RETRIES;
+  int attempts_left = UW_RETRY_ATTEMPTS;
 
   if (uw_set_app(ctx, app)) {
     log_error(logger_data, "Unable to initialize request context.  Most likely the limit on number of form inputs has been exceeded.\n");
@@ -62,10 +60,9 @@ static uw_context new_context(int id, uw_app *app, uw_loggers *ls, int serves_re
       log_debug(logger_data, "Database connection initialized.\n");
       break;
     } else if (fk == BOUNDED_RETRY) {
-      if (retries_left) {
+      if (uw_retry_again(fk, &attempts_left))
         log_debug(logger_data, "Initialization error triggers bounded retry: %s\n", uw_error_message(ctx));
-        --retries_left;
-      } else {
+      else {
         log_error(logger_data, "Fatal initialization error (out of retries): %s\n", uw_error_message(ctx));
         uw_free(ctx);
         return NULL;
@@ -165,7 +162,7 @@ static void *periodic_loop(void *data) {
     exit(1);
 
   while (1) {
-    int retries_left = MAX_RETRIES;
+    int attempts_left = UW_RETRY_ATTEMPTS;
     failure_kind r;
     int again;
 
@@ -199,17 +196,16 @@ static void *periodic_loop(void *data) {
         break;
       }
 
-      if (r == BOUNDED_RETRY) {
-        --retries_left;
+      if (r == BOUNDED_RETRY)
         ls->log_debug(ld, "Error triggers bounded retry in periodic: %s\n", uw_error_message(ctx));
-      } else if (r == UNLIMITED_RETRY)
+      else if (r == UNLIMITED_RETRY)
         ls->log_debug(ld, "Error triggers unlimited retry in periodic: %s\n", uw_error_message(ctx));
       else if (r == FATAL)
         ls->log_error(ld, "Fatal error in periodic task: %s\n", uw_error_message(ctx));
       else
         ls->log_error(ld, "Unknown uw_runCallback return code in periodic task!\n");
 
-      again = r == UNLIMITED_RETRY || (r == BOUNDED_RETRY && retries_left > 0);
+      again = uw_retry_again(r, &attempts_left);
       if (try_rollback(ctx, again, ld, ls->log_error))
         // The rollback itself failed (no transaction was active, or the
         // connection is gone).  Nothing is held: the next period starts
@@ -351,7 +347,7 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
                           int sock,
                           int (*send)(int sockfd, const void *buf, ssize_t len),
                           int (*close)(int fd)) {
-  int retries_left = MAX_RETRIES;
+  int attempts_left = UW_RETRY_ATTEMPTS;
   failure_kind fk;
   int is_post = 0;
   char *boundary = NULL;
@@ -653,10 +649,8 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
         return had_error ? FAILED : SERVED;
       }
     } else if (fk == BOUNDED_RETRY) {
-      if (retries_left) {
+      if (uw_retry_again(fk, &attempts_left))
         log_debug(logger_data, "Error triggers bounded retry: %s\n", uw_error_message(ctx));
-        --retries_left;
-      }
       else {
         log_error(logger_data, "Fatal error (out of retries): %s\n", uw_error_message(ctx));
 
