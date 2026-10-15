@@ -1,4 +1,4 @@
--- 2000-01-01 00:00:00.750 UTC POST /Chat/create
+-- 2100-01-01 00:00:00.750 UTC POST /Chat/create
 -- nextval 1/2
 INSERT INTO uw_Chat_s VALUES (NULL);
 -- nextval 2/2

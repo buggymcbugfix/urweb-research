@@ -146,7 +146,7 @@ static const char usage_text[] =
     "same requests get the same answers, the application's random numbers and its\n"
     "time zone, UTC, are pinned, and so is its clock: the server's time is what urt\n"
     "says it is, and nothing happens on the wall clock.  The first request is\n"
-    "served at 2000-01-01 00:00:00 UTC, each further one a second after the one\n"
+    "served at 2100-01-01 00:00:00 UTC, each further one a second after the one\n"
     "before, and the database agrees; what the application does by itself -- a\n"
     "task periodic, a client's expiry -- happens when the clock gets to it, at its\n"
     "time, and goes with the step during which it does: tasks due when a request\n"
@@ -1435,7 +1435,7 @@ static void show_diff(const char *file) {
  * an application whose heap limit is below that refuses to start, and
  * the run fails with its message. */
 
-#define RUN_TIME "946684800"    /* 2000-01-01 00:00:00 UTC, the first request; a second more for every further one */
+#define RUN_TIME "4102444800"   /* 2100-01-01 00:00:00 UTC, the first request; a second more for every further one */
 #define RUN_SEED "0"
 #define RUN_MIN_HEAP "268435456"    /* 256 MiB */
 

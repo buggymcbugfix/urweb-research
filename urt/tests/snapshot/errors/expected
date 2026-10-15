@@ -132,7 +132,7 @@ to start with; within a run, the requests build on each other.  So that the
 same requests get the same answers, the application's random numbers and its
 time zone, UTC, are pinned, and so is its clock: the server's time is what urt
 says it is, and nothing happens on the wall clock.  The first request is
-served at 2000-01-01 00:00:00 UTC, each further one a second after the one
+served at 2100-01-01 00:00:00 UTC, each further one a second after the one
 before, and the database agrees; what the application does by itself -- a
 task periodic, a client's expiry -- happens when the clock gets to it, at its
 time, and goes with the step during which it does: tasks due when a request

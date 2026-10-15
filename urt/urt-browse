@@ -3899,7 +3899,7 @@ class Driver:
 def main():
     ap = argparse.ArgumentParser(add_help=False)
     ap.add_argument('--pass', dest='pass_', default=None)
-    ap.add_argument('--epoch', type=float, default=946684800)
+    ap.add_argument('--epoch', type=float, default=4102444800)
     ap.add_argument('--timeout', type=float, default=10)
     ap.add_argument('--screenshots', default=None)
     ap.add_argument('--recordings', default=None)
