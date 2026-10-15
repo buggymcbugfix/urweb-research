@@ -1,0 +1,14 @@
+database dbname=heap.db
+ffi heapffi
+include heapffi.h
+link heapffi.c
+effectful Heapffi.block
+effectful Heapffi.odd
+effectful Heapffi.pageBoundary
+effectful Heapffi.zero
+effectful Heapffi.stats
+rewrite all Heap/*
+safeGetDefault
+
+$/list
+heap
