@@ -1,0 +1,6 @@
+{"endpoints":
+ [{"method": "GET", "url": "Request_retries/main", "content-type": null},
+                                                                         
+   {"method": "GET", "url": "Request_retries/flaky", "content-type": null},
+                                                                           
+   {"method": "GET", "url": "Request_retries/once", "content-type": null}]}
