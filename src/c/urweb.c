@@ -771,6 +771,19 @@ void uw_free(uw_context ctx) {
   free(ctx);
 }
 
+// Forget what the transaction running now holds: its messages, its client
+// unless it is the request's (see release_client_of), its container, and
+// its cleanups and transactionals, those above the marks.  For a request
+// the marks are zero and the client is its own, so this is all of it.
+static void uw_drop_transaction_state(uw_context ctx) {
+  ctx->used_deltas = 0;
+  if (!ctx->io_request)
+    ctx->client = NULL;
+  ctx->cur_container = NULL;
+  ctx->cleanup_front = ctx->cleanup + ctx->cleanup_base;
+  ctx->used_transactionals = ctx->transactionals_base;
+}
+
 void uw_reset_keep_error_message(uw_context ctx) {
   uw_buffer_reset(&ctx->outHeaders);
   uw_buffer_reset(&ctx->script);
@@ -779,14 +792,10 @@ void uw_reset_keep_error_message(uw_context ctx) {
   ctx->allowed_to_return_indirectly = ctx->returning_indirectly = 0;
   uw_buffer_reset(&ctx->heap);
   ctx->regions = NULL;
-  ctx->cleanup_front = ctx->cleanup;
   ctx->cleanup_base = 0;
-  ctx->used_deltas = 0;
-  ctx->client = NULL;
-  ctx->io_request = 0;
-  ctx->cur_container = NULL;
-  ctx->used_transactionals = 0;
   ctx->transactionals_base = 0;
+  ctx->io_request = 0;
+  uw_drop_transaction_state(ctx);
   ctx->io_error_message[0] = 0;
   ctx->script_header = "";
   ctx->queryString = NULL;
@@ -5135,12 +5144,7 @@ jmp_buf *uw_jmp_buf(uw_context ctx) {
 // transaction's, and stays named for the next transaction (see
 // release_client_of).
 static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int committed) {
-  ctx->used_deltas = 0;
-  if (!ctx->io_request)
-    ctx->client = NULL;
-  ctx->cur_container = NULL;
-  ctx->cleanup_front = ctx->cleanup + ctx->cleanup_base;
-  ctx->used_transactionals = ctx->transactionals_base;
+  uw_drop_transaction_state(ctx);
 
   if (committed)
     ctx->io_error_message[0] = 0;
