@@ -1,0 +1,16 @@
+read: answered within 1.5 s
+> read
+HTTP/1.1 200 OK
+v = 0
+inc: answered after 3 s or more
+> inc
+HTTP/1.1 200 OK
+1
+> hold
+HTTP/1.1 200 OK
+13000
+run again for "Database is busy": more than once
+> database
+  hold: 13000
+  counter 1
+  | Error triggers unlimited retry: Database is busy
