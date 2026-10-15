@@ -1858,12 +1858,15 @@ MOTION_JS = r"""
     // own server (XMLHttpRequest, fetch) carries the document's number
     // and its own, x-urt-sent: DOC.N, and every navigation away is
     // counted (beforeunload), so that a probe says what the driver has
-    // yet to see, whose events come by another way, in wall time.
+    // yet to see, whose events come by another way, in wall time.  And
+    // the requests whose answers the page has not had yet: one the
+    // driver has answered is in the engine's hands, in wall time too,
+    // and what the page does with it (a request more) comes after.
     urt.doc = 0;
     urt.sent = 0;
     urt.leaves = 0;
+    urt.open = new Set();
     const own = u => { try { return new URL(u, location.href).origin === location.origin; } catch (e) { return false; } };
-    const tagged = () => urt.doc + '.' + (++urt.sent);
     const xopen = XMLHttpRequest.prototype.open, xsend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function (method, url, ...rest) {
         this.__urtOwn = own(url);
@@ -1871,7 +1874,28 @@ MOTION_JS = r"""
     };
     XMLHttpRequest.prototype.send = function (...args) {
         if (this.__urtOwn) {
-            try { this.setRequestHeader('x-urt-sent', tagged()); } catch (e) {}
+            const n = ++urt.sent, xhr = this;
+            try {
+                this.setRequestHeader('x-urt-sent', urt.doc + '.' + n);
+                urt.open.add(n);
+                // Had in the task in which the page has the answer, which
+                // a probe cannot come into the middle of: at readyState 4;
+                // at 0 once the page's handler has called abort(), as
+                // Ur/Web's does, which takes load and loadend away; or
+                // with the object sent again from there, as Ur/Web's
+                // listener for messages does.
+                const done = () => {
+                    urt.open.delete(n);
+                    xhr.removeEventListener('readystatechange', changed);
+                    xhr.removeEventListener('loadend', done);
+                };
+                const changed = () => {
+                    if (xhr.__urtSent !== n || xhr.readyState === 4 || xhr.readyState === 0) { done(); }
+                };
+                this.__urtSent = n;
+                this.addEventListener('readystatechange', changed);
+                this.addEventListener('loadend', done);
+            } catch (e) {}
         }
         return xsend.apply(this, args);
     };
@@ -1879,12 +1903,18 @@ MOTION_JS = r"""
         const fetch0 = window.fetch;
         window.fetch = function (input, init) {
             const req = typeof Request !== 'undefined' && input instanceof Request;
-            if (own(req ? input.url : String(input))) {
-                const headers = new Headers((init && init.headers) || (req ? input.headers : undefined));
-                headers.set('x-urt-sent', tagged());
-                init = Object.assign({}, init, {headers});
+            if (!own(req ? input.url : String(input))) {
+                return fetch0.call(this, input, init);
             }
-            return fetch0.call(this, input, init);
+            const n = ++urt.sent;
+            const headers = new Headers((init && init.headers) || (req ? input.headers : undefined));
+            headers.set('x-urt-sent', urt.doc + '.' + n);
+            urt.open.add(n);
+            const p = fetch0.call(this, input, Object.assign({}, init, {headers}));
+            // Once the answer's head is there: what the page does once it
+            // has read the body may come later.
+            p.then(() => { urt.open.delete(n); }, () => { urt.open.delete(n); });
+            return p;
         };
     }
     window.addEventListener('beforeunload', () => { urt.leaves++; }, true);
@@ -1953,7 +1983,7 @@ PROBE_JS = r"""
             return (m[0] ? frames(2) : Promise.resolve()).then(() => {
                 let next = at(c._firstTimer());
                 if (m[1] !== null && (next === null || m[1] < next)) { next = m[1]; }
-                return [due || m[0], next, m[2], m[3], u ? [u.doc, u.sent, u.leaves] : null];
+                return [due || m[0], next, m[2], m[3], u ? [u.doc, u.sent, u.leaves, [...u.open]] : null];
             });
         });
     });
@@ -2011,6 +2041,7 @@ class Held:
         self.released = False       # a poll the server has let go, its tag given
         self.finished = False       # the page has it
         self.navigation = False     # a document for the tab
+        self.tag = None             # (document, number) as the page's x-urt-sent gives them
 
 
 class Tab:
@@ -2046,8 +2077,10 @@ class Tab:
         self.pending = []           # calls a dialog holds up
         self.stirs = 0              # how often anything happened in the page, as the driver saw it
         self.calm = 0               # probes in a row since then that found nothing new
-        self.sent = None            # (document, requests sent, navigations away begun), as of its last probe
+        self.sent = None            # (document, requests sent, navigations away begun, the numbers of those
+                                    # whose answers it has not had), as of its last probe
         self.routed = {}            # document -> its requests the driver has seen
+        self.answered = {}          # document -> the numbers of its requests the driver has answered
         self.left_by = {}           # document -> navigations away the driver has seen begin
         self.owed = None            # (what the page said it sent, since when it is owed), while the driver has not seen it all
 
@@ -2701,7 +2734,7 @@ class Run:
             return
         fired, nxt, tab.animating, tab.moving, sent = r
         if sent is not None:
-            tab.sent = tuple(sent)
+            tab.sent = (sent[0], sent[1], sent[2], tuple(sorted(sent[3])))
         trace('touch', tab.label, fired, nxt and self.stamp(nxt), tab.animating)
         tab.clock = self.now
         tab.next_timer = nxt
@@ -3037,11 +3070,11 @@ class Run:
             tab = self.page_tab.get(page) or self.on_page(user, page)
         self.stir(tab)
         sent = req.headers.get('x-urt-sent', '')
-        if re.match(r'^\d+\.\d+$', sent):
-            doc = int(sent.split('.')[0])
-            tab.routed[doc] = tab.routed.get(doc, 0) + 1
         h = Held(tab, route, self.is_poll(req), self.now)
         h.step = self.step
+        if re.match(r'^\d+\.\d+$', sent):
+            h.tag = tuple(int(x) for x in sent.split('.'))
+            tab.routed[h.tag[0]] = tab.routed.get(h.tag[0], 0) + 1
         trace('route', tab.label, req.method, self.path_of(url))
         self.held.append(h)
         self.heldmap[req] = h
@@ -3116,6 +3149,10 @@ class Run:
                                                                      tab.hidden_since, self.docs)))
             else:
                 await self.call(tab, h.route.fulfill(response=h.response))
+            # The page's to read now, but for a redirect, which the engine
+            # follows with a request of the same number.
+            if h.tag is not None and (h.error is not None or not 300 <= h.response.status < 400):
+                tab.answered.setdefault(h.tag[0], set()).add(h.tag[1])
         except self.PlaywrightError:
             h.finished = True
             self.drop(h)
@@ -3297,22 +3334,23 @@ class Run:
 
     def owing(self, tab):
         """Whether the page has sent a request, or begun a navigation away,
-        that the driver has not seen yet: the page says so at a probe,
-        which comes on its own way, and the request by the network's.
-        One that does not come within two seconds of the wall clock never
-        will (a request the page took back at once), and is not waited
-        for again."""
+        that the driver has not seen yet, or not had an answer the driver
+        gave it: the page says so at a probe, which comes on its own way,
+        and the request and the answer by the network's.  What does not
+        come within two seconds of the wall clock never will (a request
+        the page took back at once), and is not waited for again."""
         if tab.sent is None or tab.navigating:
             tab.owed = None
             return False
-        doc, sent, leaves = tab.sent
-        if tab.routed.get(doc, 0) >= sent and tab.left_by.get(doc, 0) >= leaves:
+        doc, sent, leaves, unread = tab.sent
+        unread = tab.answered.get(doc, set()).intersection(unread)
+        if tab.routed.get(doc, 0) >= sent and tab.left_by.get(doc, 0) >= leaves and not unread:
             tab.owed = None
             return False
         if tab.owed is None or tab.owed[0] != tab.sent:
             tab.owed = (tab.sent, time.monotonic())
         elif tab.owed[1] is not None and time.monotonic() - tab.owed[1] > 2:
-            trace('never came', tab.label, tab.sent, tab.routed.get(doc, 0), tab.left_by.get(doc, 0))
+            trace('never came', tab.label, tab.sent, tab.routed.get(doc, 0), tab.left_by.get(doc, 0), sorted(unread))
             tab.owed = (tab.sent, None)
         return tab.owed[1] is not None
 
