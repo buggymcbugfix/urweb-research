@@ -305,7 +305,17 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
 
              if #persistent (currentProtocol ()) then
+                 (* The schema is checked on the process's first connection
+                  * only, the one uw_request_init makes before any thread
+                  * starts (and before the -d fork), so that a failure ends
+                  * the start-up with the parent's exit status.  The
+                  * threads' connections, and a reconnection, skip the
+                  * check: they would find what the first one found.  The
+                  * flag is set before any thread exists, so the threads
+                  * read it without a lock. *)
                  box [string "static void uw_db_validate(uw_context ctx) {",
+                      newline,
+                      string "static int validated;",
                       newline,
                       string "uw_conn *conn = uw_get_db(ctx);",
                       newline,
@@ -314,10 +324,18 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                       string "int res;",
                       newline,
                       newline,
+                      string "if (validated)",
+                      newline,
+                      box [string "return;",
+                           newline],
+                      newline,
                       p_list_sep newline (checkRel ("table", true)) tables,
                       p_list_sep newline (fn name => checkRel ("table", true)
                                                               (name, [("id", Settings.Client)])) sequences,
                       p_list_sep newline (checkRel ("view", false)) views,
+                      newline,
+                      string "validated = 1;",
+                      newline,
                       string "}",
                       newline,
                       newline,
