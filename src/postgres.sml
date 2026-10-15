@@ -260,12 +260,27 @@ fun checkRel (table, checkNullable) (s, xts) =
 
 fun init {dbstring, prepared = ss, tables, views, sequences} =
     box [if #persistent (currentProtocol ()) then
+             (* The schema is checked on the process's first connection
+              * only, the one uw_request_init makes before any thread
+              * starts (and before the -d fork), so that a failure ends
+              * the start-up with the parent's exit status.  The threads'
+              * connections, and a reconnection, skip the check, which
+              * costs three information_schema queries a table: they would
+              * find what the first one found.  The flag is set before any
+              * thread exists, so the threads read it without a lock. *)
              box [string "static void uw_db_validate(uw_context ctx) {",
+                  newline,
+                  string "static int validated;",
                   newline,
                   string "PGconn *conn = uw_get_db(ctx);",
                   newline,
                   string "PGresult *res;",
                   newline,
+                  newline,
+                  string "if (validated)",
+                  newline,
+                  box [string "return;",
+                       newline],
                   newline,
                   p_list_sep newline (checkRel ("tables", true)) tables,
                   p_list_sep newline (checkRel ("views", false)) views,
@@ -328,6 +343,9 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                                           newline]
                                  end) sequences,
 
+                  newline,
+                  string "validated = 1;",
+                  newline,
                   string "}",
 
                   string "static void uw_db_prepare(uw_context ctx) {",

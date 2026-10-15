@@ -77,10 +77,16 @@
      }
     
     static void uw_db_validate(uw_context ctx) {
+     static int validated;
      uw_conn *conn = uw_get_db(ctx);
      sqlite3_stmt *stmt;
      int res;
      
+     if (validated)
+     return;
+      
+     
+     validated = 1;
      }
      
      static void uw_db_prepare(uw_context ctx) {

@@ -14,9 +14,13 @@
    uw_setup_limits();
    }
    static void uw_db_validate(uw_context ctx) {
+    static int validated;
     PGconn *conn = uw_get_db(ctx);
     PGresult *res;
     
+    if (validated)
+    return;
+     
     res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'uw_constraints_t'");
      
      if (res == NULL) {
@@ -87,7 +91,9 @@
       }
      
      PQclear(res);
-     }static void uw_db_prepare(uw_context ctx) {
+     
+    validated = 1;
+    }static void uw_db_prepare(uw_context ctx) {
     PGconn *conn = uw_get_db(ctx);
     PGresult *res;
     

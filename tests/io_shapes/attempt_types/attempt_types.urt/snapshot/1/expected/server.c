@@ -78,10 +78,14 @@
      }
     
     static void uw_db_validate(uw_context ctx) {
+     static int validated;
      uw_conn *conn = uw_get_db(ctx);
      sqlite3_stmt *stmt;
      int res;
      
+     if (validated)
+     return;
+      
      if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Attempt_types_t' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
       sqlite3_close(conn->conn);
        uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Attempt_types_t' COLLATE NOCASE");
@@ -115,7 +119,9 @@
        }
       
       sqlite3_finalize(stmt);
-      }
+      
+     validated = 1;
+     }
      
      static void uw_db_prepare(uw_context ctx) {
      uw_conn *conn = uw_get_db(ctx);
