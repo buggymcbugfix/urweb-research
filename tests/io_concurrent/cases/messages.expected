@@ -1,0 +1,34 @@
+client A made
+client B made
+client C made
+client D made
+tellA1: HTTP/1.1 200 OK
+tellA2: HTTP/1.1 200 OK
+tellA3: HTTP/1.1 200 OK
+tellA4: HTTP/1.1 200 OK
+tellA5: HTTP/1.1 200 OK
+tellB1: HTTP/1.1 200 OK
+tellB2: HTTP/1.1 200 OK
+tellB3: HTTP/1.1 200 OK
+tellB4: HTTP/1.1 200 OK
+tellB5: HTTP/1.1 200 OK
+tellC1: HTTP/1.1 200 OK
+tellC2: HTTP/1.1 200 OK
+tellC3: HTTP/1.1 200 OK
+tellC4: HTTP/1.1 200 OK
+tellC5: HTTP/1.1 200 OK
+tellD1: HTTP/1.1 200 OK
+tellD2: HTTP/1.1 200 OK
+tellD3: HTTP/1.1 200 OK
+tellD4: HTTP/1.1 200 OK
+tellD5: HTTP/1.1 200 OK
+client A received 20 of the 20 messages
+client B received 20 of the 20 messages
+client C received 20 of the 20 messages
+client D received 20 of the 20 messages
+> database
+  A: 9 9 9 9 9
+  B: 9 9 9 9 9
+  C: 9 9 9 9 9
+  D: 9 9 9 9 9
+  | Error triggers unlimited retry in io transaction: Database is busy

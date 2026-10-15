@@ -1,0 +1,20 @@
+client A made
+page1: answered within 1.5 s
+page2: answered within 1.5 s
+page3: answered within 1.5 s
+page4: answered within 1.5 s
+page5: answered within 1.5 s
+page6: answered within 1.5 s
+slowA: answered after 3 s or more
+> slowA
+HTTP/1.1 200 OK
+7000
+polls answered while the RPC ran: several
+  | 1 x effect: slow A begins
+  | 1 x effect: slow A ends
+  | 1 x a client left
+> messages of A
+HTTP/1.1 200 OK
+R
+> database
+  A: 7000

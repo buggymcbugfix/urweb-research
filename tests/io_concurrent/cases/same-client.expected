@@ -1,0 +1,21 @@
+client A made
+client B made
+slowA: answered after 3 s or more
+quickA: answered after 3 s or more
+quickB: answered within 1.5 s
+pollA: answered within 1.5 s
+> slowA
+HTTP/1.1 200 OK
+4000
+> quickA
+HTTP/1.1 200 OK
+quick+A
+> quickB
+HTTP/1.1 200 OK
+quick+B
+pollA: ticks
+> database
+  A: 0 4000
+  B: 0
+  | 1 x effect: slow A begins
+  | 1 x effect: slow A ends
