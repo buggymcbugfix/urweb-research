@@ -1,0 +1,7 @@
+ffi takeBackFfi
+jsFile takeBack.js
+jsFunc TakeBackFfi.setup=takeBackSetup
+benignEffectful TakeBackFfi.setup
+rewrite url TakeBack/*
+
+takeBack
