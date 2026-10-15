@@ -101,9 +101,11 @@ result
 .DS_Store
 
 # The Ur/Web toolbox: its Makefiles are written by hand, not by autotools;
-# its program is built from the C under urt/src and the formatter from the
-# SML under urt/src/format, whose own .gitignore has the generated files.
+# its program and the engines' clock are built from the C under urt/src and
+# the formatter from the SML under urt/src/format, whose own .gitignore has
+# the generated files.
 !/urt/Makefile
 !/urt/src/format/Makefile
 /urt/urt
 /urt/urt-format
+/urt/liburtclock.so

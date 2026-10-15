@@ -6,8 +6,17 @@ HDR = src/commands.h src/report.h src/fs.h src/runs.h src/tui.h
 
 all: urt urt-format
 
+# The engines' wall clock on the run's, loaded into them by urt-browse
+# (src/urtclock.c); Linux only.
+ifeq ($(shell uname -s),Linux)
+all: liburtclock.so
+endif
+
 urt: $(SRC) $(HDR)
 	$(CC) $(CFLAGS) -o urt $(SRC)
+
+liburtclock.so: src/urtclock.c
+	$(CC) $(CFLAGS) -shared -fPIC -o liburtclock.so src/urtclock.c -ldl
 
 # The formatter is built in its own directory (src/format/Makefile)
 # and copied beside Urt, where `urt format` looks for it.
@@ -52,7 +61,7 @@ update-demo: urt urt-format
 
 clean:
 	$(MAKE) -C src/format clean
-	rm -f urt urt-format
+	rm -f urt urt-format liburtclock.so
 
 .PHONY: all check check-snapshot check-pty check-format check-demo check-oracle \
         update update-snapshot update-pty update-format update-demo clean src/format/urt-format

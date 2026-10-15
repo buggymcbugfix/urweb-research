@@ -265,6 +265,11 @@ stdenv.mkDerivation (finalAttrs: {
     wrapProgram "$out/bin/urt" --set-default URWEB "$out/bin/urweb" ${browserFlags}
     wrapProgram "$out/bin/urt-browse" ${browserFlags}
   ''
+  # The engines' clock: urt-browse looks for it beside itself, as in the
+  # tree, and in ../lib/urt
+  + lib.optionalString (withUrt && stdenv.hostPlatform.isLinux) ''
+    install -D -m 644 urt/liburtclock.so "$out/lib/urt/liburtclock.so"
+  ''
   + ''
     runHook postInstall
   '';
