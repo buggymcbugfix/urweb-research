@@ -1,9 +1,10 @@
 (* An application for the contention tests of ../run.sh: io RPCs that sleep
    outside any transaction, with and without the request's client, writers
-   whose transactions overlap, a cached table an io RPC holds the cache's
-   lock on while it sleeps, an io task that sends on every client's channel
-   each period, and a clientLeaves task that logs the pruner's work.  The
-   sleeps and effects are the C probes of ../../ioprobe. *)
+   whose transactions overlap, in io code and in plain RPCs, a cached table
+   an io RPC holds the cache's lock on while it sleeps, an io task that
+   sends on every client's channel each period, and a clientLeaves task that
+   logs the pruner's work.  The sleeps and effects are the C probes of
+   ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
@@ -62,6 +63,21 @@ fun increment (who : string) (ms : int) : io int =
                     dml (UPDATE counter SET V = {[v + 1]} WHERE Id = 1);
                     return (v + 1))
 
+(* The same in a plain RPC, whose transaction is the request's own: the
+   request loop runs it again when it fails. *)
+fun incrementRpc (ms : int) : transaction int =
+    v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
+    Probe.sleepT ms;
+    dml (UPDATE counter SET V = {[v + 1]} WHERE Id = 1);
+    return (v + 1)
+
+(* A plain RPC that holds the database's write lock for a while: it writes,
+   then pauses inside its transaction. *)
+fun hold (ms : int) : transaction int =
+    dml (INSERT INTO t (N, Who) VALUES ({[ms]}, "hold"));
+    Probe.sleepT ms;
+    return ms
+
 (* The cached table: with -sqlcache, the update holds the cache's write lock
    for the whole computation, the sleep included, and the read at the end
    is a cache site of its own. *)
@@ -98,5 +114,7 @@ fun main () : transaction page =
       <button value="writeAttempt" onclick={fn _ => _ <- io_rpc (writeAttempt "browser" 100); return ()}/>
       <button value="increment" onclick={fn _ => _ <- io_rpc (increment "browser" 100); return ()}/>
       <button value="bump" onclick={fn _ => _ <- io_rpc (bumpSlowly 1000); return ()}/>
+      <button value="incrementRpc" onclick={fn _ => _ <- rpc (incrementRpc 100); return ()}/>
+      <button value="hold" onclick={fn _ => _ <- rpc (hold 1000); return ()}/>
       <dyn signal={v <- signal s; return <xml>{[v]}</xml>}/>
     </body></xml>

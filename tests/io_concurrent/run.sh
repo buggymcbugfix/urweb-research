@@ -138,14 +138,26 @@ bg_rpc() { timed "$1" curl_rpc "$2" "$3" & }
 bg_page() { timed "$1" curl_page "$2" & }
 bg_msgs() { timed "$1" curl_msgs "$2" & }
 
-# took LABEL: how long the request took, in buckets.
-took() {
-  local ms
-  ms=$(cat "$out/$transcript_name.$1.ms")
-  if [ "$ms" -lt 1500 ]; then echo "$1: answered within 1.5 s"
-  elif [ "$ms" -ge 3000 ]; then echo "$1: answered after 3 s or more"
-  else echo "$1: answered after $ms ms (between the buckets)"
+# bucket WHAT MS: WHAT, and when, in buckets.
+bucket() {
+  if [ "$2" -lt 1500 ]; then echo "$1 within 1.5 s"
+  elif [ "$2" -ge 3000 ]; then echo "$1 after 3 s or more"
+  else echo "$1 after $2 ms (between the buckets)"
   fi
+}
+
+# took LABEL: how long the request took, in buckets.
+took() { bucket "$1: answered" "$(cat "$out/$transcript_name.$1.ms")"; }
+
+# slowest LABEL...: how long the slowest of the requests took, in buckets,
+# for requests whose order is a matter of timing.
+slowest() {
+  local l ms max=0
+  for l in "$@"; do
+    ms=$(cat "$out/$transcript_name.$l.ms")
+    if [ "$ms" -gt "$max" ]; then max=$ms; fi
+  done
+  bucket "the slowest of $*: answered" "$max"
 }
 
 # together LABEL1 LABEL2: whether two requests of the same length were
@@ -197,6 +209,19 @@ show_log() {
     | grep -v -E '^(Database connection initialized|Starting the|ONLY DURING|behind a|Forking|Listening|Accepted|Handling|Serving|Processed request for messages)|^$' \
     | sort | uniq -c | sed 's/^ *\([0-9]*\) /  | \1 x /'
   log_mark=$n
+}
+
+# reruns TEXT: how often, since the last look at the log, a request was run
+# again for an error saying TEXT: never, once or more than once, since how
+# often is a matter of timing.  The log is left to show_log or log_kinds.
+reruns() {
+  local n
+  n=$(tail -n +"$((log_mark + 1))" "$log" | grep -c -F -- "unlimited retry: $1")
+  case $n in
+    0) echo "run again for \"$1\": never" ;;
+    1) echo "run again for \"$1\": once" ;;
+    *) echo "run again for \"$1\": more than once" ;;
+  esac
 }
 
 # log_kinds: as show_log, but each kind of line once, without its count,

@@ -32,6 +32,13 @@ sanitizers' options reach the application.
   the runtime (write), by the function (writeAttempt), and read-pause-write
   on one counter (increment): every call answered, every row there, the
   counter counting every call.
+- rpc-writers: read-pause-write on one counter from plain RPCs, eight at
+  once, each in the request's own transaction, which the request loop runs
+  again when it fails: every call answered, the counter counting every
+  call, and how long the slowest took.
+- long-writer: a plain RPC holding the write lock for longer than SQLite's
+  busy timeout; a writer that comes after it is answered once the lock is
+  free, and a page that only reads is answered at once.
 - clients-and-task: four clients, each with a slow io RPC, three quick ones
   behind it and a poll, while the task ticks every channel each second.
 - messages: four clients polling, each sending twenty messages to every
