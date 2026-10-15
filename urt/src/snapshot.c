@@ -25,9 +25,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/file.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
 
 #include "commands.h"
 #include "fs.h"
@@ -358,9 +364,14 @@ static const char usage_text[] =
     "\n"
     "With -j N (or -jN, --jobs=N), N projects go at once, each in a process of its\n"
     "own that takes the project's cases one after the other; with -j alone, as\n"
-    "many as there are cores.  What is printed is what a plain run prints, in the\n"
-    "same order: a project's lines come when its turn comes.  A browser run drives\n"
-    "its passes at once either way, so a project can keep three browsers busy.\n"
+    "many as there are cores, on Apple silicon its performance cores.  What is\n"
+    "printed is what a plain run prints, in the same order: a project's lines come\n"
+    "when its turn comes.  A browser pass keeps about a core busy, so under -j N at\n"
+    "most N go at once: each process holds a seat, in which it compiles and drives\n"
+    "the first pass of a run, and a run's other passes go alongside only in seats\n"
+    "nobody holds, taken without waiting, else after the first; a pass's films are\n"
+    "then developed one after another.  Without -j a browser run drives its passes\n"
+    "at once.\n"
     "\n"
     "With '--create', cases are set up for a project, named as given or by the\n"
     "next number: an empty 'args' file and an 'expected' directory of empty\n"
@@ -446,6 +457,13 @@ static const char *artifact_names(void) {
 
 static int opt_check = 0, opt_create = 0, opt_create_run = 0, opt_list = 0, opt_edit = 0, opt_screenshot = 0, opt_record = 0;
 static int opt_jobs = 1, opt_jobs_given = 0;    /* -j: how many projects at once */
+/* -j's seats, one for every job: files under the parent's scratch
+ * directory, held with flock by whoever has a pass go in one.  A worker
+ * holds its own for its whole life, and its runs' further passes take
+ * seats that nobody holds, without waiting, or go after.  The kernel lets
+ * a dead worker's seats go; children do not inherit them (O_CLOEXEC). */
+static char seats_dir[PATHLEN] = "";
+static int n_seats = 0, my_seat = -1;
 static const char *opt_frame = NULL;   /* --record=T: the time between a film's frames, as given */
 static const char *me = "urt snapshot";   /* how to invoke us, for messages */
 static char urweb[PATHLEN];               /* the compiler, absolute */
@@ -2663,28 +2681,42 @@ static void on_pass_line(int i, const char *line, void *data) {
     on_browse_line(line, &b[i]);
 }
 
-/* A browser run: the application started once per pass, passes->v[i]
- * into rws[i], and every pass driven through at once, each by a driver of
- * its own, which leaves the records under rws[i] and goes on outputs[i];
- * then every application stopped, and its database dumped.  Returns 0,
- * or -1 with the problem reported, and nothing of the run is to be
- * recorded then.  A step that cannot be done is not that kind of problem:
- * that pass stops there, with NAME.error saying why, and is recorded as
- * far as it got; stopped[i] (PATHLEN) names the step it stopped at, or is
- * empty. */
-static int run_passes(const char *run_dir, const char *exe, const struct strlist *passes, char rws[][PATHLEN],
-                      struct strlist outputs[], char stopped[][PATHLEN]) {
+/* Seat k taken: its file's descriptor, or -1 if someone holds it and
+ * wait is not set (or it cannot be had). */
+static int seat_take(int k, int wait) {
+    int fd = open(fmt("%s/seat-%d", seats_dir, k), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
+    if (fd < 0) {
+        return -1;
+    }
+    if (flock(fd, LOCK_EX | (wait ? 0 : LOCK_NB)) < 0) {
+        close(fd);
+        return -1;
+    }
+    return fd;
+}
+
+/* Passes from..to-1 of a browser run: the application started once per
+ * pass, passes->v[i] into rws[i], and every pass driven through at once,
+ * each by a driver of its own, which leaves the records under rws[i] and
+ * goes on outputs[i]; then every application stopped, and its database
+ * dumped.  Returns 0, or -1 with the problem reported, and nothing of the
+ * run is to be recorded then.  A step that cannot be done is not that
+ * kind of problem: that pass stops there, with NAME.error saying why, and
+ * is recorded as far as it got; stopped[i] (PATHLEN) names the step it
+ * stopped at, or is empty. */
+static int run_some(const char *run_dir, const char *exe, const struct strlist *passes, int from, int to,
+                    char rws[][PATHLEN], struct strlist outputs[], char stopped[][PATHLEN]) {
     struct app apps[PASSES_MAX];
     struct browsing b[PASSES_MAX];
     struct child *ds[PASSES_MAX], *going[PASSES_MAX] = { NULL };
     char browse_err[PASSES_MAX][PATHLEN];
     int slot[PASSES_MAX], taken[PASSES_MAX] = { 0 }, done[PASSES_MAX] = { 0 }, said[PASSES_MAX] = { 0 };
-    int i, j, n = passes->n, before = report_problems, ok = 1;
+    int i, j, before = report_problems, ok = 1;
 
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         *stopped[i] = 0;
         if (app_start(run_dir, exe, 1, rws[i], &servers[i], &apps[i], &outputs[i]) < 0) {
-            while (--i >= 0) {
+            while (--i >= from) {
                 server_stop(&servers[i]);
             }
             return -1;
@@ -2692,7 +2724,7 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
     }
     /* A pass to the driver of its first user's engine, if no pass before
      * it took that one, or else to the first one free. */
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         int want = engine_at(passes->v[i]);
         slot[i] = want >= 0 && want < PASSES_MAX && !taken[want] ? want : -1;
         for (j = 0; slot[i] < 0 && j < PASSES_MAX; j++) {
@@ -2707,26 +2739,27 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
      * output is cut on those lines, as after a request.  The screenshots
      * and the recordings, when asked for, go straight into the run,
      * emptied of the last ones by run_run. */
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         struct browsing one = { run_dir, rws[i], apps[i].dml, apps[i].server_out, apps[i].server_err,
                                 &apps[i].out_at, &apps[i].err_at, &outputs[i], 0, "" };
         b[i] = one;
         join(browse_err[i], rws[i], "browse.stderr");
         ds[i] = driver_for(slot[i]);
         said[i] = ds[i] != NULL
-                  && child_say(ds[i], fmt("run %s %s %s pass=%s%s%s%s\n",
+                  && child_say(ds[i], fmt("run %s %s %s pass=%s%s%s%s%s\n",
                                           shell_quoted(fmt("http://127.0.0.1:%d", servers[i].port)),
                                           shell_quoted(run_dir), shell_quoted(fmt("%s/interaction", rws[i])),
                                           shell_quoted(passes->v[i]),
                                           opt_screenshot ? fmt(" screenshots=%s", shell_quoted(fmt("%s/screenshots", run_dir))) : "",
                                           opt_record ? fmt(" recordings=%s", shell_quoted(fmt("%s/recordings", run_dir))) : "",
-                                          opt_frame ? fmt(" frame=%s", shell_quoted(opt_frame)) : "")) == 0;
+                                          opt_frame ? fmt(" frame=%s", shell_quoted(opt_frame)) : "",
+                                          opt_record && my_seat >= 0 ? " films=one" : "")) == 0;
     }
     {
         /* Those that took their pass, heard together. */
         int at[PASSES_MAX], heard[PASSES_MAX];
         struct browsing bs[PASSES_MAX];
-        for (i = 0, j = 0; i < n; i++) {
+        for (i = from, j = 0; i < to; i++) {
             if (said[i]) {
                 going[j] = ds[i];
                 bs[j] = b[i];
@@ -2739,7 +2772,7 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
             done[at[j]] = heard[j];
         }
     }
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         /* What the driver said to stderr during this pass, beside its
          * records, where head_of finds it. */
         if (ds[i]) {
@@ -2760,17 +2793,45 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
             driver_up[slot[i]] = 0;
         }
     }
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         server_stop(&servers[i]);
     }
     bail_if_interrupted();
     if (report_problems != before) {
         return -1;
     }
-    for (i = 0; i < n && ok; i++) {
+    for (i = from; i < to && ok; i++) {
         ok = app_end(run_dir, &apps[i], &outputs[i]) == 0;
     }
     return ok ? 0 : -1;
+}
+
+/* A browser run's passes, as run_some has them: all at once; under -j as
+ * many at once as there are seats for them, the worker's own and those
+ * nobody holds, the others after those, in seats taken again. */
+static int run_passes(const char *run_dir, const char *exe, const struct strlist *passes, char rws[][PATHLEN],
+                      struct strlist outputs[], char stopped[][PATHLEN]) {
+    int first = 0, n = passes->n;
+    while (first < n) {
+        int held[PASSES_MAX], nh = 0, k = n - first, s, r;
+        if (my_seat >= 0) {
+            for (k = 1, s = 0; s < n_seats && first + k < n; s++) {
+                if (s != my_seat && (held[nh] = seat_take(s, 0)) >= 0) {
+                    nh++;
+                    k++;
+                }
+            }
+        }
+        r = run_some(run_dir, exe, passes, first, first + k, rws, outputs, stopped);
+        while (nh > 0) {
+            close(held[--nh]);
+        }
+        if (r < 0) {
+            return -1;
+        }
+        first += k;
+    }
+    return 0;
 }
 
 /* Whether two of a pass's records are the same, a record that is not
@@ -3509,6 +3570,10 @@ static void worker(const struct strlist *snaps, int cmd, int out) {
     char line[64];
     FILE *in;
     in_worker = 1;
+    /* Its seat, held until it is done: free for it, and nobody else's. */
+    if (seat_take(my_seat, 1) < 0) {
+        my_seat = -1;
+    }
     /* The parent's scratch directory is the parent's to remove. */
     *tmp = 0;
     need_tmp();
@@ -3629,6 +3694,10 @@ static void run_parallel(const struct strlist *snaps) {
     if (!p || !ws || !fds) {
         die("out of memory", NULL);
     }
+    /* The seats, in our scratch directory, one for every job: the
+     * workers' own and those for passes alongside them. */
+    pathf(seats_dir, "%s", tmp);
+    n_seats = opt_jobs;
     fflush(stdout);
     fflush(stderr);
     for (i = 0; i < nw; i++) {
@@ -3647,6 +3716,7 @@ static void run_parallel(const struct strlist *snaps) {
             }
             close(out[0]);
             close(cmd[1]);
+            my_seat = i;
             worker(snaps, cmd[0], out[1]);
         }
         close(out[1]);
@@ -4471,9 +4541,19 @@ static int jobs_of(const char *s) {
     return (int) n;
 }
 
-/* The cores we may run on: -j alone. */
+/* The cores we may run on: -j alone.  On Apple silicon the performance
+ * cores, where a browser pass keeps up; the efficiency cores take two or
+ * three times as long, against the same limits. */
 static int cores(void) {
-    long n = sysconf(_SC_NPROCESSORS_ONLN);
+    long n;
+#ifdef __APPLE__
+    int perf = 0;
+    size_t len = sizeof perf;
+    if (sysctlbyname("hw.perflevel0.logicalcpu", &perf, &len, NULL, 0) == 0 && perf > 0) {
+        return perf;
+    }
+#endif
+    n = sysconf(_SC_NPROCESSORS_ONLN);
     return n > 0 && n < INT_MAX ? (int) n : 1;
 }
 

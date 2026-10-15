@@ -344,9 +344,14 @@ directory to search for snapshots.  It defaults to the current directory.
 
 With -j N (or -jN, --jobs=N), N projects go at once, each in a process of its
 own that takes the project's cases one after the other; with -j alone, as
-many as there are cores.  What is printed is what a plain run prints, in the
-same order: a project's lines come when its turn comes.  A browser run drives
-its passes at once either way, so a project can keep three browsers busy.
+many as there are cores, on Apple silicon its performance cores.  What is
+printed is what a plain run prints, in the same order: a project's lines come
+when its turn comes.  A browser pass keeps about a core busy, so under -j N at
+most N go at once: each process holds a seat, in which it compiles and drives
+the first pass of a run, and a run's other passes go alongside only in seats
+nobody holds, taken without waiting, else after the first; a pass's films are
+then developed one after another.  Without -j a browser run drives its passes
+at once.
 
 With '--create', cases are set up for a project, named as given or by the
 next number: an empty 'args' file and an 'expected' directory of empty

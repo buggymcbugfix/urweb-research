@@ -68,11 +68,13 @@ with and without either.  After each step a line 'step NAME' is printed;
 a step that cannot be done prints 'fail NAME' and ends the run; 'done'
 ends it otherwise.  With --serve, a pass of a run is done for every line
 'run URL RUN OUT [pass=NAME] [screenshots=DIR] [recordings=DIR]
-[frame=T]' read from stdin, quoted as for a shell, an engine started at
-the first pass that needs it and kept for the rest.  With --check, the
-step and context files are read and nothing is run: what is wrong with
-them is printed, a line each, and the exit status is 1 if anything was;
-and if nothing was, the run's passes, a line 'pass NAME' each.
+[frame=T] [films=one]' read from stdin, quoted as for a shell, an engine
+started at the first pass that needs it and kept for the rest; with
+films=one, as urt asks for under -j, the pass's films are developed one
+after another rather than at once.  With --check, the step and context
+files are read and nothing is run: what is wrong with them is printed, a
+line each, and the exit status is 1 if anything was; and if nothing was,
+the run's passes, a line 'pass NAME' each.
 
 The clock.  There is one, for the pages (Playwright's clock, moved by
 the driver), the server (told the time of every request, and moved
@@ -2596,7 +2598,7 @@ class Run:
     """One pass of a run: the clock, the users, each on their engine, the
     requests in the driver's hands, the server's clock, the records."""
 
-    def __init__(self, drv, url, run_dir, out, steps, setup, order, screenshots, recordings, frame, pass_):
+    def __init__(self, drv, url, run_dir, out, steps, setup, order, screenshots, recordings, frame, pass_, films_one=False):
         self.drv, self.args = drv, drv.args
         self.PlaywrightError = drv.PlaywrightError
         # The pass: its name, and every user's engine in it.
@@ -2624,6 +2626,7 @@ class Run:
         # The films, when asked for: a reel a user, its pictures waiting in
         # a directory of their own until the run's end.
         self.frame_ms = frame
+        self.films_one = films_one      # its films developed one after another, not at once
         self.stops = set()          # the film's stops to come
         self.reels = {}
         self.pictures = None
@@ -3747,6 +3750,12 @@ class Run:
                                                         stdin=asyncio.subprocess.PIPE,
                                                         stdout=asyncio.subprocess.DEVNULL,
                                                         stderr=asyncio.subprocess.PIPE)
+            # A film has no limit of the wall clock to keep, the passes
+            # going on beside it do: it waits for them.
+            try:
+                os.setpriority(os.PRIO_PROCESS, proc.pid, 19)
+            except OSError:
+                pass
             mkv = Matroska(width + (width & 1), height + BAR + ((height + BAR) & 1), film_ms(end, cuts, e))
             proc.stdin.write(mkv.head)
             last = object()
@@ -3915,7 +3924,11 @@ class Run:
             # Every user's film at once, each composed in a page of its own
             # and encoded by an ffmpeg of its own.
             cuts = self.cuts()
-            await asyncio.gather(*(self.develop(reel, self.now, cuts) for reel in self.reels.values()))
+            if self.films_one:
+                for reel in self.reels.values():
+                    await self.develop(reel, self.now, cuts)
+            else:
+                await asyncio.gather(*(self.develop(reel, self.now, cuts) for reel in self.reels.values()))
             write_index(self.recordings, self.frame_ms)
             shutil.rmtree(self.pictures, ignore_errors=True)
         self.closed_port.close()
@@ -4062,7 +4075,7 @@ class Driver:
         with open(os.path.join(directory, file), 'wb') as f:
             f.write(last)
 
-    async def run_one(self, url, run_dir, out, pass_name, screenshots, recordings, frame):
+    async def run_one(self, url, run_dir, out, pass_name, screenshots, recordings, frame, films_one=False):
         """One pass of a run, the first unless named."""
         steps, setup, order, complaints = read_run(run_dir)
         passes = setup.passes(order)
@@ -4079,7 +4092,7 @@ class Driver:
             if engine in on.values() and not await self.launch(engine):
                 print('done', flush=True)
                 return False
-        run = Run(self, url, run_dir, out, steps, setup, order, screenshots, recordings, frame, (name, on))
+        run = Run(self, url, run_dir, out, steps, setup, order, screenshots, recordings, frame, (name, on), films_one)
         return await run.run()
 
     async def main(self, async_playwright):
@@ -4109,12 +4122,13 @@ class Driver:
                     options = dict(w.split('=', 1) for w in words[4:] if '=' in w)
                     frame = parse_time(options.get('frame', '16ms'))
                     if len(words) < 4 or words[0] != 'run' or len(options) != len(words) - 4 \
-                            or set(options) - {'pass', 'screenshots', 'recordings', 'frame'} or not frame:
+                            or set(options) - {'pass', 'screenshots', 'recordings', 'frame', 'films'} or not frame \
+                            or options.get('films', 'one') != 'one':
                         print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
                         print('done', flush=True)
                         continue
                     await self.run_one(words[1], words[2], words[3], options.get('pass'), options.get('screenshots'),
-                                       options.get('recordings'), frame)
+                                       options.get('recordings'), frame, 'films' in options)
                 for browser in self.browsers.values():
                     await browser.close()
             return 0

@@ -11,8 +11,15 @@ Create, validate and manage snapshots of the compilation pipeline for an
 Ur/Web project: `urt snapshot --help` describes the layout and the usage.
 The compiler is the one `URWEB` names, or else the in-tree build,
 `bin/urweb`; never one found on the PATH.  With `-j` the projects go
-several at once, N with `-j N`, or one per core, each in a process of its
-own; what is printed is what a plain run prints, in the same order.
+several at once, N with `-j N`, or one per core (on Apple silicon, per
+performance core), each in a process of its own; what is printed is
+what a plain run prints, in the same order.  A browser pass keeps about
+a core busy, so under `-j N` at most N go at once: each process holds a
+seat, in which it compiles and drives a run's first pass, and the run's
+other passes go alongside only in seats nobody holds, taken without
+waiting, or else after the first; a pass's films are then developed one
+after another, and ffmpeg always runs at the lowest priority.  Without
+`-j` a browser run drives its passes at once.
 
 A case can go on to run the application it compiles and snapshot what it
 answers: the runs under `request-response/`, each with its own database
