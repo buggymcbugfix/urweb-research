@@ -1,0 +1,8 @@
+database dbname=conditionals.db
+allow url /Conditionals/main
+safeGet Conditionals/main
+
+$/list
+$/option
+$/string
+conditionals

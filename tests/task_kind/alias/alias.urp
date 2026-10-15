@@ -1,0 +1,5 @@
+database dbname=alias.db
+allow url /Alias/main
+safeGet Alias/main
+
+alias

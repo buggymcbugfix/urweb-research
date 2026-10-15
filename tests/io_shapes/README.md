@@ -19,3 +19,8 @@ a summary of the rows the transactions left:
 - `branches`: recursive io functions whose branches are calls rather than
   binds, so that the body as written is not a thunk: a function calling
   itself, two calling each other, and one returning a value.
+- `conditionals`: io code choosing between computations without recursion:
+  an `if` and a `case` with a transaction in one branch and a `return` in
+  the other, a computation picked first and run after, a local recursive
+  function with a transaction per step, and a second attempt made only
+  when the first succeeded.

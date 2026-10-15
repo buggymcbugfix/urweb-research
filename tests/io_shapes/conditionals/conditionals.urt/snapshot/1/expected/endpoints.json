@@ -1,0 +1,20 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.164AD59DBA35717939860AB1D4C66517DFF9DA0F.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Conditionals/main", "content-type": null},
+                                                                       
+   {"method": "POST", "url": "Conditionals/cond", "content-type": null},
+                                                                        
+   {"method": "POST", "url": "Conditionals/caseOpt", "content-type": null},
+                                                                           
+   {"method": "POST", "url": "Conditionals/chosen", "content-type": null},
+                                                                          
+   {"method": "POST", "url": "Conditionals/local", "content-type": null},
+                                                                         
+   {"method": "POST", "url": "Conditionals/twoAttempts", "content-type": null},
+                                                                               
+   {"method": "POST", "url": "Conditionals/summary", "content-type": null}]}

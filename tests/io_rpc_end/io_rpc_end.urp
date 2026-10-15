@@ -1,0 +1,15 @@
+database dbname=io_rpc_end.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+ffi late
+include late.h
+link late.c
+allow url /Io_rpc_end/main
+allow url /Io_rpc_end/rows
+safeGet Io_rpc_end/main
+safeGet Io_rpc_end/rows
+
+$/list
+$/option
+io_rpc_end
