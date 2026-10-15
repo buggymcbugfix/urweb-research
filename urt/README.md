@@ -170,8 +170,11 @@ monotonic clocks, by which the engines time their own work, are left
 alone.  There the driver also drops a cookie past its expiry from the
 user's context before it forwards a request, since Playwright fills in
 a Cookie header from the context's cookies for a request without one,
-and Firefox and WebKit list expired ones with the rest.  Elsewhere the
-engines keep the wall clock.
+and Firefox and WebKit list expired ones with the rest.  On macOS the
+same library, from `urt/src/urtclock-mac.c`, is used once `make -C urt
+liburtclock.dylib` has built it (untried as yet: an engine built with
+the hardened runtime ignores it); otherwise the engines keep the wall
+clock there.
 An element is ready to act on when it is shown, enabled and still: no
 animation of its own or around it under way and, while anything else
 in the page moves, the same box on two frames in a row.  A run comes

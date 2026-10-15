@@ -18,6 +18,10 @@ urt: $(SRC) $(HDR)
 liburtclock.so: src/urtclock.c
 	$(CC) $(CFLAGS) -shared -fPIC -o liburtclock.so src/urtclock.c -ldl
 
+# On macOS, untried as yet, so built only when asked for, and then used.
+liburtclock.dylib: src/urtclock-mac.c
+	$(CC) $(CFLAGS) -dynamiclib -o liburtclock.dylib src/urtclock-mac.c
+
 # The formatter is built in its own directory (src/format/Makefile)
 # and copied beside Urt, where `urt format` looks for it.
 urt-format: src/format/urt-format
@@ -61,7 +65,7 @@ update-demo: urt urt-format
 
 clean:
 	$(MAKE) -C src/format clean
-	rm -f urt urt-format liburtclock.so
+	rm -f urt urt-format liburtclock.so liburtclock.dylib
 
 .PHONY: all check check-snapshot check-pty check-format check-demo check-oracle \
         update update-snapshot update-pty update-format update-demo clean src/format/urt-format
