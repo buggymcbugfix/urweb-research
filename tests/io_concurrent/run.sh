@@ -84,13 +84,14 @@ declare -A client_id client_pass
 # seed SQL...: rows for the database, before the application starts.
 seed() { printf '%s\n' "$@" | sqlite3 "$db"; }
 
-# start [-cache] [-writer-first] [FLAGS...]: the application, with eight
+# launch [-cache] [-writer-first] [FLAGS...]: the application, with eight
 # worker threads unless the flags say otherwise, on the case's database; the
 # case's seed must come first.  With -cache, the build with the SQL cache;
 # with -writer-first, under the shim above where there is one (ASan is told
 # not to mind that it comes first).  The server says pid=, port= and status=
-# on descriptor 3 once it listens (-d3), and goes to the background.
-start() {
+# on descriptor 3 once it listens (-d3), and goes to the background; status
+# is left empty if it gives up instead.
+launch() {
   local exe=$out/concurrent.exe preload= asan=${ASAN_OPTIONS:-}
   while :; do
     case "${1:-}" in
@@ -100,13 +101,36 @@ start() {
     esac
   done
   [ -n "$preload" ] && asan="${asan:+$asan:}verify_asan_link_order=0"
+  status=
   eval "$( env -i ${LD_LIBRARY_PATH:+LD_LIBRARY_PATH="$LD_LIBRARY_PATH"} PATH="$PATH" \
              ${asan:+ASAN_OPTIONS="$asan"} ${UBSAN_OPTIONS:+UBSAN_OPTIONS="$UBSAN_OPTIONS"} \
              ${preload:+LD_PRELOAD="$preload"} \
              URWEB_SQLITE_DB_PATH="$db" \
              "$exe" -t 8 "$@" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>> "$log" 2>&1 )"
+}
+
+# start [-cache] [-writer-first] [FLAGS...]: launch, and give up on the
+# case if the application did not start.
+start() {
+  launch "$@"
   [ "${status:-}" = OK ] || { cat "$log" >&2; die "the application did not start"; }
   app_pid=$pid
+}
+
+# try_start [-cache] [-writer-first] [FLAGS...]: launch, for a case where
+# the application may not start: whether it started or gave up, and after
+# how long, in buckets.
+try_start() {
+  local s e
+  s=$(date +%s%N)
+  launch "$@"
+  e=$(date +%s%N)
+  if [ "${status:-}" = OK ]; then
+    app_pid=$pid
+    bucket "the application started" $(( (e - s) / 1000000 ))
+  else
+    bucket "the application gave up" $(( (e - s) / 1000000 ))
+  fi
 }
 
 stop() {
