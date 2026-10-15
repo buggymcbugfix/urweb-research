@@ -1,0 +1,4 @@
+allow url /Rpc_inline/main
+safeGet Rpc_inline/main
+
+rpc_inline

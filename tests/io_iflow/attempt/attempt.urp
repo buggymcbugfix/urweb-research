@@ -1,0 +1,5 @@
+database dbname=attempt.db
+allow url /Attempt/main
+safeGet Attempt/main
+
+attempt

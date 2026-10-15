@@ -1,0 +1,1 @@
+tests/io_misuse/rpc_inline/rpc_inline.ur:7:54: (to 7:81) RPC code doesn't use a named function or transaction

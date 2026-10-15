@@ -1,0 +1,5 @@
+database dbname=ok.db
+allow url /Ok/main
+safeGet Ok/main
+
+ok

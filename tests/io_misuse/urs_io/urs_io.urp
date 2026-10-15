@@ -1,0 +1,4 @@
+allow url /Urs_io/main
+safeGet Urs_io/main
+
+urs_io

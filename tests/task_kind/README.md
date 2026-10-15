@@ -1,7 +1,7 @@
 Task kinds and the monad of the body
 ====================================
 
-Four projects, one snapshot each, on how the kind of a task and the monad
+Seven projects, one snapshot each, on how the kind of a task and the monad
 of its body go together:
 
 - `wrapper`: `fun every n = periodic n`, then `task every 5` with an io
@@ -13,3 +13,7 @@ of its body go together:
   with a transaction body.
 - `no_monad`: `task periodic 60 = fn () => return ()`, a body that says
   nothing about its monad, which is refused.
+- `option_body`: `task periodic 5 = fn () => None`, a body in a monad that
+  is neither, which is refused.
+- `cgi_io`, `cgi_transaction`: a periodic task, with an io body and with a
+  transaction body, under `-protocol cgi`, which runs no tasks: refused.

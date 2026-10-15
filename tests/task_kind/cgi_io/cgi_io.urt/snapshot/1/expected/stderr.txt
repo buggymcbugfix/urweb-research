@@ -1,0 +1,1 @@
+tests/task_kind/cgi_io/cgi_io.ur:3:5: (to 3:15) Periodic tasks aren't allowed in the selected protocol (cgi).
