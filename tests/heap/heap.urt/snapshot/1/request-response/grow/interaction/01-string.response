@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 94
+
+<!DOCTYPE html><html><head></head><body>5242880 bytes, starting 0123456789abcdef</body></html>
