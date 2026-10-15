@@ -1,0 +1,2 @@
+70.900 71.400 Hana: click 'input[value=Forget]'
+71.300 71.400 Hana.1: POST /forget 200

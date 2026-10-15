@@ -1,0 +1,3 @@
+Hana:
+	wait 20s
+	open /main
