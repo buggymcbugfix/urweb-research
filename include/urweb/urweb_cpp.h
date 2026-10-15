@@ -318,6 +318,9 @@ extern const uw_Basis_time uw_Basis_minTime;
 int uw_register_transactional(struct uw_context *, void *data, uw_callback commit, uw_callback rollback, uw_callback_with_retry free);
 
 void uw_check_heap(struct uw_context *, size_t extra);
+// Between pieces of work (a request served, a task's tick, a pass of the
+// expunger): empty the heap, and give back the memory not recently needed.
+void uw_heap_shrink(struct uw_context *);
 char *uw_heap_front(struct uw_context *);
 void uw_set_heap_front(struct uw_context *, char*);
 

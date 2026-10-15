@@ -384,6 +384,7 @@ extern void uw_init_crypto();
 static void uw_heap_from_env();
 static void uw_heap_init(uw_context ctx);
 static void uw_heap_spare(uw_context ctx);
+static void uw_heap_note_peak(uw_context ctx);
 
 void uw_global_init() {
   clients = malloc(0);
@@ -479,9 +480,12 @@ struct uw_context {
   uw_buffer outHeaders, page, heap, script;
   // The heap is a reservation of address space that never moves (see "The
   // heap" below): heap_reserved bytes mapped at heap.start, of which the
-  // first heap.back - heap.start are readable and writable; heap.max is
-  // the heap limit.
-  size_t heap_reserved;
+  // first heap_committed have been made readable and writable, and the
+  // first heap.back - heap.start may be used now; heap.max is the heap
+  // limit.  heap_peak is the most the work going on has used, through all
+  // its attempts, and heap_recent what the heap keeps between pieces of
+  // work (uw_heap_shrink).
+  size_t heap_reserved, heap_committed, heap_peak, heap_recent;
   int allowed_to_return_indirectly, returning_indirectly;
   input *inputs, *subinputs, *cur_container;
   size_t sz_inputs, n_subinputs, used_subinputs;
@@ -810,6 +814,7 @@ void uw_reset_keep_error_message(uw_context ctx) {
   ctx->script.start[0] = 0;
   uw_buffer_reset(&ctx->page);
   ctx->allowed_to_return_indirectly = ctx->returning_indirectly = 0;
+  uw_heap_note_peak(ctx);
   uw_buffer_reset(&ctx->heap);
   ctx->regions = NULL;
   ctx->cleanup_base = 0;
@@ -1539,7 +1544,7 @@ static pthread_mutex_t uw_heap_spares_mutex = PTHREAD_MUTEX_INITIALIZER;
 // back, and its committed part still writable.
 static void uw_heap_spare(uw_context ctx) {
   uw_heap_spare_t *h = malloc(sizeof *h);
-  size_t committed = ctx->heap.back - ctx->heap.start;
+  size_t committed = ctx->heap_committed;
 
   if (!h)
     return;   // the reservation stays mapped and unused
@@ -1583,11 +1588,9 @@ static void uw_heap_init(uw_context ctx) {
   size_t reserve = whole_pages(limit), initial = whole_pages(uw_min_heap), committed = 0;
   char *map = reserve ? uw_heap_take_spare(reserve, &committed) : NULL;
 
-  if (map) {
-    // A spare: what it had committed is writable, and zero.
-    if (initial < committed)
-      initial = committed;
-  } else if (reserve)
+  if (map)
+    ;   // a spare: what it had committed is writable, and reads as zeroes
+  else if (reserve)
     map = mmap(NULL, reserve, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS
 #ifdef MAP_NORESERVE
                | MAP_NORESERVE
@@ -1614,6 +1617,8 @@ static void uw_heap_init(uw_context ctx) {
   ctx->heap.back = map + initial;
   ctx->heap.max = limit;
   ctx->heap_reserved = reserve;
+  ctx->heap_committed = initial > committed ? initial : committed;
+  ctx->heap_peak = ctx->heap_recent = 0;
 }
 
 // Room for extra more bytes at heap.front: what is available doubles until
@@ -1627,10 +1632,67 @@ static void uw_heap_grow(uw_context ctx, size_t extra) {
   if (!next)
     uw_error(ctx, FATAL, "Memory limit exceeded (heap)");
   // Whole pages, within the reservation, which is the limit in whole pages.
+  // What was committed once, and given back since (uw_heap_shrink), is
+  // still writable, and only the pages beyond it need committing.
   next = whole_pages(next);
-  if (mprotect(b->back, next - have, PROT_READ | PROT_WRITE))
-    uw_error(ctx, FATAL, "Cannot commit %zu more bytes of heap: %s", next - have, strerror(errno));
+  if (next > ctx->heap_committed) {
+    if (mprotect(b->start + ctx->heap_committed, next - ctx->heap_committed, PROT_READ | PROT_WRITE))
+      uw_error(ctx, FATAL, "Cannot commit %zu more bytes of heap: %s", next - ctx->heap_committed, strerror(errno));
+    ctx->heap_committed = next;
+  }
   b->back = b->start + next;
+}
+
+// The front of the heap is about to move back: what it reached counts
+// towards heap_peak.  Everything that moves it back says so first, so that
+// heap_peak is the most that was in use at any time, at no cost to
+// allocation.
+static void uw_heap_note_peak(uw_context ctx) {
+  size_t used = ctx->heap.front - ctx->heap.start;
+  if (used > ctx->heap_peak)
+    ctx->heap_peak = used;
+}
+
+// Between pieces of work -- a request served, a task's tick done, a pass
+// of the expunger -- the heap is emptied, and what it keeps available is
+// a recent maximum that decays: twice the most this piece used, or half
+// of what was kept before, whichever is more, but at least UW_HEAP_RETAIN
+// or minHeap.  The pages above it are given back (MADV_DONTNEED; they stay
+// mapped and writable and read as zeroes when next touched).  So a thread
+// that keeps serving requests of a size keeps the pages they need, and
+// one that served a large request gives its memory back over the next
+// few, halving each time.  Not between the attempts of one piece of work:
+// a request run again after a commit conflict keeps its memory.
+#define UW_HEAP_RETAIN (1024 * 1024)
+
+void uw_heap_shrink(uw_context ctx) {
+  uw_buffer *b = &ctx->heap;
+  size_t have = b->back - b->start, twice, half, keep;
+
+  uw_heap_note_peak(ctx);
+  b->front = b->start;
+  ctx->regions = NULL;
+
+  twice = ctx->heap_peak > SIZE_MAX / 2 ? SIZE_MAX : ctx->heap_peak * 2;
+  half = ctx->heap_recent / 2;
+  ctx->heap_recent = twice > half ? twice : half;
+  ctx->heap_peak = 0;
+
+  keep = ctx->heap_recent;
+  if (keep < UW_HEAP_RETAIN)
+    keep = UW_HEAP_RETAIN;
+  if (keep < (size_t)uw_min_heap)
+    keep = uw_min_heap;
+  keep = whole_pages(keep);
+
+  if (keep && keep < have) {
+#if defined(MADV_DONTNEED)
+    madvise(b->start + keep, have - keep, MADV_DONTNEED);
+#elif defined(MADV_FREE)
+    madvise(b->start + keep, have - keep, MADV_FREE);
+#endif
+    b->back = b->start + keep;
+  }
 }
 
 void uw_check_heap(uw_context ctx, size_t extra) {
@@ -1643,6 +1705,8 @@ char *uw_heap_front(uw_context ctx) {
 }
 
 void uw_set_heap_front(uw_context ctx, char *fr) {
+  if (fr < ctx->heap.front)
+    uw_heap_note_peak(ctx);
   ctx->heap.front = fr;
 }
 
@@ -1709,6 +1773,7 @@ void uw_end_region(uw_context ctx) {
   if (r == NULL)
     uw_error(ctx, FATAL, "Region stack underflow");
 
+  uw_heap_note_peak(ctx);
   ctx->heap.front = (char *) r;
   ctx->regions = r->next;
 }
@@ -5233,6 +5298,7 @@ static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int comm
     *ctx->outHeaders.front = 0;
     ctx->script.front = ctx->script.start + t->script_used;
     *ctx->script.front = 0;
+    uw_heap_note_peak(ctx);
     ctx->heap.front = t->heap_front;
     ctx->regions = t->regions;
     // The page recordings the SQL cache opened for the attempt's misses are

@@ -138,6 +138,7 @@ static void *io_periodic_loop(periodic *p) {
         ls->log_error(ld, "Error running SQL ROLLBACK after a failed io task\n");
     }
 
+    uw_heap_shrink(ctx);
     sleep(p->pdic.period);
   }
 }
@@ -218,6 +219,7 @@ static void *periodic_loop(void *data) {
 
     uw_transaction_departs();
 
+    uw_heap_shrink(ctx);
     sleep(p->pdic.period);
   };
 }
@@ -731,6 +733,7 @@ void *client_pruner(void *data) {
 
   while (1) {
     uw_prune_clients(ctx);
+    uw_heap_shrink(ctx);
     sleep(5);
   }
 }
