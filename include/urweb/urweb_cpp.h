@@ -318,6 +318,12 @@ extern const uw_Basis_time uw_Basis_minTime;
 int uw_register_transactional(struct uw_context *, void *data, uw_callback commit, uw_callback rollback, uw_callback_with_retry free);
 
 void uw_check_heap(struct uw_context *, size_t extra);
+// Reserve the heaps of n contexts ahead, for the threads about to be made,
+// so that a program that cannot fit them ends here, before it has said that
+// it is listening and before a daemonizing server forks, rather than from
+// a thread later.  The reservations are kept as spares, which uw_init takes
+// before reserving anew.  Once the limit is known (uw_global_init).
+void uw_heap_prepare(int n);
 char *uw_heap_front(struct uw_context *);
 void uw_set_heap_front(struct uw_context *, char*);
 
@@ -378,9 +384,8 @@ extern int uw_time_max, uw_supports_direct_status, uw_min_heap;
 failure_kind uw_runCallback(struct uw_context *, void (*callback)(struct uw_context *));
 
 // io computations (Basis.io): a periodic task whose body runs outside any
-// transaction, on a heap that never moves, so that it is never run again
-// after a failure.
-void uw_io_prepare(struct uw_context *);   // give the context its io heap; once, before uw_runIo
+// transaction and is never run again after a failure.
+void uw_io_prepare(struct uw_context *);   // mark the context as one that runs io computations; before uw_runIo
 // Runs the body; SUCCESS, or FATAL with the message set (a retry asked for
 // outside any transaction is fatal too).
 failure_kind uw_runIo(struct uw_context *, void (*callback)(struct uw_context *));
