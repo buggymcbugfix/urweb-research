@@ -1158,7 +1158,7 @@ COMPOSE_JS = r"""
     const BAR = %d;
     const canvas = document.createElement('canvas');
     document.body.appendChild(canvas);
-    const g = canvas.getContext('2d');
+    const g = canvas.getContext('2d', {willReadFrequently: true});
     let picture = null;
     const arrow = new Path2D('M2 2 L2 22 L7 17.5 L11 26 L14.5 24.5 L10.5 16 L17 16 Z');
     const fit = (text, width) => {
@@ -3445,13 +3445,35 @@ class Run:
         if frames[-1][0] < end:
             frames.append((end,) + frames[-1][1:])
         trace('develop', name, len(frames))
-        composer = 'chromium' if await self.drv.launch('chromium') else self.on[reel.user]
-        context = await self.drv.browsers[composer].new_context()
-        page = await context.new_page()
-        proc = None
+
+        async def within(coro, what):
+            """What coro gives, if it does within 30s; a call left behind
+            may never come back, cancelled or not."""
+            task = asyncio.ensure_future(coro)
+            done, _ = await asyncio.wait({task}, timeout=30)
+            if task in done:
+                return task.result()
+            task.cancel()
+            task.add_done_callback(lambda t: t.cancelled() or t.exception())
+            raise OSError('%s did not come back within 30s' % what)
+
+        async def composer():
+            engine = 'chromium' if await self.drv.launch('chromium') else self.on[reel.user]
+            context = await within(self.drv.browsers[engine].new_context(), 'a context to compose in')
+            page = await within(context.new_page(), 'a page to compose in')
+            await within(page.set_content('<!DOCTYPE html><body style="margin: 0"></body>'), 'the page to compose in')
+            await within(page.evaluate(COMPOSE_JS % BAR), 'the page to compose in')
+            return context, page
+
+        async def close(context):
+            # Of a page that hung, too: whatever comes of it.
+            try:
+                await within(context.close(), 'the context composed in')
+            except (self.PlaywrightError, OSError):
+                pass
+        context = page = proc = None
         try:
-            await page.set_content('<!DOCTYPE html><body style="margin: 0"></body>')
-            await page.evaluate(COMPOSE_JS % BAR)
+            context, page = await composer()
             proc = await asyncio.create_subprocess_exec(ffmpeg, *FFMPEG_ARGS, os.path.join(self.recordings, name + '.webm'),
                                                         stdin=asyncio.subprocess.PIPE,
                                                         stdout=asyncio.subprocess.DEVNULL,
@@ -3459,18 +3481,34 @@ class Run:
             mkv = Matroska(width + (width & 1), height + BAR + ((height + BAR) & 1), end - e)
             proc.stdin.write(mkv.head)
             last = object()
-            for t, picture, (tabs, path, pointer, dialog, line) in frames:
+            for k, (t, picture, (tabs, path, pointer, dialog, line)) in enumerate(frames):
                 f = {'w': width, 'h': height, 'tabs': tabs, 'path': path, 'pointer': pointer, 'dialog': dialog,
                      'line': line, 'clock': self.stamp(t)}
-                if picture != last:
-                    last = picture
-                    if picture is None:
-                        f['picture'] = None
-                    else:
-                        with open(picture, 'rb') as fp:
-                            f['picture'] = base64.b64encode(fp.read()).decode()
-                        f['type'] = 'image/jpeg' if picture.endswith('.jpeg') else 'image/png'
-                jpeg = base64.b64decode(await page.evaluate('f => compose(f)', f))
+                for again in (False, True):
+                    if picture != last:
+                        last = picture
+                        if picture is None:
+                            f['picture'] = None
+                        else:
+                            with open(picture, 'rb') as fp:
+                                f['picture'] = base64.b64encode(fp.read()).decode()
+                            f['type'] = 'image/jpeg' if picture.endswith('.jpeg') else 'image/png'
+                    try:
+                        jpeg = base64.b64decode(await within(page.evaluate('f => compose(f)', f),
+                                                             'frame %d of %d' % (k + 1, len(frames))))
+                        break
+                    except OSError as ex:
+                        # A frame takes 40ms; a page that has not made one in
+                        # 30s will not (seen once in a while, never
+                        # explained), and a new one is given the frame again,
+                        # its picture with it.
+                        if again:
+                            raise
+                        print('urt-browse: %s: %s; again, in a new page' % (name, ex), file=sys.stderr)
+                        await close(context)
+                        context = None
+                        context, page = await composer()
+                        last = object()
                 proc.stdin.write(mkv.frame(t - e, jpeg))
                 await proc.stdin.drain()
             proc.stdin.write(mkv.flush())
@@ -3485,7 +3523,8 @@ class Run:
             if proc is not None and proc.returncode is None:
                 proc.kill()
         finally:
-            await context.close()
+            if context is not None:
+                await close(context)
 
     # ---- records
 
@@ -3601,6 +3640,7 @@ class Driver:
         self.PlaywrightError = playwright_error
         self.playwright = None
         self.browsers = {}
+        self.launching = {}         # engine -> the lock of its start
 
     def complaint(self, e):
         """What Playwright said, less its call log, which narrates what the
@@ -3615,11 +3655,19 @@ class Driver:
         return '\n'.join(lines)
 
     async def launch(self, engine):
-        """The engine, started if it is not yet; a failure is said plainly,
-        since what urt shows of this is the first lines, and a traceback's
-        are the least telling.  Whether it is there."""
+        """The engine, started if it is not yet, by one caller at a time
+        (films are developed at once); whether it is there."""
         if engine in self.browsers:
             return True
+        async with self.launching.setdefault(engine, asyncio.Lock()):
+            if engine in self.browsers:
+                return True
+            return await self.start(engine)
+
+    async def start(self, engine):
+        """The engine started; a failure is said plainly, since what urt
+        shows of this is the first lines, and a traceback's are the least
+        telling."""
         p = self.playwright
         try:
             if engine == 'chromium':
