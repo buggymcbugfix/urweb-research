@@ -510,6 +510,10 @@ int main(int argc, char *argv[]) {
   }
 
   uw_request_init(&uw_application, &ls);
+  // Before listening and before the fork of -d: a program whose heaps do
+  // not fit its address space ends here, not from a thread after the
+  // handshake has said OK.
+  uw_request_prepare_heaps(&uw_application, nthreads);
 
   names = calloc(nthreads, sizeof(int));
 

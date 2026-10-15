@@ -285,6 +285,15 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
   uw_free(ctx);
 }
 
+void uw_request_prepare_heaps(uw_app *app, int workers) {
+  uw_periodic *ps;
+  int n = workers + 1;   // and the client pruner
+
+  for (ps = app->periodics; ps->callback; ++ps)
+    ++n;
+  uw_heap_prepare(n);
+}
+
 // The threads that run for the life of the process: the ticker, and one per
 // periodic task.  Separate from uw_request_init so that a server which forks
 // to daemonize can do so in between: fork() carries only the calling thread,

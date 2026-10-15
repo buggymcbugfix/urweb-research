@@ -152,7 +152,7 @@ typedef struct {
   uw_served_file *served_files; // ended by an entry whose uri is NULL
 
   int io_handlers; // a request may run io code (an io RPC): the contexts
-                   // that serve requests need the heap that never moves
+                   // that serve requests are marked for it (uw_io_prepare)
 } uw_app;
 
 typedef struct {
