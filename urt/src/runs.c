@@ -6,6 +6,12 @@
 #define _DARWIN_C_SOURCE
 #include <errno.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -198,11 +204,6 @@ out:
 
 /* --------------------------------------------------------------- servers */
 
-/* How long a server gets to say it is listening.  The real one has its
- * database to open and its initialize task to run first; a hung one
- * would otherwise hang the run for good. */
-#define START_SECONDS 10
-
 /* The value of NAME= in the handshake a server writes to descriptor 3
  * (pid=..., port=..., status='OK', a line each), or NULL. */
 static const char *handshake_value(const char *text, const char *name) {
@@ -237,6 +238,7 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
 
     s->pid = 0;
     s->port = 0;
+    s->ours = 0;
     *why = 0;
     sl_push(&argv, exe);
     for (i = 0; i < args->n; i++) {
@@ -287,6 +289,271 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
     return 0;
 }
 
+int fastcgi_start(const char *exe, const struct strlist *args, const char *sock_path, const char *out_path,
+                  const char *err_path, struct server *s, char *why, size_t why_size) {
+    struct strlist argv = { 0, 0, 0 };
+    char spawner[PATHLEN], **command;
+    int i, null;
+
+    s->pid = 0;
+    s->port = 0;
+    s->ours = 1;
+    *why = 0;
+    if (strlen(sock_path) >= sizeof ((struct sockaddr_un *) 0)->sun_path) {
+        snprintf(why, why_size, "the path of its socket, %s, is %lu bytes, and a Unix socket's can hold %lu: "
+                 "set TMPDIR to a shorter directory", sock_path, (unsigned long) strlen(sock_path),
+                 (unsigned long) sizeof ((struct sockaddr_un *) 0)->sun_path - 1);
+        return -1;
+    }
+    if (!find_on_path("spawn-fcgi", spawner)) {
+        snprintf(why, why_size, "there is no spawn-fcgi on the PATH to start it with");
+        return -1;
+    }
+    /* -n: no fork, and no /dev/null for its stdout and stderr, as spawn-fcgi
+     * gives the program it forks: it becomes the program, our child. */
+    sl_push(&argv, spawner);
+    sl_push(&argv, "-n");
+    sl_push(&argv, "-s");
+    sl_push(&argv, sock_path);
+    sl_push(&argv, "--");
+    sl_push(&argv, exe);
+    for (i = 0; i < args->n; i++) {
+        sl_push(&argv, args->v[i]);
+    }
+    command = sl_argv(&argv);
+    null = open("/dev/null", O_RDONLY);
+    s->pid = null < 0 ? -1 : spawn_on(command, null, out_path, err_path);
+    if (null >= 0) {
+        close(null);
+    }
+    free(command);
+    sl_free(&argv);
+    if (s->pid < 0) {
+        s->pid = 0;
+        snprintf(why, why_size, "it could not be started: %s", strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
+/* ------------------------------------------------------------- FastCGI */
+
+enum { FCGI_BEGIN_REQUEST = 1, FCGI_END_REQUEST = 3, FCGI_PARAMS = 4, FCGI_STDIN = 5, FCGI_STDOUT = 6,
+       FCGI_STDERR = 7, FCGI_RESPONDER = 1, FCGI_REQUEST_COMPLETE = 0 };
+enum { FCGI_VERSION_1 = 1, FCGI_HEADER = 8, FCGI_CONTENT_MAX = 65535, FCGI_ALIGN = 8 };
+/* The body of FCGI_END_REQUEST: appStatus, big-endian, then protocolStatus. */
+enum { FCGI_END_BODY = 8, FCGI_APP_STATUS = 0, FCGI_PROTOCOL_STATUS = 4 };
+
+/* Bytes, growing at the end. */
+struct bytes { unsigned char *p; size_t n, size; };
+
+static void bytes_add(struct bytes *b, const void *data, size_t n) {
+    if (b->n + n > b->size) {
+        unsigned char *p;
+        b->size = 2 * (b->n + n) + 1024;
+        p = xmalloc(b->size);
+        if (b->n) {
+            memcpy(p, b->p, b->n);
+        }
+        free(b->p);
+        b->p = p;
+    }
+    if (n) {
+        memcpy(b->p + b->n, data, n);
+    }
+    b->n += n;
+}
+
+/* A record of request 1, the only one a connection carries here, padded
+ * to a multiple of FCGI_ALIGN bytes as nginx pads the records it sends. */
+static void add_record(struct bytes *b, int type, const void *data, size_t n) {
+    static const unsigned char zeros[FCGI_ALIGN];
+    size_t padding = (FCGI_ALIGN - n % FCGI_ALIGN) % FCGI_ALIGN;
+    unsigned char h[FCGI_HEADER] = { FCGI_VERSION_1, (unsigned char) type, 0, FCGI_REQUEST_ID,
+                                     (unsigned char) (n >> 8), (unsigned char) n, (unsigned char) padding, 0 };
+    bytes_add(b, h, sizeof h);
+    bytes_add(b, data, n);
+    bytes_add(b, zeros, padding);
+}
+
+/* A stream: its bytes in records of at most FCGI_CONTENT_MAX, then the
+ * empty record that ends it. */
+static void add_stream(struct bytes *b, int type, const unsigned char *data, size_t n) {
+    for (; n > FCGI_CONTENT_MAX; data += FCGI_CONTENT_MAX, n -= FCGI_CONTENT_MAX) {
+        add_record(b, type, data, FCGI_CONTENT_MAX);
+    }
+    if (n) {
+        add_record(b, type, data, n);
+    }
+    add_record(b, type, NULL, 0);
+}
+
+/* A length in a name-value pair: one byte below 128, else four, the top
+ * bit set. */
+static void add_length(struct bytes *b, size_t n) {
+    unsigned char c[4] = { (unsigned char) (0x80 | (n >> 24)), (unsigned char) (n >> 16), (unsigned char) (n >> 8),
+                           (unsigned char) n };
+    bytes_add(b, n < 128 ? c + 3 : c, n < 128 ? 1 : 4);
+}
+
+static int write_bytes(const char *path, const struct bytes *b) {
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        return -1;
+    }
+    if (b->n) {
+        fwrite(b->p, 1, b->n, f);
+    }
+    return fclose(f) == 0 ? 0 : -1;
+}
+
+int fastcgi_request(const char *sock_path, const struct strlist *params, const char *body, const char *response,
+                    const char *stream, int seconds, struct fastcgi_oddity *odd) {
+    static const unsigned char begin[8] = { 0, FCGI_RESPONDER, 0, 0, 0, 0, 0, 0 };
+    struct bytes req = { 0, 0, 0 }, pairs = { 0, 0, 0 }, in = { 0, 0, 0 }, out = { 0, 0, 0 }, err = { 0, 0, 0 };
+    struct sockaddr_un a;
+    struct sigaction ignore, saved;
+    long deadline = tenths_now() + seconds * 10L;
+    char *text;
+    size_t at;
+    int fd, i, status = FASTCGI_NO_END;
+
+    odd->request_id = -1;
+    odd->protocol_status = FCGI_REQUEST_COMPLETE;
+
+    if (strlen(sock_path) >= sizeof a.sun_path) {
+        return FASTCGI_REFUSED;
+    }
+    memset(&a, 0, sizeof a);
+    a.sun_family = AF_UNIX;
+    strcpy(a.sun_path, sock_path);
+    if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
+        return FASTCGI_REFUSED;
+    }
+    if (connect(fd, (struct sockaddr *) &a, sizeof a) < 0) {
+        close(fd);
+        return FASTCGI_REFUSED;
+    }
+
+    add_record(&req, FCGI_BEGIN_REQUEST, begin, sizeof begin);
+    for (i = 0; i < params->n; i++) {
+        const char *eq = strchr(params->v[i], '=');
+        size_t n = eq ? (size_t) (eq - params->v[i]) : strlen(params->v[i]), v = eq ? strlen(eq + 1) : 0;
+        add_length(&pairs, n);
+        add_length(&pairs, v);
+        bytes_add(&pairs, params->v[i], n);
+        bytes_add(&pairs, eq ? eq + 1 : "", v);
+    }
+    add_stream(&req, FCGI_PARAMS, pairs.p, pairs.n);
+    text = read_text(body);
+    add_stream(&req, FCGI_STDIN, (const unsigned char *) (text ? text : ""), text ? strlen(text) : 0);
+    free(text);
+
+    /* All of it at once, as a web server sends it, so that a program that
+     * answers and closes before it has read the end of its stdin cannot
+     * make a later write fail.  SIGPIPE would end urt: a connection the
+     * program has closed is an outcome to record, like any other. */
+    memset(&ignore, 0, sizeof ignore);
+    ignore.sa_handler = SIG_IGN;
+    sigemptyset(&ignore.sa_mask);
+    sigaction(SIGPIPE, &ignore, &saved);
+    for (at = 0; at < req.n;) {
+        ssize_t w = write(fd, req.p + at, req.n - at);
+        if (w < 0 && errno == EINTR && !fs_interrupted) {
+            continue;
+        }
+        if (w <= 0) {
+            break;      /* closed: what the program sent before is still read */
+        }
+        at += (size_t) w;
+    }
+    sigaction(SIGPIPE, &saved, NULL);
+
+    /* Records until FCGI_END_REQUEST, or until the connection ends. */
+    for (;;) {
+        unsigned char buf[FCGI_HEADER + FCGI_CONTENT_MAX + 255];    /* a whole record, padding and all */
+        struct pollfd p;
+        long left;
+        ssize_t r;
+        int ended = 0;
+        while (!ended && in.n >= FCGI_HEADER) {
+            size_t len = ((size_t) in.p[4] << 8) | in.p[5], whole = FCGI_HEADER + len + in.p[6];
+            const unsigned char *content = in.p + FCGI_HEADER;
+            int id = (in.p[2] << 8) | in.p[3];
+            if (in.n < whole) {
+                break;
+            }
+            /* A record for another request: taken all the same, since the
+             * program meant it for this one (nothing else was asked), and
+             * noted, since a web server would not take it. */
+            if (id != FCGI_REQUEST_ID && odd->request_id < 0) {
+                odd->request_id = id;
+            }
+            if (in.p[1] == FCGI_STDOUT) {
+                bytes_add(&out, content, len);
+            } else if (in.p[1] == FCGI_STDERR) {
+                bytes_add(&err, content, len);
+            } else if (in.p[1] == FCGI_END_REQUEST && len >= FCGI_END_BODY) {
+                status = content[FCGI_APP_STATUS + 3];      /* the low byte of appStatus */
+                odd->protocol_status = content[FCGI_PROTOCOL_STATUS];
+                ended = 1;
+            }
+            memmove(in.p, in.p + whole, in.n - whole);
+            in.n -= whole;
+        }
+        if (ended) {
+            break;
+        }
+        left = deadline - tenths_now();
+        if (left <= 0) {
+            status = FASTCGI_TIMEOUT;
+            break;
+        }
+        p.fd = fd;
+        p.events = POLLIN;
+        p.revents = 0;
+        r = poll(&p, 1, (int) (left * 100));
+        if (r < 0 && errno == EINTR && !fs_interrupted) {
+            continue;
+        }
+        if (r == 0) {
+            status = FASTCGI_TIMEOUT;
+            break;
+        }
+        if (r < 0 || (r = read(fd, buf, sizeof buf)) <= 0) {
+            if (r < 0 && errno == EINTR && !fs_interrupted) {
+                continue;
+            }
+            break;      /* closed, or reset, before FCGI_END_REQUEST */
+        }
+        bytes_add(&in, buf, (size_t) r);
+    }
+    close(fd);
+
+    if (write_bytes(response, &out) < 0 || write_bytes(stream, &err) < 0) {
+        status = FASTCGI_UNWRITABLE;
+    }
+    free(req.p);
+    free(pairs.p);
+    free(in.p);
+    free(out.p);
+    free(err.p);
+    return status;
+}
+
+int server_exited(struct server *s, int *status) {
+    int st;
+    if (s->pid <= 0 || !s->ours) {
+        return 0;
+    }
+    if (waitpid((pid_t) s->pid, &st, WNOHANG) != (pid_t) s->pid) {
+        return 0;
+    }
+    s->pid = 0;
+    *status = WIFEXITED(st) ? WEXITSTATUS(st) : WIFSIGNALED(st) ? 128 + WTERMSIG(st) : st;
+    return 1;
+}
+
 /* Whether the process is dead but not yet reaped: it is not ours to
  * reap, and under a PID 1 that reaps no orphans (some containers') it
  * stays so, answering kill(pid, 0) as if alive.  Linux says in /proc;
@@ -319,9 +586,24 @@ void server_stop(struct server *s) {
     if (s->pid <= 0) {
         return;
     }
+    kill((pid_t) s->pid, SIGTERM);
+    if (s->ours) {
+        /* Our child, started on a socket: reaped, or it would stay a
+         * zombie. */
+        for (i = 0; i < 500 && waitpid((pid_t) s->pid, NULL, WNOHANG) == 0; i++) {
+            nanosleep(&nap, NULL);
+        }
+        if (i == 500) {
+            kill((pid_t) s->pid, SIGKILL);
+            while (waitpid((pid_t) s->pid, NULL, 0) < 0 && errno == EINTR) {
+                ;
+            }
+        }
+        s->pid = 0;
+        return;
+    }
     /* Not our child -- it left its parent when it went to the background
      * -- so there is nothing to wait for but its disappearance. */
-    kill((pid_t) s->pid, SIGTERM);
     for (i = 0; i < 500 && kill((pid_t) s->pid, 0) == 0 && !is_zombie(s->pid); i++) {
         nanosleep(&nap, NULL);
     }

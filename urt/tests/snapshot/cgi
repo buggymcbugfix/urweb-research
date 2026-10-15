@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# A stand-in for an Ur/Web application built with -protocol cgi, for
+# urt/check: the stand-in compiler beside this script makes PROJECT.exe
+# run it, for a project called *serves* that it is asked to build so.
+# It answers with a CGI response that shows what it was given: its
+# arguments, the CGI variables and every HTTP_ one, the clock and seed
+# urt pinned, sorted, and then the body from stdin, in brackets.  Some
+# paths make it do what an application might:
+#
+#   /err       a line on stderr, as a fatal error is reported
+#   /dml       a statement appended to $URWEB_DML_LOG, as a DML would be
+#   /fail      a 500, and exit status 1, as the runtime's for a failure
+#   /exit142   exit status 142, the status of a program killed by SIGALRM
+
+case ${PATH_INFO-} in
+    /fail)
+        printf 'Status: 500 Internal Server Error\r\nContent-type: text/plain\r\n\r\nFatal error: as asked\n'
+        exit 1 ;;
+    /exit142) exit 142 ;;
+    /err) echo "cgi: a line on stderr" >&2 ;;
+    /dml) printf 'INSERT INTO t VALUES (2);\n' >> "$URWEB_DML_LOG" ;;
+esac
+printf 'Content-type: text/plain\r\n\r\n'
+printf '%s arguments\n' "$#"
+env | LC_ALL=C sort \
+    | grep -E '^(GATEWAY_INTERFACE|SERVER_[A-Z]*|REMOTE_ADDR|REQUEST_METHOD|SCRIPT_NAME|PATH_INFO|QUERY_STRING|CONTENT_TYPE|CONTENT_LENGTH|HTTP_[A-Z_]*|URWEB_REPRODUCIBLE_[A-Z_]*)='
+printf 'body: ['
+cat
+printf ']\n'
