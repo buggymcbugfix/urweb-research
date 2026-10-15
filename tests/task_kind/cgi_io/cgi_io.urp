@@ -1,0 +1,4 @@
+allow url /Cgi_io/main
+safeGet Cgi_io/main
+
+cgi_io

@@ -4,6 +4,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <setjmp.h>
 #include <unicode/utypes.h>
 
 typedef long long uw_Basis_int;
@@ -72,7 +73,23 @@ struct uw_context;
 typedef struct {
   void (*callback)(struct uw_context *);
   unsigned int period;
+  int io; // the body is an io computation, run outside any transaction
 } uw_periodic;
+
+// The state of one transaction run inline in an io computation, by the code
+// the compiler generates for Basis.runTransaction; see uw_io_transaction_*.
+typedef struct {
+  jmp_buf outer;    // the jump target to restore afterwards
+  int retries_left;
+  int failed;       // the transaction gave up: rolled back, error message kept
+  int committing;   // inside uw_commit: a longjmp from there is a callback's
+  // The context as it was when the transaction began, for an attempt that
+  // does not commit to go back to
+  size_t headers_used, script_used;
+  char *heap_front;
+  void *regions;
+  size_t transactionals_base, cleanup_base;
+} uw_io_transaction;
 
 // A file of a `file` directive, baked into the executable: served at its URI
 // by uw_handle, and read by Basis functions.  The bytes are a literal in the

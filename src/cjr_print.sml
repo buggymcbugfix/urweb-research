@@ -1431,6 +1431,7 @@ fun potentiallyFancy (e, _) =
       | ENextval {seq = e, ...} => potentiallyFancy e
       | ESetval {seq = e1, count = e2} => potentiallyFancy e1 orelse potentiallyFancy e2
       | EUnurlify _ => true
+      | ERunTransaction _ => true
 
 val self = ref (NONE : int option)
 
@@ -2323,6 +2324,89 @@ and p_exp' par tail env (e, loc) =
                  string "})"]
         end
 
+      | ERunTransaction (e, t, try) => p_runTransaction par env (e, t, try)
+
+(* The body is run as a transaction of its own, with the runtime's retry
+ * protocol, inline in the io code.  For attemptTransaction (try) the value is
+ * an option, None (NULL) when the transaction failed; runTransaction
+ * re-raises the failure to the enclosing io loop. *)
+and p_runTransaction par env (e, t, try) =
+    let
+        val boxed = try andalso not (isUnboxable t)
+    in
+        parenIf par (box [string "({",
+                              newline,
+                              string "uw_io_transaction __uwt;",
+                              newline,
+                              p_typ env t,
+                              space,
+                              string (if boxed then "*__uwr = NULL;" else "__uwr;"),
+                              newline,
+                              (* The value is read only after the loop,
+                               * and the last store to it is after the last
+                               * longjmp, so no volatile needed. *)
+                              string "uw_io_transaction_begin(ctx, &__uwt);",
+                              newline,
+                              string "while (1) {",
+                              newline,
+                              box [string "int __uwfk = setjmp(*uw_jmp_buf(ctx));",
+                                   newline,
+                                   string "if (__uwfk == 0) {",
+                                   newline,
+                                   box [if boxed then
+                                            (* The box is allocated before the
+                                             * commit: an allocation that fails
+                                             * is a failure of the transaction,
+                                             * and must not come after its
+                                             * commit. *)
+                                            box [p_typ env t,
+                                                 space,
+                                                 string "__uwv =",
+                                                 space,
+                                                 p_exp' false false env e,
+                                                 string ";",
+                                                 newline,
+                                                 string "__uwr = uw_malloc(ctx, sizeof(",
+                                                 p_typ env t,
+                                                 string "));",
+                                                 newline,
+                                                 string "*__uwr = __uwv;",
+                                                 newline,
+                                                 string "uw_io_transaction_commit(ctx, &__uwt);",
+                                                 newline]
+                                        else
+                                            box [string "__uwr =",
+                                                 space,
+                                                 p_exp' false false env e,
+                                                 string ";",
+                                                 newline,
+                                                 string "uw_io_transaction_commit(ctx, &__uwt);",
+                                                 newline],
+                                        string "break;",
+                                        newline],
+                                   string "} else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {",
+                                   newline,
+                                   box [if try then
+                                            (* None: NULL as the option itself
+                                             * when the type is a pointer, or
+                                             * as the missing box. *)
+                                            box [string "__uwr = NULL;",
+                                                 newline]
+                                        else
+                                            box [],
+                                        string "break;",
+                                        newline],
+                                   string "}",
+                                   newline],
+                              string "}",
+                              newline,
+                              string (if try then "uw_io_transaction_end(ctx, &__uwt, 0);"
+                                      else "uw_io_transaction_end(ctx, &__uwt, 1);"),
+                              newline,
+                              string "__uwr;",
+                              newline,
+                              string "})"])
+    end
 and p_exp env = p_exp' false true env
 
 fun p_fun isRec env (fx, n, args, ran, e) =
@@ -3287,6 +3371,7 @@ fun p_file env (ds, ps) =
               | ENextval _ => true
               | ESetval _ => true
               | EUnurlify (e, _, _) => expDb e
+              | ERunTransaction (e, _, _) => expDb e
               | _ => false
 
         fun declDb (d, _) =
@@ -3359,9 +3444,9 @@ fun p_file env (ds, ps) =
                                             SOME (x1, x2, p_exp (E.pushERel (E.pushERel env x1 (TFfi ("Basis", "client"), ErrorMsg.dummySpan))
                                                                             x2 dummyt) e)
                                           | _ => NONE) ds
-        val periodics = List.mapPartial (fn (DTask (Periodic n, x1, x2, e), _) =>
-                                            SOME (n, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
-                                        | _ => NONE) ds
+        val periodics = List.mapPartial (fn (DTask (Periodic (n, io), x1, x2, e), _) =>
+                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
+                                          | _ => NONE) ds
 
         val (protos', defs') = ListPair.unzip (latestUrlHandlers ())
         val protos = protos @ protos'
@@ -3493,7 +3578,7 @@ fun p_file env (ds, ps) =
              newline,
              newline,
 
-             box (ListUtil.mapi (fn (i, (_, x1, x2, pe)) =>
+             box (ListUtil.mapi (fn (i, (_, _, x1, x2, pe)) =>
                                     box [string "static void uw_periodic",
                                          string (Int.toString i),
                                          string "(uw_context ctx) {",
@@ -3512,12 +3597,15 @@ fun p_file env (ds, ps) =
                                          newline]) periodics),
 
              string "static uw_periodic my_periodics[] = {",
-             box (ListUtil.mapi (fn (i, (n, _, _, _)) =>
+             box (ListUtil.mapi (fn (i, (n, io, _, _, _)) =>
                                     box [string "{uw_periodic",
                                          string (Int.toString i),
                                          string ",",
                                          space,
                                          string (Int64.toString n),
+                                         string ",",
+                                         space,
+                                         string (if io then "1" else "0"),
                                          string "},"]) periodics),
              string "{NULL}};",
              newline,

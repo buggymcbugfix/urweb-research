@@ -1,0 +1,10 @@
+database dbname=io_retry.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_retry/rows
+safeGet Io_retry/rows
+
+$/list
+$/option
+io_retry

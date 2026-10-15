@@ -10,7 +10,7 @@ function _n1(t,i){var x=t[i++];var r=x=="Cons"?{_1:{_A:uu(t[i++]),_B:parseFloat(
 
 // demo/batchFun.ur:135:18-135:95
 urfuncs[4] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:rc,a:cons({c:"c",v:"/"},cons({c:"c",v:"BatchG/allRows/_"},cons({c:"c",v:function(s){var t=s.split("/");var i=0;return (tmp=_n1(t,i),i=tmp._1,tmp._2)}},cons({c:"K"},cons({c:"c",v:false},null)))))},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"v",n:0},null))}}}}}'};
-// $/top.ur:173:35-173:40
+// $/top.ur:181:35-181:40
 urfuncs[5] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:".",r:{c:"v",n:1},f:"A"}}}'};
 // demo/batchFun.urs:12:38-12:51
 urfuncs[6] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:".",r:{c:"v",n:1},f:"B"}}}'};

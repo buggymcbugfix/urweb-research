@@ -370,6 +370,24 @@ extern int uw_time_max, uw_supports_direct_status, uw_min_heap;
 
 failure_kind uw_runCallback(struct uw_context *, void (*callback)(struct uw_context *));
 
+// io computations (Basis.io): a periodic task whose body runs outside any
+// transaction, on a heap that never moves, so that it is never run again
+// after a failure.
+void uw_io_prepare(struct uw_context *);   // give the context its io heap; once, before uw_runIo
+// Runs the body; SUCCESS, or FATAL with the message set (a retry asked for
+// outside any transaction is fatal too).
+failure_kind uw_runIo(struct uw_context *, void (*callback)(struct uw_context *));
+// A transaction inline in an io computation (Basis.runTransaction), driven by
+// generated code: begin, then setjmp on *uw_jmp_buf(ctx) and run the body;
+// commit; on a longjmp, retry says whether to go round again; end restores the
+// enclosing jump target and, if asked, re-raises a failure.
+jmp_buf *uw_jmp_buf(struct uw_context *);
+void uw_io_transaction_begin(struct uw_context *, uw_io_transaction *);
+void uw_io_transaction_commit(struct uw_context *, uw_io_transaction *);
+int uw_io_transaction_retry(struct uw_context *, uw_io_transaction *, int fk);
+void uw_io_transaction_end(struct uw_context *, uw_io_transaction *, int reraise);
+uw_Basis_string uw_Basis_io_errorMessage(struct uw_context *);
+
 uw_Basis_string uw_Basis_timef(struct uw_context *, const char *fmt, uw_Basis_time);
 uw_Basis_time uw_Basis_stringToTimef(struct uw_context *, const char *fmt, uw_Basis_string);
 uw_Basis_time uw_Basis_stringToTimef_error(struct uw_context *, const char *fmt, uw_Basis_string);

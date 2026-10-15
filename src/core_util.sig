@@ -45,6 +45,10 @@ end
 structure Con : sig
     val compare : Core.con * Core.con -> order
 
+    (* The argument of a type in one of the thunk monads, transaction or io
+     * (Settings.isThunkMonad), if it is one. *)
+    val thunkMonadArg : Core.con -> Core.con option
+
     datatype binder =
              RelK of string
            | RelC of string * Core.kind

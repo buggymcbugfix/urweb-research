@@ -234,7 +234,7 @@ fun exp ((ns, ks, ts), e as old, st : state) =
             fun functionInside (t : con) =
                 case #1 t of
                     TFun _ => true
-                  | CApp ((CModProj (basis', [], "transaction"), _), _) => basis' = !basis
+                  | CApp ((CModProj (basis', [], m), _), _) => basis' = !basis andalso Settings.isThunkMonad m
                   | _ => false
 
             val eds = map (fn ed =>

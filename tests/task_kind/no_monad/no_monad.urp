@@ -1,0 +1,4 @@
+allow url /No_monad/main
+safeGet No_monad/main
+
+no_monad

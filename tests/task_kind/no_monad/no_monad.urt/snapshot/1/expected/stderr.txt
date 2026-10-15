@@ -1,0 +1,1 @@
+tests/task_kind/no_monad/no_monad.ur:3:0: (to 3:37) The monad of this task body is not determined: write it as a transaction or as an io computation, for instance (return () : transaction unit)

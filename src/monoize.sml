@@ -179,6 +179,10 @@ fun monoType env =
                      Print.eprefaces' [("Constructor", CorePrint.p_con env all)];
                      dummyTyp)
             in
+                case CoreUtil.Con.thunkMonadArg all of
+                    (* A thunk monad, transaction or io: a function of unit. *)
+                    SOME t => (L'.TFun ((L'.TRecord [], loc), mt env dtmap t), loc)
+                  | NONE =>
                 case c of
                     L.TFun (c1, c2) => (L'.TFun (mt env dtmap c1, mt env dtmap c2), loc)
                   | L.TCFun _ => poly ()
@@ -273,8 +277,6 @@ fun monoType env =
                   | L.CApp ((L.CFfi ("Basis", "serialized"), _), _) =>
                     (L'.TFfi ("Basis", "string"), loc)
 
-                  | L.CApp ((L.CFfi ("Basis", "transaction"), _), t) =>
-                    (L'.TFun ((L'.TRecord [], loc), mt env dtmap t), loc)
                   | L.CApp ((L.CFfi ("Basis", "source"), _), t) =>
                     (L'.TSource, loc)
                   | L.CApp ((L.CFfi ("Basis", "signal"), _), t) =>
@@ -545,6 +547,23 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
             (E.errorAt loc "Unsupported expression";
              Print.eprefaces' [("Expression", CorePrint.p_exp env all)];
              (dummyExp, fm))
+
+        (* Basis.runTransaction and attemptTransaction (try) of the
+           transaction m, of type t: a thunk whose body is ERunTransaction
+           over m applied to unit, so that after reduction the body of the
+           form is the transaction's body, which the code generator prints
+           inline under the runtime's retry protocol.  For attemptTransaction
+           the thunk yields an option. *)
+        fun runTransaction (t, m, try) =
+            let
+                val un = (L'.TRecord [], loc)
+                val t' = monoType env t
+                val (m, fm) = monoExp (env, st, fm) m
+                val body = (L'.EApp (liftExpInExp 0 m, (L'.ERecord [], loc)), loc)
+            in
+                ((L'.EAbs ("_", un, if try then (L'.TOption t', loc) else t',
+                           (L'.ERunTransaction (body, t', try), loc)), loc), fm)
+            end
 
         fun numTy t =
             (L'.TRecord [("Zero", t),
@@ -1168,6 +1187,39 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
                                                           loc)), loc)), loc)), loc)), loc),
                  fm)
             end
+
+          (* The io monad is the transaction monad as the code is concerned:
+             a thunk, run outside any transaction; and the io primitives are
+             the transaction ones. *)
+          | L.ECApp ((L.EFfi ("Basis", "io_return"), l), t) =>
+            monoExp (env, st, fm) (L.ECApp ((L.EFfi ("Basis", "transaction_return"), l), t), loc)
+          | L.ECApp ((L.ECApp ((L.EFfi ("Basis", "io_bind"), l), t1), l'), t2) =>
+            monoExp (env, st, fm) (L.ECApp ((L.ECApp ((L.EFfi ("Basis", "transaction_bind"), l), t1), l'), t2), loc)
+          | L.EFfiApp ("Basis", "io_debug", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "debug", es), loc)
+          | L.EFfiApp ("Basis", "io_getenv", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "getenv", es), loc)
+          | L.EFfiApp ("Basis", "io_now", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "now", es), loc)
+          | L.EFfiApp ("Basis", "io_rand", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "rand", es), loc)
+
+          | L.EApp ((L.ECApp ((L.EFfi ("Basis", "runTransaction"), _), t), _), m) =>
+            runTransaction (t, m, false)
+          | L.EFfi ("Basis", "runTransaction") => poly ()
+          | L.EApp ((L.ECApp ((L.EFfi ("Basis", "attemptTransaction"), _), t), _), m) =>
+            runTransaction (t, m, true)
+          | L.EFfi ("Basis", "attemptTransaction") => poly ()
+
+          (* periodic, in the monad of the task's body: the io kind is
+             periodic_io from here on, which the code generator and the
+             runtime tell it by. *)
+          | L.EApp ((L.ECApp ((L.EFfi ("Basis", "periodic"), _), m), _), n) =>
+            let
+                val (n, fm) = monoExp (env, st, fm) n
+                val kind = case #1 m of
+                               L.CFfi ("Basis", "io") => "periodic_io"
+                             | _ => "periodic"
+            in
+                ((L'.EFfiApp ("Basis", kind, [(n, (L'.TFfi ("Basis", "int"), loc))]), loc), fm)
+            end
+          | L.EFfi ("Basis", "periodic") => poly ()
 
           | L.EApp ((L.ECApp ((L.EFfi ("Basis", "recv"), _), t1), _), ch) =>
             let
@@ -4273,14 +4325,22 @@ fun monoDecl (env, fm) (all as (d, loc)) =
             let
                 val vis = map (fn (x, n, t, e, s) =>
                                   let
+                                      (* A recursive function into [transaction] or [io]
+                                       * gets the thunk's abstraction written out, since the
+                                       * code generator wants a recursive function to be a
+                                       * lambda for each argument of its type, and a body
+                                       * that is a case between calls is not one. *)
                                       fun maybeTransaction (t, e) =
                                           case (#1 t, #1 e) of
-                                              (L.CApp ((L.CFfi ("Basis", "transaction"), _), _), _) =>
-                                              SOME (L.EAbs ("_",
-                                                            (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc),
-                                                            t,
-                                                            (L.EApp (CoreEnv.liftExpInExp 0 e,
-                                                                     (L.ERecord [], loc)), loc)), loc)
+                                              (L.CApp ((L.CFfi ("Basis", m), _), _), _) =>
+                                              if Settings.isThunkMonad m then
+                                                  SOME (L.EAbs ("_",
+                                                                (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc),
+                                                                t,
+                                                                (L.EApp (CoreEnv.liftExpInExp 0 e,
+                                                                         (L.ERecord [], loc)), loc)), loc)
+                                              else
+                                                  NONE
                                             | (L.TFun (dom, ran), L.EAbs (x, _, _, e)) =>
                                               (case maybeTransaction (ran, e) of
                                                    NONE => NONE
@@ -4317,9 +4377,11 @@ fun monoDecl (env, fm) (all as (d, loc)) =
                 fun unwind (t, args) =
                     case #1 t of
                         L.TFun (dom, ran) => unwind (ran, dom :: args)
-                      | L.CApp ((L.CFfi ("Basis", "transaction"), _), t) =>
-                        unwind (t, (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc) :: args)
-                      | _ => (rev args, t)
+                      | _ =>
+                        case CoreUtil.Con.thunkMonadArg t of
+                            (* A thunk monad, transaction or io: the thunk's argument. *)
+                            SOME t' => unwind (t', (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc) :: args)
+                          | NONE => (rev args, t)
 
                 val (ts, ran) = unwind (t, [])
                 val ts = map (monoType env) ts
@@ -4426,13 +4488,16 @@ fun monoDecl (env, fm) (all as (d, loc)) =
 
                 val un = (L'.TRecord [], loc)
                 val t = if MonoUtil.Exp.exists {typ = fn _ => false,
-                                                exp = fn L'.EFfiApp ("Basis", "periodic", _) =>
-                                                         (if #persistent (Settings.currentProtocol ()) then
-                                                              ()
-                                                          else
-                                                              E.errorAt (#2 e1)
-                                                                        ("Periodic tasks aren't allowed in the selected protocol (" ^ #name (Settings.currentProtocol ()) ^ ").");
-                                                          true)
+                                                exp = fn L'.EFfiApp ("Basis", kind, _) =>
+                                                         if kind = "periodic" orelse kind = "periodic_io" then
+                                                             (if #persistent (Settings.currentProtocol ()) then
+                                                                  ()
+                                                              else
+                                                                  E.errorAt (#2 e1)
+                                                                            ("Periodic tasks aren't allowed in the selected protocol (" ^ #name (Settings.currentProtocol ()) ^ ").");
+                                                              true)
+                                                         else
+                                                             false
                                                        | _ => false} e1 then
                             (L'.TFfi ("Basis", "int"), loc)
                         else

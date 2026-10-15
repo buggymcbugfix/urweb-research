@@ -1,0 +1,27 @@
+Error triggers bounded retry in io transaction: first try of the body
+retried in the body: Success 1
+io_errorMessage after it: 
+transactional conflict: commit
+db_commit: a serialization conflict
+transactional conflict: rollback
+transactional conflict: free, will retry
+Error triggers unlimited retry in io transaction: Commit conflict; retrying
+transactional conflict: commit
+transactional conflict: free
+retried at COMMIT: Success 2
+COMMIT failed with the transaction open: Failure Error running SQL COMMIT
+the transaction after it: Success 4
+io_errorMessage after a transaction with nothing to do: 
+transactional before: commit
+transactional before: rollback
+transactional before: free
+commit callback failing before COMMIT: Failure before
+transactional after: commit
+transactional after: free
+commit callback failing after COMMIT: Failure after
+transactional raised: commit
+transactional raised: free
+commit callback raising an error after COMMIT: Failure raised in the commit callback of raised
+attemptTransaction of a string: a string
+attemptTransaction of a string that fails: None
+still running

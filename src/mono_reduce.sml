@@ -66,6 +66,7 @@ fun simpleImpure isGlobal (tsyms, syms) =
                               | ENextval _ => true
                               | ESetval _ => true
                               | EFfiApp (m, x, _) => Settings.isEffectful (m, x) orelse Settings.isBenignEffectful (m, x)
+                              | ERunTransaction _ => true
                               | EServerCall _ => true
                               | ERecv _ => true
                               | ESleep _ => true
@@ -91,6 +92,7 @@ fun impure (e, _) =
       | ENextval _ => true
       | ESetval _ => true
       | EUnurlify (e, _, _) => impure e
+      | ERunTransaction _ => true
       | EAbs _ => false
 
       | EPrim _ => false
@@ -329,6 +331,8 @@ val freeInAbs = U.Exp.existsB {typ = fn _ => false,
                                         case e of
                                             EAbs (_, _, _, b) => countFree n 0 b > 0
                                           | EJavaScript (_, b) => countFree n 0 b > 0
+                                          (* The body runs once per attempt. *)
+                                          | ERunTransaction (b, _, _) => countFree n 0 b > 0
                                           | _ => false,
                                bind = fn (n, b) =>
                                          case b of
@@ -541,6 +545,7 @@ fun reduce' (file : file) =
                       | ENextval e => summarize d e @ [WriteDb]
                       | ESetval (e1, e2) => summarize d e1 @ summarize d e2 @ [WriteDb]
                       | EUnurlify (e, _, _) => summarize d e
+                      | ERunTransaction (e, _, _) => summarize d e @ [Unsure]
                       | EJavaScript (_, e) => summarize d e
                       | ESignalReturn e => summarize d e
                       | ESignalBind (e1, e2) => summarize d e1 @ summarize d e2
@@ -655,6 +660,7 @@ fun reduce' (file : file) =
                               | ENextval e1 => whichProj i e1
                               | ESetval (e1, e2) => whichProjs i [e1, e2]
                               | EUnurlify (e1, _, _) => whichProj i e1
+                              | ERunTransaction (e1, _, _) => whichProj i e1
                               | EJavaScript (_, e1) => whichProj i e1
                               | ESignalReturn e1 => whichProj i e1
                               | ESignalBind (e1, e2) => whichProjs i [e1, e2]

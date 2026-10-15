@@ -136,6 +136,12 @@ structure Con = struct
 
 open Order
 
+fun thunkMonadArg (c : con) =
+    case c of
+        (CApp ((CFfi ("Basis", m), _), arg), _) =>
+        if Settings.isThunkMonad m then SOME arg else NONE
+      | _ => NONE
+
 fun compare ((c1, _), (c2, _)) =
     case (c1, c2) of
         (TFun (d1, r1), TFun (d2, r2)) => join (compare (d1, d2), fn () => compare (r1, r2))

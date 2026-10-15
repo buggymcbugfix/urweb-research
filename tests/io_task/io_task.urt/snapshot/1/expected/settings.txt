@@ -1,0 +1,36 @@
+Prefix: /
+Database: dbname=io_task.db
+Exe: tests/io_task/io_task.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Ffi tests/ioprobe/probe
+Link tests/ioprobe/probe.c
+Linker: (none)
+Header tests/ioprobe/probe.h
+JsModule: (none)
+Url allow #*
+Url allow /Io_task/main
+EnvVar allow IO_TASK_ENV
+Source $/option
+Source tests/io_task/io_task
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Io_task/main
+OnError: (none)
+MinHeap: 65536
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types

@@ -25,6 +25,11 @@ val not : bool -> bool
 datatype result r = Success of r | Failure of xbody
 val result_monad : monad result
 
+(* Run a transaction from io code (Basis.attemptTransaction), and report a
+   fatal error in it as a [Failure] carrying the message, the transaction
+   having been rolled back. *)
+val tryRunTransaction : t ::: Type -> transaction t -> io (result t)
+
 (* Type-level identity function *)
 con ident = K ==> fn t :: K => t
 

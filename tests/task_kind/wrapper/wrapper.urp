@@ -1,0 +1,4 @@
+allow url /Wrapper/main
+safeGet Wrapper/main
+
+wrapper

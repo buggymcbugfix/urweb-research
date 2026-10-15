@@ -241,6 +241,8 @@ fun setClientOnly ls = client := S.addList (clientBase, ls)
 fun addClientOnly x = client := S.add (!client, x)
 fun isClientOnly x = S.member (!client, x)
 
+fun isThunkMonad x = x = "transaction" orelse x = "io"
+
 val serverBase = basis ["requestHeader",
                         "query",
                         "dml",

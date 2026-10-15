@@ -91,6 +91,7 @@ fun expUses globals =
               | ESetval {seq, count} => IS.union (eu seq, eu count)
 
               | EUnurlify (e, _, _) => eu e
+              | ERunTransaction (e, _, _) => eu e
     in
         eu
     end
@@ -153,6 +154,7 @@ fun annotateExp globals =
                           count = ae count}, loc)
 
               | EUnurlify (e, t, b) => (EUnurlify (ae e, t, b), loc)
+              | ERunTransaction (e, t, b) => (ERunTransaction (ae e, t, b), loc)
     in
         ae
     end

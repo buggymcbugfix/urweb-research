@@ -99,10 +99,16 @@ datatype exp' =
                        prepared : {id : int, query : string} option }
        | ESetval of { seq : exp, count : exp }
        | EUnurlify of exp * typ * bool
+       (* Basis.runTransaction (false) and attemptTransaction (true): the body,
+        * of the given type, run as a transaction of its own in an io
+        * computation; see Mono. *)
+       | ERunTransaction of exp * typ * bool
 
 withtype exp = exp' located
 
-datatype task = Initialize | ClientLeaves | Periodic of Int64.int
+(* A periodic task: its period in seconds, and whether its body is an io
+ * computation, run outside any transaction. *)
+datatype task = Initialize | ClientLeaves | Periodic of Int64.int * bool
 
 datatype index_mode = datatype Mono.index_mode
 

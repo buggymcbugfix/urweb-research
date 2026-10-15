@@ -509,7 +509,7 @@
                                        uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                        uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                                        
-                                      if (sqlite3_bind_int(stmt, 1, arg1) != SQLITE_OK) uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
+                                      if (sqlite3_bind_int(stmt, 1, arg1) != SQLITE_OK) uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
                                        
                                       int r;
                                        sqlite3_reset(stmt);
@@ -523,7 +523,7 @@
                                          (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
                                           ({uw_Basis_channel
                                            tmp;
-                                           uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: Unexpectedly NULL field #0");
+                                           uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: Unexpectedly NULL field #0");
                                            tmp;
                                            }) : ({
                                                  sqlite3_int64 n = sqlite3_column_int64(stmt, 0);
@@ -545,7 +545,7 @@
                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                }
                                        
-                                       if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:417:17-417:18: query step failed: %s<br />%s", 
+                                       if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: query step failed: %s<br />%s", 
                                        "SELECT T_Chans.uw_Channel FROM uw_Decls_chans AS T_Chans WHERE (T_Chans.uw_Client = \?)", sqlite3_errmsg(conn->conn));
                                        
                                        uw_pop_cleanup(ctx);
@@ -558,7 +558,7 @@
                                     ({
                                      struct __uws_2
                                      tmp;
-                                     uw_error(ctx, FATAL, "$/top.ur:418:24-419:3: %s", 
+                                     uw_error(ctx, FATAL, "$/top.ur:426:24-427:3: %s", 
                                      "Query returned no rows");
                                      tmp;
                                      })
@@ -721,7 +721,7 @@
                                                  (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
                                                   ({uw_Basis_int
                                                    tmp;
-                                                   uw_error(ctx, FATAL, "$/top.ur:429:17-429:18: Unexpectedly NULL field #0");
+                                                   uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
                                                    tmp;
                                                    }) : sqlite3_column_int64(stmt, 0));
                                                  
@@ -740,7 +740,7 @@
                                                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                        }
                                                
-                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:429:17-429:18: query step failed: %s<br />%s", 
+                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                                "SELECT COUNT(*) AS uw_1 FROM uw_Decls_t AS T_T", sqlite3_errmsg(conn->conn));
                                                
                                                uw_pop_cleanup(ctx);
@@ -753,7 +753,7 @@
                                             ({
                                              uw_Basis_int
                                              tmp;
-                                             uw_error(ctx, FATAL, "$/top.ur:430:24-431:3: %s", 
+                                             uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
                                              "Query returned no rows");
                                              tmp;
                                              })
@@ -905,7 +905,7 @@
    0;
    }
   
-  static uw_periodic my_periodics[] = {{uw_periodic0, 3600},{NULL}};
+  static uw_periodic my_periodics[] = {{uw_periodic0, 3600, 0},{NULL}};
  
  static int uw_check_url(const char *s) {
   if (!strncmp(s, "#", 1)) return 1;

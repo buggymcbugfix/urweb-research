@@ -1,0 +1,8 @@
+database dbname=io_channel.db
+allow url /Io_channel/main
+safeGet Io_channel/main
+minHeap 65536
+
+$/list
+$/option
+io_channel

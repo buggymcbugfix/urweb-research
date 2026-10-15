@@ -1,0 +1,13 @@
+transactional inner: commit
+transactional inner: free
+inner transaction: Success 1
+cleanup ran: popped later
+first tick ends
+transactional outer, after the transaction: commit
+transactional outer: commit
+transactional outer, after the transaction: free
+transactional outer: free
+cleanup ran: left when the computation failed
+transactional outer, before the failure: rollback
+transactional outer, before the failure: free
+still running

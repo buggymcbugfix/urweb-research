@@ -4549,17 +4549,31 @@ and elabDecl (dAll as (d, loc), (env, denv, gs)) =
                     val (e1', t1, gs1) = elabExp (env, denv) e1
                     val (e2', t2, gs2) = elabExp (env, denv) e2
 
+                    (* The kind is [task_kind targ m] and the body a function
+                     * from [targ] into [m]: [m] is [transaction], or [io]
+                     * for a periodic task; unification settles it. *)
                     val targ = cunif env (loc, (L'.KType, loc))
+                    val marg = cunif env (loc, (L'.KArrow ((L'.KType, loc), (L'.KType, loc)), loc))
 
                     val t1' = (L'.CModProj (!basis_r, [], "task_kind"), loc)
                     val t1' = (L'.CApp (t1', targ), loc)
+                    val t1' = (L'.CApp (t1', marg), loc)
 
-                    val t2' = (L'.CApp ((L'.CModProj (!basis_r, [], "transaction"), loc),
-                                        (L'.TRecord (L'.CRecord ((L'.KType, loc), []), loc), loc)), loc)
+                    val t2' = (L'.CApp (marg, (L'.TRecord (L'.CRecord ((L'.KType, loc), []), loc), loc)), loc)
                     val t2' = (L'.TFun (targ, t2'), loc)
                 in
                     checkCon env e1' t1 t1';
                     checkCon env e2' t2 t2';
+                    (case hnormCon env marg of
+                         (L'.CModProj (basis, [], m), _) =>
+                         if basis = !basis_r andalso Settings.isThunkMonad m then
+                             ()
+                         else
+                             expError env (TaskMonad loc)
+                       | (L'.CUnif _, _) =>
+                         (* A body like [return ()] fixes no monad. *)
+                         expError env (TaskMonadUnknown loc)
+                       | _ => expError env (TaskMonad loc));
                     ([(L'.DTask (e1', e2'), loc)], (env, denv, gs2 @ gs1 @ gs))
                 end
               | L.DPolicy e1 =>

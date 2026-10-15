@@ -504,6 +504,14 @@ fun cifyExp (eAll as (e, loc), sm) =
                 ((L'.EUnurlify (e, t, b), loc), sm)
             end
 
+          | L.ERunTransaction (e, t, b) =>
+            let
+                val (e, sm) = cifyExp (e, sm)
+                val (t, sm) = cifyTyp (t, sm)
+            in
+                ((L'.ERunTransaction (e, t, b), loc), sm)
+            end
+
           | L.EJavaScript _ => fail "Uncompilable JavaScript remains"
 
           | L.ESignalReturn _ => fail "Signal monad 'return' remains in server-side code"
@@ -689,7 +697,8 @@ fun cifyDecl ((d, loc), sm) =
                  val tk = case #1 e1 of
                               L.EFfi ("Basis", "initialize") => L'.Initialize
                             | L.EFfi ("Basis", "clientLeaves") => L'.ClientLeaves
-                            | L.EFfiApp ("Basis", "periodic", [((L.EPrim (Prim.Int n), _), _)]) => L'.Periodic n
+                            | L.EFfiApp ("Basis", "periodic", [((L.EPrim (Prim.Int n), _), _)]) => L'.Periodic (n, false)
+                            | L.EFfiApp ("Basis", "periodic_io", [((L.EPrim (Prim.Int n), _), _)]) => L'.Periodic (n, true)
                             | _ => (ErrorMsg.errorAt loc "Task kind not fully determined";
                                     L'.Initialize)
                  val (e, sm) = cifyExp (e, sm)
