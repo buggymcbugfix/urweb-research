@@ -31,14 +31,14 @@ fun action () =
     S.delete s;
 
     return <xml><body>
-      {List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls}
+      <ul>{List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls}</ul>
       <br/>
-      {List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls'}
+      <ul>{List.mapX (fn r => <xml><li> {[r.A]}: {[r.B]}</li></xml>) ls'}</ul>
       <br/>
-      {List.mapX (fn (s, ro) => <xml><li> {[s.D]}: {case ro of
-                                                        None => <xml>No parent</xml>
-                                                      | Some r => <xml>{[r.B]}</xml>}
-      </li></xml>) lsS}
+      <ul>{List.mapX (fn (s, ro) => <xml><li> {[s.D]}: {case ro of
+                                                            None => <xml>No parent</xml>
+                                                          | Some r => <xml>{[r.B]}</xml>}
+      </li></xml>) lsS}</ul>
     </body></xml>
 
 fun main () = return <xml><body>
