@@ -1,0 +1,11 @@
+5.170 65.170 Carlos: wait 1min
+65.170 65.270 Carlos.1: GET /Versioned1/main 200
+65.170 65.370 Carlos: reload
+65.270 65.370 Carlos.1: GET /app.818FECA6BAB78F0B17B6449A16B65B45F5C9C1CF.js 200
+65.270 65.370 Carlos.1: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+65.370 65.870 Carlos: click 'div:has-text("1:") >> text=Latest'
+65.770 65.870 Carlos.1: POST /Versioned1/current/1 200
+65.870 66.070 Carlos: fill 'div:has-text("1:") >> input[type=text] >> nth=1' ''
+66.070 66.370 Carlos: type 'div:has-text("1:") >> input[type=text] >> nth=1' '45'
+66.370 66.870 Carlos: click 'div:has-text("1:") >> text=Update'
+66.770 66.870 Carlos.1: POST /Versioned1/update/1/Carlos/45 200
