@@ -193,7 +193,7 @@ static const char usage_text[] =
     "A run's args cannot hold -t: its requests are sent one after the other, and\n"
     "with more threads than one it is a matter of chance which of them answers.\n"
     "Nor --, after which the server would ignore the flags urt adds (the address,\n"
-    "the port range, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
+    "-p 0, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
     "\n"
     "A case can also have runs in a browser, under browser/: the application\n"
     "started afresh as above, once per pass, and every pass sent through it step\n"
@@ -2179,7 +2179,7 @@ static int run_ready(const char *run_dir) {
             if (!strcmp(words.v[i], "--")) {
                 /* After it the server takes no options, ours included. */
                 die_later(fmt("%s ends the options with %s", path(f), key("--")),
-                          "the flags urt adds after a run's args -- the address, the port range and -d3, for the",
+                          "the flags urt adds after a run's args -- the address, -p 0 and -d3, for the",
                           "handshake -- would be ignored, and the server would listen where it likes and never say so",
                           fmt("take %s out", key("--")), NULL);
             } else if (asks_for_threads(&words, &i)) {
@@ -2389,7 +2389,7 @@ static int app_start(const char *run_dir, const char *exe, int browser, const ch
     struct strlist args = { 0, 0, 0 };
     struct strlist env_names = { 0, 0, 0 }, env_values = { 0, 0, 0 };
     char *text, **env_saved;
-    int i, started, lock;
+    int i, started;
 
     a->rw = rw;
     a->out_at = a->err_at = 0;
@@ -2467,14 +2467,7 @@ static int app_start(const char *run_dir, const char *exe, int browser, const ch
 
     join(a->server_out, rw, "server.stdout");
     join(a->server_err, rw, "server.stderr");
-    /* The runtime binds the first free port of its range and only then
-     * listens, the port taken for good by whichever listens first, and
-     * a server that binds one another has bound but not yet listened on
-     * fails at listening ("Socket listen failed"): with -j, one start at
-     * a time, until its server says it listens. */
-    lock = take_turn("start");
     started = server_start(exe, &args, a->server_out, a->server_err, server, why, sizeof why);
-    end_turn(lock);
     for (i = 0; i < env_names.n; i++) {
         if (env_saved[i]) {
             setenv(env_names.v[i], env_saved[i], 1);

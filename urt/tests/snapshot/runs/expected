@@ -69,7 +69,7 @@ ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/17.request: '#'
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/18.request: 'extra' is not taken here; the options are -d (--data), -b (--cookie) and -H (--header)
 ERROR runs/unready.urt/snapshot/1/request-response/a/interaction/19.request: a " is never closed
 ERROR runs/unready.urt/snapshot/1/request-response/dashes/args ends the options with --
-the flags urt adds after a run's args -- the address, the port range and -d3, for the
+the flags urt adds after a run's args -- the address, -p 0 and -d3, for the
 handshake -- would be ignored, and the server would listen where it likes and never say so
 take -- out
 ERROR runs/unready.urt/snapshot/1/request-response/threads/args asks for threads, with -t
