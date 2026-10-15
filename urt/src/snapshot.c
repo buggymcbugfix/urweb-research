@@ -1361,7 +1361,28 @@ static int at_blank = 0;
 #define MARK_AT    '\005'      /* at_blank is now 0 or 1 */
 
 static int in_worker = 0;       /* this process is one of -j's */
-static char debug_lock[PATHLEN];    /* what -j's workers take turns at, compiling in debug mode */
+static char turns[PATHLEN];     /* -j's scratch directory, where its workers' locks are */
+
+/* With -j, what the workers do one at a time: a lock file of the run's,
+ * held while the descriptor is open; -1 if there is none to take. */
+static int take_turn(const char *what) {
+    int fd;
+    if (!in_worker || (fd = open(fmt("%s/%s.lock", turns, what), O_RDWR | O_CREAT, 0600)) < 0) {
+        return -1;
+    }
+    while (lockf(fd, F_LOCK, 0) < 0) {
+        if (errno != EINTR || fs_interrupted) {
+            break;
+        }
+    }
+    return fd;
+}
+
+static void end_turn(int fd) {
+    if (fd >= 0) {
+        close(fd);
+    }
+}
 
 /* A blank line before a block, unless there is one. */
 static void blank_before(void) {
@@ -2368,7 +2389,7 @@ static int app_start(const char *run_dir, const char *exe, int browser, const ch
     struct strlist args = { 0, 0, 0 };
     struct strlist env_names = { 0, 0, 0 }, env_values = { 0, 0, 0 };
     char *text, **env_saved;
-    int i, started;
+    int i, started, lock;
 
     a->rw = rw;
     a->out_at = a->err_at = 0;
@@ -2446,7 +2467,14 @@ static int app_start(const char *run_dir, const char *exe, int browser, const ch
 
     join(a->server_out, rw, "server.stdout");
     join(a->server_err, rw, "server.stderr");
+    /* The runtime binds the first free port of its range and only then
+     * listens, the port taken for good by whichever listens first, and
+     * a server that binds one another has bound but not yet listened on
+     * fails at listening ("Socket listen failed"): with -j, one start at
+     * a time, until its server says it listens. */
+    lock = take_turn("start");
     started = server_start(exe, &args, a->server_out, a->server_err, server, why, sizeof why);
+    end_turn(lock);
     for (i = 0; i < env_names.n; i++) {
         if (env_saved[i]) {
             setenv(env_names.v[i], env_saved[i], 1);
@@ -3212,19 +3240,14 @@ static void run_case(const char *case_dir, const char *project) {
 
     command = sl_argv(&argv);
     t0 = tenths_now();
-    if (in_worker && runs.n && is_debug(project, &extra)) {
+    if (runs.n && is_debug(project, &extra)) {
         /* In debug mode the compiler writes the C to /tmp/webapp.c and
          * builds it from there, whoever compiles: with -j, one worker at
-         * a time.  The lock goes with the descriptor. */
-        lock = open(debug_lock, O_RDWR | O_CREAT, 0600);
-        while (lock >= 0 && lockf(lock, F_LOCK, 0) < 0 && errno == EINTR && !fs_interrupted) {
-            ;
-        }
+         * a time. */
+        lock = take_turn("debug");
     }
     status = run(command, fmt("%s/stdout.txt", work), fmt("%s/stderr.txt", work));
-    if (lock >= 0) {
-        close(lock);
-    }
+    end_turn(lock);
     elapsed = tenths_now() - t0;
     free(command);
     bail_if_interrupted();
@@ -3647,7 +3670,7 @@ static void run_parallel(const struct strlist *snaps) {
     if (!p || !ws || !fds) {
         die("out of memory", NULL);
     }
-    pathf(debug_lock, "%s/debug.lock", tmp);
+    snprintf(turns, sizeof turns, "%s", tmp);
     fflush(stdout);
     fflush(stderr);
     for (i = 0; i < nw; i++) {
