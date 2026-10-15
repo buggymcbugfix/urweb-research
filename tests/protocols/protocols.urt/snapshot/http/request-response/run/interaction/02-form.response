@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 260
+
+<!DOCTYPE html><html><head></head><body>
+<form method="post" action="/add"><input type="hidden" name="Sig" value="DB59E95E0D7E6F68C1DD705803A1396D7DC4F674236BF9F4DACDAE420D13F608" /><input type="text" name="Text" /><input type="submit" /></form>
+</body></html>
