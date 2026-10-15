@@ -457,13 +457,15 @@ static int driver_up[PASSES_MAX];
 static long driver_err_at[PASSES_MAX];
 
 static void drivers_stop(void) {
-    int i;
+    struct child *up[PASSES_MAX];
+    int i, n = 0;
     for (i = 0; i < PASSES_MAX; i++) {
         if (driver_up[i]) {
-            child_stop(&drivers[i]);
+            up[n++] = &drivers[i];
             driver_up[i] = 0;
         }
     }
+    children_stop(up, n);
 }
 
 /* The scratch directory goes with us, whichever way we leave, and so

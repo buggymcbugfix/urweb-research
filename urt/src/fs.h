@@ -142,9 +142,12 @@ int child_lines(struct child *c, const char *until, void (*fn)(const char *line,
 void children_lines(struct child *const cs[], int n, const char *until,
                     void (*fn)(int i, const char *line, void *data), void *data, int done[]);
 
-/* End the child: its stdin is closed, which is its cue to leave; a
- * second later SIGTERM, a second after that SIGKILL.  Reaped. */
+/* End the child: its stdin is closed, which is its cue to leave; five
+ * seconds later SIGTERM, a second after that SIGKILL.  Reaped. */
 void child_stop(struct child *c);
+
+/* The same for several children at once. */
+void children_stop(struct child *const cs[], int n);
 
 /* Whether the PATH has a program of that name. */
 int on_path(const char *name);

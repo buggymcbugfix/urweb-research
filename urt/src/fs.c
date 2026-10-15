@@ -834,35 +834,48 @@ void children_lines(struct child *const cs[], int n, const char *until,
     }
 }
 
-void child_stop(struct child *c) {
+void children_stop(struct child *const cs[], int n) {
     struct timespec nap = { 0, 10 * 1000 * 1000 };
-    int st, i, w = 0;
+    int st, i, k, left = 0;
 
-    if (c->pid <= 0) {
-        return;
+    /* Their stdin ending is their cue to leave: five seconds for that,
+     * since a driver closes its browsers first, then SIGTERM, then a
+     * second later SIGKILL. */
+    for (k = 0; k < n; k++) {
+        if (cs[k]->pid > 0) {
+            close(cs[k]->to);
+            close(cs[k]->from);
+            left++;
+        }
     }
-    /* Its stdin ending is its cue to leave; a second for that, then
-     * SIGTERM, then SIGKILL. */
-    close(c->to);
-    close(c->from);
-    for (i = 0; i < 200 && w == 0; i++) {
-        w = waitpid(c->pid, &st, WNOHANG);
-        if (w == 0) {
-            if (i == 100) {
-                kill(c->pid, SIGTERM);
+    for (i = 0; left > 0; i++) {
+        for (k = 0; k < n; k++) {
+            pid_t w;
+            if (cs[k]->pid <= 0) {
+                continue;
             }
+            w = waitpid(cs[k]->pid, &st, WNOHANG);
+            if (w > 0 || (w < 0 && errno != EINTR)) {
+                free(cs[k]->buf);
+                cs[k]->buf = NULL;
+                cs[k]->pid = 0;
+                left--;
+            } else if (i == 500) {
+                kill(cs[k]->pid, SIGTERM);
+            } else if (i >= 600 && i % 100 == 0) {
+                kill(cs[k]->pid, SIGKILL);
+            }
+        }
+        if (left > 0) {
             nanosleep(&nap, NULL);
         }
     }
-    if (w == 0) {
-        kill(c->pid, SIGKILL);
-        while (waitpid(c->pid, &st, 0) < 0 && errno == EINTR) {
-            ;
-        }
-    }
-    free(c->buf);
-    c->buf = NULL;
-    c->pid = 0;
+}
+
+void child_stop(struct child *c) {
+    struct child *one[1];
+    one[0] = c;
+    children_stop(one, 1);
 }
 
 /* The path comes back canonical -- no doubled or trailing slashes, no
