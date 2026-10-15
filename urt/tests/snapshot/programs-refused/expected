@@ -1,0 +1,24 @@
+$ urt snapshot runs/serves-cgi-bad
+ERROR runs/serves-cgi-bad.urt/snapshot/1/request-response/bad/args gives the program flags
+a CGI program is started with no arguments, as a web server starts it
+take them out
+ERROR runs/serves-cgi-bad.urt/snapshot/1/request-response/bad/interaction/02-ready.wait waits, and the program only runs for a request
+a cgi or static program is started for each request and is gone after it,
+so nothing runs in between to wait for
+0 cases, in T
+exit 1
+$ urt snapshot runs/serves-static-bad
+ERROR runs/serves-static-bad.urt/snapshot/1/request-response/bad/interaction/02-post.request cannot be given to a static program
+it is started with the path alone, so a request is a GET with no query, fields, cookies or headers
+ERROR runs/serves-static-bad.urt/snapshot/1/request-response/bad/interaction/03-query.request cannot be given to a static program
+it is started with the path alone, so a request is a GET with no query, fields, cookies or headers
+ERROR runs/serves-static-bad.urt/snapshot/1/request-response/bad/interaction/04-cookie.request cannot be given to a static program
+it is started with the path alone, so a request is a GET with no query, fields, cookies or headers
+0 cases, in T
+exit 1
+$ urt snapshot runs/serves-gopher
+ERROR runs/serves-gopher.urt/snapshot/1 has runs, and builds its application with -protocol gopher
+a run knows the protocols http, fastcgi, cgi and static
+0 cases, in T
+exit 1
+$ changes

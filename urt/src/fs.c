@@ -404,15 +404,37 @@ int run(char *const argv[], const char *out_path, const char *err_path) {
 }
 
 int run_in(char *const argv[], const char *in_path, const char *out_path, const char *err_path) {
+    return run_in_for(argv, in_path, out_path, err_path, 0, NULL);
+}
+
+int run_in_for(char *const argv[], const char *in_path, const char *out_path, const char *err_path,
+               unsigned seconds, enum run_end *how) {
     pid_t pid;
-    int st;
+    int st, report[2];
+    unsigned char failed;
+    enum run_end end = RUN_ENDED;
+    long started = tenths_now();
     fflush(stdout);
     fflush(stderr);
+    /* The child says on this pipe, closed by a successful exec, that it
+     * could not become the program. */
+    if (pipe(report) < 0 || fcntl(report[1], F_SETFD, FD_CLOEXEC) < 0) {
+        if (how) {
+            *how = RUN_NOT_STARTED;
+        }
+        return 127;
+    }
     pid = fork();
     if (pid < 0) {
+        close(report[0]);
+        close(report[1]);
+        if (how) {
+            *how = RUN_NOT_STARTED;
+        }
         return 127;
     }
     if (pid == 0) {
+        close(report[0]);
         if (in_path) {
             int f = open(in_path, O_RDONLY);
             if (f < 0 || dup2(f, STDIN_FILENO) < 0) {
@@ -422,21 +444,71 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
         }
         redirect(STDOUT_FILENO, out_path);
         redirect(STDERR_FILENO, err_path);
+        if (seconds) {
+            alarm(seconds);
+        }
         execvp(argv[0], argv);
+        failed = 1;
+        while (write(report[1], &failed, 1) < 0 && errno == EINTR) {
+            ;
+        }
         _exit(127);
+    }
+    close(report[1]);
+    failed = 0;
+    while (read(report[0], &failed, 1) < 0 && errno == EINTR) {
+        ;
+    }
+    close(report[0]);
+    if (failed) {
+        end = RUN_NOT_STARTED;
     }
     while (waitpid(pid, &st, 0) < 0) {
         if (errno != EINTR) {
+            if (how) {
+                *how = RUN_NOT_STARTED;
+            }
             return 127;
         }
+    }
+    if (how) {
+        *how = end;
     }
     if (WIFEXITED(st)) {
         return WEXITSTATUS(st);
     }
     if (WIFSIGNALED(st)) {
+        /* Our alarm, if the limit had passed when SIGALRM came; a program
+         * may well die of its own earlier. */
+        if (how && WTERMSIG(st) == SIGALRM && seconds && tenths_now() - started >= (long) seconds * 10L) {
+            *how = RUN_TIMED_OUT;
+        }
         return 128 + WTERMSIG(st);
     }
     return 127;
+}
+
+long spawn_on(char *const argv[], int in_fd, const char *out_path, const char *err_path) {
+    pid_t pid;
+    fflush(stdout);
+    fflush(stderr);
+    pid = fork();
+    if (pid < 0) {
+        return -1;
+    }
+    if (pid == 0) {
+        if (in_fd != STDIN_FILENO) {
+            if (dup2(in_fd, STDIN_FILENO) < 0) {
+                _exit(127);
+            }
+            close(in_fd);
+        }
+        redirect(STDOUT_FILENO, out_path);
+        redirect(STDERR_FILENO, err_path);
+        execvp(argv[0], argv);
+        _exit(127);
+    }
+    return (long) pid;
 }
 
 char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int seconds, int *status) {
@@ -552,7 +624,7 @@ void fs_set_argv0(const char *a) { argv0 = a; }
 /* The first program called name on the PATH, into dst; 0 if none.  A
  * program: a regular file that may be executed, since access(X_OK) is
  * as true of a directory that may be searched. */
-static int find_on_path(const char *name, char *dst) {
+int find_on_path(const char *name, char *dst) {
     const char *p = getenv("PATH"), *colon;
     if (!p) {
         return 0;

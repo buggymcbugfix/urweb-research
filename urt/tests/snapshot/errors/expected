@@ -91,6 +91,8 @@ requests, one after the other in the order of their names:
                   |   |-- 01-add.sql      what that changed in the database, if anything
                   |   |-- 01-add.stdout   what the server printed meanwhile, if anything
                   |   |-- 01-add.stderr
+                  |   |-- 01-add.exitcode a program's status, if not 0 (cgi, static, fastcgi)
+                  |   |-- 01-add.fcgi-stderr what it logged for the web server (fastcgi)
                   |   |-- 02-pay.request
                   |   |-- 02-pay.response
                   |   |-- 03-mail.wait    a line to wait for the server to print
@@ -140,6 +142,38 @@ A wait that comes first takes what the server printed while starting as well,
 which then is not under out/: a task starts with the server, and whether its
 first lines come before the server says it is listening or after is a matter
 of chance.
+
+An application built with -protocol cgi or -protocol static (in the case's
+args) is not a server.  A run starts it once for every request instead, and
+what it prints on stdout is the response, as the program writes it; what it
+prints on stderr is NAME.stderr, and an exit status other than 0 NAME.exitcode.
+A CGI program gets the request as a web server would give it: the method,
+SCRIPT_NAME empty, the path as PATH_INFO, as written and not percent-decoded,
+what follows a ? as QUERY_STRING, the fields as the body on stdin, as curl
+would send them, with CONTENT_TYPE and CONTENT_LENGTH, and the headers as
+HTTP_NAME, Host, User-Agent and Accept among them as curl sends them; none of
+the HTTP_ variables of urt's environment or the run's env.  A static program is
+given the path and nothing else, so its requests are a GET with no query,
+fields, cookies or headers.  Either is given the clock and the random numbers
+the server would give that request, so that it answers as the server would.
+Its run can have no args and no waits, there being no server to give flags to
+and nothing running between requests; out/ has only db_final.sql.  A program
+that has not finished within 30 seconds ends the run.
+
+An application built with -protocol fastcgi is started once, as a server is,
+by spawn-fcgi (which has to be on the PATH), on a Unix socket it is handed as
+its descriptor 0, and urt sends it each request as a web server would, on a
+connection of its own: the CGI variables above as its parameters, and nothing
+else, and the body, in records padded as nginx pads them.  The response is
+what the program wrote on its stdout stream, and its status for the request,
+if not 0, is NAME.exitcode; when the connection ends before the program has
+said the request is over, NAME.exitcode says so instead, and it also says when
+the answer came as another request than the one sent, or FCGI_END_REQUEST
+refused the request.  What the program wrote on its stderr stream, which a web
+server puts in its error log, is NAME.fcgi-stderr, if anything.  Nothing says
+when it is ready: the first request is sent again while its socket is not
+there yet, for up to 10 seconds, and what the program does while starting goes
+with the first step rather than under out/.  Otherwise its run is as a server's.
 
 Runs share nothing.  Each has its own database -- SQLite, so the case's args
 need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows

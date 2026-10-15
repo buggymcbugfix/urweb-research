@@ -177,13 +177,13 @@ transcript() {
 
 group_snapshot() {
     command -v python3 > /dev/null 2>&1 || { echo "$me: the snapshot cases need python3, for the stand-in server" >&2; exit 2; }
-    for p in curl sqlite3; do
+    for p in curl sqlite3 spawn-fcgi; do
         command -v $p > /dev/null 2>&1 || { echo "$me: the snapshot cases need $p, for the runs" >&2; exit 2; }
     done
     for d in "$fixture"/*; do
         name=${d#"$here/tests/"}
         case ${d##*/} in
-            app | tree.sh | urweb) continue ;;
+            app | cgi | fastcgi | static | tree.sh | urweb) continue ;;
         esac
         if [ ! -d "$d" ]; then
             fail "$name" "not a case directory"
