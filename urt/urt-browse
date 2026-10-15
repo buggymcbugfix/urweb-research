@@ -1313,14 +1313,13 @@ COMPOSE_JS = r"""
             g.restore();
         }
         const t2 = performance.now();
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 1.0));
+        // At once, on this thread: toBlob encodes in the page's idle
+        // time, or once a timer fires when there is none.
+        const url = canvas.toDataURL('image/jpeg', 1.0);
         const t3 = performance.now();
-        const bytes = new Uint8Array(await blob.arrayBuffer());
-        let out = '';
-        for (let i = 0; i < bytes.length; i += 0x8000) { out += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); }
         // The frame, and where the time went in the page: the picture
         // decoded, the frame drawn, the JPEG made, and the rest.
-        return [btoa(out), [t1 - t0, t2 - t1, t3 - t2, performance.now() - t3]];
+        return [url.slice(url.indexOf(',') + 1), [t1 - t0, t2 - t1, t3 - t2, performance.now() - t3]];
     };
 })()
 """
