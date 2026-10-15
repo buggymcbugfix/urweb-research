@@ -1,1 +1,1 @@
-URWEB_MIN_HEAP: 18446744073709551615 is more than the heap limit, 1000000
+URWEB_MIN_HEAP: '-1' is not a number of bytes

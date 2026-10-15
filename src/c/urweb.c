@@ -383,7 +383,7 @@ static void client_send(client *c, uw_buffer *msg, const char *script, int scrip
 extern void uw_global_custom();
 extern void uw_init_crypto();
 
-static void uw_min_heap_from_env();
+static void uw_heap_from_env();
 
 void uw_global_init() {
   clients = malloc(0);
@@ -392,7 +392,7 @@ void uw_global_init() {
   uw_init_crypto();
   uw_reproducible_init();
   uw_dml_log_init();
-  uw_min_heap_from_env();
+  uw_heap_from_env();
 
   // Fast non-cryptographic strength randomness for Sqlcache.
   srandom(clock());
@@ -574,35 +574,60 @@ size_t uw_page_max = SIZE_MAX;
 size_t uw_heap_max = SIZE_MAX;
 size_t uw_script_max = SIZE_MAX;
 
-// URWEB_MIN_HEAP: the size a context's heap starts at, in bytes, in place
-// of the .urp's minHeap.  A request that fits in it never grows the heap,
-// and so is never run again for the heap to have moved; a test that wants
-// every handler run once starts the heap large enough.  The heap limit
-// stays a limit: a size above it is refused, not cut down to it.  Read
-// after uw_global_custom, which has set both from the .urp.
-static void uw_min_heap_from_env() {
-  char *s = getenv("URWEB_MIN_HEAP"), *end;
-  unsigned long long n;
+// URWEB_LIMIT_HEAP and URWEB_MIN_HEAP: the heap's limit and the size it
+// starts at, in bytes, in place of the .urp's `limit heap` and minHeap, so
+// that a deployment can change them without compiling again.  Read after
+// uw_global_custom, which has set both from the .urp.  The size a heap
+// starts at stays below its limit, wherever each came from: a program
+// that would start above it is refused, rather than started with a
+// smaller heap than it asked for or a larger one than its limit.
+
+// A number of bytes from the environment variable name, into *n; 0 if it
+// is not set (or empty).  Anything but digits is refused.
+static int uw_bytes_from_env(const char *name, unsigned long long *n) {
+  char *s = getenv(name), *end;
 
   if (!s || !*s)
-    return;
+    return 0;
 
   errno = 0;
-  n = strtoull(s, &end, 10);
-  if (errno || end == s || *end) {
-    fprintf(stderr, "URWEB_MIN_HEAP: '%s' is not a number of bytes\n", s);
+  *n = strtoull(s, &end, 10);
+  if (errno || end == s || *end || strspn(s, "0123456789") != strlen(s)) {
+    fprintf(stderr, "%s: '%s' is not a number of bytes\n", name, s);
     exit(1);
+  }
+  return 1;
+}
+
+static void uw_heap_from_env() {
+  const char *limit_from = "limit heap in the .urp", *min_from = "minHeap in the .urp";
+  unsigned long long n;
+
+  if (uw_bytes_from_env("URWEB_LIMIT_HEAP", &n)) {
+    // SIZE_MAX itself is what uw_heap_max holds for no limit at all.
+    if (n == 0 || n >= SIZE_MAX) {
+      fprintf(stderr, "URWEB_LIMIT_HEAP: %llu is no limit for a heap: it has to be between 1 and %zu\n",
+              n, (size_t)SIZE_MAX - 1);
+      exit(1);
+    }
+    uw_heap_max = (size_t)n;
+    limit_from = "URWEB_LIMIT_HEAP";
   }
 
-  if (n > uw_heap_max) {
-    fprintf(stderr, "URWEB_MIN_HEAP: %llu is more than the heap limit, %zu\n", n, uw_heap_max);
+  if (uw_bytes_from_env("URWEB_MIN_HEAP", &n)) {
+    if (n > INT_MAX) {
+      fprintf(stderr, "URWEB_MIN_HEAP: %llu is more than a heap can start at, %d\n", n, INT_MAX);
+      exit(1);
+    }
+    uw_min_heap = (int)n;
+    min_from = "URWEB_MIN_HEAP";
+  }
+
+  if ((size_t)uw_min_heap > uw_heap_max) {
+    fprintf(stderr, "The heap would start at %d bytes (%s), more than its limit of %zu (%s)\n",
+            uw_min_heap, min_from, uw_heap_max, limit_from);
     exit(1);
   }
-  if (n > INT_MAX) {
-    fprintf(stderr, "URWEB_MIN_HEAP: %llu is more than a heap can start at, %d\n", n, INT_MAX);
-    exit(1);
-  }
-  uw_min_heap = (int)n;
 }
 
 uw_context uw_init(int id, uw_loggers *lg) {
