@@ -1940,32 +1940,54 @@ fun compile job = quietly (fn () =>
             let
                 val job = valOf (run (transform parseUrp "parseUrp") job)
 
+                (* A directory of this build's own, for what it does not
+                 * keep, and how to remove it. *)
+                fun scratch () =
+                    let
+                        val dir = OS.FileSys.tmpName ()
+                        val () = if OS.FileSys.access (dir, []) then
+                                     OS.FileSys.remove dir
+                                 else
+                                     ()
+                    in
+                        OS.FileSys.mkDir dir;
+                        (dir,
+                         fn () => (if OS.Process.isSuccess (OS.Process.system ("rm -rf " ^ dir)) then
+                                       ()
+                                   else
+                                       raise Fail ("Unable to delete temporary directory " ^ dir)))
+                    end
+                fun inside dir file = OS.Path.joinDirFile {dir = dir, file = file}
+
+                (* With -saveC the C is in that file, written at checknest,
+                 * and is compiled from there: a debug build's symbols then
+                 * point at a file of the caller's choosing.  Without it a
+                 * debug build keeps its C in /tmp/webapp.c, which every
+                 * debug build writes, so two at once build each other's. *)
+                val saved = case List.find (fn (phase, _) => phase = "checknest") (!saveFiles) of
+                                SOME (_, fname) => SOME fname
+                              | NONE => NONE
+
                 val (cname, oname, cleanup) =
-                    if #debug job then
-                        ("/tmp/webapp.c", "/tmp/webapp.o", fn () => ())
-                    else
+                    case saved of
+                        SOME cname =>
                         let
-                            val dir = OS.FileSys.tmpName ()
-                            val () = if OS.FileSys.access (dir, []) then
-                                         OS.FileSys.remove dir
-                                     else
-                                         ()
-                            val cname = OS.Path.joinDirFile {dir = dir, file = "webapp.c"}
-                            val oname = OS.Path.joinDirFile {dir = dir, file = "webapp.o"}
+                            val (dir, cleanup) = scratch ()
                         in
-                            OS.FileSys.mkDir dir;
-                            (cname, oname,
-                          fn () => (if OS.Process.isSuccess (OS.Process.system ("rm -rf " ^ dir)) then
-                                        ()
-                                    else
-                                        raise Fail ("Unable to delete temporary directory " ^ dir)))
+                            (cname, inside dir "webapp.o", cleanup)
                         end
+                      | NONE =>
+                        if #debug job then
+                            ("/tmp/webapp.c", "/tmp/webapp.o", fn () => ())
+                        else
+                            let
+                                val (dir, cleanup) = scratch ()
+                            in
+                                (inside dir "webapp.c", inside dir "webapp.o", cleanup)
+                            end
                 val ename = #exe job
             in
                 let
-                    val outf = TextIO.openOut cname
-                    val s = TextIOPP.openOut {dst = outf, wid = 80}
-
                     val hasDb = List.exists (fn (Cjr.DDatabase _, _) => true | _ => false) (#1 file)
                     val libs =
                         if hasDb then
@@ -1973,9 +1995,17 @@ fun compile job = quietly (fn () =>
                         else
                             ""
                 in
-                    Print.fprint s (CjrPrint.p_file CjrEnv.empty file);
-                    TextIO.output1 (outf, #"\n");
-                    TextIO.closeOut outf;
+                    if isSome saved then
+                        ()
+                    else
+                        let
+                            val outf = TextIO.openOut cname
+                            val s = TextIOPP.openOut {dst = outf, wid = 80}
+                        in
+                            Print.fprint s (CjrPrint.p_file CjrEnv.empty file);
+                            TextIO.output1 (outf, #"\n");
+                            TextIO.closeOut outf
+                        end;
 
                     if ErrorMsg.anyErrors () then
                         false

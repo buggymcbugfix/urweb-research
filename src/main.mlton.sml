@@ -240,7 +240,7 @@ fun oneRun args =
               ("saveTypecheck", ONE ("<file>", Compiler.setSaveTypecheck),
                     SOME "output the signatures elaboration inferred as <file>"),
               ("saveC", ONE ("<file>", Compiler.setSaveC),
-                    SOME "output the generated C as <file>"),
+                    SOME "output the generated C as <file>, which a build then compiles"),
               ("path", TWO ("<name>", "<path>", Compiler.addPath),
                     SOME ("set path variable <name> to <path> for use in "^
                           ".urp files")),

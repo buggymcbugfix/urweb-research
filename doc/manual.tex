@@ -155,7 +155,7 @@ Here is the complete list of directive forms.  ``FFI'' stands for ``foreign func
 \item \texttt{coreInline TREESIZE} sets how many nodes the AST of a function definition may have before the optimizer stops trying hard to inline calls to that function.  (This is one of two options for one of two intermediate languages within the compiler.)
 \item \texttt{database DBSTRING} sets the connection string for the database backend.  The format is the one expected by Postgres's \texttt{PQconnectdb()}, described under the \texttt{-db} command-line option in Section \ref{sec:building}.
 \item \texttt{dbms [postgres|mysql|sqlite]} selects the database backend (the default is \texttt{postgres}).
-\item \texttt{debug} compiles the generated C code without optimization and with debugging symbols (\texttt{-O0 -g}), keeps that code in \texttt{/tmp/webapp.c} (and its object file in \texttt{/tmp/webapp.o}).  This is mostly useful to help in debugging the compiler itself; the same effect is available via the \texttt{-debug} command-line option.
+\item \texttt{debug} compiles the generated C code without optimization and with debugging symbols (\texttt{-O0 -g}), keeps that code in \texttt{/tmp/webapp.c} (and its object file in \texttt{/tmp/webapp.o}), or in the file \texttt{-saveC} names, which a build compiles when it is given: debug builds that run at once each need their own.  This is mostly useful to help in debugging the compiler itself; the same effect is available via the \texttt{-debug} command-line option.
 \item \texttt{dev} compiles the generated C code without optimization (\texttt{-O0}), which makes builds noticeably faster during development, without the other effects of \texttt{debug}.  The same effect is available as the \texttt{-dev} command-line option.
 \item \texttt{effectful Module.ident} registers an FFI function or transaction as having side effects.  The optimizer avoids removing, moving, or duplicating calls to such functions.  This is the default behavior for \texttt{transaction}-based types.
 \item \texttt{exe FILENAME} sets the filename to which to write the output executable.  The default for file \texttt{P.urp} is \texttt{P.exe}.
@@ -307,7 +307,7 @@ sqlite3 path/to/database/file <app.sql
     \end{verbatim}
   \end{itemize}
 
-\item \texttt{-debug}: Same as the \texttt{debug} directive in a project file: compile the generated C code with \texttt{-O0 -g}, keep it in \texttt{/tmp/webapp.c}, and print the compiler phases as they run.
+\item \texttt{-debug}: Same as the \texttt{debug} directive in a project file: compile the generated C code with \texttt{-O0 -g}, keep it in \texttt{/tmp/webapp.c} (or in the file \texttt{-saveC} names), and print the compiler phases as they run.
 \item \texttt{-dev}: Same as the \texttt{dev} directive in a project file: compile the generated C code without optimization, for faster builds.
 \item \texttt{-dumpSource}: When compilation fails, output to stderr the complete source code of the last intermediate program before the compilation phase that signaled the error.  (Warning: these outputs can be very long and aren't especially optimized for readability!)
 
