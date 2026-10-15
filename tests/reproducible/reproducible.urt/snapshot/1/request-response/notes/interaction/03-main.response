@@ -1,13 +1,13 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
-Set-Cookie: visitor=somebody; path=/; expires=Sat, 01-Jan-2000 00:01:02 GMT
+Set-Cookie: visitor=somebody; path=/; expires=Fri, 01-Jan-2100 00:01:02 GMT
 Connection: close
 Content-Length: 459
 
 <!DOCTYPE html><html><head></head><body>
 <p>rand: 1997777116</p>
-<p>now: Sat Jan  1 00:00:02 2000</p>
-<ul><li>1: first (Sat Jan  1 00:00:01 2000)</li></ul>
+<p>now: Fri Jan  1 00:00:02 2100</p>
+<ul><li>1: first (Fri Jan  1 00:00:01 2100)</li></ul>
 <form method="post" action="/add"><input type="hidden" name="Sig" value="38AF614D06A6F91DDE0915A0DF83C9E07DB22AF1217C00FC98F0C9EA704DEB14" />
 <input type="text" name="Text" />
 <input type="submit" />

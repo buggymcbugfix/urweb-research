@@ -1,4 +1,4 @@
--- 2000-01-01 00:00:00 UTC
+-- 2100-01-01 00:00:00 UTC
 -- tests/agg.ur:12:5-19:65 (1 row)
 INSERT INTO uw_Agg_t1 (uw_A, uw_B, uw_C) VALUES (1, 'a', 1);
 -- tests/agg.ur:13:5-19:65 (1 row)

@@ -19,8 +19,8 @@ exit 0
 $ changes
 added: ./runs/serves-env.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-env.urt/snapshot/1/expected/exitcode
-added (213 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/01.response
-added (197 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/02.response
-added (208 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/03.response
-added (210 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.response
-added (207 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/02.response
+added (214 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/01.response
+added (198 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/02.response
+added (209 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/03.response
+added (211 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.response
+added (208 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/02.response

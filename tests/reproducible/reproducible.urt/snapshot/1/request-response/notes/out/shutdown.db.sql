@@ -6,7 +6,7 @@ CREATE TABLE uw_Note (
     uw_Created text NOT NULL,
     CONSTRAINT uw_Note_pkey PRIMARY KEY (uw_Id)
 );
-INSERT INTO uw_Note VALUES(1,'first','2000-01-01 00:00:01');
+INSERT INTO uw_Note VALUES(1,'first','2100-01-01 00:00:01');
 CREATE TABLE uw_noteIds (id INTEGER PRIMARY KEY AUTOINCREMENT);
 PRAGMA writable_schema=ON;
 CREATE TABLE IF NOT EXISTS sqlite_sequence(name,seq);

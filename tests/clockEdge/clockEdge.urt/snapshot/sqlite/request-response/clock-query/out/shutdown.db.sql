@@ -5,9 +5,9 @@ CREATE TABLE uw_Log (
     uw_At text NOT NULL,
     uw_What text NOT NULL
 );
-INSERT INTO uw_Log VALUES(1,'2000-01-01 00:00:00','ten');
-INSERT INTO uw_Log VALUES(2,'2000-01-01 00:00:00','twenty-five');
-INSERT INTO uw_Log VALUES(3,'2000-01-01 00:00:00','once');
+INSERT INTO uw_Log VALUES(1,'2100-01-01 00:00:00','ten');
+INSERT INTO uw_Log VALUES(2,'2100-01-01 00:00:00','twenty-five');
+INSERT INTO uw_Log VALUES(3,'2100-01-01 00:00:00','once');
 CREATE TABLE uw_logIds (id INTEGER PRIMARY KEY AUTOINCREMENT);
 CREATE TABLE uw_Clients (
     uw_Id integer NOT NULL,

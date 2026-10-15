@@ -1,4 +1,4 @@
--- 2000-01-01 00:00:01 UTC GET /Utf8/test_db
+-- 2100-01-01 00:00:01 UTC GET /Utf8/test_db
 -- tests/utf8.ur:1464:4-1492:3 (1 row)
 INSERT INTO uw_Utf8_t (uw_Id, uw_Text) VALUES (1, 'abc');
 -- tests/utf8.ur:1467:4-1492:3 (1 row)

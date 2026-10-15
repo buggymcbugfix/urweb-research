@@ -7,7 +7,7 @@ Content-Length: 536
 Cookie: vil<br />
 <table>
 <tr><th>User</th> <th>Last Visit</th></tr>
-<tr><td>vil</td> <td>Sat Jan  1 00:00:04 2000</td></tr>
+<tr><td>vil</td> <td>Fri Jan  1 00:00:04 2100</td></tr>
 </table>
 <h2>Set cookie value</h2>
 <form method="post" action="/CookieSec/set"><input type="text" name="User" /> <input type="submit" /></form>
