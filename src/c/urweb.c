@@ -5005,6 +5005,17 @@ uw_Basis_postBody uw_getPostBody(uw_context ctx) {
     uw_error(ctx, FATAL, "Asked for POST body when none exists");
 }
 
+int uw_retry_again(failure_kind fk, int *attempts_left) {
+  switch (fk) {
+  case UNLIMITED_RETRY:
+    return 1;
+  case BOUNDED_RETRY:
+    return --*attempts_left > 0;
+  default:
+    return 0;
+  }
+}
+
 failure_kind uw_runCallback(uw_context ctx, void (*callback)(uw_context)) {
   int r = setjmp(ctx->jmp_buf);
 
@@ -5024,7 +5035,6 @@ failure_kind uw_runCallback(uw_context ctx, void (*callback)(uw_context)) {
 // one is set, else 8 GiB; the reservation costs nothing until used.
 
 #define UW_IO_HEAP_DEFAULT_RESERVATION (8ULL * 1024 * 1024 * 1024)
-#define UW_IO_MAX_RETRIES 5
 
 void uw_io_prepare(uw_context ctx) {
   size_t reserve = uw_heap_max == SIZE_MAX ? UW_IO_HEAP_DEFAULT_RESERVATION : uw_heap_max;
@@ -5148,7 +5158,7 @@ static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int comm
 
 void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
   memcpy(&t->outer, &ctx->jmp_buf, sizeof(jmp_buf));
-  t->retries_left = UW_IO_MAX_RETRIES;
+  t->attempts_left = UW_RETRY_ATTEMPTS;
   t->failed = 0;
   t->committing = 0;
   t->headers_used = uw_buffer_used(&ctx->outHeaders);
@@ -5211,11 +5221,11 @@ int uw_io_transaction_retry(uw_context ctx, uw_io_transaction *t, int fk) {
     switch (fk) {
     case UNLIMITED_RETRY:
       ctx->loggers->log_debug(ld, "Error triggers unlimited retry in io transaction: %s\n", ctx->error_message);
-      again = 1;
+      again = uw_retry_again(fk, &t->attempts_left);
       break;
     case BOUNDED_RETRY:
       ctx->loggers->log_debug(ld, "Error triggers bounded retry in io transaction: %s\n", ctx->error_message);
-      again = --t->retries_left > 0;
+      again = uw_retry_again(fk, &t->attempts_left);
       if (!again)
         ctx->loggers->log_error(ld, "Fatal error in io transaction (out of retries): %s\n", ctx->error_message);
       break;

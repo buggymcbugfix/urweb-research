@@ -58,6 +58,13 @@ typedef struct {
 
 typedef enum { SUCCESS, FATAL, BOUNDED_RETRY, UNLIMITED_RETRY, RETURN_INDIRECTLY } failure_kind;
 
+// How many times a transaction is run when its failures ask for a bounded
+// retry (BOUNDED_RETRY): the first attempt and, after each such failure,
+// another, this many in all.  One number for every loop that runs a
+// transaction again: a request, a periodic task, a context's
+// initialization, and a transaction of io code; see uw_retry_again.
+#define UW_RETRY_ATTEMPTS 5
+
 typedef enum { SERVED, KEEP_OPEN, FAILED } request_result;
 
 #define INTS_MAX 50
@@ -80,7 +87,7 @@ typedef struct {
 // the compiler generates for Basis.runTransaction; see uw_io_transaction_*.
 typedef struct {
   jmp_buf outer;    // the jump target to restore afterwards
-  int retries_left;
+  int attempts_left; // for uw_retry_again
   int failed;       // the transaction gave up: rolled back, error message kept
   int committing;   // inside uw_commit: a longjmp from there is a callback's
   // The context as it was when the transaction began, for an attempt that

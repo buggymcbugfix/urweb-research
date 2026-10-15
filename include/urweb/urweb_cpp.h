@@ -33,6 +33,13 @@ void uw_reset_keep_error_message(struct uw_context *);
 char *uw_get_url_prefix(struct uw_context *);
 
 failure_kind uw_begin_init(struct uw_context *);
+
+// After a failure of kind fk, with *attempts_left attempts allowed so far
+// (UW_RETRY_ATTEMPTS to begin with): whether to run again.  A bounded retry
+// takes one attempt off and gives up when none is left; an unlimited retry
+// always runs again; any other failure is final.
+int uw_retry_again(failure_kind fk, int *attempts_left);
+
 void uw_set_on_success(char *);
 void uw_set_headers(struct uw_context *, char *(*get_header)(void *, const char *), void *get_header_data);
 void uw_set_env(struct uw_context *, char *(*get_env)(void *, const char *), void *get_env_data);
