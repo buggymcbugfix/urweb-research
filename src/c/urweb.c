@@ -5361,7 +5361,9 @@ static void uw_Sqlcache_storeCommitOne(uw_Sqlcache_Cache *cache, char **keys, uw
     uw_Sqlcache_freeValue(entry->value);
     entry->value = value;
     entry->value->timeValid = timeNow;
-  }
+  } else
+    // Older than what the entry has: not stored, and ours to free.
+    uw_Sqlcache_freeValue(value);
   pthread_rwlock_unlock(&cache->lockIn);
 }
 
@@ -5378,6 +5380,8 @@ static void uw_Sqlcache_commit(void *data) {
     char **keys = update->keys;
     if (update->value) {
       uw_Sqlcache_storeCommitOne(cache, keys, update->value);
+      // The cache has it now, or has freed it.
+      update->value = NULL;
     } else {
       uw_Sqlcache_flushCommitOne(cache, keys);
     }
@@ -5396,7 +5400,9 @@ static void uw_Sqlcache_free(void *data, int dontCare) {
       free(keys[numKeys]);
     }
     free(keys);
-    // Don't free [update->value]: it's in the cache now!
+    // A value still here did not reach the cache: the transaction was rolled
+    // back, so the commit callback never ran.
+    uw_Sqlcache_freeValue(update->value);
     uw_Sqlcache_Update *nextUpdate = update->next;
     free(update);
     update = nextUpdate;
