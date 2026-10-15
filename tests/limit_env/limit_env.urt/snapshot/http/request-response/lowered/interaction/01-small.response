@@ -1,6 +1,7 @@
-HTTP/1.1 200 OK
-Content-type: text/html; charset=utf-8
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
 Connection: close
-Content-length: 65
+Content-length: 107
 
-<!DOCTYPE html><html><head></head><body>65536 bytes</body></html>
+<html><head><title>Fatal Error</title></head><body>Fatal error: Memory limit exceeded (heap)
+</body></html>
