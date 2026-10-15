@@ -546,6 +546,7 @@ static void *worker(void *data) {
   done2:
     fastcgi_input_reset(in);
     uw_reset(ctx);
+    uw_heap_shrink(ctx);
   }
 
   return NULL;

@@ -324,6 +324,9 @@ void uw_check_heap(struct uw_context *, size_t extra);
 // a thread later.  The reservations are kept as spares, which uw_init takes
 // before reserving anew.  Once the limit is known (uw_global_init).
 void uw_heap_prepare(int n);
+// Between pieces of work (a request served, a task's tick, a pass of the
+// expunger): empty the heap, and give back the memory not recently needed.
+void uw_heap_shrink(struct uw_context *);
 char *uw_heap_front(struct uw_context *);
 void uw_set_heap_front(struct uw_context *, char*);
 
