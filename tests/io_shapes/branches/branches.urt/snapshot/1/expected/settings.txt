@@ -1,0 +1,34 @@
+Prefix: /
+Database: dbname=branches.db
+Exe: tests/io_shapes/branches/branches.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Linker: (none)
+JsModule: (none)
+Url allow #*
+Url allow /Branches/main
+Source $/list
+Source $/option
+Source $/string
+Source tests/io_shapes/branches/branches
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Branches/main
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types

@@ -1,0 +1,16 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.BF8998A87BE373F70870BE5782B21E3CBD8B343D.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Io_rpc_send/main", "content-type": null},
+                                                                      
+   {"method": "GET", "url": "Io_rpc_send/rows", "content-type": null},
+                                                                      
+   {"method": "POST", "url": "Io_rpc_send/retried", "content-type": null},
+                                                                          
+   {"method": "POST", "url": "Io_rpc_send/conflicting", "content-type": null},
+                                                                              
+   {"method": "POST", "url": "Io_rpc_send/rolledBack", "content-type": null}]}

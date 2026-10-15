@@ -1,0 +1,8 @@
+database dbname=io_rpc_cookie.db
+allow url /Io_rpc_cookie/main
+allow url /Io_rpc_cookie/rows
+safeGet Io_rpc_cookie/main
+safeGet Io_rpc_cookie/rows
+
+$/option
+io_rpc_cookie

@@ -1,0 +1,1 @@
+POST /Io_rpc_cookie/copy/4 -b 'Io_rpc_cookie/c=somebody' -H 'UrWeb-Sig: 66BB414ED6D6CC0EDDBB2E8970F99A9AE7B5C8DC1540C15FA29F24653FB93C3E' -H 'Content-type: text/plain'

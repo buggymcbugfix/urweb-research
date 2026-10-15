@@ -1,0 +1,6 @@
+tests/io_misuse/client_run/client_run.ur:8:48: (to 8:75) runTransaction in code to be compiled to JavaScript[2]
+Code runTransaction(2)
+tests/io_misuse/client_run/client_run.ur:6:16: (to 6:43) runTransaction in code to be compiled to JavaScript[2]
+Code runTransaction(1)
+tests/io_misuse/client_run/client_run.ur:8:48: (to 8:75) runTransaction in code to be compiled to JavaScript[2]
+Code runTransaction(2)

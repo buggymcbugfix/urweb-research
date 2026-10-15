@@ -1,0 +1,1 @@
+POST /Rpc_types/floats/1.5 -H 'Content-type: text/plain'

@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 108
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: Tried to redirect from an RPC
+</body></html>

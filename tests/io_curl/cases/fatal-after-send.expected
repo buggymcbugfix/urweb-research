@@ -1,0 +1,16 @@
+> POST /Curl_io/payThenFail/1
+HTTP/1.1 500 Internal Server Error
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/io_curl/app/curl_io.ur:104:23-104:68: cannot record order 1
+</body></html>
+> POST /Curl_io/pay/1
+HTTP/1.1 200 OK
+
+
+order+1+is+sending
+> provider charges
+  1 charges
+  order-1
+> database
+  order 1 (ok): sending
+  | Fatal error: tests/io_curl/app/curl_io.ur:104:23-104:68: cannot record order 1

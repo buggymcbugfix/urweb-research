@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 414
+
+<!DOCTYPE html><html><head></head><body>
+<h2>orders</h2><div>1 cart 1 total 60 paid</div><div>2 cart 2 total 150 declined</div><div>3 cart 3 total 250 paid</div>
+<h2>payments</h2><div>order 1 attempt 1: approved</div><div>order 2 attempt 1: declined</div><div>order 3 attempt 1: no answer</div><div>order 3 attempt 2: approved</div>
+<h2>carts</h2><div>cart 2: 1 lines</div><div>cart 3: 1 lines</div>
+</body></html>

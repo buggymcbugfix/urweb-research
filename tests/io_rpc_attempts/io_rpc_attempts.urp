@@ -1,0 +1,13 @@
+database dbname=io_rpc_attempts.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Io_rpc_attempts/main
+allow url /Io_rpc_attempts/rows
+allow responseHeader X-Io
+safeGet Io_rpc_attempts/main
+safeGet Io_rpc_attempts/rows
+
+$/list
+$/option
+io_rpc_attempts

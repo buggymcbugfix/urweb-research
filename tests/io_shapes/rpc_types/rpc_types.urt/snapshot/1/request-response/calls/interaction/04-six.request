@@ -1,0 +1,1 @@
+POST /Rpc_types/six/1/a+b/1.5/Some/2/Cons/x/Cons/y/Nil/Blue/z/None -H 'Content-type: text/plain'

@@ -81,6 +81,9 @@ fun effectize file =
                 EFfi ("Basis", "getCookie") => true
               | EFfiApp ("Basis", "getHeader", _) => true
               | EFfiApp ("Basis", "getenv", _) => true
+              (* The same read from io code; monoize turns it into getenv,
+               * after this pass. *)
+              | EFfiApp ("Basis", "io_getenv", _) => true
               | ENamed n => IM.inDomain (evs, n)
               | EServerCall (n, _, _, _) => IM.inDomain (evs, n)
               | _ => false
@@ -155,49 +158,38 @@ fun effectize file =
                 in
                     (d, loop (writers, readers, pushers))
                 end
-              | DExport (Link _, n, t) =>
-                (case IM.find (writers, n) of
-                     NONE => ()
-                   | SOME (loc, s) =>
-                     if Settings.isSafeGet s then
-                         ()
-                     else
-                         ErrorMsg.errorAt loc ("A handler (URI prefix \"" ^ s
-                                               ^ "\") accessible via GET could cause side effects; try accessing it only via forms, removing it from the signature of the main program module, or whitelisting it with the 'safeGet' .urp directive");
-                 ((DExport (Link (if IM.inDomain (writers, n) then
-                                      if IM.inDomain (readers, n) then
-                                          ReadCookieWrite
-                                      else
-                                          ReadWrite
+              | DExport (ek, n, _) =>
+                let
+                    (* What the handler may do, from the analysis above:
+                     * write (the database, or an effectful FFI function),
+                     * and then whether it reads a cookie or a header, which
+                     * is what a cross-site request could carry. *)
+                    val eff = if IM.inDomain (writers, n) then
+                                  if IM.inDomain (readers, n) then
+                                      ReadCookieWrite
                                   else
-                                      ReadOnly), n, IM.inDomain (pushers, n)), #2 d), evs))
-              | DExport (Action _, n, _) =>
-                ((DExport (Action (if IM.inDomain (writers, n) then
-                                       if IM.inDomain (readers, n) then
-                                           ReadCookieWrite
-                                       else
-                                           ReadWrite
-                                   else
-                                       ReadOnly), n, IM.inDomain (pushers, n)), #2 d),
-                 evs)
-              | DExport (Rpc _, n, _) =>
-                ((DExport (Rpc (if IM.inDomain (writers, n) then
-                                    if IM.inDomain (readers, n) then
-                                        ReadCookieWrite
-                                    else
-                                        ReadWrite
-                                else
-                                    ReadOnly), n, IM.inDomain (pushers, n)), #2 d),
-                 evs)
-              | DExport (Extern _, n, _) =>
-                ((DExport (Extern (if IM.inDomain (writers, n) then
-                                       if IM.inDomain (readers, n) then
-                                           ReadCookieWrite
-                                       else
-                                           ReadWrite
-                                   else
-                                       ReadOnly), n, IM.inDomain (pushers, n)), #2 d),
-                 evs)
+                                      ReadWrite
+                              else
+                                  ReadOnly
+                    val push = IM.inDomain (pushers, n)
+                    val ek = case ek of
+                                 Link _ =>
+                                 (case IM.find (writers, n) of
+                                      NONE => ()
+                                    | SOME (loc, s) =>
+                                      if Settings.isSafeGet s then
+                                          ()
+                                      else
+                                          ErrorMsg.errorAt loc ("A handler (URI prefix \"" ^ s
+                                                                ^ "\") accessible via GET could cause side effects; try accessing it only via forms, removing it from the signature of the main program module, or whitelisting it with the 'safeGet' .urp directive");
+                                  Link eff)
+                               | Action _ => Action eff
+                               | Rpc _ => Rpc eff
+                               | IoRpc _ => IoRpc eff
+                               | Extern _ => Extern eff
+                in
+                    ((DExport (ek, n, push), #2 d), evs)
+                end
               | _ => (d, evs)
 
         val (file, _) = ListUtil.foldlMap doDecl (IM.empty, IM.empty, IM.empty) file

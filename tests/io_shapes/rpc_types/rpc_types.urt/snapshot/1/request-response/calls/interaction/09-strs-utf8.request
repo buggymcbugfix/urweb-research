@@ -1,0 +1,1 @@
+POST /Rpc_types/strs/caf%C3%A9 -H 'Content-type: text/plain'

@@ -244,6 +244,8 @@ val sleep : int -> transaction unit
 val rpc : t ::: Type -> transaction t -> transaction t
 val tryRpc : t ::: Type -> transaction t -> transaction (option t)
 (* Returns [None] on error condition. *)
+(* [io_rpc] and [io_tryRpc], under "Code outside any transaction" below, are
+   the same for a function whose body is an [io] computation. *)
 
 
 (** Channels *)
@@ -1291,6 +1293,12 @@ val io_debug : string -> io unit
 val io_getenv : envVar -> io (option string)
 val io_now : io time
 val io_rand : io int
+
+(* [rpc] and [tryRpc] for a function whose body is an [io] computation: the
+   client calls it, the body runs on the server as above, and the client
+   gets its value, or, with [io_tryRpc], [None] when it failed. *)
+val io_rpc : t ::: Type -> io t -> transaction t
+val io_tryRpc : t ::: Type -> io t -> transaction (option t)
 
 
 (** Tasks *)

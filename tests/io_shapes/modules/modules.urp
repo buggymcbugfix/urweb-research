@@ -1,0 +1,11 @@
+database dbname=modules.db
+ffi ../../ioprobe/probe
+include ../../ioprobe/probe.h
+link ../../ioprobe/probe.c
+allow url /Modules/main
+safeGet Modules/main
+
+$/list
+$/option
+$/string
+modules

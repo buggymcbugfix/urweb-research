@@ -1,0 +1,5 @@
+database dbname=io.db
+allow url /
+
+$/list
+io

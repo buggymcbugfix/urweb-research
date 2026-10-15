@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 144
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/io_shapes/rpc_types/rpc_types.ur:65:19-65:51: tryNone fails
+</body></html>

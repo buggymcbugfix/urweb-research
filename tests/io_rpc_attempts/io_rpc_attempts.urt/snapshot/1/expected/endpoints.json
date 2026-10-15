@@ -1,0 +1,31 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.059A4758CE05FEE21F65B009C4361F10552E11B4.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Io_rpc_attempts/main", "content-type": null},
+                                                                          
+   {"method": "GET", "url": "Io_rpc_attempts/rows", "content-type": null},
+                                                                          
+   {"method": "POST", "url": "Io_rpc_attempts/handled", "content-type": null},
+                                                                              
+   {"method": "POST", "url": "Io_rpc_attempts/rolledBack", "content-type": null}
+   ,
+    {"method": "POST", "url": "Io_rpc_attempts/retried", "content-type": null},
+                                                                               
+   {"method": "POST", "url": "Io_rpc_attempts/retriedT", "content-type": null},
+                                                                               
+   {"method": "POST", "url": "Io_rpc_attempts/committedThenFatal", "content-type": null}
+   ,
+    {"method": "POST", "url": "Io_rpc_attempts/sources", "content-type": null},
+                                                                               
+   {"method": "POST", "url": "Io_rpc_attempts/outside", "content-type": null},
+                                                                              
+   {"method": "POST", "url": "Io_rpc_attempts/pure", "content-type": null},
+                                                                           
+   {"method": "POST", "url": "Io_rpc_attempts/fatalOutside", "content-type": null}
+   ,
+    
+   {"method": "POST", "url": "Io_rpc_attempts/redirecting", "content-type": null}]}

@@ -1,0 +1,20 @@
+> POST /Curl_io/pay/4
+HTTP/1.1 200 OK
+
+
+order+4.3A+unknown
+> provider charges
+  0 charges
+> provider charges
+  1 charges
+  order-4
+> POST /Curl_io/pay/4
+HTTP/1.1 200 OK
+
+
+order+4.3A+paid
+> provider charges
+  1 charges
+  order-4
+> database
+  order 4 (slow): paid charged order 4 amount 70 ref 1

@@ -4566,6 +4566,7 @@ fun monoize env file =
                               case d of
                                   L.DExport (L.Action L.ReadCookieWrite, n, _) => IS.add (rcook, n)
                                 | L.DExport (L.Rpc L.ReadCookieWrite, n, _) => IS.add (rcook, n)
+                                | L.DExport (L.IoRpc L.ReadCookieWrite, n, _) => IS.add (rcook, n)
                                 | _ => rcook)
                           IS.empty file
         val () = readCookie := rcook

@@ -1,0 +1,40 @@
+Prefix: /
+Database: dbname=io_heap_limit.db
+Exe: tests/io_heap_limit/io_heap_limit.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Ffi tests/ioprobe/probe
+Link tests/ioprobe/probe.c
+Linker: (none)
+Header tests/ioprobe/probe.h
+JsModule: (none)
+Url allow #*
+Url allow /Io_heap_limit/main
+Url allow /Io_heap_limit/rows
+Url allow /Io_heap_limit/big
+Source $/option
+Source $/string
+Source tests/io_heap_limit/io_heap_limit
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Io_heap_limit/main
+SafeGet Io_heap_limit/rows
+SafeGet Io_heap_limit/big
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: heap=300000000
+ MimeTypes: /etc/mime.types

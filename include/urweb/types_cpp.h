@@ -91,6 +91,12 @@ typedef struct {
   size_t transactionals_base, cleanup_base;
 } uw_io_transaction;
 
+// The state of an io function run by an RPC handler (Basis.io_rpc); see
+// uw_io_request_begin and uw_io_request_end.
+typedef struct {
+  jmp_buf outer;    // the request's jump target, restored afterwards
+} uw_io_request;
+
 // A file of a `file` directive, baked into the executable: served at its URI
 // by uw_handle, and read by Basis functions.  The bytes are a literal in the
 // generated C.
@@ -136,6 +142,9 @@ typedef struct {
   char *file_cache;
 
   uw_served_file *served_files; // ended by an entry whose uri is NULL
+
+  int io_handlers; // a request may run io code (an io RPC): the contexts
+                   // that serve requests need the heap that never moves
 } uw_app;
 
 typedef struct {

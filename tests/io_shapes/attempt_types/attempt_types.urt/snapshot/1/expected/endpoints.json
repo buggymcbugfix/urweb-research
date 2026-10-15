@@ -1,0 +1,14 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.5C65B8F6E7A50E48B5DE272294DA2D90A8A4AEB3.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Attempt_types/main", "content-type": null},
+                                                                        
+   {"method": "POST", "url": "Attempt_types/ok", "content-type": null},
+                                                                       
+   {"method": "POST", "url": "Attempt_types/bad", "content-type": null},
+                                                                        
+   {"method": "POST", "url": "Attempt_types/late", "content-type": null}]}

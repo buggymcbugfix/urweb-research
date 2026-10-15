@@ -1,0 +1,18 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.4809095F845257AAB2BAE8E52F173E0D476E82D6.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Io_heap_limit/main", "content-type": null},
+                                                                        
+   {"method": "GET", "url": "Io_heap_limit/rows", "content-type": null},
+                                                                        
+   {"method": "GET", "url": "Io_heap_limit/big", "content-type": null},
+                                                                       
+   {"method": "POST", "url": "Io_heap_limit/outside", "content-type": null},
+                                                                            
+   {"method": "POST", "url": "Io_heap_limit/inside", "content-type": null},
+                                                                           
+   {"method": "POST", "url": "Io_heap_limit/handled", "content-type": null}]}

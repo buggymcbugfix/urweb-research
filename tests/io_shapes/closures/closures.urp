@@ -1,0 +1,11 @@
+database dbname=closures.db
+ffi ../../ioprobe/probe
+include ../../ioprobe/probe.h
+link ../../ioprobe/probe.c
+allow url /Closures/main
+safeGet Closures/main
+
+$/list
+$/option
+$/string
+closures

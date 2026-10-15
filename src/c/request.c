@@ -32,7 +32,14 @@ static int try_rollback(uw_context ctx, int will_retry, void *logger_data, uw_lo
   return r;
 }
 
-uw_context uw_request_new_context(int id, uw_app *app, uw_loggers *ls) {
+// A context with its database connection, for requests (serves_requests) or
+// for the initializer alone.  An application with io handlers (io RPCs) may
+// run io code on any context that serves requests, and io code needs the heap
+// that never moves: a heap that relocated would ask for the request to be run
+// again.  The initializer's context serves no request and is freed once the
+// initializer has run, so it keeps the plain heap: nothing to reserve, and
+// nothing of eight gigabytes to unmap.
+static uw_context new_context(int id, uw_app *app, uw_loggers *ls, int serves_requests) {
   void *logger_data = ls->logger_data;
   uw_logger log_debug = ls->log_debug;
   uw_logger log_error = ls->log_error;
@@ -44,6 +51,9 @@ uw_context uw_request_new_context(int id, uw_app *app, uw_loggers *ls) {
     uw_free(ctx);
     return NULL;
   }
+
+  if (serves_requests && app->io_handlers)
+    uw_io_prepare(ctx);
 
   while (1) {
     failure_kind fk = uw_begin_init(ctx);
@@ -74,6 +84,10 @@ uw_context uw_request_new_context(int id, uw_app *app, uw_loggers *ls) {
   }
 
   return ctx;
+}
+
+uw_context uw_request_new_context(int id, uw_app *app, uw_loggers *ls) {
+  return new_context(id, app, ls, 1);
 }
 
 static void *ticker(void *data) {
@@ -255,7 +269,7 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
   uw_global_init();
   uw_app_init(app);
 
-  ctx = uw_request_new_context(0, app, ls);
+  ctx = new_context(0, app, ls, 0);
 
   if (!ctx)
     exit(1);

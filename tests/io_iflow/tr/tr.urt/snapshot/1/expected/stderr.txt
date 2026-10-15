@@ -1,0 +1,5 @@
+$/basis.urs:722:0: (to 722:33) The database update policy may be violated here.
+Situation
+Hypotheses: 
+Tr_pub$New({Nam = unSome(Some(x2)).1}), Some(Some(x2)), 
+ x2 = {1 = x4.Secret}, x4.Id = x0, Tr_fruit(x4), known(x1), known(x0)

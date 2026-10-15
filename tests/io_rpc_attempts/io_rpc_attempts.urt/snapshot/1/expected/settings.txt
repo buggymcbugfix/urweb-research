@@ -1,0 +1,39 @@
+Prefix: /
+Database: dbname=io_rpc_attempts.db
+Exe: tests/io_rpc_attempts/io_rpc_attempts.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Ffi tests/ioprobe/probe
+Link tests/ioprobe/probe.c
+Linker: (none)
+Header tests/ioprobe/probe.h
+JsModule: (none)
+Url allow #*
+Url allow /Io_rpc_attempts/main
+Url allow /Io_rpc_attempts/rows
+ResponseHeader allow X-Io
+Source $/list
+Source $/option
+Source tests/io_rpc_attempts/io_rpc_attempts
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+SafeGet Io_rpc_attempts/main
+SafeGet Io_rpc_attempts/rows
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types

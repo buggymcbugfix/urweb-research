@@ -1,0 +1,31 @@
+Prefix: /
+Database: dbname=io.db
+Exe: tests/io_iflow/io/io.exe
+SQL file: schema.sql
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Linker: (none)
+JsModule: (none)
+Url allow #*
+Url allow /
+Source $/list
+Source tests/io_iflow/io/io
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: false
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types

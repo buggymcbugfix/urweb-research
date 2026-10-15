@@ -78,6 +78,7 @@ fun collect (decls, _) =
         fun exportKindToMethod (Link _) = GET
           | exportKindToMethod (Action _) = POST
           | exportKindToMethod (Rpc _) = POST
+          | exportKindToMethod (IoRpc _) = POST
           | exportKindToMethod (Extern _) = POST
 
         fun decl ((d, _), st) =

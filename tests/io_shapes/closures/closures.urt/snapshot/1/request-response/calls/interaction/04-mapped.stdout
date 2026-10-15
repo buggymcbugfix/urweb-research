@@ -1,0 +1,9 @@
+effect: mapM 0
+effect: mapM 1
+effect: mapM 2
+effect: foldlM 0
+effect: foldlM 2
+effect: foldlM 4
+effect: app 0
+effect: app 2
+effect: app 4

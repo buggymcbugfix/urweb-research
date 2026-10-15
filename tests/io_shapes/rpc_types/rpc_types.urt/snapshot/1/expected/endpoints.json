@@ -1,0 +1,38 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.FD34D9EFAA9930B6BEF6B48FFA70D3F4797A6194.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Rpc_types/main", "content-type": null},
+                                                                    
+   {"method": "POST", "url": "Rpc_types/viaAlias", "content-type": null},
+                                                                         
+   {"method": "POST", "url": "Rpc_types/wrapped", "content-type": null},
+                                                                        
+   {"method": "POST", "url": "Rpc_types/p", "content-type": null},
+                                                                  
+   {"method": "POST", "url": "Rpc_types/six", "content-type": null},
+                                                                    
+   {"method": "POST", "url": "Rpc_types/rec1", "content-type": null},
+                                                                     
+   {"method": "POST", "url": "Rpc_types/minmax", "content-type": null},
+                                                                       
+   {"method": "POST", "url": "Rpc_types/strs", "content-type": null},
+                                                                     
+   {"method": "POST", "url": "Rpc_types/unitR", "content-type": null},
+                                                                      
+   {"method": "POST", "url": "Rpc_types/floats", "content-type": null},
+                                                                       
+   {"method": "POST", "url": "Rpc_types/opts", "content-type": null},
+                                                                     
+   {"method": "POST", "url": "Rpc_types/lists", "content-type": null},
+                                                                      
+   {"method": "POST", "url": "Rpc_types/colors", "content-type": null},
+                                                                       
+   {"method": "POST", "url": "Rpc_types/xb", "content-type": null},
+                                                                   
+   {"method": "POST", "url": "Rpc_types/tryNone", "content-type": null},
+                                                                        
+   {"method": "POST", "url": "Rpc_types/summary", "content-type": null}]}

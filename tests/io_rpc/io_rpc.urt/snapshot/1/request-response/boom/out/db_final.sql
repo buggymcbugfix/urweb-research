@@ -1,0 +1,11 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE uw_Io_rpc_t (
+    uw_N integer NOT NULL
+);
+INSERT INTO uw_Io_rpc_t VALUES(7);
+INSERT INTO uw_Io_rpc_t VALUES(8);
+CREATE TABLE uw_Io_rpc_chans (
+    uw_Ch integer NOT NULL
+);
+COMMIT;
