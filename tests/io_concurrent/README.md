@@ -69,6 +69,9 @@ sanitizers' options reach the application.
 - long-writer: a plain RPC holding the write lock for longer than SQLite's
   busy timeout; a writer that comes after it is answered once the lock is
   free, and a page that only reads is answered at once.
+- nextval-behind-writer: a plain RPC that reads and then draws from a
+  sequence, behind a plain RPC holding the write lock: it is answered with
+  the first number once the lock is free.
 - clients-and-task: four clients, each with a slow io RPC, three quick ones
   behind it and a poll, while the task ticks every channel each second.
 - messages: four clients polling, each sending twenty messages to every

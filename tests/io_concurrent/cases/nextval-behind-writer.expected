@@ -1,0 +1,9 @@
+draw: answered within 1.5 s
+> draw
+HTTP/1.1 500 Internal Server Error
+onError: 'nextval' INSERT failed: database is locked
+> hold
+HTTP/1.1 200 OK
+5000
+run again for "Database is busy": never
+  | POST /Concurrent/draw: Fatal error: 'nextval' INSERT failed: database is locked

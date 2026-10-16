@@ -1,16 +1,18 @@
 (* An application for the contention tests of ../run.sh: io RPCs that sleep
    outside any transaction, with and without the request's client, writers
-   whose transactions overlap, in io code and in plain RPCs, a cached table
-   an io RPC holds the cache's lock on while it sleeps, an io task that
-   sends on every client's channel each period, a clientLeaves task that
-   logs the pruner's work and fails when a case asks it to, and a page whose
-   commit fails, for the onError handler of concurrentE.ur.  The sleeps,
-   effects and failures are the C probes of ../../ioprobe. *)
+   whose transactions overlap, in io code and in plain RPCs, a draw from a
+   sequence, a cached table an io RPC holds the cache's lock on while it
+   sleeps, an io task that sends on every client's channel each period, a
+   clientLeaves task that logs the pruner's work and fails when a case asks
+   it to, and a page whose commit fails, for the onError handler of
+   concurrentE.ur.  The sleeps, effects and failures are the C probes of
+   ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
 table solo : { Id : int, V : int }
 table chans : { Ch : channel string }
+sequence s
 
 (* What a case asks of the clientLeaves task, seeded before the start:
    failLeave, that it fail once; failLeaveCommit, that its commit fail,
@@ -93,6 +95,11 @@ fun bumpSlowly (ms : int) : io int =
     Probe.sleepIo ms;
     runTransaction (oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1))
 
+(* A plain RPC that reads, then draws from the sequence. *)
+fun draw () : transaction int =
+    _ <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
+    nextval s
+
 fun readCounter () : transaction page =
     v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
     return <xml><body>v = {[v]}</body></xml>
@@ -170,5 +177,6 @@ fun main () : transaction page =
       <button value="bump" onclick={fn _ => _ <- io_rpc (bumpSlowly 1000); return ()}/>
       <button value="incrementRpc" onclick={fn _ => _ <- rpc (incrementRpc 100); return ()}/>
       <button value="hold" onclick={fn _ => _ <- rpc (hold 1000); return ()}/>
+      <button value="draw" onclick={fn _ => _ <- rpc (draw ()); return ()}/>
       <dyn signal={v <- signal s; return <xml>{[v]}</xml>}/>
     </body></xml>
