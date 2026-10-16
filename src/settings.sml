@@ -151,10 +151,15 @@ val effectfulBase = basis ["dml",
                            "urlifyBool_w",
                            "urlifyChannel_w"]
 
+val writesDB = ref S.empty
+fun setWritesDB ls = writesDB := S.addList (S.empty, ls)
+fun addWritesDB x = writesDB := S.add (!writesDB, x)
+fun isWritesDB x = S.member (!writesDB, x)
+
 val effectful = ref effectfulBase
 fun setEffectful ls = effectful := S.addList (effectfulBase, ls)
 fun isEffectful ("Sqlcache", _) = true
-  | isEffectful x = S.member (!effectful, x)
+  | isEffectful x = S.member (!effectful, x) orelse isWritesDB x
 fun addEffectful x = effectful := S.add (!effectful, x)
 
 val benignBase = basis ["get_cookie",
@@ -1136,6 +1141,7 @@ fun reset () =
      clientToServer := clientToServerBase;
      effectful := effectfulBase;
      benign := benignBase;
+     writesDB := S.empty;
      client := clientBase;
      server := serverBase;
      jsFuncs := jsFuncsBase;

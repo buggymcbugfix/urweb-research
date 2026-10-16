@@ -1229,6 +1229,7 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
         in
             app (fn Source.Effectful => Settings.addEffectful name
                   | Source.BenignEffectful => Settings.addBenignEffectful name
+                  | Source.WritesDB => Settings.addWritesDB name
                   | Source.ClientOnly => Settings.addClientOnly name
                   | Source.ServerOnly => Settings.addServerOnly name
                   | Source.JsFunc s => Settings.addJsFunc (name, s)) modes;
@@ -1240,6 +1241,12 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
 
             if isTrans andalso not (Settings.isBenignEffectful name) then
                 Settings.addEffectful name
+            else
+                ();
+
+            if Settings.isWritesDB name andalso Settings.isBenignEffectful name then
+                EM.errorAt loc ("FFI function " ^ #1 name ^ "." ^ #2 name
+                                ^ " is declared both writesDB and benignEffectful")
             else
                 ();
 

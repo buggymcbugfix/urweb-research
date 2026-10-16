@@ -114,6 +114,7 @@ fun make' {prefix, dirname, guided} =
             clientToServer = [],
             effectful = [],
             benignEffectful = [],
+            writesDB = [],
             clientOnly = [],
             serverOnly = [],
             jsModule = NONE,

@@ -2410,6 +2410,7 @@ sqlagg : AVG                             ("avg")
 ffi_mode : SYMBOL                        (case SYMBOL of
                                               "effectful" => Effectful
                                             | "benignEffectful" => BenignEffectful
+                                            | "writesDB" => WritesDB
                                             | "clientOnly" => ClientOnly
                                             | "serverOnly" => ServerOnly
                                             | _ => (ErrorMsg.errorAt (s (SYMBOLleft, SYMBOLright)) "Invalid FFI mode"; Effectful))

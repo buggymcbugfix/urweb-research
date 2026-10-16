@@ -48,6 +48,7 @@ signature COMPILER = sig
          clientToServer : Settings.ffi list,
          effectful : Settings.ffi list,
          benignEffectful : Settings.ffi list,
+         writesDB : Settings.ffi list,
          clientOnly : Settings.ffi list,
          serverOnly : Settings.ffi list,
          jsModule : string option,
