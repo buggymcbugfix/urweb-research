@@ -45,6 +45,10 @@ sanitizers' options reach the application.
   between them; a page reading the table during the sleep is served at
   once with the committed value, a page reading another table too, and two
   such RPCs sleep side by side.
+- cache-writer: with -sqlcache, a page that writes a cached table while
+  pages that read it overlap, four loops of readers that stay 300 ms in
+  their transactions: the writer waits for the readers it found, not for
+  every reader to come.
 - writers: eight writers at once, transactions overlapping, run again by
   the runtime (write), by the function (writeAttempt), and read-pause-write
   on one counter (increment): every call answered, every row there, the

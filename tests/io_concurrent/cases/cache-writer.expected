@@ -1,0 +1,4 @@
+writer: answered after 3 s or more
+> GET /Concurrent/readCounter
+HTTP/1.1 200 OK
+v = 1
