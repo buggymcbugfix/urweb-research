@@ -43,7 +43,13 @@ int main(int argc, char *argv[]) {
   uw_set_headers(ctx, get_header, NULL);
   uw_initialize(ctx);
 
+  // The page is the program's one request, numbered and attempted as a
+  // server's would be (uw_request), so that its pinned clock and random
+  // numbers are those the server gives that request.
+  uw_reproducible_request();
+
   while (1) {
+    uw_reproducible_attempt();
     fk = uw_begin(ctx, argv[1]);
 
     if (fk == SUCCESS || fk == RETURN_INDIRECTLY) {
