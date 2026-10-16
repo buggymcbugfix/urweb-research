@@ -4,9 +4,10 @@
    sequence, a check of the database, a cached table an io RPC holds the
    cache's lock on while it sleeps, an io task that sends on every client's
    channel each period, a clientLeaves task that logs the pruner's work and
-   fails when a case asks it to, and two pages that fail, one in its commit
-   and one after reading, for the onError handler of concurrentE.ur.  The
-   sleeps, effects and failures are the C probes of ../../ioprobe. *)
+   fails when a case asks it to, an initializer whose COMMIT fails if a case
+   asks, and two pages that fail, one in its commit and one after reading,
+   for the onError handler of concurrentE.ur.  The sleeps, effects and
+   failures are the C probes of ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
@@ -14,6 +15,7 @@ table solo : { Id : int, V : int }
 table chans : { Ch : channel string }
 sequence s
 table spare : { N : int }
+table initMode : { Mode : string }
 
 (* What a case asks of the clientLeaves task, seeded before the start:
    failLeave, that it fail once; failLeaveCommit, that its commit fail,
@@ -176,6 +178,21 @@ task clientLeaves = fn _ =>
          None => return ()
        | Some _ => Probe.failInCommitBeforeDb "leave");
     debug "a client left"
+
+(* An initializer that writes a row and then has its COMMIT fail, in the
+   way the table initMode names, if it names one: as a serialization
+   conflict does on Postgres, or with a write statement still in progress,
+   so that SQLite refuses to commit and the transaction stays open. *)
+task initialize = fn () =>
+    m <- oneOrNoRows1 (SELECT * FROM initMode);
+    case m of
+        None => return ()
+      | Some r =>
+        dml (INSERT INTO t (N, Who) VALUES (0, "init"));
+        case r.Mode of
+            "conflict" => Probe.armConflict "init"
+          | "pending" => Probe.pendingWrite "uw_Concurrent_spare"
+          | _ => return ()
 
 fun main () : transaction page =
     ch <- channel;

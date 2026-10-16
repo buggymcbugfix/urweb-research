@@ -86,6 +86,10 @@ sanitizers' options reach the application.
 - other-process: the sqlite3 shell writing while the daemonized
   application holds the write lock: every request is answered, and
   nothing either wrote is lost.
+- init-conflict, init-commit-fails: the initializer's COMMIT fails, as a
+  serialization conflict, or with a write statement still in progress:
+  whether the application starts, what it logs, and whether the
+  initializer's row is there.
 - clients-and-task: four clients, each with a slow io RPC, three quick ones
   behind it and a poll, while the task ticks every channel each second.
 - messages: four clients polling, each sending twenty messages to every
