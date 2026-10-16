@@ -32,7 +32,11 @@ task periodic 1 = fn () =>
         else if n = 7 then debug "still running"
         else return ()
       | "rollback" =>
-        if n = 1 then Misbehave.fatalWithoutTransaction "boom without a transaction"
+        (* The read opens the database transaction, which the FFI then
+           commits. *)
+        if n = 1 then
+            _ <- oneRowE1 (SELECT COUNT( * ) FROM stuck);
+            Misbehave.fatalWithoutTransaction "boom without a transaction"
         else if n = 2 then debug "still running"
         else return ()
       | "commitfail" =>
