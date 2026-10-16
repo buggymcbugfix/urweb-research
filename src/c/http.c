@@ -354,12 +354,6 @@ static void help(char *cmd) {
     , cmd);
 }
 
-static void sigint(int signum) {
-  (void)signum;
-  printf("Exiting....\n");
-  exit(0);
-}
-
 union uw_sockaddr {
   struct sockaddr sa;
   struct sockaddr_in ipv4;
@@ -379,7 +373,6 @@ int main(int argc, char *argv[]) {
   int daemonize = 0; // -d: fork once we are listening, parent exits.
   int meta_fd = -1; // -1 => no -d argument given; otherwise the file descriptor the parent should write structured metadata to before exiting.
 
-  signal(SIGINT, sigint);
   signal(SIGPIPE, SIG_IGN); 
 
   // default if not specified: IPv4 with my IP

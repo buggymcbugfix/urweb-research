@@ -539,12 +539,6 @@ static void help(char *cmd) {
          "The '-q' option turns off the debug output on stdout.\n", cmd);
 }
 
-static void sigint(int signum) {
-  (void)signum;
-  printf("Exiting....\n");
-  exit(0);
-}
-
 static uw_loggers ls = {NULL, log_error, log_debug};
 
 int main(int argc, char *argv[]) {
@@ -562,10 +556,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  signal(SIGINT, sigint);
   signal(SIGPIPE, SIG_IGN);
-  signal(SIGUSR1, sigint);
-  signal(SIGTERM, sigint);
 
   while ((opt = getopt(argc, argv, "hqt:")) != -1) {
     switch (opt) {
