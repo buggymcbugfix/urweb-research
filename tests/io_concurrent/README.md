@@ -37,6 +37,9 @@ sanitizers' options reach the application.
 - expunge-commit-fails: the clientLeaves task's commit fails before the
   database's COMMIT, every time; every expunge of A is rolled back, so A
   and its row in chans stay, and A is tried again at every pass.
+- expunge-busy: another process holds the database for writing while A
+  falls due; the expunge is tried again at a later pass, and a page that
+  runs no SQL, asked for meanwhile, is answered at once.
 - cache-lock: with -sqlcache, an io RPC that updates a cached table takes
   the cache's write lock inside its transactions, not across the sleep
   between them; a page reading the table during the sleep is served at

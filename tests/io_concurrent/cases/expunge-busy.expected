@@ -1,0 +1,4 @@
+client A made
+hello: answered after 3 s or more
+  | Unlimited retry during expunge: Database is busy
+  | a client left
