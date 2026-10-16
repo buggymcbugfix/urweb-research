@@ -18,13 +18,23 @@
 #              (protocolStatus FCGI_UNKNOWN_ROLE, 3) with status 0
 #   /id2       an answer for request 2 (status 7) first, then the usual
 #              one for the request as it was numbered
+#   /bye       an answer ended as usual, and then the connection closed,
+#              even when the request asked for it to be kept
+#   /bye-late  the same, but the connection closed only once the next
+#              request has come on it, which is left unread: the close
+#              crosses the web server's next request
+#   /drop      no answer: the request read to its end, and then the
+#              connection closed
 #   /dml       a statement appended to $URWEB_DML_LOG, as a DML would be
 #   /env/NAME  an answer that ends in NAME=value, as the process's
 #              environment has it, or in "NAME is not set"
 #
+# A request that asks for its connection to be kept (FCGI_KEEP_CONN) gets
+# it kept, and its answer says which request on that connection it is.
 # APP_MODE=exit1 makes it exit 1 before anything, with a line on stderr.
 
 import os
+import select
 import socket
 import struct
 import sys
@@ -82,54 +92,70 @@ listener = socket.socket(fileno=0)
 number = 0
 while True:
     conn, _ = listener.accept()
-    params, body = b"", b""
-    request_id = 1
-    try:
-        while True:
-            kind, request_id, content = read_record(conn)
-            if kind == PARAMS:
-                params += content
-            elif kind == STDIN:
-                if not content:
-                    break
-                body += content
-    except EOFError:
-        conn.close()
-        continue
-    number += 1
-    env = pairs(params)
-    path = env.get("PATH_INFO", "")
-    if path == "/debug":
-        sys.stdout.write("fastcgi: a line on stdout\n")
-        sys.stdout.flush()
-    elif path == "/err":
-        sys.stderr.write("fastcgi: a line on stderr\n")
-        sys.stderr.flush()
-    elif path == "/dml":
-        with open(os.environ["URWEB_DML_LOG"], "a") as log:
-            log.write("INSERT INTO t VALUES (3);\n")
-    answer = "%d: %d parameters\n" % (number, len(env))
-    answer += "".join("%s=%s\n" % (k, env[k]) for k in sorted(env))
-    answer += "body: [%s]\n" % body.decode()
-    if path.startswith("/env/"):
-        name = path[len("/env/"):]
-        answer += "%s=%s\n" % (name, os.environ[name]) if name in os.environ else "%s is not set\n" % name
-    write_record(conn, STDOUT, request_id, b"Content-type: text/plain\r\n\r\n" + answer.encode())
-    if path == "/log":
-        write_record(conn, STDERR, request_id, b"fastcgi: a line for the web server's log\n")
-    if path == "/noend":
-        conn.close()
-        continue
-    try:
-        if path == "/id2":
-            write_record(conn, STDOUT, 2, b"Content-type: text/plain\r\n\r\nfor request 2\n")
-            write_record(conn, STDOUT, 2, b"")
-            conn.sendall(struct.pack(">BBHHBB", 1, END_REQUEST, 2, 8, 0, 0) + struct.pack(">IB", 7, 0) + bytes(3))
-        write_record(conn, STDOUT, request_id, b"")
-        conn.sendall(struct.pack(">BBHHBB", 1, END_REQUEST, request_id, 8, 0, 0)
-                     + struct.pack(">IB", 0, 3 if path == "/proto3" else 0) + bytes(3))
-    except (BrokenPipeError, ConnectionResetError):
-        # The other side may stop reading at an earlier record (/id2): its
-        # outcome to record, not ours to die of.
-        pass
-    conn.close()
+    on_conn = 0
+    while True:
+        params, body = b"", b""
+        request_id, keep = 1, False
+        try:
+            while True:
+                kind, request_id, content = read_record(conn)
+                if kind == BEGIN_REQUEST:
+                    keep = bool(content[2] & 1)  # FCGI_KEEP_CONN
+                elif kind == PARAMS:
+                    params += content
+                elif kind == STDIN:
+                    if not content:
+                        break
+                    body += content
+        except EOFError:
+            conn.close()
+            break
+        number += 1
+        on_conn += 1
+        env = pairs(params)
+        path = env.get("PATH_INFO", "")
+        if path == "/drop":
+            conn.close()
+            break
+        if path == "/debug":
+            sys.stdout.write("fastcgi: a line on stdout\n")
+            sys.stdout.flush()
+        elif path == "/err":
+            sys.stderr.write("fastcgi: a line on stderr\n")
+            sys.stderr.flush()
+        elif path == "/dml":
+            with open(os.environ["URWEB_DML_LOG"], "a") as log:
+                log.write("INSERT INTO t VALUES (3);\n")
+        answer = "%d: %d parameters\n" % (number, len(env))
+        answer += "".join("%s=%s\n" % (k, env[k]) for k in sorted(env))
+        answer += "body: [%s]\n" % body.decode()
+        if path.startswith("/env/"):
+            name = path[len("/env/"):]
+            answer += "%s=%s\n" % (name, os.environ[name]) if name in os.environ else "%s is not set\n" % name
+        if keep:
+            answer += "kept: request %d on this connection\n" % on_conn
+        write_record(conn, STDOUT, request_id, b"Content-type: text/plain\r\n\r\n" + answer.encode())
+        if path == "/log":
+            write_record(conn, STDERR, request_id, b"fastcgi: a line for the web server's log\n")
+        if path == "/noend":
+            conn.close()
+            break
+        try:
+            if path == "/id2":
+                write_record(conn, STDOUT, 2, b"Content-type: text/plain\r\n\r\nfor request 2\n")
+                write_record(conn, STDOUT, 2, b"")
+                conn.sendall(struct.pack(">BBHHBB", 1, END_REQUEST, 2, 8, 0, 0) + struct.pack(">IB", 7, 0) + bytes(3))
+            write_record(conn, STDOUT, request_id, b"")
+            conn.sendall(struct.pack(">BBHHBB", 1, END_REQUEST, request_id, 8, 0, 0)
+                         + struct.pack(">IB", 0, 3 if path == "/proto3" else 0) + bytes(3))
+        except (BrokenPipeError, ConnectionResetError):
+            # The other side may stop reading at an earlier record (/id2): its
+            # outcome to record, not ours to die of.
+            pass
+        if not keep or path == "/bye":
+            conn.close()
+            break
+        if path == "/bye-late":
+            select.select([conn], [], [])
+            conn.close()
+            break

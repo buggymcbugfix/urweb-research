@@ -170,10 +170,16 @@ if not 0, is NAME.exitcode; when the connection ends before the program has
 said the request is over, NAME.exitcode says so instead, and it also says when
 the answer came as another request than the one sent, or FCGI_END_REQUEST
 refused the request.  What the program wrote on its stderr stream, which a web
-server puts in its error log, is NAME.fcgi-stderr, if anything.  Nothing says
-when it is ready: the first request is sent again while its socket is not
-there yet, for up to 10 seconds, and what the program does while starting goes
-with the first step rather than under out/.  Otherwise its run is as a server's.
+server puts in its error log, is NAME.fcgi-stderr, if anything.  A run with a
+file keep-conn, empty, sends all its requests on one connection, each asking
+the program to keep it open (FCGI_KEEP_CONN).  A request that gets nothing of
+an answer on it, the program having closed it just before or just after urt
+sent the request, is sent again on a new one, as a web server does, and
+NAME.exitcode says so; a connection that ends in mid-answer is recorded as
+such.  Nothing says when it is ready: the first request is sent again
+while its socket is not there yet, for up to 10 seconds, and what the program
+does while starting goes with the first step rather than under out/.
+Otherwise its run is as a server's.
 
 Runs share nothing.  Each has its own database -- SQLite, so the case's args
 need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows
