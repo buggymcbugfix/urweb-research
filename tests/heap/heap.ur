@@ -76,3 +76,15 @@ fun zero () =
 fun stats () =
     Heapffi.stats;
     return <xml><body>stats</body></xml>
+
+(* Three strings of 1 MiB built and dropped one after the other.  Each is
+   built inside a region of its own, which the generated code ends right
+   after it, so the heap holds only one of them at a time.  The buffers'
+   figures after the three, on stdout. *)
+fun churn () =
+    debug "churn: running";
+    debug (show (strlen (mebibytes 1)));
+    debug (show (strlen (mebibytes 1)));
+    debug (show (strlen (mebibytes 1)));
+    Heapffi.stats;
+    return <xml><body>churn</body></xml>

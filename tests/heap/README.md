@@ -8,4 +8,6 @@ many attempts its first tick took.  The runs start
 the heap at 4 KiB, so that it grows; every handler says with debug that it
 is running, once per attempt.  The decay runs build the 5 MiB string and
 then print the heap's size (uw_memstats, used/available) on eight small
-requests, through the HTTP server and through FastCGI.
+requests, through the HTTP server and through FastCGI.  The churn run
+builds three strings of 1 MiB one after another, each in a region of its
+own that ends right after it, and then prints uw_memstats.
