@@ -1145,18 +1145,13 @@ static void exe_of(const char *settings, char *exe) {
  * runtime's note that realloc moved its heap, which is the allocator's
  * business.  What is left is what the requests made the server say, the
  * program's own debug output included, and that comes in order, since
- * the requests do.
- *
- * A FastCGI program says the same on stderr, its threads in no fixed
- * order, some of it as "DEBUG: " lines, and its stderr is filtered too
- * (fastcgi_lines).
+ * the requests do.  A FastCGI program prints the same on stdout.
  *
  * Returns 0 when the line is to be dropped.  The banner ends in a blank
  * line, which goes only there: *after_banner says that its last line has
  * just been seen.  The server's lines about each connection and request
  * ("Accepted connection.", "Serving URI ...", "Processed request for
  * messages ...") go the same way: they narrate what the runner did. */
-static int fastcgi_lines;  /* the run is a FastCGI program's: filter its stderr as well */
 
 static int keep_server_line(const char *line, int *after_banner) {
     static const char *const start[] = {
@@ -1180,8 +1175,6 @@ static int keep_server_line(const char *line, int *after_banner) {
     }
     return !has_prefix(line, "Forking to PID ") && !has_prefix(line, "Listening on port ")
         && !has_prefix(line, "Error triggers unlimited retry: Couldn't allocate new ")
-        && !has_prefix(line, "DEBUG: Error triggers unlimited retry: Couldn't allocate new ")
-        && strcmp(line, "DEBUG: Database connection initialized.\n") != 0
         && strcmp(line, "Accepted connection.\n") != 0 && !has_prefix(line, "Handling connection with thread #")
         && !has_prefix(line, "Serving URI ");
 }
@@ -1198,7 +1191,7 @@ static ssize_t recorded_line(char *line, ssize_t n, int is_stdout, int *after_ba
         return n;
     }
     strip_work(line);
-    if ((is_stdout || fastcgi_lines) && !keep_server_line(line, after_banner)) {
+    if (is_stdout && !keep_server_line(line, after_banner)) {
         return -1;
     }
     return (ssize_t) strlen(line);
@@ -2066,7 +2059,6 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
 
     /* The outputs land under rw as they are laid out under the run. */
     n_runs++;
-    fastcgi_lines = proto == PROTO_FASTCGI;
     join(rw, work, "run");
     rm_rf(rw);
     if (mkdir_p(fmt("%s/interaction", rw)) < 0 || mkdir_p(fmt("%s/out", rw)) < 0) {
