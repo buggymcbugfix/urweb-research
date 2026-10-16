@@ -1,4 +1,4 @@
-page: answered after 3 s or more
+page: answered within 1.5 s
 slowA: answered after 3 s or more
 > slowA
 HTTP/1.1 200 OK
