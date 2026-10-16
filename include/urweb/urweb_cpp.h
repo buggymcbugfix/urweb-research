@@ -327,6 +327,10 @@ void uw_heap_prepare(int n);
 // Between pieces of work (a request served, a task's tick, a pass of the
 // expunger): empty the heap, and give back the memory not recently needed.
 void uw_heap_shrink(struct uw_context *);
+// The most the heap has had in use at once, and all that was allocated on
+// it, since it was last emptied by uw_heap_shrink: for a request, through
+// all its attempts so far.
+void uw_heap_usage(struct uw_context *, size_t *peak, size_t *total);
 char *uw_heap_front(struct uw_context *);
 void uw_set_heap_front(struct uw_context *, char*);
 

@@ -337,6 +337,14 @@ sqlite3 path/to/database/file <app.sql
   \begin{itemize}
   \item \texttt{http}: This is the default.  It is for building standalone web servers that can be accessed by web browsers directly.
 
+    Among its debug output on stdout, which \texttt{-q} turns off, the server prints a line for each request it answers.  The line says how long the request's work took, how many attempts that took if there was more than one, the most heap the request had in use at once, and all that it allocated on the heap.  A request that ended in an error page says \texttt{Failed} instead of \texttt{Served}.
+    \begin{verbatim}
+Served URI /Shop/list in 47.9 ms; 17.0 MiB peak; 17.0 MiB total
+Served URI /Shop/add in 3.1 ms; 3 attempts; 12.0 KiB peak; 36.4 KiB total
+Failed URI /Shop/pay in 400 us; 1.0 MiB peak; 1.0 MiB total
+    \end{verbatim}
+    The time leaves out reading the request and sending the response.  The heap is where Ur values live; the page being written and the HTTP headers are kept elsewhere.  A total far above the peak means that the request allocated a lot that it soon gave back, which the size of the heap does not show.
+
   \item \texttt{cgi}: This is the classic protocol that web servers use to generate dynamic content by spawning new processes.  While Ur/Web programs may in general use message-passing with the \texttt{send} and \texttt{recv} functions, that functionality is not yet supported in CGI, since CGI needs a fresh process for each request, and message-passing needs to use persistent sockets to deliver messages.
 
     Since Ur/Web treats paths in an unusual way, a configuration line like this one can be used to configure an application that was built with URL prefix \texttt{/Hello}:
@@ -385,7 +393,7 @@ fastcgi.server = (
 
     A FastCGI process reads the environment variable \texttt{URWEB\_NUM\_THREADS} to determine how many threads to spawn for handling client requests.  The default is 1.
 
-    Its debug output, from \cd{debug} and from the runtime, goes to stdout, as the HTTP server's does, and the \texttt{-q} option turns it off.  Its errors go to stderr, as the HTTP server's do.  Nothing goes to the web server but the responses, so none of the program's lines end up in the web server's error log.  Started by \texttt{spawn-fcgi}, the program needs its \texttt{-n} option to keep its stdout and stderr; otherwise both go to \texttt{/dev/null}.
+    Its debug output, from \cd{debug} and from the runtime, and the line for each request described for \texttt{http} above, goes to stdout, as the HTTP server's does, and the \texttt{-q} option turns it off.  Its errors go to stderr, as the HTTP server's do.  Nothing goes to the web server but the responses, so none of the program's lines end up in the web server's error log.  Started by \texttt{spawn-fcgi}, the program needs its \texttt{-n} option to keep its stdout and stderr; otherwise both go to \texttt{/dev/null}.
 
   \item \texttt{static}: This protocol may be used to generate static web pages from Ur/Web code.  The output executable expects a single command-line argument, giving the URI of a page to generate.  For instance, this argument might be \cd{/main}, in which case a static HTTP response for that page will be written to stdout.
   \end{itemize}

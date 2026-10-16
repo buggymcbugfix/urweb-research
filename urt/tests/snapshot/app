@@ -3,11 +3,12 @@
 # A stand-in for an Ur/Web application with the built-in HTTP server, for
 # urt/check: the stand-in compiler beside this script makes PROJECT.exe
 # run it, for a project called *serves*.  It takes the server's
-# options, says what the server says while it starts, writes the
-# handshake on descriptor 3 as -d3 asks, and answers every request with
-# the request itself -- its number, the request line, then the headers
-# sorted, then the body -- so that a transcript shows what urt sent, and
-# in what order.  Some paths make it do what an application might:
+# options, says what the server says while it starts and for each
+# request, writes the handshake on descriptor 3 as -d3 asks, and answers
+# every request with the request itself -- its number, the request line,
+# then the headers sorted, then the body -- so that a transcript shows
+# what urt sent, and in what order.  Some paths make it do what an
+# application might:
 #
 #   /debug     a line on stdout, as `debug` prints
 #   /err       a line on stderr, as a fatal error is reported
@@ -192,6 +193,8 @@ while True:
         name = path[len("/env/"):]
         value = os.environ.get(name)
         echo += (("%s=%s\n" % (name, value)) if value is not None else ("%s is not set\n" % name)).encode()
+    sys.stdout.write("%s URI %s in 14 us; 120 B peak; 1.5 KiB total\n" % ("Failed" if path == "/err" else "Served", path))
+    sys.stdout.flush()
     c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
               % len(echo) + echo)
     c.close()

@@ -386,7 +386,7 @@ extern void uw_init_crypto();
 static void uw_heap_from_env();
 static void uw_heap_init(uw_context ctx);
 static void uw_heap_spare(uw_context ctx);
-static void uw_heap_note_peak(uw_context ctx);
+static void uw_heap_moving_back(uw_context ctx, char *to);
 
 void uw_global_init() {
   clients = malloc(0);
@@ -485,10 +485,11 @@ struct uw_context {
   // heap" below): heap_reserved bytes mapped at heap.start, of which the
   // first heap_committed have been made readable and writable, and the
   // first heap.back - heap.start may be used now; heap.max is the heap
-  // limit.  heap_peak is the most the work going on has used, through all
-  // its attempts, and heap_recent what the heap keeps between pieces of
-  // work (uw_heap_shrink).
-  size_t heap_reserved, heap_committed, heap_peak, heap_recent;
+  // limit.  heap_peak is the most the work going on has had in use at
+  // once, and heap_dropped how much it has given back by moving heap.front
+  // back, both through all its attempts; heap_recent is what the heap keeps
+  // between pieces of work (uw_heap_shrink).
+  size_t heap_reserved, heap_committed, heap_peak, heap_dropped, heap_recent;
   int allowed_to_return_indirectly, returning_indirectly;
   input *inputs, *subinputs, *cur_container;
   size_t sz_inputs, n_subinputs, used_subinputs;
@@ -824,7 +825,7 @@ void uw_reset_keep_error_message(uw_context ctx) {
   ctx->script.start[0] = 0;
   uw_buffer_reset(&ctx->page);
   ctx->allowed_to_return_indirectly = ctx->returning_indirectly = 0;
-  uw_heap_note_peak(ctx);
+  uw_heap_moving_back(ctx, ctx->heap.start);
   uw_buffer_reset(&ctx->heap);
   ctx->regions = NULL;
   ctx->cleanup_base = 0;
@@ -1700,7 +1701,7 @@ static void uw_heap_init(uw_context ctx) {
   ctx->heap.max = limit;
   ctx->heap_reserved = reserve;
   ctx->heap_committed = initial > committed ? initial : committed;
-  ctx->heap_peak = ctx->heap_recent = 0;
+  ctx->heap_peak = ctx->heap_dropped = ctx->heap_recent = 0;
 }
 
 // Room for extra more bytes at heap.front: what is available doubles until
@@ -1725,14 +1726,24 @@ static void uw_heap_grow(uw_context ctx, size_t extra) {
   b->back = b->start + next;
 }
 
-// The front of the heap is about to move back: what it reached counts
-// towards heap_peak.  Everything that moves it back says so first, so that
-// heap_peak is the most that was in use at any time, at no cost to
-// allocation.
-static void uw_heap_note_peak(uw_context ctx) {
+// The front of the heap is about to move back to [to]: what it reached
+// counts towards heap_peak, and what it passes over towards heap_dropped.
+// Everything that moves it back says so first.  So heap_peak is the most
+// that was in use at any time, and heap_dropped plus what is in use now is
+// all that was allocated, the front moving forward only to allocate, at no
+// cost to allocation.
+static void uw_heap_moving_back(uw_context ctx, char *to) {
   size_t used = ctx->heap.front - ctx->heap.start;
   if (used > ctx->heap_peak)
     ctx->heap_peak = used;
+  if (to < ctx->heap.front)
+    ctx->heap_dropped += ctx->heap.front - to;
+}
+
+void uw_heap_usage(uw_context ctx, size_t *peak, size_t *total) {
+  size_t used = ctx->heap.front - ctx->heap.start;
+  *peak = used > ctx->heap_peak ? used : ctx->heap_peak;
+  *total = ctx->heap_dropped + used;
 }
 
 // Between pieces of work -- a request served, a task's tick done, a pass
@@ -1751,14 +1762,14 @@ void uw_heap_shrink(uw_context ctx) {
   uw_buffer *b = &ctx->heap;
   size_t have = b->back - b->start, twice, half, keep;
 
-  uw_heap_note_peak(ctx);
+  uw_heap_moving_back(ctx, b->start);
   b->front = b->start;
   ctx->regions = NULL;
 
   twice = ctx->heap_peak > SIZE_MAX / 2 ? SIZE_MAX : ctx->heap_peak * 2;
   half = ctx->heap_recent / 2;
   ctx->heap_recent = twice > half ? twice : half;
-  ctx->heap_peak = 0;
+  ctx->heap_peak = ctx->heap_dropped = 0;
 
   keep = ctx->heap_recent;
   if (keep < UW_HEAP_RETAIN)
@@ -1788,7 +1799,7 @@ char *uw_heap_front(uw_context ctx) {
 
 void uw_set_heap_front(uw_context ctx, char *fr) {
   if (fr < ctx->heap.front)
-    uw_heap_note_peak(ctx);
+    uw_heap_moving_back(ctx, fr);
   ctx->heap.front = fr;
 }
 
@@ -1855,7 +1866,7 @@ void uw_end_region(uw_context ctx) {
   if (r == NULL)
     uw_error(ctx, FATAL, "Region stack underflow");
 
-  uw_heap_note_peak(ctx);
+  uw_heap_moving_back(ctx, (char *) r);
   ctx->heap.front = (char *) r;
   ctx->regions = r->next;
 }
@@ -1865,6 +1876,11 @@ void uw_memstats(uw_context ctx) {
   printf("Script: %lu/%lu\n", (unsigned long)uw_buffer_used(&ctx->script), (unsigned long)uw_buffer_avail(&ctx->script));
   printf("Page: %lu/%lu\n", (unsigned long)uw_buffer_used(&ctx->page), (unsigned long)uw_buffer_avail(&ctx->page));
   printf("Heap: %lu/%lu\n", (unsigned long)uw_buffer_used(&ctx->heap), (unsigned long)uw_buffer_avail(&ctx->heap));
+  {
+    size_t peak, total;
+    uw_heap_usage(ctx, &peak, &total);
+    printf("Heap peak/total: %lu/%lu\n", (unsigned long)peak, (unsigned long)total);
+  }
 }
 
 int uw_pagelen(uw_context ctx) {
@@ -5406,7 +5422,7 @@ static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int comm
     *ctx->outHeaders.front = 0;
     ctx->script.front = ctx->script.start + t->script_used;
     *ctx->script.front = 0;
-    uw_heap_note_peak(ctx);
+    uw_heap_moving_back(ctx, t->heap_front);
     ctx->heap.front = t->heap_front;
     ctx->regions = t->regions;
     // The page recordings the SQL cache opened for the attempt's misses are
