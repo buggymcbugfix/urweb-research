@@ -339,7 +339,7 @@ int fastcgi_start(const char *exe, const struct strlist *args, const char *sock_
 /* ------------------------------------------------------------- FastCGI */
 
 enum { FCGI_BEGIN_REQUEST = 1, FCGI_END_REQUEST = 3, FCGI_PARAMS = 4, FCGI_STDIN = 5, FCGI_STDOUT = 6,
-       FCGI_STDERR = 7, FCGI_RESPONDER = 1, FCGI_REQUEST_COMPLETE = 0 };
+       FCGI_STDERR = 7, FCGI_RESPONDER = 1, FCGI_REQUEST_COMPLETE = 0, FCGI_KEEP_CONN = 1 };
 enum { FCGI_VERSION_1 = 1, FCGI_HEADER = 8, FCGI_CONTENT_MAX = 65535, FCGI_ALIGN = 8 };
 /* The body of FCGI_END_REQUEST: appStatus, big-endian, then protocolStatus. */
 enum { FCGI_END_BODY = 8, FCGI_APP_STATUS = 0, FCGI_PROTOCOL_STATUS = 4 };
@@ -407,34 +407,74 @@ static int write_bytes(const char *path, const struct bytes *b) {
     return fclose(f) == 0 ? 0 : -1;
 }
 
-int fastcgi_request(const char *sock_path, const struct strlist *params, const char *body, const char *response,
-                    const char *stream, int seconds, struct fastcgi_oddity *odd) {
-    static const unsigned char begin[8] = { 0, FCGI_RESPONDER, 0, 0, 0, 0, 0, 0 };
-    struct bytes req = { 0, 0, 0 }, pairs = { 0, 0, 0 }, in = { 0, 0, 0 }, out = { 0, 0, 0 }, err = { 0, 0, 0 };
+/* A connection to the program's socket, or -1 (FASTCGI_REFUSED). */
+static int fastcgi_connect(const char *sock_path) {
     struct sockaddr_un a;
-    struct sigaction ignore, saved;
-    long deadline = tenths_now() + seconds * 10L;
-    char *text;
-    size_t at;
-    int fd, i, status = FASTCGI_NO_END;
-
-    odd->request_id = -1;
-    odd->protocol_status = FCGI_REQUEST_COMPLETE;
-
+    int fd;
     if (strlen(sock_path) >= sizeof a.sun_path) {
-        return FASTCGI_REFUSED;
+        return -1;
     }
     memset(&a, 0, sizeof a);
     a.sun_family = AF_UNIX;
     strcpy(a.sun_path, sock_path);
     if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
-        return FASTCGI_REFUSED;
+        return -1;
     }
     if (connect(fd, (struct sockaddr *) &a, sizeof a) < 0) {
         close(fd);
+        return -1;
+    }
+    return fd;
+}
+
+/* Whether a connection kept from an earlier request is still open.  The
+ * program may have closed it since: one that does not keep connections
+ * closes it after every answer, and one that does may close it once it
+ * has sat idle too long.  A web server looks before it sends on one.  That
+ * cannot settle it, since the program may close the connection a moment
+ * later, and fastcgi_request copes with that too.  A closed one is
+ * readable with nothing to read; bytes to read, which only a program that
+ * writes after its FCGI_END_REQUEST leaves, count as open. */
+static int connection_open(int fd) {
+    struct pollfd p;
+    unsigned char c;
+    ssize_t n;
+    p.fd = fd;
+    p.events = POLLIN;
+    p.revents = 0;
+    if (poll(&p, 1, 0) <= 0) {
+        return 1;
+    }
+    n = recv(fd, &c, 1, MSG_PEEK | MSG_DONTWAIT);
+    return n > 0 || (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR));
+}
+
+int fastcgi_request(const char *sock_path, int *conn, int keep, const struct strlist *params, const char *body,
+                    const char *response, const char *stream, int seconds, struct fastcgi_oddity *odd) {
+    unsigned char begin[8] = { 0, FCGI_RESPONDER, 0, 0, 0, 0, 0, 0 };
+    struct bytes req = { 0, 0, 0 }, pairs = { 0, 0, 0 }, in = { 0, 0, 0 }, out = { 0, 0, 0 }, err = { 0, 0, 0 };
+    struct sigaction ignore, saved;
+    long deadline = tenths_now() + seconds * 10L;
+    char *text;
+    size_t at;
+    int fd = *conn, i, status = FASTCGI_NO_END, ended = 0, reused;
+
+    odd->request_id = -1;
+    odd->protocol_status = FCGI_REQUEST_COMPLETE;
+    odd->reconnected = 0;
+
+    if (fd >= 0 && !connection_open(fd)) {
+        close(fd);
+        fd = -1;
+        odd->reconnected = 1;
+    }
+    reused = fd >= 0;
+    if (fd < 0 && (fd = fastcgi_connect(sock_path)) < 0) {
+        *conn = -1;
         return FASTCGI_REFUSED;
     }
 
+    begin[2] = keep ? FCGI_KEEP_CONN : 0;
     add_record(&req, FCGI_BEGIN_REQUEST, begin, sizeof begin);
     for (i = 0; i < params->n; i++) {
         const char *eq = strchr(params->v[i], '=');
@@ -452,83 +492,117 @@ int fastcgi_request(const char *sock_path, const struct strlist *params, const c
     /* All of it at once, as a web server sends it, so that a program that
      * answers and closes before it has read the end of its stdin cannot
      * make a later write fail.  SIGPIPE would end urt: a connection the
-     * program has closed is an outcome to record, like any other. */
+     * program has closed is an outcome to record, like any other.
+     *
+     * A kept connection that ends before any of the answer has come is
+     * given up on, and the request sent on a new one, once.  The program
+     * closed it, and its close() may have come just before urt's write or
+     * just after it: scheduling decides, so the record has to be the same
+     * either way.  A program that reads the request and then closes the
+     * connection without answering is recorded so too, and gets the
+     * request a second time.  Linux tells the two apart, with a reset
+     * where the request was left unread, but not every system does, and
+     * the record has to be the same on all of them. */
     memset(&ignore, 0, sizeof ignore);
     ignore.sa_handler = SIG_IGN;
     sigemptyset(&ignore.sa_mask);
     sigaction(SIGPIPE, &ignore, &saved);
-    for (at = 0; at < req.n;) {
-        ssize_t w = write(fd, req.p + at, req.n - at);
-        if (w < 0 && errno == EINTR && !fs_interrupted) {
-            continue;
-        }
-        if (w <= 0) {
-            break;      /* closed: what the program sent before is still read */
-        }
-        at += (size_t) w;
-    }
-    sigaction(SIGPIPE, &saved, NULL);
-
-    /* Records until FCGI_END_REQUEST, or until the connection ends. */
     for (;;) {
-        unsigned char buf[FCGI_HEADER + FCGI_CONTENT_MAX + 255];    /* a whole record, padding and all */
-        struct pollfd p;
-        long left;
-        ssize_t r;
-        int ended = 0;
-        while (!ended && in.n >= FCGI_HEADER) {
-            size_t len = ((size_t) in.p[4] << 8) | in.p[5], whole = FCGI_HEADER + len + in.p[6];
-            const unsigned char *content = in.p + FCGI_HEADER;
-            int id = (in.p[2] << 8) | in.p[3];
-            if (in.n < whole) {
+        size_t received = 0;
+        for (at = 0; at < req.n;) {
+            ssize_t w = write(fd, req.p + at, req.n - at);
+            if (w < 0 && errno == EINTR && !fs_interrupted) {
+                continue;
+            }
+            if (w <= 0) {
+                break;      /* closed: what the program sent before is still read */
+            }
+            at += (size_t) w;
+        }
+
+        /* Records until FCGI_END_REQUEST, or until the connection ends. */
+        for (;;) {
+            unsigned char buf[FCGI_HEADER + FCGI_CONTENT_MAX + 255];    /* a whole record, padding and all */
+            struct pollfd p;
+            long left;
+            ssize_t r;
+            while (!ended && in.n >= FCGI_HEADER) {
+                size_t len = ((size_t) in.p[4] << 8) | in.p[5], whole = FCGI_HEADER + len + in.p[6];
+                const unsigned char *content = in.p + FCGI_HEADER;
+                int id = (in.p[2] << 8) | in.p[3];
+                if (in.n < whole) {
+                    break;
+                }
+                /* A record for another request: taken all the same, since
+                 * the program meant it for this one (nothing else was
+                 * asked), and noted, since a web server would not take it. */
+                if (id != FCGI_REQUEST_ID && odd->request_id < 0) {
+                    odd->request_id = id;
+                }
+                if (in.p[1] == FCGI_STDOUT) {
+                    bytes_add(&out, content, len);
+                } else if (in.p[1] == FCGI_STDERR) {
+                    bytes_add(&err, content, len);
+                } else if (in.p[1] == FCGI_END_REQUEST && len >= FCGI_END_BODY) {
+                    status = content[FCGI_APP_STATUS + 3];      /* the low byte of appStatus */
+                    odd->protocol_status = content[FCGI_PROTOCOL_STATUS];
+                    ended = 1;
+                }
+                memmove(in.p, in.p + whole, in.n - whole);
+                in.n -= whole;
+            }
+            if (ended) {
                 break;
             }
-            /* A record for another request: taken all the same, since the
-             * program meant it for this one (nothing else was asked), and
-             * noted, since a web server would not take it. */
-            if (id != FCGI_REQUEST_ID && odd->request_id < 0) {
-                odd->request_id = id;
+            left = deadline - tenths_now();
+            if (left <= 0) {
+                status = FASTCGI_TIMEOUT;
+                break;
             }
-            if (in.p[1] == FCGI_STDOUT) {
-                bytes_add(&out, content, len);
-            } else if (in.p[1] == FCGI_STDERR) {
-                bytes_add(&err, content, len);
-            } else if (in.p[1] == FCGI_END_REQUEST && len >= FCGI_END_BODY) {
-                status = content[FCGI_APP_STATUS + 3];      /* the low byte of appStatus */
-                odd->protocol_status = content[FCGI_PROTOCOL_STATUS];
-                ended = 1;
-            }
-            memmove(in.p, in.p + whole, in.n - whole);
-            in.n -= whole;
-        }
-        if (ended) {
-            break;
-        }
-        left = deadline - tenths_now();
-        if (left <= 0) {
-            status = FASTCGI_TIMEOUT;
-            break;
-        }
-        p.fd = fd;
-        p.events = POLLIN;
-        p.revents = 0;
-        r = poll(&p, 1, (int) (left * 100));
-        if (r < 0 && errno == EINTR && !fs_interrupted) {
-            continue;
-        }
-        if (r == 0) {
-            status = FASTCGI_TIMEOUT;
-            break;
-        }
-        if (r < 0 || (r = read(fd, buf, sizeof buf)) <= 0) {
+            p.fd = fd;
+            p.events = POLLIN;
+            p.revents = 0;
+            r = poll(&p, 1, (int) (left * 100));
             if (r < 0 && errno == EINTR && !fs_interrupted) {
                 continue;
             }
-            break;      /* closed, or reset, before FCGI_END_REQUEST */
+            if (r == 0) {
+                status = FASTCGI_TIMEOUT;
+                break;
+            }
+            if (r < 0 || (r = read(fd, buf, sizeof buf)) <= 0) {
+                if (r < 0 && errno == EINTR && !fs_interrupted) {
+                    continue;
+                }
+                break;      /* closed, or reset, before FCGI_END_REQUEST */
+            }
+            received += (size_t) r;
+            bytes_add(&in, buf, (size_t) r);
         }
-        bytes_add(&in, buf, (size_t) r);
+
+        if (status == FASTCGI_NO_END && reused && received == 0 && !fs_interrupted) {
+            close(fd);
+            reused = 0;
+            odd->reconnected = 1;
+            if ((fd = fastcgi_connect(sock_path)) < 0) {
+                sigaction(SIGPIPE, &saved, NULL);
+                *conn = -1;
+                free(req.p);
+                free(pairs.p);
+                return FASTCGI_REFUSED;
+            }
+            continue;
+        }
+        break;
     }
-    close(fd);
+    sigaction(SIGPIPE, &saved, NULL);
+
+    if (keep && ended) {
+        *conn = fd;
+    } else {
+        close(fd);
+        *conn = -1;
+    }
 
     if (write_bytes(response, &out) < 0 || write_bytes(stream, &err) < 0) {
         status = FASTCGI_UNWRITABLE;

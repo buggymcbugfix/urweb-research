@@ -1,3 +1,5 @@
 urt snapshot runs/serves-fastcgi
 urt snapshot -w runs/serves-fastcgi
 cd runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi && for f in interaction/*.response interaction/*.stdout interaction/*.stderr interaction/*.fcgi-stderr interaction/*.exitcode interaction/*.sql; do echo "== $f"; tr -d '\r' < "$f"; done
+cd runs/serves-fastcgi.urt/snapshot/1/request-response/keep && for f in interaction/*.response interaction/*.exitcode; do echo "== $f"; tr -d '\r' < "$f" | grep -v '^[A-Z_]*='; done
+cd runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye && ls interaction && for f in interaction/*.response interaction/*.exitcode; do echo "== $f"; tr -d '\r' < "$f" | grep -v '^[A-Z_]*='; done
