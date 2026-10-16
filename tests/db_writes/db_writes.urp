@@ -1,0 +1,14 @@
+database dbname=db_writes.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow url /Db_writes/main
+safeGet Db_writes/main
+safeGet Db_writes/readsWithEffect
+safeGet Db_writes/writes
+safeGet Db_writes/draws
+safeGet Db_writes/writesThroughCall
+safeGet Db_writes/writesThroughFfi
+minHeap 65536
+
+db_writes
