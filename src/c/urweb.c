@@ -256,12 +256,14 @@ static void release_client(client *c) {
 }
 
 static const char begin_msgs[] = "Content-type: text/plain\r\n\r\n";
-static pthread_t pruning_thread;
-static int pruning_thread_initialized = 0;
+// Set while this thread is the pruner and holds clients_mutex: an expunge
+// looks clients up, and the mutex is not recursive.  Per thread, so that no
+// other thread reads it while the pruner writes it.
+static _Thread_local int pruning = 0;
 
 static client *find_client(unsigned id) {
   client *c;
-  int i_am_pruner = pruning_thread_initialized && pthread_equal(pruning_thread, pthread_self());
+  int i_am_pruner = pruning;
 
   if (!i_am_pruner) pthread_mutex_lock(&clients_mutex);
 
@@ -4185,8 +4187,7 @@ void uw_prune_clients(uw_context ctx) {
   uw_expunger_arrives();
   
   pthread_mutex_lock(&clients_mutex);
-  pruning_thread = pthread_self();
-  pruning_thread_initialized = 1;
+  pruning = 1;
 
   for (c = clients_used; c && !stop; c = next) {
     next = c->next;
@@ -4224,6 +4225,7 @@ void uw_prune_clients(uw_context ctx) {
     pthread_mutex_unlock(&c->lock);
   }
 
+  pruning = 0;
   pthread_mutex_unlock(&clients_mutex);
 
   uw_expunger_departs();
