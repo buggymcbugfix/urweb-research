@@ -299,8 +299,8 @@ void uw_client_connect(unsigned id, int pass, int sock,
   client *c = find_client(id);
 
   if (c == NULL) {
-    chastise(send, sock);
     log_error(logger_data, "Out-of-bounds client request (%u)\n", id);
+    chastise(send, sock);
     return;
   }
 
@@ -308,15 +308,15 @@ void uw_client_connect(unsigned id, int pass, int sock,
 
   if (c->mode != USED) {
     pthread_mutex_unlock(&c->lock);
-    chastise(send, sock);
     log_error(logger_data, "Client request for unused slot (%u)\n", id);
+    chastise(send, sock);
     return;
   }
 
   if (pass != c->pass) {
     pthread_mutex_unlock(&c->lock);
-    chastise(send, sock);
     log_error(logger_data, "Wrong client password (%u, %d)\n", id, pass);
+    chastise(send, sock);
     return;
   }
 
