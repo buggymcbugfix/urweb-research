@@ -681,7 +681,8 @@
   __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
- uw_begin_initializing(ctx);
+ uw_set_could_write_db(ctx, 0);
+  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
   __uwn_initializer_1(ctx, 0);
    }

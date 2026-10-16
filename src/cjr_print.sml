@@ -571,6 +571,19 @@ end
 
 val unurlifies = ref IS.empty
 
+(* The functions that may write the database (CjrWrites), for the value each
+ * transaction sets before it begins. *)
+val dbWriters = ref IS.empty
+
+(* Whether the transaction about to begin may write the database: Postgres
+ * begins one that cannot READ ONLY.  Items to splice into the code around
+ * them. *)
+fun couldWriteDb writes =
+    [string "uw_set_could_write_db(ctx, ",
+     string (if writes then "1" else "0"),
+     string ");",
+     newline]
+
 fun unurlify fromClient env (t, loc) =
     let
         fun deStar request =
@@ -2334,18 +2347,22 @@ and p_runTransaction par env (e, t, try) =
     let
         val boxed = try andalso not (isUnboxable t)
     in
-        parenIf par (box [string "({",
+        parenIf par (box ([string "({",
                               newline,
                               string "uw_io_transaction __uwt;",
                               newline,
                               p_typ env t,
                               space,
                               string (if boxed then "*__uwr = NULL;" else "__uwr;"),
-                              newline,
+                              newline]
                               (* The value is read only after the loop,
                                * and the last store to it is after the last
                                * longjmp, so no volatile needed. *)
-                              string "uw_io_transaction_begin(ctx, &__uwt);",
+                              (* Each transaction of an io computation
+                               * says for itself whether it may write: one
+                               * may read and the next write. *)
+                              @ couldWriteDb (CjrWrites.exp (!dbWriters) e)
+                              @ [string "uw_io_transaction_begin(ctx, &__uwt);",
                               newline,
                               string "while (1) {",
                               newline,
@@ -2405,7 +2422,7 @@ and p_runTransaction par env (e, t, try) =
                               newline,
                               string "__uwr;",
                               newline,
-                              string "})"])
+                              string "})"]))
     end
 and p_exp env = p_exp' false true env
 
@@ -2726,6 +2743,7 @@ fun p_file env (ds, ps) =
                   urlifies := IS.empty;
                   urlifiesL := IS.empty;
                   self := NONE;
+                  dbWriters := CjrWrites.writers (ds, ps);
                   global_initializers := [];
                   runtime_js := "";
                   app_js := "")
@@ -3144,14 +3162,6 @@ fun p_file env (ds, ps) =
                       | IoRpc ef => ef = ReadCookieWrite
                       | Extern _ => false
 
-                fun couldWriteDb ek =
-                    case ek of
-                        Link ef => ef <> ReadOnly
-                      | Action ef => ef <> ReadOnly
-                      | Rpc ef => ef <> ReadOnly
-                      | IoRpc ef => ef <> ReadOnly
-                      | Extern ef => ef <> ReadOnly
-
                 (* An RPC of either kind answers a value, not a page; an io
                  * RPC runs its function outside any transaction. *)
                 val isRpc = Export.isRpc ek
@@ -3167,7 +3177,7 @@ fun p_file env (ds, ps) =
                         else
                             prefix ^ s
             in
-                box [string "if (!strncmp(request, \"",
+                box ([string "if (!strncmp(request, \"",
                      string (Prim.toCString s),
                      string "\", ",
                      string (Int.toString (size s)),
@@ -3246,12 +3256,9 @@ fun p_file env (ds, ps) =
                                         string scripts
                                     end,
                                     string "\");",
-                                    newline]),
-                     string "uw_set_could_write_db(ctx, ",
-                     string (if couldWriteDb ek then "1" else "0"),
-                     string ");",
-                     newline,
-                     string "uw_set_at_most_one_query(ctx, ",
+                                    newline])]
+                     @ couldWriteDb (IS.member (!dbWriters, n))
+                     @ [string "uw_set_at_most_one_query(ctx, ",
                      string (case dbmode of OneQuery => "1" | _ => "0"),
                      string ");",
                      newline,
@@ -3356,7 +3363,7 @@ fun p_file env (ds, ps) =
                           @ [string "}",
                              newline,
                              string "}"])
-                    ]
+                    ])
             end
 
         val (pds', handlers) = ListUtil.foldlMap (fn (p, handlers) =>
@@ -3493,8 +3500,16 @@ fun p_file env (ds, ps) =
                                                                             x2 dummyt) e)
                                           | _ => NONE) ds
         val periodics = List.mapPartial (fn (DTask (Periodic (n, io), x1, x2, e), loc) =>
-                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e, loc)
+                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e, loc,
+                                                  CjrWrites.exp (!dbWriters) e)
                                           | _ => NONE) ds
+
+        (* The initialize tasks run in one transaction, and the database's
+         * own initializer after them in the same one. *)
+        val initializerWrites =
+            List.exists (fn (DTask (Initialize, _, _, e), _) => CjrWrites.exp (!dbWriters) e
+                          | _ => false) ds
+            orelse (hasDb andalso IS.member (!dbWriters, !initialize))
 
         val (protos', defs') = ListPair.unzip (latestUrlHandlers ())
         val protos = protos @ protos'
@@ -3626,11 +3641,18 @@ fun p_file env (ds, ps) =
              newline,
              newline,
 
-             box (ListUtil.mapi (fn (i, (_, _, x1, x2, pe, _)) =>
+             box (ListUtil.mapi (fn (i, (_, io, x1, x2, pe, _, writes)) =>
                                     box [string "static void uw_periodic",
                                          string (Int.toString i),
                                          string "(uw_context ctx) {",
                                          newline,
+                                         (* A task in io has no transaction
+                                          * of its own: each of its
+                                          * transactions sets the value. *)
+                                         if io then
+                                             box []
+                                         else
+                                             box (couldWriteDb writes),
                                          box [string "uw_unit __uwr_",
                                               string x1,
                                               string "_0 = 0, __uwr_",
@@ -3645,7 +3667,7 @@ fun p_file env (ds, ps) =
                                          newline]) periodics),
 
              string "static uw_periodic my_periodics[] = {",
-             box (ListUtil.mapi (fn (i, (n, io, _, _, _, loc)) =>
+             box (ListUtil.mapi (fn (i, (n, io, _, _, _, loc, _)) =>
                                     box [string "{uw_periodic",
                                          string (Int.toString i),
                                          string ",",
@@ -3807,7 +3829,8 @@ fun p_file env (ds, ps) =
              newline,
              string "static void uw_initializer(uw_context ctx) {",
              newline,
-             box [(case Settings.getFileCache () of
+             box (couldWriteDb initializerWrites
+                  @ [(case Settings.getFileCache () of
                        NONE => box []
                      | SOME dir => box [newline,
                                         string "struct stat st = {0};",
@@ -3844,7 +3867,7 @@ fun p_file env (ds, ps) =
                            string "(ctx, 0);",
                            newline]
                   else
-                      box []],
+                      box []]),
              string "}",
              newline,
 
@@ -3852,6 +3875,11 @@ fun p_file env (ds, ps) =
                  NONE => box []
                | SOME n => box [string "static void uw_onError(uw_context ctx, char *msg) {",
                                 newline,
+                                (* The handler's transaction begins at its
+                                 * first database operation (uw_begin_onError)
+                                 * with a value of its own, not that of the
+                                 * handler that failed. *)
+                                box (couldWriteDb (IS.member (!dbWriters, n))),
                                 if !hasJs then
                                     box [string "uw_set_script_header(ctx, \"",
                                          string (allScripts ()),
