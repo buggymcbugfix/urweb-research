@@ -1,0 +1,10 @@
+fail: answered after 3 s or more
+> fail
+HTTP/1.1 500 Internal Server Error
+onError: failed after reading 0 and 0
+> hold
+HTTP/1.1 200 OK
+5000
+run again for "Database is busy": more than once
+> failures logged
+  1

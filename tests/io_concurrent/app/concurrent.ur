@@ -4,9 +4,9 @@
    sequence, a cached table an io RPC holds the cache's lock on while it
    sleeps, an io task that sends on every client's channel each period, a
    clientLeaves task that logs the pruner's work and fails when a case asks
-   it to, and a page whose commit fails, for the onError handler of
-   concurrentE.ur.  The sleeps, effects and failures are the C probes of
-   ../../ioprobe. *)
+   it to, and two pages that fail, one in its commit and one after reading,
+   for the onError handler of concurrentE.ur.  The sleeps, effects and
+   failures are the C probes of ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
@@ -145,6 +145,14 @@ fun count () : transaction page =
 fun failCommit () : transaction page =
     Probe.failInCommit "failCommit";
     return <xml><body>failCommit</body></xml>
+
+(* A page that only reads, and fails, so that the onError handler answers.
+   It reads twice: a page with one query has no transaction of its own,
+   and nor would the handler after it. *)
+fun readAndFail () : transaction page =
+    v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
+    n <- oneRowE1 (SELECT COUNT( * ) FROM t);
+    error <xml>failed after reading {[v]} and {[n]}</xml>
 
 (* A tick on every client's channel each period, sent from a transaction
    after a wait outside any transaction. *)

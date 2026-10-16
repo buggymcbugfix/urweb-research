@@ -8,3 +8,4 @@ val failCommit : unit -> transaction page
 val readCounterFor : int -> transaction page
 val readSolo : unit -> transaction page
 val bumpSoloFor : int -> transaction page
+val readAndFail : unit -> transaction page

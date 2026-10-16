@@ -72,6 +72,10 @@ sanitizers' options reach the application.
 - nextval-behind-writer: a plain RPC that reads and then draws from a
   sequence, behind a plain RPC holding the write lock: it is answered with
   the first number once the lock is free.
+- onerror-behind-writer: a page that only reads fails behind a plain RPC
+  holding the write lock, and the onError handler, which reads and then
+  writes, logs the failure: when it is answered, and whether it is run
+  again meanwhile.
 - clients-and-task: four clients, each with a slow io RPC, three quick ones
   behind it and a poll, while the task ticks every channel each second.
 - messages: four clients polling, each sending twenty messages to every

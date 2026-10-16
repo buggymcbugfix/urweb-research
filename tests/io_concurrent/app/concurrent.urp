@@ -14,6 +14,7 @@ allow url /Concurrent/failCommit
 allow url /Concurrent/readCounterFor
 allow url /Concurrent/readSolo
 allow url /Concurrent/bumpSoloFor
+allow url /Concurrent/readAndFail
 safeGet Concurrent/main
 safeGet Concurrent/count
 safeGet Concurrent/hello
@@ -24,6 +25,7 @@ safeGet Concurrent/failCommit
 safeGet Concurrent/readCounterFor
 safeGet Concurrent/readSolo
 safeGet Concurrent/bumpSoloFor
+safeGet Concurrent/readAndFail
 
 $/option
 concurrentE
