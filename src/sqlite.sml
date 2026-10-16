@@ -705,7 +705,7 @@ fun p_getcol {loc, wontLeakStrings, col = i, typ = t} =
                     box [string "(uw_Basis_string)sqlite3_column_text(stmt, ", string (Int.toString i), string ")"]
                 else
                     box [string "uw_strdup(ctx, (uw_Basis_string)sqlite3_column_text(stmt, ", string (Int.toString i), string "))"]
-              | Char => box [string "sqlite3_column_text(stmt, ", string (Int.toString i), string ")[0]"]
+              | Char => box [string "uw_Basis_unsqlChar(ctx, (const char *)sqlite3_column_text(stmt, ", string (Int.toString i), string "))"]
               | Bool => box [string "(uw_Basis_bool)sqlite3_column_int(stmt, ", string (Int.toString i), string ")"]
               | Time => box [string "uw_Basis_stringToTimef_error(ctx, ",
                              string fmt,

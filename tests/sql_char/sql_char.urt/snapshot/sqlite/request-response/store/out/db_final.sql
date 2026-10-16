@@ -5,6 +5,10 @@ CREATE TABLE uw_Sql_char_t (
     uw_C text NOT NULL
 );
 INSERT INTO uw_Sql_char_t VALUES(1,'a');
+INSERT INTO uw_Sql_char_t VALUES(2,'é');
+INSERT INTO uw_Sql_char_t VALUES(3,'中');
+INSERT INTO uw_Sql_char_t VALUES(4,'😀');
+INSERT INTO uw_Sql_char_t VALUES(5,unistr('\u0009'));
 INSERT INTO uw_Sql_char_t VALUES(6,'''');
 INSERT INTO uw_Sql_char_t VALUES(7,'\');
 COMMIT;

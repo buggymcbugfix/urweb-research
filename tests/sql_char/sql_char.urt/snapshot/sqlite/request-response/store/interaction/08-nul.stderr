@@ -1,1 +1,1 @@
-Fatal error: Non-printable character 0 in char to SQLify
+Fatal error: Can't store the NUL character in the database

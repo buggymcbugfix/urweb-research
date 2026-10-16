@@ -443,7 +443,7 @@ fun p_getcol {loc, wontLeakStrings, col = i, typ = t} =
                     e
                 else
                     box [string "uw_strdup(ctx, ", e, string ")"]
-              | Char => box [e, string "[0]"]
+              | Char => box [string "uw_Basis_unsqlChar(ctx, ", e, string ")"]
               | Bool => box [string "uw_Basis_stringToBool_error(ctx, ", e, string ")"]
               | Time => box [string "uw_Basis_unsqlTime(ctx, ", e, string ")"]
               | Blob => box [string "uw_Basis_stringToBlob_error(ctx, ",

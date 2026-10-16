@@ -3015,14 +3015,18 @@ char *uw_Basis_sqlifyFloatN(uw_context ctx, uw_Basis_float *n) {
 int uw_Estrings = 1, uw_sql_type_annotations = 1;
 char *uw_sqlsuffixString = "::text";
 char *uw_sqlsuffixChar = "::char";
+// The largest char that the database backend reads back as it was.  The
+// MySQL backend reads a char as a single byte, so it sets 0x7F.
+uw_Basis_char uw_sqlmaxChar = 0x10FFFF;
 
-uw_Basis_string uw_Basis_sqlifyString(uw_context ctx, uw_Basis_string s) {
+// A string as a quoted SQL literal, followed by suffix.
+static uw_Basis_string sqlify_text(uw_context ctx, const char *s, const char *suffix) {
   char *r, *s2;
 
   // A byte takes up to four in the literal: an octal escape (\ooo) in an
   // E'' string, or else two for a doubled quote.  Then come the quotes, the
   // E, the suffix and the NUL.
-  uw_check_heap(ctx, strlen(s) * (uw_Estrings ? 4 : 2) + 3 + uw_Estrings + strlen(uw_sqlsuffixString));
+  uw_check_heap(ctx, strlen(s) * (uw_Estrings ? 4 : 2) + 3 + uw_Estrings + strlen(suffix));
 
   r = s2 = ctx->heap.front;
   if (uw_Estrings)
@@ -3060,50 +3064,33 @@ uw_Basis_string uw_Basis_sqlifyString(uw_context ctx, uw_Basis_string s) {
   }
 
   *s2++ = '\'';
-  strcpy(s2, uw_sqlsuffixString);
-  ctx->heap.front = s2 + 1 + strlen(uw_sqlsuffixString);
+  strcpy(s2, suffix);
+  ctx->heap.front = s2 + 1 + strlen(suffix);
   return r;
 }
 
+uw_Basis_string uw_Basis_sqlifyString(uw_context ctx, uw_Basis_string s) {
+  return sqlify_text(ctx, s, uw_sqlsuffixString);
+}
+
+// A char goes into the database as a string of one character, in UTF-8 as
+// any string does, and uw_Basis_unsqlChar reads it back.  NUL cannot be
+// stored.  Text cannot hold it, and an empty text would not do instead,
+// since PostgreSQL pads an empty char to a blank.
 uw_Basis_string uw_Basis_sqlifyChar(uw_context ctx, uw_Basis_char c) {
-  char *r, *s2;
-  uw_check_heap(ctx, 5 + uw_Estrings + strlen(uw_sqlsuffixChar));
+  char s[U8_MAX_LENGTH + 1];
+  int len = 0;
 
-  r = s2 = ctx->heap.front;
-  if (uw_Estrings)
-    *s2++ = 'E';
-  *s2++ = '\'';
+  if (c == 0)
+    uw_error(ctx, FATAL, "Can't store the NUL character in the database");
+  if ((uint32_t)c > 0x10FFFF || U_IS_SURROGATE(c))
+    uw_error(ctx, FATAL, "Can't store character %u in the database: it has no UTF-8 encoding", (unsigned)c);
+  if ((uint32_t)c > (uint32_t)uw_sqlmaxChar)
+    uw_error(ctx, FATAL, "Can't store character %u: the database backend reads back no char beyond %u", (unsigned)c, (unsigned)uw_sqlmaxChar);
 
-  switch (c) {
-  case '\'':
-    if (uw_Estrings)
-      strcpy(s2, "\\'");
-    else
-      strcpy(s2, "''");
-    s2 += 2;
-    break;
-  case '\\':
-    if (uw_Estrings) {
-      strcpy(s2, "\\\\");
-      s2 += 2;
-    } else
-      *s2++ = '\\';
-    break;
-  default:
-    if ((uint32_t)c <= 0x7f && isprint((int)c))
-      *s2++ = c;
-    else if (uw_Estrings) {
-      sprintf(s2, "\\%03o", (unsigned char)c);
-      s2 += 4;
-    }
-    else
-      uw_error(ctx, FATAL, "Non-printable character %u in char to SQLify", c);
-  }
-
-  *s2++ = '\'';
-  strcpy(s2, uw_sqlsuffixChar);
-  ctx->heap.front = s2 + 1 + strlen(uw_sqlsuffixChar);
-  return r;
+  U8_APPEND_UNSAFE(s, len, c);
+  s[len] = 0;
+  return sqlify_text(ctx, s, uw_sqlsuffixChar);
 }
 
 char *uw_sqlsuffixBlob = "::bytea";
@@ -3531,6 +3518,20 @@ uw_Basis_bool uw_Basis_stringToBool_error(uw_context ctx, uw_Basis_string s) {
     return uw_Basis_False;
   else
     uw_error(ctx, FATAL, "Can't parse bool: %s", uw_Basis_htmlifyString(ctx, s));
+}
+
+// A char from the database: the first character of the text, as
+// uw_Basis_sqlifyChar writes it, or NUL for an empty text.
+uw_Basis_char uw_Basis_unsqlChar(uw_context ctx, const char *s) {
+  uw_Basis_char c;
+  int offset = 0;
+
+  if (s[0] == 0)
+    return 0;
+  U8_NEXT(s, offset, -1, c);
+  if (c < 0)
+    uw_error(ctx, FATAL, "Can't read a char from the database: its text is not UTF-8");
+  return c;
 }
 
 uw_Basis_time uw_Basis_unsqlTime(uw_context ctx, uw_Basis_string s) {

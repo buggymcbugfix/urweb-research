@@ -1,7 +1,7 @@
 HTTP/1.1 500 Internal Server Error
 Content-type: text/html
 Connection: close
-Content-length: 126
+Content-length: 148
 
-<html><head><title>Fatal Error</title></head><body>Fatal error: Non-printable character 55296 in char to SQLify
+<html><head><title>Fatal Error</title></head><body>Fatal error: Can't store character 55296 in the database: it has no UTF-8 encoding
 </body></html>

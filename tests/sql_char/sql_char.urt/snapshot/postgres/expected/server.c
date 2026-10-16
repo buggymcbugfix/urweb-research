@@ -377,7 +377,8 @@
                                                                                uw_error(ctx, FATAL, "tests/sql_char/sql_char.ur:18:16-18:22: Unexpectedly NULL field #0");
                                                                                tmp;
                                                                                }) : 
-                                                                               PQgetvalue(res, i, 0)[0]);
+                                                                               uw_Basis_unsqlChar(ctx, 
+                                                                               PQgetvalue(res, i, 0)));
                                                                                
                                                                                __uwr_r_2.__uwf_T.__uwf_Id
                                                                                =
@@ -486,7 +487,8 @@
                                                                     tmp;
                                                                     uw_error(ctx, FATAL, "$/top.ur:431:17-431:18: Unexpectedly NULL field #0");
                                                                     tmp;
-                                                                    }) : PQgetvalue(res, i, 0)[0]);
+                                                                    }) : uw_Basis_unsqlChar(ctx, 
+                                                                          PQgetvalue(res, i, 0)));
                                          
                                          __uwr_r_2.__uwf_T.__uwf_Id =
                                           (PQgetisnull(res, i, 1) ? ({uw_Basis_int
