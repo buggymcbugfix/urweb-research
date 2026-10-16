@@ -66,6 +66,7 @@ static int fastcgi_request_id(const FCGI_Record* const r) {
 static FCGI_Output *fastcgi_output() {
   FCGI_Output *o = malloc(sizeof(FCGI_Output));
 
+  o->sock = -1;  // no connection yet
   o->r.version = FCGI_VERSION_1;
   o->r.paddingLength = 0;
   o->r.reserved = 0;
@@ -155,57 +156,38 @@ static int write_stdout(void *data, const char *buf, size_t len) {
 
 #include <errno.h>
 
-static void write_stderr(FCGI_Output *o, const char *fmt, ...) {
-  int len;
-  va_list ap;
-  va_start(ap, fmt);
-
-  len = vsnprintf((char *)o->r.contentData, 65535, fmt, ap);
-  if (len < 0)
-    fprintf(stderr, "vsnprintf() failed in write_stderr().\n");
-  else if (fastcgi_send(o, FCGI_STDERR, len))
-    fprintf(stderr, "fastcgi_send() failed in write_stderr().\n");
-}
-
 static void close_stream(FCGI_Output *o, unsigned char type) {
   if (fastcgi_send(o, type, 0))
     fprintf(stderr, "fastcgi_send() failed in close_stream().\n");
 }
 
+// The program logs as the HTTP server does: errors on stderr, and debug
+// output on stdout, which -q turns off.  Nothing goes on a request's
+// FastCGI stderr stream, which a web server puts in its error log apart
+// from the program's other output.  A complaint about a request as the
+// web server sent it goes the same way.
 static void log_error(void *data, const char *fmt, ...) {
-  FCGI_Output *o = (FCGI_Output *)data;
   va_list ap;
+  (void)data;
   va_start(ap, fmt);
-
-  if (o) {
-    int len = vsnprintf((char *)o->r.contentData, 65535, fmt, ap);
-    if (len < 0)
-      fprintf(stderr, "vsnprintf() failed in log_error().\n");
-    else if (fastcgi_send(o, FCGI_STDERR, len))
-      fprintf(stderr, "fastcgi_send() failed in log_error().\n");
-  } else
-    vfprintf(stderr, fmt, ap);
+  vfprintf(stderr, fmt, ap);
+  fflush(stderr);
+  va_end(ap);
 }
 
-static void log_debug(void *data, const char *fmt, ...) {
-  FCGI_Output *o = (FCGI_Output *)data;
-  va_list ap;
-  va_start(ap, fmt);
+static int quiet = 0;
 
-  if (o) {
-    strcpy((char *)o->r.contentData, "DEBUG: ");
-    int len = vsnprintf((char *)o->r.contentData + 7, 65535 - 7, fmt, ap);
-    if (len < 0)
-      fprintf(stderr, "vsnprintf() failed in log_debug().\n");
-    else if (fastcgi_send(o, FCGI_STDERR, len + 7)) {
-      len += 7;
-      if (len >= 65535) len = 65534;
-      o->r.contentData[len] = 0;
-      fputs((char *)o->r.contentData, stderr);
-      fflush(stderr);
-    }
-  } else
-    vfprintf(stderr, fmt, ap);
+static void log_debug(void *data, const char *fmt, ...) {
+  (void)data;
+
+  if (!quiet) {
+    va_list ap;
+    va_start(ap, fmt);
+
+    vprintf(fmt, ap);
+    fflush(stdout);
+    va_end(ap);
+  }
 }
 
 typedef struct {
@@ -384,10 +366,10 @@ static void *worker(void *data) {
     current_request_id = fastcgi_request_id(r);
 
     if (r->type != FCGI_BEGIN_REQUEST) {
-      write_stderr(out, "First message is not BEGIN_REQUEST\n");
+      log_error(out, "First message is not BEGIN_REQUEST\n");
       goto done;
     } else if (r->contentData[1] != FCGI_RESPONDER) {
-      write_stderr(out, "Request is for a role besides RESPONDER\n");
+      log_error(out, "Request is for a role besides RESPONDER\n");
       goto done;
     }
 
@@ -396,21 +378,18 @@ static void *worker(void *data) {
       int len;
 
       if (!(r = fastcgi_recv(in))) {
-        write_stderr(out, "Error receiving environment variables\n");
+        log_error(out, "Error receiving environment variables\n");
         goto done;
       }
 
       if (fastcgi_request_id(r) != current_request_id) {
-        write_stderr(out,
-                     "Ignoring environment variables for request %d (current"
-                     " request has id %d)\n",
-                     fastcgi_request_id(r),
-                     current_request_id);
+        log_error(out, "Ignoring environment variables for request %d (current request has id %d)\n",
+                  fastcgi_request_id(r), current_request_id);
         continue;
       }
 
       if (r->type != FCGI_PARAMS) {
-        write_stderr(out, "Expected FCGI_PARAMS but got %d\n", r->type);
+        log_error(out, "Expected FCGI_PARAMS but got %d\n", r->type);
         goto done;
       }
 
@@ -430,11 +409,11 @@ static void *worker(void *data) {
         }
 
         if (read_nvp(&buf, len - (buf - r->contentData), &hs.nvps[used_nvps]) < 0) {
-          write_stderr(out, "Error reading FCGI_PARAMS name-value pair\n");
+          log_error(out, "Error reading FCGI_PARAMS name-value pair\n");
           goto done;
         }
 
-        //write_stderr(out, "PARAM: %s -> %s\n", hs.nvps[used_nvps].name, hs.nvps[used_nvps].value);
+        //log_error(out, "PARAM: %s -> %s\n", hs.nvps[used_nvps].name, hs.nvps[used_nvps].value);
 
         ++used_nvps;
       }
@@ -445,7 +424,7 @@ static void *worker(void *data) {
     if ((s = get_header(&hs, "Content-Length"))) {
       body_len = atoi(s);
       if (body_len < 0) {
-        write_stderr(out, "Invalid Content-Length\n");
+        log_error(out, "Invalid Content-Length\n");
         goto done;
       }
     } else
@@ -465,34 +444,31 @@ static void *worker(void *data) {
       int this_len;
 
       if (!(r = fastcgi_recv(in))) {
-        write_stderr(out, "Error receiving STDIN\n");
+        log_error(out, "Error receiving STDIN\n");
         goto done;
       }
 
       if (fastcgi_request_id(r) != current_request_id) {
-        write_stderr(out,
-                     "Ignoring STDIN for request %d (current request has id"
-                     " %d)\n",
-                     fastcgi_request_id(r),
-                     current_request_id);
+        log_error(out, "Ignoring STDIN for request %d (current request has id %d)\n",
+                  fastcgi_request_id(r), current_request_id);
         continue;
       }
 
       if (r->type != FCGI_STDIN) {
-        write_stderr(out, "Expected FCGI_STDIN but got %d\n", r->type);
+        log_error(out, "Expected FCGI_STDIN but got %d\n", r->type);
         goto done;
       }
 
       if (r->contentLengthB1 == 0 && r->contentLengthB0 == 0) {
         if (body_read < body_len)
-          write_stderr(out, "End of STDIN\n");
+          log_error(out, "FastCGI stdin ended %d bytes short of CONTENT_LENGTH\n", body_len - body_read);
         break;
       }
 
       this_len = (r->contentLengthB1 << 8) | r->contentLengthB0;
 
       if (body_read + this_len > body_len) {
-        write_stderr(out, "Too much STDIN\n");
+        log_error(out, "Too much STDIN\n");
         goto done;
       }
 
@@ -503,12 +479,12 @@ static void *worker(void *data) {
     body[body_read] = 0;
 
     if (!(method = search_nvps(hs.nvps, "REQUEST_METHOD"))) {
-      write_stderr(out, "REQUEST_METHOD not set\n");
+      log_error(out, "REQUEST_METHOD not set\n");
       goto done;
     }
 
     if (!(path = search_nvps(hs.nvps, "SCRIPT_NAME"))) {
-      write_stderr(out, "SCRIPT_NAME not set\n");
+      log_error(out, "SCRIPT_NAME not set\n");
       goto done;
     }
 
@@ -559,7 +535,8 @@ static void *worker(void *data) {
 }
 
 static void help(char *cmd) {
-  printf("Usage: %s [-t <thread-count>]\n", cmd);
+  printf("Usage: %s [-t <thread-count>] [-q]\n"
+         "The '-q' option turns off the debug output on stdout.\n", cmd);
 }
 
 static void sigint(int signum) {
@@ -590,7 +567,7 @@ int main(int argc, char *argv[]) {
   signal(SIGUSR1, sigint);
   signal(SIGTERM, sigint);
 
-  while ((opt = getopt(argc, argv, "ht:")) != -1) {
+  while ((opt = getopt(argc, argv, "hqt:")) != -1) {
     switch (opt) {
     case '?':
       fprintf(stderr, "Unknown command-line option");
@@ -600,6 +577,10 @@ int main(int argc, char *argv[]) {
     case 'h':
       help(argv[0]);
       return 0;
+
+    case 'q':
+      quiet = 1;
+      break;
 
     case 't':
       nthreads = atoi(optarg);
