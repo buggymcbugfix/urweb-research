@@ -13,56 +13,66 @@
   void uw_global_custom() {
    uw_setup_limits();
    }
-   static void uw_db_validate(uw_context ctx) {
-    static int validated;
+   static int uw_db_check(uw_context ctx) {
     PGconn *conn = uw_get_db(ctx);
     PGresult *res;
     
-    if (validated)
-    return;
-     
     res = PQexec(conn, "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_increment_seq' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)");
      
      if (res == NULL) {
-     PQfinish(conn);
-      uw_error(ctx, FATAL, "Out of memory allocating query result.");
+     uw_set_error_message(ctx, "Out of memory allocating query result.");
+      return 1;
       }
      
      if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-     char msg[1024];
-      strncpy(msg, PQerrorMessage(conn), 1024);
-      msg[1023] = 0;
+     uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_increment_seq' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)", PQerrorMessage(conn));
       PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM pg_class WHERE relname = 'uw_increment_seq' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)\n%s", msg);
+      return 1;
       }
      
      if (strcmp(PQgetvalue(res, 0, 0), "1")) {
      PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Sequence 'uw_Increment_seq' does not exist.");
+      uw_set_error_message(ctx, "%s", "Sequence 'uw_Increment_seq' does not exist.");
+      return 1;
       }
      
      PQclear(res);
      
-    validated = 1;
-    }static void uw_db_prepare(uw_context ctx) {
-    PGconn *conn = uw_get_db(ctx);
-    PGresult *res;
+    return 0;
+    }
     
-    res = PQprepare(conn, "uw0", "SELECT NEXTVAL('uw_Increment_seq')", 0, NULL);
-     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-     char msg[1024];
-      strncpy(msg, PQerrorMessage(conn), 1024);
-      msg[1023] = 0;
-      PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Increment_seq')\n%s", msg);
+    static void uw_db_validate(uw_context ctx) {
+     static int validated;
+     char msg[ERROR_BUF_LEN];
+     
+     if (validated)
+     return;
+      
+     if (uw_db_check(ctx)) {
+     strcpy(msg, uw_error_message(ctx));
+      uw_error(ctx, FATAL, "%s", msg);
       }
-     PQclear(res);
+     
+     validated = 1;
      }
-    
-    static void uw_client_init(void) {
+     
+     static void uw_db_prepare(uw_context ctx) {
+     PGconn *conn = uw_get_db(ctx);
+     PGresult *res;
+     
+     res = PQprepare(conn, "uw0", "SELECT NEXTVAL('uw_Increment_seq')", 0, NULL);
+      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+      char msg[1024];
+       strncpy(msg, PQerrorMessage(conn), 1024);
+       msg[1023] = 0;
+       PQclear(res);
+       PQfinish(conn);
+       uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Increment_seq')\n%s", msg);
+       }
+      PQclear(res);
+      }
+     
+     static void uw_client_init(void) {
     uw_sqlfmtInt = "%lld::int8%n";
      uw_sqlfmtFloat = "%.16g::float8%n";
      uw_Estrings = 1;
@@ -385,24 +395,25 @@
                                                                uw_db_rollback,
                                                                               
                            uw_db_close,
-                                       uw_handle,
-                                                 uw_input_num,
-                                                              uw_cookie_sig,
-                                                                            
-                           uw_check_url,
-                                        uw_check_mime,
-                                                      uw_check_requestHeader,
-                                                                             
-                           uw_check_responseHeader,
-                                                   uw_check_envVar,
-                                                                   
-                           uw_check_meta,
-                                         NULL,
-                                              my_periodics,
-                                                           "%c",
-                                                                1,
-                                                                  NULL,
-                                                                       
-                           uw_served_files,
-                                           0};
+                                       uw_db_check,
+                                                   uw_handle,
+                                                             uw_input_num,
+                                                                          
+                           uw_cookie_sig,
+                                         uw_check_url,
+                                                      uw_check_mime,
+                                                                    
+                           uw_check_requestHeader,
+                                                  uw_check_responseHeader,
+                                                                          
+                           uw_check_envVar,
+                                           uw_check_meta,
+                                                         NULL,
+                                                              my_periodics,
+                                                                           
+                           "%c",
+                                1,
+                                  NULL,
+                                       uw_served_files,
+                                                       0};
  

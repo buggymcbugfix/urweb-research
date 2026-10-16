@@ -511,6 +511,18 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              newline,
 
+             (* The compiler refuses Basis.validateDb for MySQL; the app
+              * record has the entry all the same. *)
+             string "static int uw_db_check(uw_context ctx) {",
+             newline,
+             box [string "uw_set_error_message(ctx, \"Basis.validateDb is not supported for MySQL\");",
+                  newline,
+                  string "return 1;",
+                  newline],
+             string "}",
+             newline,
+             newline,
+
              string "static void uw_db_init(uw_context ctx) {",
              newline,
              string "MYSQL *mysql = mysql_init(NULL);",

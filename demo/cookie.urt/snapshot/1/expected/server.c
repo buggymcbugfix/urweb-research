@@ -18,6 +18,7 @@
     static void uw_db_close(uw_context ctx) { };
     static int uw_db_commit(uw_context ctx) { return 0; };
     static int uw_db_rollback(uw_context ctx) { return 0; };
+    static int uw_db_check(uw_context ctx) { return 0; };
  
  /* No global setup for LRU cache. */
   
@@ -471,24 +472,25 @@
                                                                uw_db_rollback,
                                                                               
                            uw_db_close,
-                                       uw_handle,
-                                                 uw_input_num,
-                                                              uw_cookie_sig,
-                                                                            
-                           uw_check_url,
-                                        uw_check_mime,
-                                                      uw_check_requestHeader,
-                                                                             
-                           uw_check_responseHeader,
-                                                   uw_check_envVar,
-                                                                   
-                           uw_check_meta,
-                                         NULL,
-                                              my_periodics,
-                                                           "%c",
-                                                                1,
-                                                                  NULL,
-                                                                       
-                           uw_served_files,
-                                           0};
+                                       uw_db_check,
+                                                   uw_handle,
+                                                             uw_input_num,
+                                                                          
+                           uw_cookie_sig,
+                                         uw_check_url,
+                                                      uw_check_mime,
+                                                                    
+                           uw_check_requestHeader,
+                                                  uw_check_responseHeader,
+                                                                          
+                           uw_check_envVar,
+                                           uw_check_meta,
+                                                         NULL,
+                                                              my_periodics,
+                                                                           
+                           "%c",
+                                1,
+                                  NULL,
+                                       uw_served_files,
+                                                       0};
  

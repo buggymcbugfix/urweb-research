@@ -4970,6 +4970,18 @@ uw_Basis_int uw_Basis_rand(uw_context ctx) {
   return my_rand(ctx);
 }
 
+// The start-up check of the database, run in the caller's transaction.  What
+// is wrong comes as the context's error message, which must not stay set: the
+// request would be taken for failed.  A database found busy runs the request
+// again, as a busy statement does.
+uw_Basis_string uw_Basis_validateDb(uw_context ctx) {
+  uw_ensure_transaction(ctx);
+  if (ctx->app->db_check(ctx))
+    return uw_dup_and_clear_error_message(ctx);
+  else
+    return NULL;
+}
+
 void uw_noPostBody(uw_context ctx) {
   ctx->hasPostBody = 0;
 }

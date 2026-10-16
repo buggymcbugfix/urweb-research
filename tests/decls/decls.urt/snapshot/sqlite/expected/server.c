@@ -83,237 +83,240 @@
      uw_sqlfmtUint4 = "%u%n";
      }
     
-    static void uw_db_validate(uw_context ctx) {
-     static int validated;
+    static int uw_db_check_with(uw_context ctx, failure_kind busy) {
      uw_conn *conn = uw_get_db(ctx);
      sqlite3_stmt *stmt;
      int res;
      
-     if (validated)
-     return;
-      
      if (sqlite3_prepare_v2(conn->conn, "PRAGMA journal_mode", -1, &stmt, NULL) != SQLITE_OK) {
-      sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Query preparation failed:<br />PRAGMA journal_mode");
+      uw_set_error_message(ctx, "Query preparation failed: %s: %s", "PRAGMA journal_mode", sqlite3_errmsg(conn->conn));
+       return 1;
        }
       
       res = sqlite3_step(stmt);
       
       if (res == SQLITE_BUSY) {
       sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Database is busy; can't validate:<br />PRAGMA journal_mode");
+       uw_error(ctx, busy, "Database is busy; can't validate: %s", "PRAGMA journal_mode");
        }
       
       if (res != SQLITE_ROW) {
-      sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Error getting row:<br />PRAGMA journal_mode");
-       }
-      
-      if (sqlite3_stricmp((const char *)sqlite3_column_text(stmt, 0), "wal")) {
-      char mode[32];
-       
-       snprintf(mode, sizeof mode, "%s", (const char *)sqlite3_column_text(stmt, 0));
+      uw_set_error_message(ctx, "Error getting row: %s: %s", "PRAGMA journal_mode", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
        sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)", mode);
-       }
-      
-      sqlite3_finalize(stmt);
-      
-     if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
-      sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE");
-       }
-      
-      res = sqlite3_step(stmt);
-      
-      if (res == SQLITE_BUSY) {
-      sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Database is busy; can't validate:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE");
-       }
-      
-      if (res == SQLITE_DONE) {
-      sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "No row returned:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE");
-       }
-      
-      if (res != SQLITE_ROW) {
-      sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Error getting row:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE");
+       return 1;
        }
       
       if (sqlite3_column_count(stmt) != 1) {
       sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Bad column count:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE");
+       uw_set_error_message(ctx, "Bad column count: %s", "PRAGMA journal_mode");
+       return 1;
+       }
+      
+      if (sqlite3_stricmp((const char *)sqlite3_column_text(stmt, 0), "wal")) {
+       uw_set_error_message(ctx, "The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)", (const char *)sqlite3_column_text(stmt, 0));
+        sqlite3_finalize(stmt);
+        return 1;
+        }
+       
+      sqlite3_finalize(stmt);
+      
+     if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
+      uw_set_error_message(ctx, "Query preparation failed: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE", sqlite3_errmsg(conn->conn));
+       return 1;
+       }
+      
+      res = sqlite3_step(stmt);
+      
+      if (res == SQLITE_BUSY) {
+      sqlite3_finalize(stmt);
+       uw_error(ctx, busy, "Database is busy; can't validate: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE");
+       }
+      
+      if (res != SQLITE_ROW) {
+      uw_set_error_message(ctx, "Error getting row: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
+       sqlite3_finalize(stmt);
+       return 1;
+       }
+      
+      if (sqlite3_column_count(stmt) != 1) {
+      sqlite3_finalize(stmt);
+       uw_set_error_message(ctx, "Bad column count: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_chans' COLLATE NOCASE");
+       return 1;
        }
       
       if (sqlite3_column_int(stmt, 0) != 1) {
-      sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Table 'uw_Decls_chans' does not exist.");
-       }
-      
+       sqlite3_finalize(stmt);
+        uw_set_error_message(ctx, "Table '%s' does not exist.", "uw_Decls_chans");
+        return 1;
+        }
+       
       sqlite3_finalize(stmt);
       
       
       if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
-       sqlite3_close(conn->conn);
-        uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE");
+       uw_set_error_message(ctx, "Query preparation failed: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE", sqlite3_errmsg(conn->conn));
+        return 1;
         }
        
        res = sqlite3_step(stmt);
        
        if (res == SQLITE_BUSY) {
        sqlite3_finalize(stmt);
-        sqlite3_close(conn->conn);
-        uw_error(ctx, FATAL, "Database is busy; can't validate:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE");
-        }
-       
-       if (res == SQLITE_DONE) {
-       sqlite3_finalize(stmt);
-        sqlite3_close(conn->conn);
-        uw_error(ctx, FATAL, "No row returned:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE");
+        uw_error(ctx, busy, "Database is busy; can't validate: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE");
         }
        
        if (res != SQLITE_ROW) {
-       sqlite3_finalize(stmt);
-        sqlite3_close(conn->conn);
-        uw_error(ctx, FATAL, "Error getting row:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE");
+       uw_set_error_message(ctx, "Error getting row: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
+        sqlite3_finalize(stmt);
+        return 1;
         }
        
        if (sqlite3_column_count(stmt) != 1) {
        sqlite3_finalize(stmt);
-        sqlite3_close(conn->conn);
-        uw_error(ctx, FATAL, "Bad column count:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE");
+        uw_set_error_message(ctx, "Bad column count: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Decls_t' COLLATE NOCASE");
+        return 1;
         }
        
        if (sqlite3_column_int(stmt, 0) != 1) {
+        sqlite3_finalize(stmt);
+         uw_set_error_message(ctx, "Table '%s' does not exist.", "uw_Decls_t");
+         return 1;
+         }
+        
        sqlite3_finalize(stmt);
-        sqlite3_close(conn->conn);
-        uw_error(ctx, FATAL, "Table 'uw_Decls_t' does not exist.");
-        }
        
-       sqlite3_finalize(stmt);
-       
-     validated = 1;
+     return 0;
      }
      
-     static void uw_db_prepare(uw_context ctx) {
-     uw_conn *conn = uw_get_db(ctx);
+     static int uw_db_check(uw_context ctx) {
+     return uw_db_check_with(ctx, UNLIMITED_RETRY);
+      }
      
-     if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_chans", -1, &conn->p0, NULL) != SQLITE_OK) {
-      char msg[1024];
-       strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-       msg[1023] = 0;
-       sqlite3_close(conn->conn);
-        uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_chans<br />%s"
-        , msg);
-        }
+     static void uw_db_validate(uw_context ctx) {
+      static int validated;
+      char msg[ERROR_BUF_LEN];
       
-      
-      if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_chans WHERE (((uw_Channel >> 32) = \?) OR ((uw_Client) = \?))", -1, &conn->p1, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_finalize(conn->p0);
-         sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_chans WHERE (((uw_Channel >> 32) = \?) OR ((uw_Client) = \?))<br />%s"
-         , msg);
-         }
+      if (validated)
+      return;
        
-      
-      if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_t WHERE (uw_Id = 1)", -1, &conn->p2, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_finalize(conn->p0);
-         sqlite3_finalize(conn->p1);
-          sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_t WHERE (uw_Id = 1)<br />%s"
-         , msg);
-         }
-       
-      
-      if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Decls_t (uw_Id, uw_Name) VALUES (1, 'init')", -1, &conn->p3, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_finalize(conn->p0);
-         sqlite3_finalize(conn->p1);
-          sqlite3_finalize(conn->p2);
-           sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Decls_t (uw_Id, uw_Name) VALUES (1, 'init')<br />%s"
-         , msg);
-         }
-       
-      
-      if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_chans WHERE (uw_Client = \?)", -1, &conn->p4, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_finalize(conn->p0);
-         sqlite3_finalize(conn->p1);
-          sqlite3_finalize(conn->p2);
-           sqlite3_finalize(conn->p3);
-            sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_chans WHERE (uw_Client = \?)<br />%s"
-         , msg);
-         }
-       
-      
-      if (sqlite3_prepare_v2(conn->conn, "SELECT T_Chans.uw_Channel FROM uw_Decls_chans AS T_Chans WHERE (T_Chans.uw_Client = \?)", -1, &conn->p5, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_finalize(conn->p0);
-         sqlite3_finalize(conn->p1);
-          sqlite3_finalize(conn->p2);
-           sqlite3_finalize(conn->p3);
-            sqlite3_finalize(conn->p4);
-             sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Chans.uw_Channel FROM uw_Decls_chans AS T_Chans WHERE (T_Chans.uw_Client = \?)<br />%s"
-         , msg);
-         }
-       
-      
-      if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Decls_chans (uw_Channel, uw_Client) VALUES (\?, \?)", -1, &conn->p6, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_finalize(conn->p0);
-         sqlite3_finalize(conn->p1);
-          sqlite3_finalize(conn->p2);
-           sqlite3_finalize(conn->p3);
-            sqlite3_finalize(conn->p4);
-             sqlite3_finalize(conn->p5);
-              sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Decls_chans (uw_Channel, uw_Client) VALUES (\?, \?)<br />%s"
-         , msg);
-         }
-       
-      
-      if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Decls_t AS T_T", -1, &conn->p7, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_finalize(conn->p0);
-         sqlite3_finalize(conn->p1);
-          sqlite3_finalize(conn->p2);
-           sqlite3_finalize(conn->p3);
-            sqlite3_finalize(conn->p4);
-             sqlite3_finalize(conn->p5);
-              sqlite3_finalize(conn->p6);
-               sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Decls_t AS T_T<br />%s"
-         , msg);
-         }
+      if (uw_db_check_with(ctx, FATAL)) {
+      strcpy(msg, uw_error_message(ctx));
+       uw_error(ctx, FATAL, "%s", msg);
        }
+      
+      validated = 1;
+      }
+      
+      static void uw_db_prepare(uw_context ctx) {
+      uw_conn *conn = uw_get_db(ctx);
+      
+      if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_chans", -1, &conn->p0, NULL) != SQLITE_OK) {
+       char msg[1024];
+        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+        msg[1023] = 0;
+        sqlite3_close(conn->conn);
+         uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_chans<br />%s"
+         , msg);
+         }
+       
+       
+       if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_chans WHERE (((uw_Channel >> 32) = \?) OR ((uw_Client) = \?))", -1, &conn->p1, NULL) != SQLITE_OK) {
+        char msg[1024];
+         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+         msg[1023] = 0;
+         sqlite3_finalize(conn->p0);
+          sqlite3_close(conn->conn);
+          uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_chans WHERE (((uw_Channel >> 32) = \?) OR ((uw_Client) = \?))<br />%s"
+          , msg);
+          }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_t WHERE (uw_Id = 1)", -1, &conn->p2, NULL) != SQLITE_OK) {
+        char msg[1024];
+         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+         msg[1023] = 0;
+         sqlite3_finalize(conn->p0);
+          sqlite3_finalize(conn->p1);
+           sqlite3_close(conn->conn);
+          uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_t WHERE (uw_Id = 1)<br />%s"
+          , msg);
+          }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Decls_t (uw_Id, uw_Name) VALUES (1, 'init')", -1, &conn->p3, NULL) != SQLITE_OK) {
+        char msg[1024];
+         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+         msg[1023] = 0;
+         sqlite3_finalize(conn->p0);
+          sqlite3_finalize(conn->p1);
+           sqlite3_finalize(conn->p2);
+            sqlite3_close(conn->conn);
+          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Decls_t (uw_Id, uw_Name) VALUES (1, 'init')<br />%s"
+          , msg);
+          }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Decls_chans WHERE (uw_Client = \?)", -1, &conn->p4, NULL) != SQLITE_OK) {
+        char msg[1024];
+         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+         msg[1023] = 0;
+         sqlite3_finalize(conn->p0);
+          sqlite3_finalize(conn->p1);
+           sqlite3_finalize(conn->p2);
+            sqlite3_finalize(conn->p3);
+             sqlite3_close(conn->conn);
+          uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Decls_chans WHERE (uw_Client = \?)<br />%s"
+          , msg);
+          }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "SELECT T_Chans.uw_Channel FROM uw_Decls_chans AS T_Chans WHERE (T_Chans.uw_Client = \?)", -1, &conn->p5, NULL) != SQLITE_OK) {
+        char msg[1024];
+         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+         msg[1023] = 0;
+         sqlite3_finalize(conn->p0);
+          sqlite3_finalize(conn->p1);
+           sqlite3_finalize(conn->p2);
+            sqlite3_finalize(conn->p3);
+             sqlite3_finalize(conn->p4);
+              sqlite3_close(conn->conn);
+          uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Chans.uw_Channel FROM uw_Decls_chans AS T_Chans WHERE (T_Chans.uw_Client = \?)<br />%s"
+          , msg);
+          }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Decls_chans (uw_Channel, uw_Client) VALUES (\?, \?)", -1, &conn->p6, NULL) != SQLITE_OK) {
+        char msg[1024];
+         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+         msg[1023] = 0;
+         sqlite3_finalize(conn->p0);
+          sqlite3_finalize(conn->p1);
+           sqlite3_finalize(conn->p2);
+            sqlite3_finalize(conn->p3);
+             sqlite3_finalize(conn->p4);
+              sqlite3_finalize(conn->p5);
+               sqlite3_close(conn->conn);
+          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Decls_chans (uw_Channel, uw_Client) VALUES (\?, \?)<br />%s"
+          , msg);
+          }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Decls_t AS T_T", -1, &conn->p7, NULL) != SQLITE_OK) {
+        char msg[1024];
+         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
+         msg[1023] = 0;
+         sqlite3_finalize(conn->p0);
+          sqlite3_finalize(conn->p1);
+           sqlite3_finalize(conn->p2);
+            sqlite3_finalize(conn->p3);
+             sqlite3_finalize(conn->p4);
+              sqlite3_finalize(conn->p5);
+               sqlite3_finalize(conn->p6);
+                sqlite3_close(conn->conn);
+          uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Decls_t AS T_T<br />%s"
+          , msg);
+          }
+        }
     
     static void uw_db_init(uw_context ctx) {
     sqlite3 *sqlite;
@@ -1230,24 +1233,25 @@
                                                                 uw_db_rollback,
                                                                                
                             uw_db_close,
-                                        uw_handle,
-                                                  uw_input_num,
-                                                               uw_cookie_sig,
-                                                                             
-                            uw_check_url,
-                                         uw_check_mime,
-                                                       uw_check_requestHeader,
-                                                                              
-                            uw_check_responseHeader,
-                                                    uw_check_envVar,
-                                                                    
-                            uw_check_meta,
-                                          uw_onError,
-                                                     my_periodics,
-                                                                  "%c",
-                                                                       1,
-                                                                         NULL,
-                                                                              
-                            uw_served_files,
-                                            0};
+                                        uw_db_check,
+                                                    uw_handle,
+                                                              uw_input_num,
+                                                                           
+                            uw_cookie_sig,
+                                          uw_check_url,
+                                                       uw_check_mime,
+                                                                     
+                            uw_check_requestHeader,
+                                                   uw_check_responseHeader,
+                                                                           
+                            uw_check_envVar,
+                                            uw_check_meta,
+                                                          uw_onError,
+                                                                     
+                            my_periodics,
+                                         "%c",
+                                              1,
+                                                NULL,
+                                                     uw_served_files,
+                                                                     0};
  

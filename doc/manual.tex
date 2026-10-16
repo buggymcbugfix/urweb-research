@@ -2096,6 +2096,14 @@ $$\begin{array}{l}
   \mt{val} \; \mt{setval} : \mt{sql\_sequence} \to \mt{int} \to \mt{transaction} \; \mt{unit}
 \end{array}$$
 
+\subsubsection{Checking the Database}
+
+A server checks the database when it starts: the tables, views and sequences of the program must be there, with the right column types on PostgreSQL, and an SQLite database must be in WAL mode.  The same check can be run later, from a page or a task, to find out whether the database still is what the program expects.  It gives $\mt{None}$ when all is well, or else a message saying what is wrong.  It runs in the transaction of its caller and changes nothing, so it does not count as a side effect.  It is not available for MySQL.
+
+$$\begin{array}{l}
+  \mt{val} \; \mt{validateDb} : \mt{transaction} \; (\mt{option} \; \mt{string})
+\end{array}$$
+
 
 \subsection{\label{xml}XML}
 

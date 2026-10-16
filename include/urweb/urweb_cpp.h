@@ -372,6 +372,7 @@ uw_Basis_int uw_Basis_naughtyDebug(struct uw_context *, uw_Basis_string);
 void uw_set_client_data(struct uw_context *, void *);
 
 uw_Basis_int uw_Basis_rand(struct uw_context *);
+uw_Basis_string uw_Basis_validateDb(struct uw_context *);
 
 extern int uw_time_max, uw_supports_direct_status, uw_min_heap;
 

@@ -163,6 +163,7 @@ fun isEffectful ("Sqlcache", _) = true
 fun addEffectful x = effectful := S.add (!effectful, x)
 
 val benignBase = basis ["get_cookie",
+                        "validateDb",
                         "getenv",
                         "new_client_source",
                         "get_client_source",
@@ -258,7 +259,8 @@ val serverBase = basis ["requestHeader",
                         "fieldName",
                         "fieldValue",
                         "remainingFields",
-                        "firstFormField"]
+                        "firstFormField",
+                        "validateDb"]
 val server = ref serverBase
 fun setServerOnly ls = server := S.addList (serverBase, ls)
 fun addServerOnly x = server := S.add (!server, x)

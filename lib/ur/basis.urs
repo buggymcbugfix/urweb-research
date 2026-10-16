@@ -746,6 +746,14 @@ type sql_sequence
 val nextval : sql_sequence -> transaction int
 val setval : sql_sequence -> int -> transaction unit
 
+(*** Checking the database *)
+
+(* The check the server makes of the database at start-up: that the tables,
+ * views and sequences the program uses are there, with the right column
+ * types on PostgreSQL, and on SQLite that the database is in WAL mode.
+ * None when all is well, or else what is wrong.  Not for MySQL. *)
+val validateDb : transaction (option string)
+
 
 (** XML *)
 

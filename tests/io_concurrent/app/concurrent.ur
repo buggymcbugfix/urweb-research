@@ -1,15 +1,16 @@
 (* An application for the contention tests of ../run.sh: io RPCs that sleep
    outside any transaction, with and without the request's client, writers
    whose transactions overlap, in io code and in plain RPCs, a draw from a
-   sequence, a cached table an io RPC holds the cache's lock on while it
-   sleeps, an io task that sends on every client's channel each period, and
-   a clientLeaves task that logs the pruner's work.  The sleeps and effects
-   are the C probes of ../../ioprobe. *)
+   sequence, a check of the database, a cached table an io RPC holds the
+   cache's lock on while it sleeps, an io task that sends on every client's
+   channel each period, and a clientLeaves task that logs the pruner's work.
+   The sleeps and effects are the C probes of ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
 table chans : { Ch : channel string }
 sequence s
+table spare : { N : int }
 
 (* An io RPC that sleeps outside any transaction, then writes a row. *)
 fun slow (ms : int) (who : string) : io int =
@@ -95,6 +96,11 @@ fun draw () : transaction int =
 fun readCounter () : transaction page =
     v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
     return <xml><body>v = {[v]}</body></xml>
+
+(* The start-up check of the database, on demand. *)
+fun validate () : transaction page =
+    r <- validateDb;
+    return <xml><body>{[case r of None => "ok" | Some m => m]}</body></xml>
 
 fun count () : transaction page =
     n <- oneRowE1 (SELECT COUNT( * ) FROM t);

@@ -13,319 +13,306 @@
   void uw_global_custom() {
    uw_setup_limits();
    }
-   static void uw_db_validate(uw_context ctx) {
-    static int validated;
+   static int uw_db_check(uw_context ctx) {
     PGconn *conn = uw_get_db(ctx);
     PGresult *res;
     
-    if (validated)
-    return;
-     
     res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'uw_ref_sr_t'");
      
      if (res == NULL) {
-     PQfinish(conn);
-      uw_error(ctx, FATAL, "Out of memory allocating query result.");
+     uw_set_error_message(ctx, "Out of memory allocating query result.");
+      return 1;
       }
      
      if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-     char msg[1024];
-      strncpy(msg, PQerrorMessage(conn), 1024);
-      msg[1023] = 0;
+     uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'uw_ref_sr_t'", PQerrorMessage(conn));
       PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'uw_ref_sr_t'\n%s", msg);
+      return 1;
       }
      
      if (strcmp(PQgetvalue(res, 0, 0), "1")) {
      PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Table 'uw_ref_sr_t' does not exist.");
+      uw_set_error_message(ctx, "%s", "Table 'uw_ref_sr_t' does not exist.");
+      return 1;
       }
      
      PQclear(res);
      res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_sr_t' AND ((LOWER(column_name) = 'uw_id' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO') OR (LOWER(column_name) = 'uw_data' AND data_type IN ('text', 'character varying') AND is_nullable = 'NO'))");
-     
-     if (res == NULL) {
-     PQfinish(conn);
-      uw_error(ctx, FATAL, "Out of memory allocating query result.");
-      }
-     
-     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-     char msg[1024];
-      strncpy(msg, PQerrorMessage(conn), 1024);
-      msg[1023] = 0;
+      
+      if (res == NULL) {
+      uw_set_error_message(ctx, "Out of memory allocating query result.");
+       return 1;
+       }
+      
+      if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+      uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_sr_t' AND ((LOWER(column_name) = 'uw_id' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO') OR (LOWER(column_name) = 'uw_data' AND data_type IN ('text', 'character varying') AND is_nullable = 'NO'))", PQerrorMessage(conn));
+       PQclear(res);
+       return 1;
+       }
+      
+      if (strcmp(PQgetvalue(res, 0, 0), "2")) {
       PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_sr_t' AND ((LOWER(column_name) = 'uw_id' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO') OR (LOWER(column_name) = 'uw_data' AND data_type IN ('text', 'character varying') AND is_nullable = 'NO'))\n%s", msg);
-      }
-     
-     if (strcmp(PQgetvalue(res, 0, 0), "2")) {
-     PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Table 'uw_ref_sr_t' has the wrong column types.");
-      }
-     
-     PQclear(res);
-     
-     res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_sr_t' AND LOWER(column_name) LIKE 'uw_%'");
-     
-     if (res == NULL) {
-     PQfinish(conn);
-      uw_error(ctx, FATAL, "Out of memory allocating query result.");
-      }
-     
-     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-     char msg[1024];
-      strncpy(msg, PQerrorMessage(conn), 1024);
-      msg[1023] = 0;
+       uw_set_error_message(ctx, "%s", "Table 'uw_ref_sr_t' has the wrong column types.");
+       return 1;
+       }
+      
       PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_sr_t' AND LOWER(column_name) LIKE 'uw_%'\n%s", msg);
-      }
-     
-     if (strcmp(PQgetvalue(res, 0, 0), "2")) {
-     PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Table 'uw_ref_sr_t' has extra columns.");
-      }
-     
-     PQclear(res);
-     
+      res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_sr_t' AND LOWER(column_name) LIKE 'uw_%'");
+       
+       if (res == NULL) {
+       uw_set_error_message(ctx, "Out of memory allocating query result.");
+        return 1;
+        }
+       
+       if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+       uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_sr_t' AND LOWER(column_name) LIKE 'uw_%'", PQerrorMessage(conn));
+        PQclear(res);
+        return 1;
+        }
+       
+       if (strcmp(PQgetvalue(res, 0, 0), "2")) {
+       PQclear(res);
+        uw_set_error_message(ctx, "%s", "Table 'uw_ref_sr_t' has extra columns.");
+        return 1;
+        }
+       
+       PQclear(res);
+       
      
      res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'uw_ref_ir_t'");
       
       if (res == NULL) {
-      PQfinish(conn);
-       uw_error(ctx, FATAL, "Out of memory allocating query result.");
+      uw_set_error_message(ctx, "Out of memory allocating query result.");
+       return 1;
        }
       
       if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+      uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'uw_ref_ir_t'", PQerrorMessage(conn));
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'uw_ref_ir_t'\n%s", msg);
+       return 1;
        }
       
       if (strcmp(PQgetvalue(res, 0, 0), "1")) {
       PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Table 'uw_ref_ir_t' does not exist.");
+       uw_set_error_message(ctx, "%s", "Table 'uw_ref_ir_t' does not exist.");
+       return 1;
        }
       
       PQclear(res);
       res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_ir_t' AND ((LOWER(column_name) = 'uw_id' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO') OR (LOWER(column_name) = 'uw_data' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO'))");
-      
-      if (res == NULL) {
-      PQfinish(conn);
-       uw_error(ctx, FATAL, "Out of memory allocating query result.");
-       }
-      
-      if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
-       PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_ir_t' AND ((LOWER(column_name) = 'uw_id' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO') OR (LOWER(column_name) = 'uw_data' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO'))\n%s", msg);
-       }
-      
-      if (strcmp(PQgetvalue(res, 0, 0), "2")) {
-      PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Table 'uw_ref_ir_t' has the wrong column types.");
-       }
-      
-      PQclear(res);
-      
-      res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_ir_t' AND LOWER(column_name) LIKE 'uw_%'");
-      
-      if (res == NULL) {
-      PQfinish(conn);
-       uw_error(ctx, FATAL, "Out of memory allocating query result.");
-       }
-      
-      if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
-       PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_ir_t' AND LOWER(column_name) LIKE 'uw_%'\n%s", msg);
-       }
-      
-      if (strcmp(PQgetvalue(res, 0, 0), "2")) {
-      PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Table 'uw_ref_ir_t' has extra columns.");
-       }
-      
-      PQclear(res);
-      res = PQexec(conn, "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_sr_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)");
        
        if (res == NULL) {
-       PQfinish(conn);
-        uw_error(ctx, FATAL, "Out of memory allocating query result.");
+       uw_set_error_message(ctx, "Out of memory allocating query result.");
+        return 1;
         }
        
        if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+       uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_ir_t' AND ((LOWER(column_name) = 'uw_id' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO') OR (LOWER(column_name) = 'uw_data' AND data_type IN ('bigint', 'numeric', 'integer') AND is_nullable = 'NO'))", PQerrorMessage(conn));
+        PQclear(res);
+        return 1;
+        }
+       
+       if (strcmp(PQgetvalue(res, 0, 0), "2")) {
+       PQclear(res);
+        uw_set_error_message(ctx, "%s", "Table 'uw_ref_ir_t' has the wrong column types.");
+        return 1;
+        }
+       
+       PQclear(res);
+       res = PQexec(conn, "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_ir_t' AND LOWER(column_name) LIKE 'uw_%'");
+        
+        if (res == NULL) {
+        uw_set_error_message(ctx, "Out of memory allocating query result.");
+         return 1;
+         }
+        
+        if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+        uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'uw_ref_ir_t' AND LOWER(column_name) LIKE 'uw_%'", PQerrorMessage(conn));
+         PQclear(res);
+         return 1;
+         }
+        
+        if (strcmp(PQgetvalue(res, 0, 0), "2")) {
+        PQclear(res);
+         uw_set_error_message(ctx, "%s", "Table 'uw_ref_ir_t' has extra columns.");
+         return 1;
+         }
+        
+        PQclear(res);
+        res = PQexec(conn, "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_sr_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)");
+         
+         if (res == NULL) {
+         uw_set_error_message(ctx, "Out of memory allocating query result.");
+          return 1;
+          }
+         
+         if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+         uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_sr_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)", PQerrorMessage(conn));
+          PQclear(res);
+          return 1;
+          }
+         
+         if (strcmp(PQgetvalue(res, 0, 0), "1")) {
+         PQclear(res);
+          uw_set_error_message(ctx, "%s", "Sequence 'uw_Ref_SR_s' does not exist.");
+          return 1;
+          }
+         
+         PQclear(res);
+         
+         
+         res = PQexec(conn, "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_ir_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)");
+          
+          if (res == NULL) {
+          uw_set_error_message(ctx, "Out of memory allocating query result.");
+           return 1;
+           }
+          
+          if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+          uw_set_error_message(ctx, "Query failed:\n%s\n%s", "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_ir_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)", PQerrorMessage(conn));
+           PQclear(res);
+           return 1;
+           }
+          
+          if (strcmp(PQgetvalue(res, 0, 0), "1")) {
+          PQclear(res);
+           uw_set_error_message(ctx, "%s", "Sequence 'uw_Ref_IR_s' does not exist.");
+           return 1;
+           }
+          
+          PQclear(res);
+          
+    return 0;
+    }
+    
+    static void uw_db_validate(uw_context ctx) {
+     static int validated;
+     char msg[ERROR_BUF_LEN];
+     
+     if (validated)
+     return;
+      
+     if (uw_db_check(ctx)) {
+     strcpy(msg, uw_error_message(ctx));
+      uw_error(ctx, FATAL, "%s", msg);
+      }
+     
+     validated = 1;
+     }
+     
+     static void uw_db_prepare(uw_context ctx) {
+     PGconn *conn = uw_get_db(ctx);
+     PGresult *res;
+     
+     res = PQprepare(conn, "uw0", "SELECT NEXTVAL('uw_Ref_IR_s')", 0, NULL);
+      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+      char msg[1024];
+       strncpy(msg, PQerrorMessage(conn), 1024);
+       msg[1023] = 0;
+       PQclear(res);
+       PQfinish(conn);
+       uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Ref_IR_s')\n%s", msg);
+       }
+      PQclear(res);
+      
+      
+      res = PQprepare(conn, "uw1", "INSERT INTO uw_Ref_IR_t (uw_Data, uw_Id) VALUES ($1::int8, $2::int8)", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
        char msg[1024];
         strncpy(msg, PQerrorMessage(conn), 1024);
         msg[1023] = 0;
         PQclear(res);
         PQfinish(conn);
-        uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_sr_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)\n%s", msg);
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Ref_IR_t (uw_Data, uw_Id) VALUES ($1::int8, $2::int8)\n%s", msg);
         }
-       
-       if (strcmp(PQgetvalue(res, 0, 0), "1")) {
        PQclear(res);
+       
+      
+      res = PQprepare(conn, "uw2", "SELECT T_T.uw_Data FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       char msg[1024];
+        strncpy(msg, PQerrorMessage(conn), 1024);
+        msg[1023] = 0;
+        PQclear(res);
         PQfinish(conn);
-        uw_error(ctx, FATAL, "Sequence 'uw_Ref_SR_s' does not exist.");
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_T.uw_Data FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
         }
-       
        PQclear(res);
        
-       
-       res = PQexec(conn, "SELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_ir_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)");
-        
-        if (res == NULL) {
+      
+      res = PQprepare(conn, "uw3", "DELETE FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       char msg[1024];
+        strncpy(msg, PQerrorMessage(conn), 1024);
+        msg[1023] = 0;
+        PQclear(res);
         PQfinish(conn);
-         uw_error(ctx, FATAL, "Out of memory allocating query result.");
-         }
-        
-        if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        char msg[1024];
-         strncpy(msg, PQerrorMessage(conn), 1024);
-         msg[1023] = 0;
-         PQclear(res);
-         PQfinish(conn);
-         uw_error(ctx, FATAL, "Query failed:\nSELECT COUNT(*) FROM pg_class WHERE relname = 'uw_ref_ir_s' AND relkind = 'S' AND pg_catalog.pg_table_is_visible(oid)\n%s", msg);
-         }
-        
-        if (strcmp(PQgetvalue(res, 0, 0), "1")) {
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        }
+       PQclear(res);
+       
+      
+      res = PQprepare(conn, "uw4", "SELECT NEXTVAL('uw_Ref_SR_s')", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       char msg[1024];
+        strncpy(msg, PQerrorMessage(conn), 1024);
+        msg[1023] = 0;
         PQclear(res);
-         PQfinish(conn);
-         uw_error(ctx, FATAL, "Sequence 'uw_Ref_IR_s' does not exist.");
-         }
-        
+        PQfinish(conn);
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Ref_SR_s')\n%s", msg);
+        }
+       PQclear(res);
+       
+      
+      res = PQprepare(conn, "uw5", "INSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES (E'hi'::text, $1::int8)", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       char msg[1024];
+        strncpy(msg, PQerrorMessage(conn), 1024);
+        msg[1023] = 0;
         PQclear(res);
-        
-    validated = 1;
-    }static void uw_db_prepare(uw_context ctx) {
-    PGconn *conn = uw_get_db(ctx);
-    PGresult *res;
-    
-    res = PQprepare(conn, "uw0", "SELECT NEXTVAL('uw_Ref_IR_s')", 0, NULL);
-     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-     char msg[1024];
-      strncpy(msg, PQerrorMessage(conn), 1024);
-      msg[1023] = 0;
-      PQclear(res);
-      PQfinish(conn);
-      uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Ref_IR_s')\n%s", msg);
-      }
-     PQclear(res);
-     
-     
-     res = PQprepare(conn, "uw1", "INSERT INTO uw_Ref_IR_t (uw_Data, uw_Id) VALUES ($1::int8, $2::int8)", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+        PQfinish(conn);
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES (E'hi'::text, $1::int8)\n%s", msg);
+        }
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Ref_IR_t (uw_Data, uw_Id) VALUES ($1::int8, $2::int8)\n%s", msg);
-       }
-      PQclear(res);
+       
       
-     
-     res = PQprepare(conn, "uw2", "SELECT T_T.uw_Data FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+      res = PQprepare(conn, "uw6", "UPDATE uw_Ref_IR_t AS T_T SET uw_Data = 10::int8 WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       char msg[1024];
+        strncpy(msg, PQerrorMessage(conn), 1024);
+        msg[1023] = 0;
+        PQclear(res);
+        PQfinish(conn);
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nUPDATE uw_Ref_IR_t AS T_T SET uw_Data = 10::int8 WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        }
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_T.uw_Data FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
-       }
-      PQclear(res);
+       
       
-     
-     res = PQprepare(conn, "uw3", "DELETE FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+      res = PQprepare(conn, "uw7", "SELECT T_T.uw_Data FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       char msg[1024];
+        strncpy(msg, PQerrorMessage(conn), 1024);
+        msg[1023] = 0;
+        PQclear(res);
+        PQfinish(conn);
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_T.uw_Data FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        }
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
-       }
-      PQclear(res);
+       
       
-     
-     res = PQprepare(conn, "uw4", "SELECT NEXTVAL('uw_Ref_SR_s')", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+      res = PQprepare(conn, "uw8", "DELETE FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
+       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       char msg[1024];
+        strncpy(msg, PQerrorMessage(conn), 1024);
+        msg[1023] = 0;
+        PQclear(res);
+        PQfinish(conn);
+        uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        }
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Ref_SR_s')\n%s", msg);
        }
-      PQclear(res);
-      
      
-     res = PQprepare(conn, "uw5", "INSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES (E'hi'::text, $1::int8)", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
-       PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES (E'hi'::text, $1::int8)\n%s", msg);
-       }
-      PQclear(res);
-      
-     
-     res = PQprepare(conn, "uw6", "UPDATE uw_Ref_IR_t AS T_T SET uw_Data = 10::int8 WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
-       PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nUPDATE uw_Ref_IR_t AS T_T SET uw_Data = 10::int8 WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
-       }
-      PQclear(res);
-      
-     
-     res = PQprepare(conn, "uw7", "SELECT T_T.uw_Data FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
-       PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_T.uw_Data FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
-       }
-      PQclear(res);
-      
-     
-     res = PQprepare(conn, "uw8", "DELETE FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
-      if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
-       PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
-       }
-      PQclear(res);
-      }
-    
-    static void uw_client_init(void) {
+     static void uw_client_init(void) {
     uw_sqlfmtInt = "%lld::int8%n";
      uw_sqlfmtFloat = "%.16g::float8%n";
      uw_Estrings = 1;
@@ -1191,24 +1178,25 @@
                                                                uw_db_rollback,
                                                                               
                            uw_db_close,
-                                       uw_handle,
-                                                 uw_input_num,
-                                                              uw_cookie_sig,
-                                                                            
-                           uw_check_url,
-                                        uw_check_mime,
-                                                      uw_check_requestHeader,
-                                                                             
-                           uw_check_responseHeader,
-                                                   uw_check_envVar,
-                                                                   
-                           uw_check_meta,
-                                         NULL,
-                                              my_periodics,
-                                                           "%c",
-                                                                1,
-                                                                  NULL,
-                                                                       
-                           uw_served_files,
-                                           0};
+                                       uw_db_check,
+                                                   uw_handle,
+                                                             uw_input_num,
+                                                                          
+                           uw_cookie_sig,
+                                         uw_check_url,
+                                                      uw_check_mime,
+                                                                    
+                           uw_check_requestHeader,
+                                                  uw_check_responseHeader,
+                                                                          
+                           uw_check_envVar,
+                                           uw_check_meta,
+                                                         NULL,
+                                                              my_periodics,
+                                                                           
+                           "%c",
+                                1,
+                                  NULL,
+                                       uw_served_files,
+                                                       0};
  

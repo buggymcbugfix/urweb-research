@@ -47,118 +47,21 @@ fun p_sql_type t =
 val ident = String.translate (fn #"'" => "PRIME"
                                | ch => str ch)
 
-fun checkRel (table, checkNullable) (s, xts) =
-    let
-        (* The catalog stores the bare name, without the quotes an identifier
-         * may carry in generated SQL (and quotes would not survive inside the
-         * C string literals below). *)
-        val s = Settings.unquoteSql s
-        val q = "SELECT COUNT(*) FROM sqlite_schema WHERE name = '" ^ s ^ "' COLLATE NOCASE"
-    in
-        box [string "if (sqlite3_prepare_v2(conn->conn, \"",
-             string q,
-             string "\", -1, &stmt, NULL) != SQLITE_OK) {",
-             newline,
-             box [string "sqlite3_close(conn->conn);",
-                  newline,
-                  string "uw_error(ctx, FATAL, \"Query preparation failed:<br />",
-                  string q,
-                  string "\");",
-                  newline],
-             string "}",
-             newline,
-             newline,
-
-             (* busy_timeout has had sqlite3_step wait for the lock
-              * already.  The check runs on the first connection only,
-              * before any thread starts (see uw_db_validate), so failing
-              * here ends the start-up, and the caller sees it in the exit
-              * status; waiting on had no bound and said nothing. *)
-             string "res = sqlite3_step(stmt);",
-             newline,
-             newline,
-             string "if (res == SQLITE_BUSY) {",
-             newline,
-             box [string "sqlite3_finalize(stmt);",
-                  newline,
-                  string "sqlite3_close(conn->conn);",
-                  newline,
-                  string "uw_error(ctx, FATAL, \"Database is busy; can't validate:<br />",
-                  string q,
-                  string "\");",
-                  newline],
-             string "}",
-             newline,
-             newline,
-             string "if (res == SQLITE_DONE) {",
-             newline,
-             box [string "sqlite3_finalize(stmt);",
-                  newline,
-                  string "sqlite3_close(conn->conn);",
-                  newline,
-                  string "uw_error(ctx, FATAL, \"No row returned:<br />",
-                  string q,
-                  string "\");",
-                  newline],
-             string "}",
-             newline,
-             newline,
-             string "if (res != SQLITE_ROW) {",
-             newline,
-             box [string "sqlite3_finalize(stmt);",
-                  newline,
-                  string "sqlite3_close(conn->conn);",
-                  newline,
-                  string "uw_error(ctx, FATAL, \"Error getting row:<br />",
-                  string q,
-                  string "\");",
-                  newline],
-             string "}",
-             newline,
-             newline,
-
-             string "if (sqlite3_column_count(stmt) != 1) {",
-             newline,
-             box [string "sqlite3_finalize(stmt);",
-                  newline,
-                  string "sqlite3_close(conn->conn);",
-                  newline,
-                  string "uw_error(ctx, FATAL, \"Bad column count:<br />",
-                  string q,
-                  string "\");",
-                  newline],
-             string "}",
-             newline,
-             newline,
-
-             string "if (sqlite3_column_int(stmt, 0) != 1) {",
-             newline,
-             box [string "sqlite3_finalize(stmt);",
-                  newline,
-                  string "sqlite3_close(conn->conn);",
-                  newline,
-                  string "uw_error(ctx, FATAL, \"Table '",
-                  string s,
-                  string "' does not exist.\");",
-                  newline],
-             string "}",
-             newline,
-             newline,
-             string "sqlite3_finalize(stmt);",
-             newline]
-    end
-
-(* The runtime relies on WAL mode: there a reader does not wait for a
- * writer, and a COMMIT only appends to the log, so that readers cannot keep
- * it waiting past busy_timeout.  The mode belongs to the file, set by the
- * PRAGMA the schema starts with; a database made some other way may be in
- * rollback-journal mode instead. *)
-val checkWal =
-    box [string "if (sqlite3_prepare_v2(conn->conn, \"PRAGMA journal_mode\", -1, &stmt, NULL) != SQLITE_OK) {",
+(* The code of one query of the schema check: run q, which gives one row of
+ * one column, then test, which may find something wrong.  What is wrong,
+ * the failure of the query included, becomes the context's error message,
+ * and the check returns 1.  A busy database raises busy, the failure kind
+ * of the caller (see uw_db_check_with). *)
+fun checkQuery q test =
+    box [string "if (sqlite3_prepare_v2(conn->conn, \"",
+         string q,
+         string "\", -1, &stmt, NULL) != SQLITE_OK) {",
          newline,
-         box [string "sqlite3_close(conn->conn);",
+         box [string "uw_set_error_message(ctx, \"Query preparation failed: %s: %s\", \"",
+              string q,
+              string "\", sqlite3_errmsg(conn->conn));",
               newline,
-              string "uw_error(ctx, FATAL, \"Query preparation failed:<br />PRAGMA journal_mode\");",
+              string "return 1;",
               newline],
          string "}",
          newline,
@@ -170,42 +73,84 @@ val checkWal =
          newline,
          box [string "sqlite3_finalize(stmt);",
               newline,
-              string "sqlite3_close(conn->conn);",
-              newline,
-              string "uw_error(ctx, FATAL, \"Database is busy; can't validate:<br />PRAGMA journal_mode\");",
+              string "uw_error(ctx, busy, \"Database is busy; can't validate: %s\", \"",
+              string q,
+              string "\");",
               newline],
          string "}",
          newline,
          newline,
          string "if (res != SQLITE_ROW) {",
          newline,
-         box [string "sqlite3_finalize(stmt);",
-              newline,
-              string "sqlite3_close(conn->conn);",
-              newline,
-              string "uw_error(ctx, FATAL, \"Error getting row:<br />PRAGMA journal_mode\");",
-              newline],
-         string "}",
-         newline,
-         newline,
-         string "if (sqlite3_stricmp((const char *)sqlite3_column_text(stmt, 0), \"wal\")) {",
-         newline,
-         box [string "char mode[32];",
-              newline,
-              newline,
-              string "snprintf(mode, sizeof mode, \"%s\", (const char *)sqlite3_column_text(stmt, 0));",
+         box [string "uw_set_error_message(ctx, \"Error getting row: %s: %s\", \"",
+              string q,
+              string "\", res == SQLITE_DONE ? \"no row\" : sqlite3_errmsg(conn->conn));",
               newline,
               string "sqlite3_finalize(stmt);",
               newline,
-              string "sqlite3_close(conn->conn);",
-              newline,
-              string "uw_error(ctx, FATAL, \"The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)\", mode);",
+              string "return 1;",
               newline],
          string "}",
          newline,
          newline,
+         string "if (sqlite3_column_count(stmt) != 1) {",
+         newline,
+         box [string "sqlite3_finalize(stmt);",
+              newline,
+              string "uw_set_error_message(ctx, \"Bad column count: %s\", \"",
+              string q,
+              string "\");",
+              newline,
+              string "return 1;",
+              newline],
+         string "}",
+         newline,
+         newline,
+         test,
+         newline,
          string "sqlite3_finalize(stmt);",
          newline]
+
+fun checkRel (table, checkNullable) (s, xts) =
+    let
+        (* The catalog stores the bare name, without the quotes an identifier
+         * may carry in generated SQL (and quotes would not survive inside the
+         * C string literals below). *)
+        val s = Settings.unquoteSql s
+        val q = "SELECT COUNT(*) FROM sqlite_schema WHERE name = '" ^ s ^ "' COLLATE NOCASE"
+    in
+        checkQuery q
+                   (box [string "if (sqlite3_column_int(stmt, 0) != 1) {",
+                         newline,
+                         box [string "sqlite3_finalize(stmt);",
+                              newline,
+                              string "uw_set_error_message(ctx, \"Table '%s' does not exist.\", \"",
+                              string s,
+                              string "\");",
+                              newline,
+                              string "return 1;",
+                              newline],
+                         string "}",
+                         newline])
+    end
+
+(* The runtime relies on WAL mode: there a reader does not wait for a
+ * writer, and a COMMIT only appends to the log, so that readers cannot keep
+ * it waiting past busy_timeout.  The mode belongs to the file, set by the
+ * PRAGMA the schema starts with; a database made some other way may be in
+ * rollback-journal mode instead. *)
+val checkWal =
+    checkQuery "PRAGMA journal_mode"
+               (box [string "if (sqlite3_stricmp((const char *)sqlite3_column_text(stmt, 0), \"wal\")) {",
+                     newline,
+                     box [string "uw_set_error_message(ctx, \"The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)\", (const char *)sqlite3_column_text(stmt, 0));",
+                          newline,
+                          string "sqlite3_finalize(stmt);",
+                          newline,
+                          string "return 1;",
+                          newline],
+                     string "}",
+                     newline])
 
 fun init {dbstring, prepared = ss, tables, views, sequences} =
     let
@@ -364,6 +309,41 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              newline,
 
+             (* The schema check, for Basis.validateDb and for the start-up
+              * (uw_db_validate): 0, or 1 with what is wrong as the context's
+              * error message.  A busy database raises busy.  At start-up that is FATAL: busy_timeout has had
+              * sqlite3_step wait already, and waiting on would have no bound
+              * and say nothing.  validateDb has the request run again, as a
+              * busy statement does. *)
+             box [string "static int uw_db_check_with(uw_context ctx, failure_kind busy) {",
+                  newline,
+                  string "uw_conn *conn = uw_get_db(ctx);",
+                  newline,
+                  string "sqlite3_stmt *stmt;",
+                  newline,
+                  string "int res;",
+                  newline,
+                  newline,
+                  checkWal,
+                  newline,
+                  p_list_sep newline (checkRel ("table", true)) tables,
+                  p_list_sep newline (fn name => checkRel ("table", true)
+                                                          (name, [("id", Settings.Client)])) sequences,
+                  p_list_sep newline (checkRel ("view", false)) views,
+                  newline,
+                  string "return 0;",
+                  newline,
+                  string "}",
+                  newline,
+                  newline,
+                  string "static int uw_db_check(uw_context ctx) {",
+                  newline,
+                  box [string "return uw_db_check_with(ctx, UNLIMITED_RETRY);",
+                       newline],
+                  string "}",
+                  newline,
+                  newline],
+
              if #persistent (currentProtocol ()) then
                  (* The schema is checked on the process's first connection
                   * only, the one uw_request_init makes before any thread
@@ -377,11 +357,7 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                       newline,
                       string "static int validated;",
                       newline,
-                      string "uw_conn *conn = uw_get_db(ctx);",
-                      newline,
-                      string "sqlite3_stmt *stmt;",
-                      newline,
-                      string "int res;",
+                      string "char msg[ERROR_BUF_LEN];",
                       newline,
                       newline,
                       string "if (validated)",
@@ -389,12 +365,14 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                       box [string "return;",
                            newline],
                       newline,
-                      checkWal,
+                      string "if (uw_db_check_with(ctx, FATAL)) {",
                       newline,
-                      p_list_sep newline (checkRel ("table", true)) tables,
-                      p_list_sep newline (fn name => checkRel ("table", true)
-                                                              (name, [("id", Settings.Client)])) sequences,
-                      p_list_sep newline (checkRel ("view", false)) views,
+                      box [string "strcpy(msg, uw_error_message(ctx));",
+                           newline,
+                           string "uw_error(ctx, FATAL, \"%s\", msg);",
+                           newline],
+                      string "}",
+                      newline,
                       newline,
                       string "validated = 1;",
                       newline,

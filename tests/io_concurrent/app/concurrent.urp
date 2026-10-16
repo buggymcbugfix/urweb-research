@@ -5,6 +5,7 @@ link ../../ioprobe/probe.c
 timeout 4
 allow url /Concurrent/main
 allow url /Concurrent/count
+allow url /Concurrent/validate
 allow url /Concurrent/readCounter
 safeGet Concurrent/main
 safeGet Concurrent/count
