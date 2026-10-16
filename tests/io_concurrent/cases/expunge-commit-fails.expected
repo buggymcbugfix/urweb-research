@@ -1,0 +1,7 @@
+client A made
+  | a client left
+  | transactional leave: commit
+  | transactional leave: free
+  | transactional leave: rollback
+a poll of A: refused
+rows of chans: 1

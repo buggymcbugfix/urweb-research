@@ -1,0 +1,4 @@
+client A made
+~ not logged within 30 s: a client left
+  | 1 x Expunge blocked by error: first try of leave
+a poll of A: answered, A is still there
