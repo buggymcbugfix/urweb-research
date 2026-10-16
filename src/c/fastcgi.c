@@ -30,6 +30,11 @@ extern uw_app uw_application;
 // The most content a record carries: its length has two bytes.
 #define FCGI_CONTENT_MAX 65535
 
+// The most padding a record carries after its content: its length has one
+// byte.  A web server may pad so that the next record starts on a multiple
+// of eight; nginx pads every record.
+#define FCGI_PADDING_MAX 255
+
 typedef struct {
   unsigned char version;
   unsigned char type;
@@ -59,7 +64,12 @@ typedef struct {
 #define FCGI_OUTPUT_BUFFER (2 * sizeof(FCGI_Record))
 
 typedef struct {
-  FCGI_Record r;
+  union {
+    FCGI_Record r;
+    // r and the padding that may follow it, as one buffer: a record of the
+    // most content fits whole with its padding.
+    unsigned char bytes[sizeof(FCGI_Record) + FCGI_PADDING_MAX];
+  };
   int available, used, sock;
 } FCGI_Input;
 
@@ -141,7 +151,7 @@ static int fastcgi_send(FCGI_Output *o,
 
 static FCGI_Record *fastcgi_recv(FCGI_Input *i) {
   if (i->used > 0) {
-    memmove((void*)&i->r, (void*)&i->r + i->used, i->available - i->used);
+    memmove(i->bytes, i->bytes + i->used, i->available - i->used);
     i->available -= i->used;
     i->used = 0;
   }
@@ -160,7 +170,7 @@ static FCGI_Record *fastcgi_recv(FCGI_Input *i) {
       return &i->r;
     }
 
-    n = recv(i->sock, (void*)&i->r + i->available, sizeof(i->r) - i->available, 0);
+    n = recv(i->sock, i->bytes + i->available, sizeof(i->bytes) - i->available, 0);
 
     if (n <= 0)
       return NULL;
