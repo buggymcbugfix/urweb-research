@@ -9,7 +9,7 @@ HTTP/1.1 200 OK
 > hold
 HTTP/1.1 200 OK
 13000
-run again for "Database is busy": more than once
+run again for "Database is busy": once
 > database
   hold: 13000
   counter 1

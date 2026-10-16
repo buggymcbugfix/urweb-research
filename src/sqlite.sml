@@ -480,16 +480,48 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              newline,
 
+             (* A transaction that may write takes the write lock at its
+              * BEGIN (BEGIN IMMEDIATE).  After a plain BEGIN, the first
+              * read takes a read lock and the first write asks to upgrade
+              * it.  SQLite does not wait for an upgrade, whatever
+              * busy_timeout says: under a rollback journal two connections
+              * upgrading would wait for each other, and in WAL mode the
+              * read snapshot is out of date once the other writer commits.
+              * So the write fails with SQLITE_BUSY at once, and the
+              * transaction has to be run again from the start.  The write
+              * lock asked for before any read is waited for, up to
+              * busy_timeout, and writers take turns instead.  A
+              * transaction that cannot write keeps the plain BEGIN: it
+              * never upgrades, and in WAL mode it does not wait for
+              * writers.  could_write says whether the transaction may
+              * write the database (see cjr_writes.sml); on Postgres it
+              * decides READ ONLY.
+              *
+              * A BEGIN still busy after busy_timeout asks for the request
+              * to be run again, as a busy statement does.  A nonzero
+              * result would be taken for a lost connection by
+              * uw_ensure_transaction, which reconnects and then fails with
+              * FATAL.  Nothing needs rolling back: the runtime sets
+              * transaction_started only after a successful BEGIN. *)
              string "static int uw_db_begin(uw_context ctx, int could_write) {",
              newline,
              string "uw_conn *conn = uw_get_db(ctx);",
              newline,
+             string "int r;",
              newline,
-             string "if (sqlite3_exec(conn->conn, \"BEGIN\", NULL, NULL, NULL) == SQLITE_OK)",
+             newline,
+             string "r = sqlite3_exec(conn->conn, could_write ? \"BEGIN IMMEDIATE\" : \"BEGIN\", NULL, NULL, NULL);",
+             newline,
+             newline,
+             string "if (r == SQLITE_OK)",
              newline,
              box [string "return 0;",
                   newline],
-             string "else {",
+             string "else if (r == SQLITE_BUSY) {",
+             newline,
+             box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+                  newline],
+             string "} else {",
              newline,
              box [string "fprintf(stderr, \"Begin error: %s<br />\", sqlite3_errmsg(conn->conn));",
                   newline,

@@ -331,10 +331,15 @@
     
     static int uw_db_begin(uw_context ctx, int could_write) {
     uw_conn *conn = uw_get_db(ctx);
+    int r;
     
-    if (sqlite3_exec(conn->conn, "BEGIN", NULL, NULL, NULL) == SQLITE_OK)
+    r = sqlite3_exec(conn->conn, could_write ? "BEGIN IMMEDIATE" : "BEGIN", NULL, NULL, NULL);
+    
+    if (r == SQLITE_OK)
     return 0;
-     else {
+     else if (r == SQLITE_BUSY) {
+    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+     } else {
     fprintf(stderr, "Begin error: %s<br />", sqlite3_errmsg(conn->conn));
      return 1;
      }

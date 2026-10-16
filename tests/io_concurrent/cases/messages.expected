@@ -31,4 +31,3 @@ client D received 20 of the 20 messages
   B: 9 9 9 9 9
   C: 9 9 9 9 9
   D: 9 9 9 9 9
-  | Error triggers unlimited retry in io transaction: Database is busy

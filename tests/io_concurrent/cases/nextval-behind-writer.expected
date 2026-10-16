@@ -5,5 +5,4 @@ HTTP/1.1 200 OK
 > hold
 HTTP/1.1 200 OK
 5000
-run again for "Database is busy": more than once
-  | Error triggers unlimited retry: Database is busy
+run again for "Database is busy": never

@@ -1,4 +1,4 @@
-sql: BEGIN
+sql: BEGIN IMMEDIATE
 sql: UPDATE uw_Io_sqlcache_counter SET uw_V = 5 WHERE (uw_Id = 1)
 sql: COMMIT
 sql: BEGIN
