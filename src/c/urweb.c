@@ -3019,7 +3019,10 @@ char *uw_sqlsuffixChar = "::char";
 uw_Basis_string uw_Basis_sqlifyString(uw_context ctx, uw_Basis_string s) {
   char *r, *s2;
 
-  uw_check_heap(ctx, strlen(s) * 2 + 3 + uw_Estrings + strlen(uw_sqlsuffixString));
+  // A byte takes up to four in the literal: an octal escape (\ooo) in an
+  // E'' string, or else two for a doubled quote.  Then come the quotes, the
+  // E, the suffix and the NUL.
+  uw_check_heap(ctx, strlen(s) * (uw_Estrings ? 4 : 2) + 3 + uw_Estrings + strlen(uw_sqlsuffixString));
 
   r = s2 = ctx->heap.front;
   if (uw_Estrings)
