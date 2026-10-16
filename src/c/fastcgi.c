@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -63,13 +64,19 @@ static int fastcgi_request_id(const FCGI_Record* const r) {
   return requestid;
 }
 
-static FCGI_Output *fastcgi_output() {
-  FCGI_Output *o = malloc(sizeof(FCGI_Output));
-
-  o->sock = -1;  // no connection yet
+// An output on the connection sock (-1: none yet): the fields of its
+// record that every record shares.
+static void fastcgi_output_init(FCGI_Output *o, int sock) {
+  o->sock = sock;
   o->r.version = FCGI_VERSION_1;
   o->r.paddingLength = 0;
   o->r.reserved = 0;
+}
+
+static FCGI_Output *fastcgi_output() {
+  FCGI_Output *o = malloc(sizeof(FCGI_Output));
+
+  fastcgi_output_init(o, -1);
 
   return o;
 }
@@ -290,7 +297,9 @@ static int read_nvp(unsigned char **buf, int len, nvp *nv) {
   return 0;
 }
 
-static int fastcgi_close_with(FCGI_Output *out, request_result rr) {
+// The end of a response: its stdout and stderr streams closed, and
+// FCGI_END_REQUEST with the request's status.
+static void fastcgi_end_request(FCGI_Output *out, request_result rr) {
   FCGI_EndRequestBody *erb = (FCGI_EndRequestBody *)out->r.contentData;
 
   close_stream(out, FCGI_STDOUT);
@@ -303,26 +312,39 @@ static int fastcgi_close_with(FCGI_Output *out, request_result rr) {
 
   erb->protocolStatus = FCGI_REQUEST_COMPLETE;
   fastcgi_send(out, FCGI_END_REQUEST, sizeof(FCGI_EndRequestBody));
+}
+
+static int fastcgi_close_with(FCGI_Output *out, request_result rr) {
+  fastcgi_end_request(out, rr);
   return close(out->sock);
+}
+
+// -T: how long, in seconds, a connection kept open for further requests
+// may sit idle, waiting for the next request to begin, before the program
+// closes it.  0, the default, is no limit: a kept connection is the web
+// server's to close.
+static int recv_timeout = 0;
+
+// The wait for the next bytes on sock limited to seconds, 0 for not at
+// all (SO_RCVTIMEO).  Set while a kept connection waits for its next
+// request, and taken off once that request has begun, so that a request's
+// own bytes may come as slowly as the web server sends them.
+static void idle_limit(int sock, int seconds) {
+  struct timeval tv = {seconds, 0};
+  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
 }
 
 static int fastcgi_close(int sock) {
   FCGI_Output out;
-  out.sock = sock;
-  out.r.version = FCGI_VERSION_1;
-  out.r.paddingLength = 0;
-  out.r.reserved = 0;
 
+  fastcgi_output_init(&out, sock);
   return fastcgi_close_with(&out, SERVED);
 }
 
 int fastcgi_send_normal(int sock, const void *buf, ssize_t len) {
   FCGI_Output out;
-  out.sock = sock;
-  out.r.version = FCGI_VERSION_1;
-  out.r.paddingLength = 0;
-  out.r.reserved = 0;
 
+  fastcgi_output_init(&out, sock);
   return write_stdout(&out, buf, len);
 }
 
@@ -347,19 +369,32 @@ static void *worker(void *data) {
   hs.nvps[0].value = malloc(0);
   hs.nvps[0].value_len = 0;
 
+  // keep: the web server asked for the connection to stay open after the
+  // request (FCGI_KEEP_CONN), and the next request comes on it.  The
+  // connection then holds this thread until it closes or waits past -T.
+  int keep = 0;
+
   while (1) {
     FCGI_Record *r;
     size_t used_nvps = 0;
     int body_len, body_read;
     char *s;
     char *method, *path, *path_info, *query_string;
+    int kept = keep;
 
-    in->sock = out->sock = uw_dequeue();
+    keep = 0;
+    if (!kept)
+      in->sock = out->sock = uw_dequeue();
 
     if (!(r = fastcgi_recv(in))) {
-      fprintf(stderr, "Error receiving initial message\n");
+      // A kept connection that the web server closes, or that waits past
+      // -T, is simply done with.
+      if (!kept)
+        fprintf(stderr, "Error receiving initial message\n");
       goto done;
     }
+    if (kept && recv_timeout > 0)
+      idle_limit(in->sock, 0);   // the request has begun: no limit on its bytes
 
     // Save the FastCGI request ID this worker is handling so that fastcgi_send
     // can include it in its response.
@@ -372,6 +407,8 @@ static void *worker(void *data) {
       log_error(out, "Request is for a role besides RESPONDER\n");
       goto done;
     }
+
+    keep = r->contentData[2] & FCGI_KEEP_CONN;
 
     while (1) {
       unsigned char *buf;
@@ -515,18 +552,30 @@ static void *worker(void *data) {
                       out, log_error, log_debug,
                       in->sock, fastcgi_send_normal, fastcgi_close);
 
-      if (rr == KEEP_OPEN)
+      // A request for messages has handed its connection over; it is
+      // closed once the messages are sent, whatever the web server asked.
+      if (rr == KEEP_OPEN) {
+        keep = 0;
         goto done2;
+      }
 
       uw_output(ctx, write_stdout, out);
-      fastcgi_close_with(out, rr);
+      if (keep) {
+        fastcgi_end_request(out, rr);
+        if (recv_timeout > 0)
+          idle_limit(in->sock, recv_timeout);
+      } else
+        fastcgi_close_with(out, rr);
       goto done2;
     }
 
   done:
+    keep = 0;
     close(in->sock);
   done2:
-    fastcgi_input_reset(in);
+    // What has come of the next request on a kept connection stays.
+    if (!keep)
+      fastcgi_input_reset(in);
     uw_reset(ctx);
     uw_heap_shrink(ctx);
   }
@@ -535,8 +584,10 @@ static void *worker(void *data) {
 }
 
 static void help(char *cmd) {
-  printf("Usage: %s [-t <thread-count>] [-q]\n"
-         "The '-q' option turns off the debug output on stdout.\n", cmd);
+  printf("Usage: %s [-t <thread-count>] [-q] [-T <seconds>]\n"
+         "The '-q' option turns off the debug output on stdout.\n"
+         "The '-T' option sets how many seconds a connection kept open for further\n"
+         "requests may sit idle before it is closed (default: no limit).\n", cmd);
 }
 
 static uw_loggers ls = {NULL, log_error, log_debug};
@@ -560,7 +611,7 @@ int main(int argc, char *argv[]) {
   // A line at a time, whatever stdout is, as for the HTTP server.
   setvbuf(stdout, NULL, _IOLBF, 0);
 
-  while ((opt = getopt(argc, argv, "hqt:")) != -1) {
+  while ((opt = getopt(argc, argv, "hqt:T:")) != -1) {
     switch (opt) {
     case '?':
       fprintf(stderr, "Unknown command-line option");
@@ -573,6 +624,15 @@ int main(int argc, char *argv[]) {
 
     case 'q':
       quiet = 1;
+      break;
+
+    case 'T':
+      recv_timeout = atoi(optarg);
+      if (recv_timeout < 0) {
+        fprintf(stderr, "Invalid receive timeout\n");
+        help(argv[0]);
+        return 1;
+      }
       break;
 
     case 't':
