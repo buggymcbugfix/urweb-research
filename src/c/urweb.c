@@ -3359,7 +3359,7 @@ char *uw_Basis_sqlifyFloatN(uw_context ctx, uw_Basis_float *n) {
     return uw_Basis_sqlifyFloat(ctx, *n);
 }
 
-int uw_Estrings = 1, uw_sql_type_annotations = 1;
+int uw_Estrings = 1, uw_sql_type_annotations = 1, uw_sql_utc_times = 0;
 char *uw_sqlsuffixString = "::text";
 char *uw_sqlsuffixChar = "::char";
 // The largest char that the database backend reads back as it was.  The
@@ -3558,11 +3558,145 @@ char *uw_Basis_sqlifyBoolN(uw_context ctx, uw_Basis_bool *b) {
     return uw_Basis_sqlifyBool(ctx, *b);
 }
 
+// The years of a time SQLite's date functions read: four digits.
+static const long long sql_year_min = 0, sql_year_max = 9999;
+
+// A time as SQLite keeps it, having no type for times: text in UTC,
+// "YYYY-MM-DD HH:MM:SS" as CURRENT_TIMESTAMP gives it, and the microseconds
+// as ".ffffff" after the seconds if there are any.  Texts of this form sort
+// as their times do, so SQL can compare times as it compares text.  A time
+// whose year has no four digits is refused, rather than stored as text that
+// nothing reads back.
+char *uw_Basis_ensqlTimeUtc(uw_context ctx, uw_Basis_time t) {
+  struct tm stm;
+  long long year;
+  int len;
+  char *r;
+
+  if (!gmtime_r(&t.seconds, &stm))
+    uw_error(ctx, FATAL, "Can't store time %lld in the database", (long long)t.seconds);
+  year = stm.tm_year + 1900LL;
+  if (year < sql_year_min || year > sql_year_max)
+    uw_error(ctx, FATAL, "Can't store a time in the year %lld in the database: SQLite takes the years %lld to %lld",
+             year, sql_year_min, sql_year_max);
+
+  uw_check_heap(ctx, TIMES_MAX);
+  r = ctx->heap.front;
+  len = snprintf(r, TIMES_MAX, "%04lld-%02d-%02d %02d:%02d:%02d",
+                 year, stm.tm_mon + 1, stm.tm_mday, stm.tm_hour, stm.tm_min, stm.tm_sec);
+  if (t.microseconds)
+    len += snprintf(r + len, TIMES_MAX - len, ".%06u", t.microseconds);
+  ctx->heap.front += len + 1;
+  return r;
+}
+
+static int sql_time_digits(const char **p, int n, int *v) {
+  int i;
+
+  *v = 0;
+  for (i = 0; i < n; ++i) {
+    if (!isdigit((unsigned char)(*p)[i]))
+      return 0;
+    *v = *v * 10 + ((*p)[i] - '0');
+  }
+  *p += n;
+  return 1;
+}
+
+// A time SQLite holds as text, in any form its date functions take with a
+// date: "YYYY-MM-DD", or that with "HH:MM", "HH:MM:SS" or "HH:MM:SS.SSS"
+// (any number of digits) after a blank or a T, and then a time zone "Z",
+// "+HH:MM" or "-HH:MM" if any.  Without a time zone it is UTC, as
+// uw_Basis_ensqlTimeUtc and CURRENT_TIMESTAMP write it.
+uw_Basis_time uw_Basis_unsqlTimeUtc(uw_context ctx, const char *s) {
+  const char *p = s;
+  int year, month, day, hour = 0, minute = 0, second = 0, zone = 0;
+  unsigned microseconds = 0;
+  struct tm stm = {};
+
+  if (!sql_time_digits(&p, 4, &year) || *p != '-')
+    goto bad;
+  ++p;
+  if (!sql_time_digits(&p, 2, &month) || *p != '-')
+    goto bad;
+  ++p;
+  if (!sql_time_digits(&p, 2, &day))
+    goto bad;
+
+  if (*p == ' ' || *p == 'T') {
+    ++p;
+    if (!sql_time_digits(&p, 2, &hour) || *p != ':')
+      goto bad;
+    ++p;
+    if (!sql_time_digits(&p, 2, &minute))
+      goto bad;
+
+    if (*p == ':') {
+      ++p;
+      if (!sql_time_digits(&p, 2, &second))
+        goto bad;
+
+      if (*p == '.') {
+        int n;
+
+        ++p;
+        if (!isdigit((unsigned char)*p))
+          goto bad;
+        for (n = 0; isdigit((unsigned char)*p); ++p, ++n)
+          if (n < 6)
+            microseconds = microseconds * 10 + (*p - '0');
+        for (; n < 6; ++n)
+          microseconds *= 10;
+      }
+    }
+
+    if (*p == 'Z')
+      ++p;
+    else if (*p == '+' || *p == '-') {
+      int sign = *p == '-' ? -1 : 1, zh, zm;
+
+      ++p;
+      if (!sql_time_digits(&p, 2, &zh) || *p != ':')
+        goto bad;
+      ++p;
+      if (!sql_time_digits(&p, 2, &zm) || zh > 23 || zm > 59)
+        goto bad;
+      zone = sign * (zh * 3600 + zm * 60);
+    }
+  }
+
+  if (*p || month < 1 || month > 12 || day < 1 || day > 31
+      || hour > 23 || minute > 59 || second > 59)
+    goto bad;
+
+  stm.tm_year = year - 1900;
+  stm.tm_mon = month - 1;
+  stm.tm_mday = day;
+  stm.tm_hour = hour;
+  stm.tm_min = minute;
+  stm.tm_sec = second;
+  {
+    // The zone is how far the time given is ahead of UTC.
+    uw_Basis_time r = { timegm(&stm) - zone, microseconds };
+    return r;
+  }
+
+ bad:
+  uw_error(ctx, FATAL, "Can't parse time: %s", uw_Basis_htmlifyString(ctx, (uw_Basis_string)s));
+}
+
 char *uw_Basis_sqlifyTime(uw_context ctx, uw_Basis_time t) {
   size_t len;
   char *r, *s;
   struct tm stm = {};
   stm.tm_isdst = -1;
+
+  if (uw_sql_utc_times) {
+    s = uw_Basis_ensqlTimeUtc(ctx, t);
+    r = uw_malloc(ctx, strlen(s) + 3);
+    sprintf(r, "'%s'", s);
+    return r;
+  }
 
   if (localtime_r(&t.seconds, &stm)) {
     s = uw_malloc(ctx, TIMES_MAX);

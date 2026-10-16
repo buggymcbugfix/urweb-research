@@ -75,6 +75,7 @@
      uw_sqlfmtFloat = "%.16g%n";
      uw_Estrings = 0;
      uw_sql_type_annotations = 0;
+     uw_sql_utc_times = 1;
      uw_sqlsuffixString = "";
      uw_sqlsuffixChar = "";
      uw_sqlsuffixBlob = "";

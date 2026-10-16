@@ -306,6 +306,11 @@ mysql -D app <app.sql
     \begin{verbatim}
 sqlite3 path/to/database/file <app.sql
     \end{verbatim}
+
+    SQLite has no type for times, so a time is stored as text, in UTC, in the form that \texttt{CURRENT\_TIMESTAMP} gives: \texttt{YYYY-MM-DD HH:MM:SS}, with the microseconds as \texttt{.ffffff} after the seconds if there are any.  Text of this form sorts as the times do, so SQL compares times correctly.  A time read from the database may also be in the other forms that SQLite's date functions take: a \texttt{T} for the blank, no seconds or no time of day, more or fewer digits after the point, and a time zone \texttt{Z}, \texttt{+HH:MM} or \texttt{-HH:MM} at the end.  Older versions of Ur/Web stored a time in the server's local time zone and without its microseconds.  To convert such a database, run this for each time column \texttt{c} of each table \texttt{t}, on a machine in the server's time zone:
+    \begin{verbatim}
+UPDATE t SET c = datetime(c, 'utc');
+    \end{verbatim}
   \end{itemize}
 
 \item \texttt{-debug}: Same as the \texttt{debug} directive in a project file: compile the generated C code with \texttt{-O0 -g}, keep it in \texttt{/tmp/webapp.c}, and print the compiler phases as they run.
