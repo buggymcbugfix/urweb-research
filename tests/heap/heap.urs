@@ -8,3 +8,4 @@ val odd : int -> transaction page
 val pageBoundary : unit -> transaction page
 val zero : unit -> transaction page
 val stats : unit -> transaction page
+val churn : unit -> transaction page
