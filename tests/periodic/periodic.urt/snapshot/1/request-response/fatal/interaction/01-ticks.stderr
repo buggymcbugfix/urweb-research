@@ -1,1 +1,1 @@
-periodic task at tests/periodic/periodic.ur:14:0-53:0: Fatal error in periodic task: tests/periodic/periodic.ur:23:22-24:3: boom in the body
+periodic task at tests/periodic/periodic.ur:14:0-57:0: Fatal error in periodic task: tests/periodic/periodic.ur:23:22-24:3: boom in the body
