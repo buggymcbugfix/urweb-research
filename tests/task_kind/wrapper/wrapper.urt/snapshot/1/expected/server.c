@@ -44,7 +44,8 @@
    uw_Basis_debug(ctx, "tick");
    }
   
-  static uw_periodic my_periodics[] = {{uw_periodic0, 5, 1},{NULL}};
+  static uw_periodic my_periodics[] = {{uw_periodic0, 5, 1,
+                                        "tests/task_kind/wrapper/wrapper.ur:6:0-6:39"},{NULL}};
  
  static int uw_check_url(const char *s) {
   if (!strncmp(s, "#", 1)) return 1;
