@@ -345,6 +345,8 @@ Failed URI /Shop/pay in 400 us; 1.0 MiB peak; 1.0 MiB total
     \end{verbatim}
     The time leaves out reading the request and sending the response.  The heap is where Ur values live; the page being written and the HTTP headers are kept elsewhere.  A total far above the peak means that the request allocated a lot that it soon gave back, which the size of the heap does not show.
 
+
+    With \texttt{-k} the server keeps a connection open for further requests, and closes it after \texttt{-T} seconds without input, 5 by default.  Behind a proxy that keeps its own connections to the server open, as nginx does with \texttt{keepalive} in its \texttt{upstream}, set the proxy's idle limit below that: nginx's \texttt{keepalive\_timeout}, which is 60 seconds by default.  Otherwise the server can close a connection just as the proxy sends a request on it, and nginx answers such a request with a 502 when it is not idempotent, as a POST is not.
   \item \texttt{cgi}: This is the classic protocol that web servers use to generate dynamic content by spawning new processes.  While Ur/Web programs may in general use message-passing with the \texttt{send} and \texttt{recv} functions, that functionality is not yet supported in CGI, since CGI needs a fresh process for each request, and message-passing needs to use persistent sockets to deliver messages.
 
     Since Ur/Web treats paths in an unusual way, a configuration line like this one can be used to configure an application that was built with URL prefix \texttt{/Hello}:
