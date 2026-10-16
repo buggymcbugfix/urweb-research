@@ -187,25 +187,22 @@ static void log_error(void *data, const char *fmt, ...) {
     vfprintf(stderr, fmt, ap);
 }
 
-static void log_debug(void *data, const char *fmt, ...) {
-  FCGI_Output *o = (FCGI_Output *)data;
-  va_list ap;
-  va_start(ap, fmt);
+static int quiet = 0;
 
-  if (o) {
-    strcpy((char *)o->r.contentData, "DEBUG: ");
-    int len = vsnprintf((char *)o->r.contentData + 7, 65535 - 7, fmt, ap);
-    if (len < 0)
-      fprintf(stderr, "vsnprintf() failed in log_debug().\n");
-    else if (fastcgi_send(o, FCGI_STDERR, len + 7)) {
-      len += 7;
-      if (len >= 65535) len = 65534;
-      o->r.contentData[len] = 0;
-      fputs((char *)o->r.contentData, stderr);
-      fflush(stderr);
-    }
-  } else
-    vfprintf(stderr, fmt, ap);
+// Debug output goes to stdout, as the HTTP server's does, and -q turns it
+// off.  Only errors go to the web server, which puts its requests' stderr
+// streams in its error log.
+static void log_debug(void *data, const char *fmt, ...) {
+  (void)data;
+
+  if (!quiet) {
+    va_list ap;
+    va_start(ap, fmt);
+
+    vprintf(fmt, ap);
+    fflush(stdout);
+    va_end(ap);
+  }
 }
 
 typedef struct {
@@ -559,7 +556,8 @@ static void *worker(void *data) {
 }
 
 static void help(char *cmd) {
-  printf("Usage: %s [-t <thread-count>]\n", cmd);
+  printf("Usage: %s [-t <thread-count>] [-q]\n"
+         "The '-q' option turns off the debug output on stdout.\n", cmd);
 }
 
 static void sigint(int signum) {
@@ -590,7 +588,7 @@ int main(int argc, char *argv[]) {
   signal(SIGUSR1, sigint);
   signal(SIGTERM, sigint);
 
-  while ((opt = getopt(argc, argv, "ht:")) != -1) {
+  while ((opt = getopt(argc, argv, "hqt:")) != -1) {
     switch (opt) {
     case '?':
       fprintf(stderr, "Unknown command-line option");
@@ -600,6 +598,10 @@ int main(int argc, char *argv[]) {
     case 'h':
       help(argv[0]);
       return 0;
+
+    case 'q':
+      quiet = 1;
+      break;
 
     case 't':
       nthreads = atoi(optarg);
