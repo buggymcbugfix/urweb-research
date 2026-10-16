@@ -1,8 +1,12 @@
 cli: answered after 3 s or more
 > cli
 > hold
+HTTP/1.1 200 OK
+4000
 > POST /Concurrent/incrementRpc/0
+HTTP/1.1 200 OK
+1
 > database
   cli: 1
   hold: 4000
-  counter 0
+  counter 1

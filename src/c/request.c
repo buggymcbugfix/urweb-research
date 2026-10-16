@@ -283,6 +283,14 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
     exit(1);
   }
 
+  // The threads make connections of their own, so this one is closed, and
+  // before a server that daemonizes forks (http.c).  SQLite keeps what it
+  // knows of its file locks per process.  A connection carried across fork()
+  // would leave the child believing it holds locks that only the parent held
+  // in the kernel, and the parent exits: another process could then take the
+  // database for its own, rebuild the WAL index and delete the WAL.
+  if (uw_get_db(ctx))
+    uw_close(ctx);
   uw_free(ctx);
 }
 
