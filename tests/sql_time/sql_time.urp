@@ -1,0 +1,9 @@
+database dbname=sql_time.db
+sql sql_time.sql
+safeGet Sql_time/store
+safeGet Sql_time/stamp
+safeGet Sql_time/get
+safeGet Sql_time/later
+safeGet Sql_time/laterOr
+
+sql_time
