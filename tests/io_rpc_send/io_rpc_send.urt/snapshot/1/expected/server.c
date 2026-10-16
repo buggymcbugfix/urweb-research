@@ -267,9 +267,26 @@
     uw_error(ctx, FATAL, "Can't set `PRAGMA mmap_size` for SQLite database: %s", sqlite3_errmsg(sqlite));
      
     if (uw_database_max < SIZE_MAX) {
-    char buf[100];
+    static int warned;
+     char buf[100];
+     sqlite3_int64 page_size, pages;
      
-     sprintf(buf, "PRAGMA max_page_count = %llu", (unsigned long long)(uw_database_max / 1024));
+     if (sqlite3_prepare_v2(sqlite, "PRAGMA page_size", -1, &stmt, NULL) != SQLITE_OK
+         || sqlite3_step(stmt) != SQLITE_ROW) {
+     uw_set_error_message(ctx, "Can't read the page size of the SQLite database: %s", sqlite3_errmsg(sqlite));
+      sqlite3_finalize(stmt);
+      sqlite3_close(sqlite);
+      uw_reraise(ctx, FATAL);
+      }
+     page_size = sqlite3_column_int64(stmt, 0);
+     sqlite3_finalize(stmt);
+     
+     if (page_size <= 0 || uw_database_max < (size_t)page_size) {
+     sqlite3_close(sqlite);
+      uw_error(ctx, FATAL, "limit database is %zu bytes, less than one page of the SQLite database (%lld bytes)", uw_database_max, (long long)page_size);
+      }
+     
+     sprintf(buf, "PRAGMA max_page_count = %llu", (unsigned long long)(uw_database_max / page_size));
      
      if (sqlite3_prepare_v2(sqlite, buf, -1, &stmt, NULL) != SQLITE_OK) {
      sqlite3_close(sqlite);
@@ -281,8 +298,14 @@
       sqlite3_close(sqlite);
       uw_error(ctx, FATAL, "Can't set max_page_count parameter for SQLite database");
       }
-     
+     pages = sqlite3_column_int64(stmt, 0);
      sqlite3_finalize(stmt);
+     
+     if (!warned) {
+     if (pages > (sqlite3_int64)(uw_database_max / page_size))
+      fprintf(stderr, "The SQLite database is already larger than limit database (%zu bytes): it keeps its size of %lld pages of %lld bytes.\n", uw_database_max, (long long)pages, (long long)page_size);
+       warned = 1;
+      }
      }
     
     conn = calloc(1, sizeof(uw_conn));

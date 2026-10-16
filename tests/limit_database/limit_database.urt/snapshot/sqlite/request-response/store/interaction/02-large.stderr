@@ -1,0 +1,2 @@
+GET /Limit_database/store/4: Fatal error: tests/limit_database/limit_database.ur:16:4-17:50: DML step failed: INSERT INTO uw_Limit_database_t (uw_S) VALUES (?)<br />database or disk is full
+Rollback error: cannot rollback - no transaction is active<br />GET /Limit_database/store/4: Error running SQL ROLLBACK

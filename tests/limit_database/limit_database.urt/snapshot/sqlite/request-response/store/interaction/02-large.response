@@ -1,6 +1,7 @@
-HTTP/1.1 200 OK
-Content-type: text/html; charset=utf-8
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
 Connection: close
-Content-length: 65
+Content-length: 133
 
-<!DOCTYPE html><html><head></head><body>stored 4 KB</body></html>
+<html><head><title>Fatal Error</title></head><body>Fatal error: Database error; you are probably out of storage space.
+</body></html>
