@@ -3143,7 +3143,7 @@ uw_Basis_int *uw_Basis_strindex(uw_context ctx, uw_Basis_string s, uw_Basis_char
 }
 
 uw_Basis_int *uw_Basis_strsindex(uw_context ctx, const char *haystack, const char *needle) {
-  uw_Basis_string r = strstr(haystack, needle);
+  const char *r = strstr(haystack, needle);
   if (r == NULL)
     return NULL;
   else {
