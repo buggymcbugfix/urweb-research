@@ -186,6 +186,13 @@ check-io-curl: bin/urweb
 check-io-concurrent: bin/urweb
 	bash tests/io_concurrent/run.sh
 
+# What the id of the toolchain in shell.nix reacts to: see
+# tests/shell_id/run.sh.  Needs nix, so it is not part of check, which runs
+# in the nix build.  Through bash, as check-io-curl.
+.PHONY: check-shell-id
+check-shell-id:
+	bash tests/shell_id/run.sh
+
 check-local: bin/urweb check-io-curl check-io-concurrent
 	@$(TEST_PRELUDE); \
 	\
