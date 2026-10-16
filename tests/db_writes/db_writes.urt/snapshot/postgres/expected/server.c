@@ -293,6 +293,7 @@
                                    uw_io_transaction __uwt;
                                    uw_Basis_int
                                    __uwr;
+                                   uw_set_could_write_db(ctx, 0);
                                    uw_io_transaction_begin(ctx, &__uwt);
                                    while (1) {
                                    int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -414,6 +415,7 @@
                                      uw_io_transaction __uwt;
                                      uw_unit
                                      __uwr;
+                                     uw_set_could_write_db(ctx, 1);
                                      uw_io_transaction_begin(ctx, &__uwt);
                                      while (1) {
                                      int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -964,158 +966,160 @@
  return -1;}
  
  static void uw_periodic0(uw_context ctx) {
-  uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
-   (uw_begin_region(ctx), ({
-    
+  uw_set_could_write_db(ctx, 1);
+   uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
+    (uw_begin_region(ctx), ({
      
-     uw_ensure_transaction(ctx);
-     
-     PGconn *conn = uw_get_db(ctx);
-      static const int paramFormats[] = {  };
-       const int *paramLengths = paramFormats;
-        const char **paramValues = uw_malloc(ctx, 0 * sizeof(char*));
-       
-       
-      PGresult *res;
       
-      res = PQexecPrepared(conn, "uw2", 0, paramValues, paramLengths, paramFormats, 0);
+      uw_ensure_transaction(ctx);
       
-      if (res == NULL) {
-                         uw_try_reconnecting_and_restarting(ctx);
-                         uw_error(ctx, FATAL, "Can't allocate DML result; database server may be down.");
-                         }
+      PGconn *conn = uw_get_db(ctx);
+       static const int paramFormats[] = {  };
+        const int *paramLengths = paramFormats;
+         const char **paramValues = uw_malloc(ctx, 0 * sizeof(char*));
+        
+        
+       PGresult *res;
        
-       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40001")) {
+       res = PQexecPrepared(conn, "uw2", 0, paramValues, paramLengths, paramFormats, 0);
+       
+       if (res == NULL) {
+                          uw_try_reconnecting_and_restarting(ctx);
+                          uw_error(ctx, FATAL, "Can't allocate DML result; database server may be down.");
+                          }
         
-         PQclear(res);
-         uw_error(ctx, UNLIMITED_RETRY, "Serialization failure");
-         }
-        if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40P01")) {
-        
-         PQclear(res);
-         uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
-         }
-        PQclear(res);
-         uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:51:0-51:38: DML failed:\n%s\n%s", 
-         "DELETE FROM uw_Db_writes_t AS T_T WHERE (T_T.uw_N < 0::int8)", PQerrorMessage(conn));
-        }
-          
+        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40001")) {
+         
           PQclear(res);
-          
-    
-    uw_end_region(ctx);
-    0;
-    }));
-   }
+          uw_error(ctx, UNLIMITED_RETRY, "Serialization failure");
+          }
+         if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40P01")) {
+         
+          PQclear(res);
+          uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
+          }
+         PQclear(res);
+          uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:51:0-51:38: DML failed:\n%s\n%s", 
+          "DELETE FROM uw_Db_writes_t AS T_T WHERE (T_T.uw_N < 0::int8)", PQerrorMessage(conn));
+         }
+           
+           PQclear(res);
+           
+     
+     uw_end_region(ctx);
+     0;
+     }));
+    }
   
   static void uw_periodic1(uw_context ctx) {
-   uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
-    ({
-     uw_Basis_int __uwr___2 =
-     (uw_begin_region(ctx), ({
-                             struct __uws_1* disc =
-                             ({
-                              struct __uws_1* acc =
-                              NULL;
-                              int dummy = (uw_begin_region(ctx), 0);
-                              uw_ensure_transaction(ctx);
-                              
-                               
-                               PGconn *conn = uw_get_db(ctx);
-                                static const int paramFormats[] = {  };
-                                 const int *paramLengths = paramFormats;
-                                  const char **paramValues = uw_malloc(ctx, 0 * sizeof(char*));
-                                 
-                                 
-                                PGresult *res = PQexecPrepared(conn, "uw0", 0, paramValues, paramLengths, paramFormats, 0);
-                                
-                                int n, i;
-                                 
-                                 if (res == NULL) {
-                                                    uw_try_reconnecting_and_restarting(ctx);
-                                                    uw_error(ctx, FATAL, "Can't allocate query result; database server may be down.");
-                                                    }
-                                 
-                                 if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-                                 if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40001")) {
-                                  
-                                   PQclear(res);
-                                   uw_error(ctx, UNLIMITED_RETRY, "Serialization failure");
-                                   }
-                                  if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40P01")) {
-                                  
-                                   PQclear(res);
-                                   uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
-                                   }
-                                  PQclear(res);
-                                  uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query failed:\n%s\n%s", 
-                                  "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", PQerrorMessage(conn));
-                                  }
-                                 
-                                 if (PQnfields(res) != 1) {
-                                 int nf = PQnfields(res);
-                                  PQclear(res);
-                                  uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
-                                  "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", PQerrorMessage(conn));
-                                  }
-                                 
-                                 uw_end_region(ctx);
-                                 uw_push_cleanup(ctx, (void (*)(void *))PQclear, res);
-                                 n = PQntuples(res);
-                                 for (i = 0; i < n; ++i) {
-                                 struct __uws_1 __uwr_r_2;
-                                  struct __uws_1* __uwr_acc_3 =
-                                  acc;
-                                  
-                                  __uwr_r_2.__uwf_1 =
-                                   (PQgetisnull(res, i, 0) ? ({uw_Basis_int
-                                                              tmp;
-                                                              uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
-                                                              tmp;
-                                                              }) : uw_Basis_stringToInt_error(ctx, 
-                                                                    PQgetvalue(res, i, 0)));
-                                   
-                                  
-                                  acc =
-                                  ({
-                                   struct __uws_1 *tmp =
-                                   uw_malloc(ctx, sizeof(struct __uws_1));
-                                   *tmp = __uwr_r_2;
-                                   tmp;
-                                   });
-                                  }
-                                 
-                                 uw_pop_cleanup(ctx);
-                                 
-                              acc;
-                              });
-                             
-                             disc == NULL ?
+   uw_set_could_write_db(ctx, 0);
+    uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
+     ({
+      uw_Basis_int __uwr___2 =
+      (uw_begin_region(ctx), ({
+                              struct __uws_1* disc =
                               ({
-                               uw_Basis_int
-                               tmp;
-                               uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
-                               "Query returned no rows");
-                               tmp;
-                               })
-                               :
-                              disc != NULL && 1 ?
-                               ({struct __uws_1 __uwr_r_2 = (*disc);
-                                  __uwr_r_2.__uwf_1;
-                                })
-                                :
+                               struct __uws_1* acc =
+                               NULL;
+                               int dummy = (uw_begin_region(ctx), 0);
+                               uw_ensure_transaction(ctx);
+                               
+                                
+                                PGconn *conn = uw_get_db(ctx);
+                                 static const int paramFormats[] = {  };
+                                  const int *paramLengths = paramFormats;
+                                   const char **paramValues = uw_malloc(ctx, 0 * sizeof(char*));
+                                  
+                                  
+                                 PGresult *res = PQexecPrepared(conn, "uw0", 0, paramValues, paramLengths, paramFormats, 0);
+                                 
+                                 int n, i;
+                                  
+                                  if (res == NULL) {
+                                                     uw_try_reconnecting_and_restarting(ctx);
+                                                     uw_error(ctx, FATAL, "Can't allocate query result; database server may be down.");
+                                                     }
+                                  
+                                  if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+                                  if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40001")) {
+                                   
+                                    PQclear(res);
+                                    uw_error(ctx, UNLIMITED_RETRY, "Serialization failure");
+                                    }
+                                   if (!strcmp_nullsafe(PQresultErrorField(res, PG_DIAG_SQLSTATE), "40P01")) {
+                                   
+                                    PQclear(res);
+                                    uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
+                                    }
+                                   PQclear(res);
+                                   uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query failed:\n%s\n%s", 
+                                   "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", PQerrorMessage(conn));
+                                   }
+                                  
+                                  if (PQnfields(res) != 1) {
+                                  int nf = PQnfields(res);
+                                   PQclear(res);
+                                   uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
+                                   "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", PQerrorMessage(conn));
+                                   }
+                                  
+                                  uw_end_region(ctx);
+                                  uw_push_cleanup(ctx, (void (*)(void *))PQclear, res);
+                                  n = PQntuples(res);
+                                  for (i = 0; i < n; ++i) {
+                                  struct __uws_1 __uwr_r_2;
+                                   struct __uws_1* __uwr_acc_3 =
+                                   acc;
+                                   
+                                   __uwr_r_2.__uwf_1 =
+                                    (PQgetisnull(res, i, 0) ? ({uw_Basis_int
+                                                               tmp;
+                                                               uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
+                                                               tmp;
+                                                               }) : uw_Basis_stringToInt_error(ctx, 
+                                                                     PQgetvalue(res, i, 0)));
+                                    
+                                   
+                                   acc =
+                                   ({
+                                    struct __uws_1 *tmp =
+                                    uw_malloc(ctx, sizeof(struct __uws_1));
+                                    *tmp = __uwr_r_2;
+                                    tmp;
+                                    });
+                                   }
+                                  
+                                  uw_pop_cleanup(ctx);
+                                  
+                               acc;
+                               });
+                              
+                              disc == NULL ?
                                ({
                                 uw_Basis_int
                                 tmp;
-                                uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:54:4-55:13: pattern match failure");
+                                uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
+                                "Query returned no rows");
                                 tmp;
-                                });
-                             }));
-     uw_end_region(ctx);
-      0;
-     });
-    }
+                                })
+                                :
+                               disc != NULL && 1 ?
+                                ({struct __uws_1 __uwr_r_2 = (*disc);
+                                   __uwr_r_2.__uwf_1;
+                                 })
+                                 :
+                                ({
+                                 uw_Basis_int
+                                 tmp;
+                                 uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:54:4-55:13: pattern match failure");
+                                 tmp;
+                                 });
+                              }));
+      uw_end_region(ctx);
+       0;
+      });
+     }
    
    static void uw_periodic2(uw_context ctx) {
     uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
@@ -1125,6 +1129,7 @@
                               uw_io_transaction __uwt;
                               uw_Basis_int
                               __uwr;
+                              uw_set_could_write_db(ctx, 0);
                               uw_io_transaction_begin(ctx, &__uwt);
                               while (1) {
                               int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -1243,6 +1248,7 @@
         uw_io_transaction __uwt;
         uw_unit
         __uwr;
+        uw_set_could_write_db(ctx, 1);
         uw_io_transaction_begin(ctx, &__uwt);
         while (1) {
         int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -1453,7 +1459,7 @@
     uw_write(ctx, uw_begin_html5);
     uw_mayReturnIndirectly(ctx);
     uw_set_script_header(ctx, "");
-    uw_set_could_write_db(ctx, 1);
+    uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 1);
    uw_set_needs_push(ctx, 0);
    uw_set_needs_sig(ctx, 0);
@@ -1555,7 +1561,8 @@
   __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
- uw_begin_initializing(ctx);
+ uw_set_could_write_db(ctx, 0);
+  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
   ({
    uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;

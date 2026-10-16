@@ -4113,8 +4113,12 @@ void uw_post_expunge(uw_context ctx, void *data);
 static failure_kind uw_expunge(uw_context ctx, uw_Basis_client cli, void *data) {
   int r = setjmp(ctx->jmp_buf);
 
-  if (r == 0)
+  if (r == 0) {
+    // The expunger deletes the rows that hold the client: its transaction
+    // always writes.
+    uw_set_could_write_db(ctx, 1);
     uw_do_expunge(ctx, cli, data);
+  }
   else
     ctx->app->db_rollback(ctx);
 
@@ -4165,11 +4169,12 @@ void uw_prune_clients(uw_context ctx) {
   uw_expunger_departs();
 }
 
+// The initializer's transaction begins at its first database operation, as a
+// page's does, once the generated code has said whether it may write.
 failure_kind uw_initialize(uw_context ctx) {
   int r = setjmp(ctx->jmp_buf);
 
   if (r == 0) {
-    uw_ensure_transaction(ctx);
     ctx->app->initializer(ctx);
     if (uw_commit(ctx))
       uw_error(ctx, FATAL, "Error running SQL COMMIT");
@@ -5016,14 +5021,13 @@ int uw_retry_again(failure_kind fk, int *attempts_left) {
   }
 }
 
+// A periodic task's transaction begins at its first database operation, as a
+// page's does, once the task's code has said whether it may write.
 failure_kind uw_runCallback(uw_context ctx, void (*callback)(uw_context)) {
   int r = setjmp(ctx->jmp_buf);
 
-  if (r == 0) {
-    uw_ensure_transaction(ctx);
-
+  if (r == 0)
     callback(ctx);
-  }
 
   return r;
 }

@@ -571,6 +571,10 @@ end
 
 val unurlifies = ref IS.empty
 
+(* The functions that may write the database (CjrWrites), for the value an
+ * io computation's transaction sets before it begins. *)
+val dbWriters = ref IS.empty
+
 fun unurlify fromClient env (t, loc) =
     let
         fun deStar request =
@@ -2345,6 +2349,13 @@ and p_runTransaction par env (e, t, try) =
                               (* The value is read only after the loop,
                                * and the last store to it is after the last
                                * longjmp, so no volatile needed. *)
+                              (* Each transaction of an io computation
+                               * says for itself whether it may write: one
+                               * may read and the next write. *)
+                              string "uw_set_could_write_db(ctx, ",
+                              string (if CjrWrites.exp (!dbWriters) e then "1" else "0"),
+                              string ");",
+                              newline,
                               string "uw_io_transaction_begin(ctx, &__uwt);",
                               newline,
                               string "while (1) {",
@@ -2726,6 +2737,7 @@ fun p_file env (ds, ps) =
                   urlifies := IS.empty;
                   urlifiesL := IS.empty;
                   self := NONE;
+                  dbWriters := CjrWrites.writers (ds, ps);
                   global_initializers := [];
                   runtime_js := "";
                   app_js := "")
@@ -3144,14 +3156,6 @@ fun p_file env (ds, ps) =
                       | IoRpc ef => ef = ReadCookieWrite
                       | Extern _ => false
 
-                fun couldWriteDb ek =
-                    case ek of
-                        Link ef => ef <> ReadOnly
-                      | Action ef => ef <> ReadOnly
-                      | Rpc ef => ef <> ReadOnly
-                      | IoRpc ef => ef <> ReadOnly
-                      | Extern ef => ef <> ReadOnly
-
                 (* An RPC of either kind answers a value, not a page; an io
                  * RPC runs its function outside any transaction. *)
                 val isRpc = Export.isRpc ek
@@ -3248,7 +3252,7 @@ fun p_file env (ds, ps) =
                                     string "\");",
                                     newline]),
                      string "uw_set_could_write_db(ctx, ",
-                     string (if couldWriteDb ek then "1" else "0"),
+                     string (if IS.member (!dbWriters, n) then "1" else "0"),
                      string ");",
                      newline,
                      string "uw_set_at_most_one_query(ctx, ",
@@ -3493,8 +3497,16 @@ fun p_file env (ds, ps) =
                                                                             x2 dummyt) e)
                                           | _ => NONE) ds
         val periodics = List.mapPartial (fn (DTask (Periodic (n, io), x1, x2, e), _) =>
-                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
+                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e,
+                                                  CjrWrites.exp (!dbWriters) e)
                                           | _ => NONE) ds
+
+        (* The initialize tasks run in one transaction, and the database's
+         * own initializer after them in the same one. *)
+        val initializerWrites =
+            List.exists (fn (DTask (Initialize, _, _, e), _) => CjrWrites.exp (!dbWriters) e
+                          | _ => false) ds
+            orelse (hasDb andalso IS.member (!dbWriters, !initialize))
 
         val (protos', defs') = ListPair.unzip (latestUrlHandlers ())
         val protos = protos @ protos'
@@ -3626,11 +3638,21 @@ fun p_file env (ds, ps) =
              newline,
              newline,
 
-             box (ListUtil.mapi (fn (i, (_, _, x1, x2, pe)) =>
+             box (ListUtil.mapi (fn (i, (_, io, x1, x2, pe, writes)) =>
                                     box [string "static void uw_periodic",
                                          string (Int.toString i),
                                          string "(uw_context ctx) {",
                                          newline,
+                                         (* A task in io has no transaction
+                                          * of its own: each of its
+                                          * transactions sets the value. *)
+                                         if io then
+                                             box []
+                                         else
+                                             box [string "uw_set_could_write_db(ctx, ",
+                                                  string (if writes then "1" else "0"),
+                                                  string ");",
+                                                  newline],
                                          box [string "uw_unit __uwr_",
                                               string x1,
                                               string "_0 = 0, __uwr_",
@@ -3645,7 +3667,7 @@ fun p_file env (ds, ps) =
                                          newline]) periodics),
 
              string "static uw_periodic my_periodics[] = {",
-             box (ListUtil.mapi (fn (i, (n, io, _, _, _)) =>
+             box (ListUtil.mapi (fn (i, (n, io, _, _, _, _)) =>
                                     box [string "{uw_periodic",
                                          string (Int.toString i),
                                          string ",",
@@ -3804,7 +3826,11 @@ fun p_file env (ds, ps) =
              newline,
              string "static void uw_initializer(uw_context ctx) {",
              newline,
-             box [(case Settings.getFileCache () of
+             box [string "uw_set_could_write_db(ctx, ",
+                  string (if initializerWrites then "1" else "0"),
+                  string ");",
+                  newline,
+                  (case Settings.getFileCache () of
                        NONE => box []
                      | SOME dir => box [newline,
                                         string "struct stat st = {0};",

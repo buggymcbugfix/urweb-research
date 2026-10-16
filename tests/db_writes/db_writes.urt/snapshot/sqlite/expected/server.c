@@ -328,6 +328,7 @@
                                    uw_io_transaction __uwt;
                                    uw_Basis_int
                                    __uwr;
+                                   uw_set_could_write_db(ctx, 0);
                                    uw_io_transaction_begin(ctx, &__uwt);
                                    while (1) {
                                    int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -431,6 +432,7 @@
                                      uw_io_transaction __uwt;
                                      uw_unit
                                      __uwr;
+                                     uw_set_could_write_db(ctx, 1);
                                      uw_io_transaction_begin(ctx, &__uwt);
                                      while (1) {
                                      int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -906,125 +908,127 @@
  return -1;}
  
  static void uw_periodic0(uw_context ctx) {
-  uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
-   (uw_begin_region(ctx), ({
-    
+  uw_set_could_write_db(ctx, 1);
+   uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
+    (uw_begin_region(ctx), ({
      
-     uw_ensure_transaction(ctx);
-     
-     uw_conn *conn = uw_get_db(ctx);
-      sqlite3_stmt *stmt = conn->p2;
       
-      if (stmt == NULL) {
-      if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)<br />%s", sqlite3_errmsg(conn->conn));
-       conn->p2 = stmt;
-       }
-      uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
-      uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+      uw_ensure_transaction(ctx);
       
-      int r;
-       if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                      }
+      uw_conn *conn = uw_get_db(ctx);
+       sqlite3_stmt *stmt = conn->p2;
        
-       if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:51:0-51:38: DML step failed: %s<br />%s", 
-                              "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", sqlite3_errmsg(conn->conn));
-                              else if (uw_dml_log_enabled()) {
-       char *expanded = sqlite3_expanded_sql(stmt);
-        uw_log_dml(ctx, "tests/db_writes/db_writes.ur:51:0-51:38", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
-        sqlite3_free(expanded);
+       if (stmt == NULL) {
+       if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)<br />%s", sqlite3_errmsg(conn->conn));
+        conn->p2 = stmt;
         }
+       uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+       uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+       
+       int r;
+        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
+                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                       }
+        
+        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:51:0-51:38: DML step failed: %s<br />%s", 
+                               "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", sqlite3_errmsg(conn->conn));
+                               else if (uw_dml_log_enabled()) {
+        char *expanded = sqlite3_expanded_sql(stmt);
+         uw_log_dml(ctx, "tests/db_writes/db_writes.ur:51:0-51:38", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+         sqlite3_free(expanded);
+         }
+        uw_pop_cleanup(ctx);
        uw_pop_cleanup(ctx);
-      uw_pop_cleanup(ctx);
-      
-    
-    uw_end_region(ctx);
-    0;
-    }));
-   }
+       
+     
+     uw_end_region(ctx);
+     0;
+     }));
+    }
   
   static void uw_periodic1(uw_context ctx) {
-   uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
-    ({
-     uw_Basis_int __uwr___2 =
-     (uw_begin_region(ctx), ({
-                             struct __uws_1* disc =
-                             ({
-                              struct __uws_1* acc =
-                              NULL;
-                              int dummy = (uw_begin_region(ctx), 0);
-                              uw_ensure_transaction(ctx);
-                              
-                               
-                               uw_conn *conn = uw_get_db(ctx);
-                                sqlite3_stmt *stmt;
-                                 if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T<br />%s", sqlite3_errmsg(conn->conn));
-                                uw_push_cleanup(ctx, (void (*)(void *))sqlite3_finalize, stmt);
-                                 
-                                
-                                int r;
-                                 sqlite3_reset(stmt);
-                                 uw_end_region(ctx);
-                                 while ((r = sqlite3_step(stmt)) == SQLITE_ROW) {
-                                 struct __uws_1 __uwr_r_2;
-                                  struct __uws_1* __uwr_acc_3 =
-                                  acc;
-                                  
-                                  __uwr_r_2.__uwf_1 =
-                                   (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
-                                    ({uw_Basis_int
-                                     tmp;
-                                     uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
-                                     tmp;
-                                     }) : sqlite3_column_int64(stmt, 0));
-                                   
-                                  
-                                  acc =
-                                  ({
-                                   struct __uws_1 *tmp =
-                                   uw_malloc(ctx, sizeof(struct __uws_1));
-                                   *tmp = __uwr_r_2;
-                                   tmp;
-                                   });
-                                  }
-                                 
-                                 if (r == SQLITE_BUSY) {sleep(1);
-                                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                         }
-                                 
-                                 if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
-                                 "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
-                                 
-                                 uw_pop_cleanup(ctx);
-                                
-                              acc;
-                              });
-                             
-                             disc == NULL ?
+   uw_set_could_write_db(ctx, 0);
+    uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
+     ({
+      uw_Basis_int __uwr___2 =
+      (uw_begin_region(ctx), ({
+                              struct __uws_1* disc =
                               ({
-                               uw_Basis_int
-                               tmp;
-                               uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
-                               "Query returned no rows");
-                               tmp;
-                               })
-                               :
-                              disc != NULL && 1 ?
-                               ({struct __uws_1 __uwr_r_2 = (*disc);
-                                  __uwr_r_2.__uwf_1;
-                                })
-                                :
+                               struct __uws_1* acc =
+                               NULL;
+                               int dummy = (uw_begin_region(ctx), 0);
+                               uw_ensure_transaction(ctx);
+                               
+                                
+                                uw_conn *conn = uw_get_db(ctx);
+                                 sqlite3_stmt *stmt;
+                                  if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T<br />%s", sqlite3_errmsg(conn->conn));
+                                 uw_push_cleanup(ctx, (void (*)(void *))sqlite3_finalize, stmt);
+                                  
+                                 
+                                 int r;
+                                  sqlite3_reset(stmt);
+                                  uw_end_region(ctx);
+                                  while ((r = sqlite3_step(stmt)) == SQLITE_ROW) {
+                                  struct __uws_1 __uwr_r_2;
+                                   struct __uws_1* __uwr_acc_3 =
+                                   acc;
+                                   
+                                   __uwr_r_2.__uwf_1 =
+                                    (sqlite3_column_type(stmt, 0) == SQLITE_NULL ? 
+                                     ({uw_Basis_int
+                                      tmp;
+                                      uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
+                                      tmp;
+                                      }) : sqlite3_column_int64(stmt, 0));
+                                    
+                                   
+                                   acc =
+                                   ({
+                                    struct __uws_1 *tmp =
+                                    uw_malloc(ctx, sizeof(struct __uws_1));
+                                    *tmp = __uwr_r_2;
+                                    tmp;
+                                    });
+                                   }
+                                  
+                                  if (r == SQLITE_BUSY) {sleep(1);
+                                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                          }
+                                  
+                                  if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
+                                  "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
+                                  
+                                  uw_pop_cleanup(ctx);
+                                 
+                               acc;
+                               });
+                              
+                              disc == NULL ?
                                ({
                                 uw_Basis_int
                                 tmp;
-                                uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:54:4-55:13: pattern match failure");
+                                uw_error(ctx, FATAL, "$/top.ur:438:24-439:3: %s", 
+                                "Query returned no rows");
                                 tmp;
-                                });
-                             }));
-     uw_end_region(ctx);
-      0;
-     });
-    }
+                                })
+                                :
+                               disc != NULL && 1 ?
+                                ({struct __uws_1 __uwr_r_2 = (*disc);
+                                   __uwr_r_2.__uwf_1;
+                                 })
+                                 :
+                                ({
+                                 uw_Basis_int
+                                 tmp;
+                                 uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:54:4-55:13: pattern match failure");
+                                 tmp;
+                                 });
+                              }));
+      uw_end_region(ctx);
+       0;
+      });
+     }
    
    static void uw_periodic2(uw_context ctx) {
     uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
@@ -1034,6 +1038,7 @@
                               uw_io_transaction __uwt;
                               uw_Basis_int
                               __uwr;
+                              uw_set_could_write_db(ctx, 0);
                               uw_io_transaction_begin(ctx, &__uwt);
                               while (1) {
                               int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -1127,6 +1132,7 @@
         uw_io_transaction __uwt;
         uw_unit
         __uwr;
+        uw_set_could_write_db(ctx, 1);
         uw_io_transaction_begin(ctx, &__uwt);
         while (1) {
         int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -1329,7 +1335,7 @@
     uw_write(ctx, uw_begin_html5);
     uw_mayReturnIndirectly(ctx);
     uw_set_script_header(ctx, "");
-    uw_set_could_write_db(ctx, 1);
+    uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 1);
    uw_set_needs_push(ctx, 0);
    uw_set_needs_sig(ctx, 0);
@@ -1431,7 +1437,8 @@
   __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
- uw_begin_initializing(ctx);
+ uw_set_could_write_db(ctx, 0);
+  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
   ({
    uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;

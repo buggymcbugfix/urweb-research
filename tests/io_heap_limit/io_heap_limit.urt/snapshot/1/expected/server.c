@@ -333,6 +333,7 @@
                                    uw_io_transaction __uwt;
                                    uw_Basis_int
                                    __uwr;
+                                   uw_set_could_write_db(ctx, 0);
                                    uw_io_transaction_begin(ctx, &__uwt);
                                    while (1) {
                                    int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -379,6 +380,7 @@
             uw_io_transaction __uwt;
             uw_Basis_int
             *__uwr = NULL;
+            uw_set_could_write_db(ctx, 0);
             uw_io_transaction_begin(ctx, &__uwt);
             while (1) {
             int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -446,6 +448,7 @@
                                       uw_io_transaction __uwt;
                                       uw_unit
                                       __uwr;
+                                      uw_set_could_write_db(ctx, 1);
                                       uw_io_transaction_begin(ctx, &__uwt);
                                       while (1) {
                                       int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -749,6 +752,7 @@
                                     uw_io_transaction __uwt;
                                     uw_Basis_int
                                     *__uwr = NULL;
+                                    uw_set_could_write_db(ctx, 0);
                                     uw_io_transaction_begin(ctx, &__uwt);
                                     while (1) {
                                     int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -815,6 +819,7 @@
                   uw_io_transaction __uwt;
                   uw_Basis_int
                   __uwr;
+                  uw_set_could_write_db(ctx, 0);
                   uw_io_transaction_begin(ctx, &__uwt);
                   while (1) {
                   int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -997,7 +1002,7 @@
      request = uw_Basis_strcat(ctx, request, pb.data);
      }
     uw_write_header(ctx, "Content-type: text/plain\r\n");
-     uw_set_could_write_db(ctx, 1);
+     uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 0);
    uw_set_needs_push(ctx, 0);
    uw_set_needs_sig(ctx, 0);
@@ -1031,7 +1036,7 @@
      request = uw_Basis_strcat(ctx, request, pb.data);
      }
     uw_write_header(ctx, "Content-type: text/plain\r\n");
-     uw_set_could_write_db(ctx, 1);
+     uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 0);
    uw_set_needs_push(ctx, 0);
    uw_set_needs_sig(ctx, 0);
@@ -1099,7 +1104,8 @@
   __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
- uw_begin_initializing(ctx);
+ uw_set_could_write_db(ctx, 0);
+  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
   __uwn_initializer_1(ctx, 0);
    }

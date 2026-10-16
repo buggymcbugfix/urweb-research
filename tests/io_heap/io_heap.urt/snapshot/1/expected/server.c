@@ -329,6 +329,7 @@
                  uw_io_transaction __uwt;
                  uw_unit
                  *__uwr = NULL;
+                 uw_set_could_write_db(ctx, 1);
                  uw_io_transaction_begin(ctx, &__uwt);
                  while (1) {
                  int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -761,6 +762,7 @@
                uw_io_transaction __uwt;
                uw_Basis_int
                __uwr;
+               uw_set_could_write_db(ctx, 0);
                uw_io_transaction_begin(ctx, &__uwt);
                while (1) {
                int __uwfk = setjmp(*uw_jmp_buf(ctx));
@@ -892,7 +894,8 @@
   __uwn_expunger_2(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
- uw_begin_initializing(ctx);
+ uw_set_could_write_db(ctx, 0);
+  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
   __uwn_initializer_1(ctx, 0);
    }

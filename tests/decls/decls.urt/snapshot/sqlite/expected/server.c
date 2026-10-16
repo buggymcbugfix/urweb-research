@@ -901,9 +901,10 @@
  return -1;}
  
  static void uw_periodic0(uw_context ctx) {
-  uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
-   0;
-   }
+  uw_set_could_write_db(ctx, 0);
+   uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;
+    0;
+    }
   
   static uw_periodic my_periodics[] = {{uw_periodic0, 3600, 0},{NULL}};
  
@@ -1000,7 +1001,7 @@
      request = uw_Basis_strcat(ctx, request, pb.data);
      }
     uw_write_header(ctx, "Content-type: text/plain\r\n");
-     uw_set_could_write_db(ctx, 1);
+     uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 1);
    uw_set_needs_push(ctx, 1);
    uw_set_needs_sig(ctx, 0);
@@ -1083,7 +1084,8 @@
    __uwn_expunger_2(ctx, cli);
     }
  static void uw_initializer(uw_context ctx) {
- uw_begin_initializing(ctx);
+ uw_set_could_write_db(ctx, 1);
+  uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
   ({
    uw_unit __uwr_$x_0 = 0, __uwr_$y_1 = 0;

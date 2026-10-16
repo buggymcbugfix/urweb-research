@@ -255,6 +255,9 @@ $(SRC)/postgres.sml
 $(SRC)/cjr_env.sig
 $(SRC)/cjr_env.sml
 
+$(SRC)/cjr_writes.sig
+$(SRC)/cjr_writes.sml
+
 $(SRC)/cjr_print.sig
 $(SRC)/cjr_print.sml
 
