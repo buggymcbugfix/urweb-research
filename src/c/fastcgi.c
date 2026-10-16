@@ -612,6 +612,12 @@ static void *worker(void *data) {
   size_t path_size = 0;
   char *path_buf = malloc(0);
 
+  // No context: the reason is logged.  A server that cannot serve with all
+  // its threads stops, as when the pruner or a periodic task cannot start,
+  // rather than crash at the first request this thread takes.
+  if (!ctx)
+    exit(1);
+
   hs.uppercased = malloc(6);
   hs.uppercased_len = 0;
   hs.nvps = malloc(sizeof(nvp));
