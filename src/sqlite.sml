@@ -1143,7 +1143,92 @@ fun nextval {loc, seqE, seqName} =
          newline]
 
 fun nextvalPrepared _ = raise Fail "SQLite.nextvalPrepared called"
-fun setval _ = raise Fail "SQLite.setval called"
+(* A sequence is a table with an AUTOINCREMENT key here, and its counter is
+ * the table's row in sqlite_sequence: the next nextval draws one more than
+ * it holds, since nextval leaves the table itself empty.  setval writes the
+ * counter, adding the row if nothing has been drawn yet.  Postgres's
+ * sequences start at 1 and refuse a smaller value; so does this. *)
+fun setval {loc, seqE, count} =
+    let
+        fun step what =
+            box [string "if (sqlite3_prepare_v2(conn->conn, \"",
+                 string what,
+                 string "\", -1, &stmt, NULL) != SQLITE_OK)",
+                 newline,
+                 box [string "uw_error(ctx, FATAL, \"",
+                      string (ErrorMsg.spanToString loc),
+                      string ": setval failed: %s\", sqlite3_errmsg(conn->conn));",
+                      newline],
+                 string "sqlite3_bind_text(stmt, 1, seq, -1, SQLITE_TRANSIENT);",
+                 newline,
+                 string "sqlite3_bind_int64(stmt, 2, count);",
+                 newline,
+                 string "r = sqlite3_step(stmt);",
+                 newline,
+                 string "if (r == SQLITE_DONE && uw_dml_log_enabled()) {",
+                 newline,
+                 box [string "char *expanded = sqlite3_expanded_sql(stmt);",
+                      newline,
+                      string "uw_log_dml(ctx, \"",
+                      string (ErrorMsg.spanToString loc),
+                      string "\", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));",
+                      newline,
+                      string "sqlite3_free(expanded);",
+                      newline],
+                 string "}",
+                 newline,
+                 string "if (r != SQLITE_DONE) {",
+                 newline,
+                 box [string "char msg[1024];",
+                      newline,
+                      newline,
+                      string "snprintf(msg, sizeof msg, \"%s\", sqlite3_errmsg(conn->conn));",
+                      newline,
+                      string "sqlite3_finalize(stmt);",
+                      newline,
+                      (* No pause, as for a busy DML statement. *)
+                      string "if (r == SQLITE_BUSY)",
+                      newline,
+                      box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+                           newline],
+                      string "uw_error(ctx, FATAL, \"",
+                      string (ErrorMsg.spanToString loc),
+                      string ": setval failed: %s\", msg);",
+                      newline],
+                 string "}",
+                 newline,
+                 string "sqlite3_finalize(stmt);",
+                 newline]
+    in
+        box [string "uw_conn *conn = uw_get_db(ctx);",
+             newline,
+             string "uw_Basis_string seq = ",
+             seqE,
+             string ";",
+             newline,
+             string "uw_Basis_int count = ",
+             count,
+             string ";",
+             newline,
+             string "sqlite3_stmt *stmt;",
+             newline,
+             string "int r;",
+             newline,
+             newline,
+             string "if (count < 1)",
+             newline,
+             box [string "uw_error(ctx, FATAL, \"",
+                  string (ErrorMsg.spanToString loc),
+                  string ": setval: %lld is out of bounds for sequence %s, which starts at 1\", (long long)count, seq);",
+                  newline],
+             newline,
+             step "UPDATE sqlite_sequence SET seq = ?2 WHERE name = ?1",
+             string "if (sqlite3_changes(conn->conn) == 0) {",
+             newline,
+             box [step "INSERT INTO sqlite_sequence (name, seq) VALUES (?1, ?2)"],
+             string "}",
+             newline]
+    end
 
 fun sqlifyString s = "'" ^ String.translate (fn #"'" => "''"
                                               | #"\000" => ""

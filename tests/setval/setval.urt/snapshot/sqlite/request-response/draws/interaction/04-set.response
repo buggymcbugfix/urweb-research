@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 184
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/setval/setval.ur:11:4-12:47: setval: 0 is out of bounds for sequence uw_Setval_s, which starts at 1
+</body></html>
