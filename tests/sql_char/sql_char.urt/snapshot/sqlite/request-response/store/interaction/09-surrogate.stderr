@@ -1,1 +1,1 @@
-GET /Sql_char/store/9/55296: Fatal error: Non-printable character 55296 in char to SQLify
+GET /Sql_char/store/9/55296: Fatal error: Can't store character 55296 in the database: it has no UTF-8 encoding

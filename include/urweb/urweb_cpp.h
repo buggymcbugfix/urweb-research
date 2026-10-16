@@ -235,6 +235,7 @@ uw_Basis_blob uw_Basis_stringToBlob_error(struct uw_context *, uw_Basis_string, 
 uw_Basis_channel uw_Basis_stringToChannel_error(struct uw_context *, uw_Basis_string);
 uw_Basis_client uw_Basis_stringToClient_error(struct uw_context *, uw_Basis_string);
 
+uw_Basis_char uw_Basis_unsqlChar(struct uw_context *, const char *);
 uw_Basis_time uw_Basis_unsqlTime(struct uw_context *, uw_Basis_string);
 
 uw_Basis_string uw_Basis_requestHeader(struct uw_context *, uw_Basis_string);
@@ -349,6 +350,7 @@ extern char *uw_sqlfmtFloat;
 extern int uw_Estrings, uw_sql_type_annotations;
 extern char *uw_sqlsuffixString;
 extern char *uw_sqlsuffixChar;
+extern uw_Basis_char uw_sqlmaxChar;
 extern char *uw_sqlsuffixBlob;
 extern char *uw_sqlfmtUint4;
 

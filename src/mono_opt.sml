@@ -466,7 +466,13 @@ fun exp e =
       | EFfiApp ("Basis", "sqlifyString", [((EPrim (Prim.String (_, n)), _), _)]) =>
         EPrim (Prim.String (Prim.Normal, sqlifyString n))
       | EFfiApp ("Basis", "sqlifyChar", [((EPrim (Prim.Char n), _), _)]) =>
-        EPrim (Prim.String (Prim.Normal, sqlifyChar n))
+        (* Only a char that is its own byte in UTF-8, ASCII but NUL.  Any
+         * other is left to uw_Basis_sqlifyChar, which writes it in UTF-8,
+         * or refuses it where the database cannot hold it. *)
+        if Char.isAscii n andalso n <> #"\000" then
+            EPrim (Prim.String (Prim.Normal, sqlifyChar n))
+        else
+            e
 
       | EWrite (ECase (discE, pes, {disc, ...}), loc) =>
         optExp (ECase (discE,

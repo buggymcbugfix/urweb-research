@@ -400,6 +400,10 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                   newline,
                   string "uw_sqlsuffixChar = \"\";",
                   newline,
+                  (* queryCommon reads a char back as a single byte, so one
+                   * beyond ASCII would not come back as it went. *)
+                  string "uw_sqlmaxChar = 0x7F;",
+                  newline,
                   string "uw_sqlsuffixBlob = \"\";",
                   newline,
                   string "uw_sqlfmtUint4 = \"%u%n\";",

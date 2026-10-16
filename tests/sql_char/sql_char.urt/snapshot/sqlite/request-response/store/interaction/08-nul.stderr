@@ -1,1 +1,1 @@
-GET /Sql_char/store/8/0: Fatal error: Non-printable character 0 in char to SQLify
+GET /Sql_char/store/8/0: Fatal error: Can't store the NUL character in the database

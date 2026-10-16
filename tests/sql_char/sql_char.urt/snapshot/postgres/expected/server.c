@@ -96,34 +96,16 @@
      PGconn *conn = uw_get_db(ctx);
      PGresult *res;
      
-     res = PQprepare(conn, "uw0", "SELECT COUNT(*) AS uw_1 FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_C = E'\\\\351'::text)", 0, NULL);
+     res = PQprepare(conn, "uw0", "DELETE FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT COUNT(*) AS uw_1 FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_C = E'\\\\351'::text)", PQerrorMessage(conn));
+      uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "DELETE FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
        PQclear(res);
        return 1;
        }
       PQclear(res);
       
       
-      res = PQprepare(conn, "uw1", "SELECT E'\\\\351'::text AS uw_1 FROM uw_Sql_char_t AS T_T", 0, NULL);
-       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT E'\\\\351'::text AS uw_1 FROM uw_Sql_char_t AS T_T", PQerrorMessage(conn));
-        PQclear(res);
-        return 1;
-        }
-       PQclear(res);
-       
-      
-      res = PQprepare(conn, "uw2", "DELETE FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
-       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "DELETE FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
-        PQclear(res);
-        return 1;
-        }
-       PQclear(res);
-       
-      
-      res = PQprepare(conn, "uw3", "SELECT T_T.uw_C, T_T.uw_Id FROM uw_Sql_char_t AS T_T ORDER BY T_T.uw_Id", 0, NULL);
+      res = PQprepare(conn, "uw1", "SELECT T_T.uw_C, T_T.uw_Id FROM uw_Sql_char_t AS T_T ORDER BY T_T.uw_Id", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
        uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT T_T.uw_C, T_T.uw_Id FROM uw_Sql_char_t AS T_T ORDER BY T_T.uw_Id", PQerrorMessage(conn));
         PQclear(res);
@@ -132,7 +114,7 @@
        PQclear(res);
        
       
-      res = PQprepare(conn, "uw4", "SELECT T_T.uw_C, T_T.uw_Id FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
+      res = PQprepare(conn, "uw2", "SELECT T_T.uw_C, T_T.uw_Id FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
        uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT T_T.uw_C, T_T.uw_Id FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
         PQclear(res);
@@ -400,15 +382,25 @@
                                     NULL;
                                     int dummy = (uw_begin_region(ctx), 0);
                                     uw_ensure_transaction(ctx);
-                                    
+                                    char *query = ({
+                                                   uw_Basis_string arg0 =
+                                                    "SELECT COUNT(*) AS uw_1 FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_C = ";
+                                                    
+                                                    uw_Basis_string arg1 =
+                                                     uw_Basis_sqlifyChar(ctx,
+                                                      233);
+                                                     
+                                                    uw_Basis_string arg2 = ")";
+                                                     uw_Basis_mstrcat(ctx, arg0,
+                                                                               
+                                                                            arg1
+                                                                            , 
+                                                                            arg2
+                                                   , NULL);
+                                                   });
                                      
                                      PGconn *conn = uw_get_db(ctx);
-                                      static const int paramFormats[] = {  };
-                                       const int *paramLengths = paramFormats;
-                                        const char **paramValues = uw_malloc(ctx, 0 * sizeof(char*));
-                                       
-                                       
-                                      PGresult *res = PQexecPrepared(conn, "uw0", 0, paramValues, paramLengths, paramFormats, 0);
+                                      PGresult *res = PQexecParams(conn, query, 0, NULL, NULL, NULL, NULL, 0);
                                       
                                       int n, i;
                                        
@@ -429,15 +421,13 @@
                                          uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                                          }
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query failed:\n%s\n%s", 
-                                        "SELECT COUNT(*) AS uw_1 FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_C = E'\\\\351'::text)", PQerrorMessage(conn));
+                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query failed:\n%s\n%s", query, PQerrorMessage(conn));
                                         }
                                        
                                        if (PQnfields(res) != 1) {
                                        int nf = PQnfields(res);
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
-                                        "SELECT COUNT(*) AS uw_1 FROM uw_Sql_char_t AS T_T WHERE (T_T.uw_C = E'\\\\351'::text)", PQerrorMessage(conn));
+                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query returned %d columns instead of 1:\n%s\n%s", nf, query, PQerrorMessage(conn));
                                         }
                                        
                                        uw_end_region(ctx);
@@ -583,7 +573,8 @@
                                                                     tmp;
                                                                     uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
                                                                     tmp;
-                                                                    }) : PQgetvalue(res, i, 0)[0]);
+                                                                    }) : uw_Basis_unsqlChar(ctx, 
+                                                                          PQgetvalue(res, i, 0)));
                                          
                                         
                                         acc =
@@ -651,15 +642,26 @@
                                     NULL;
                                     int dummy = (uw_begin_region(ctx), 0);
                                     uw_ensure_transaction(ctx);
-                                    
+                                    char *query = ({
+                                                   uw_Basis_string arg0 =
+                                                    "SELECT ";
+                                                    
+                                                    uw_Basis_string arg1 =
+                                                     uw_Basis_sqlifyChar(ctx,
+                                                      233);
+                                                     
+                                                    uw_Basis_string arg2 =
+                                                     " AS uw_1 FROM uw_Sql_char_t AS T_T";
+                                                     uw_Basis_mstrcat(ctx, arg0,
+                                                                               
+                                                                            arg1
+                                                                            , 
+                                                                            arg2
+                                                   , NULL);
+                                                   });
                                      
                                      PGconn *conn = uw_get_db(ctx);
-                                      static const int paramFormats[] = {  };
-                                       const int *paramLengths = paramFormats;
-                                        const char **paramValues = uw_malloc(ctx, 0 * sizeof(char*));
-                                       
-                                       
-                                      PGresult *res = PQexecPrepared(conn, "uw1", 0, paramValues, paramLengths, paramFormats, 0);
+                                      PGresult *res = PQexecParams(conn, query, 0, NULL, NULL, NULL, NULL, 0);
                                       
                                       int n, i;
                                        
@@ -680,15 +682,13 @@
                                          uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                                          }
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query failed:\n%s\n%s", 
-                                        "SELECT E'\\\\351'::text AS uw_1 FROM uw_Sql_char_t AS T_T", PQerrorMessage(conn));
+                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query failed:\n%s\n%s", query, PQerrorMessage(conn));
                                         }
                                        
                                        if (PQnfields(res) != 1) {
                                        int nf = PQnfields(res);
                                         PQclear(res);
-                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query returned %d columns instead of 1:\n%s\n%s", nf, 
-                                        "SELECT E'\\\\351'::text AS uw_1 FROM uw_Sql_char_t AS T_T", PQerrorMessage(conn));
+                                        uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Query returned %d columns instead of 1:\n%s\n%s", nf, query, PQerrorMessage(conn));
                                         }
                                        
                                        uw_end_region(ctx);
@@ -704,7 +704,8 @@
                                                                     tmp;
                                                                     uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: Unexpectedly NULL field #0");
                                                                     tmp;
-                                                                    }) : PQgetvalue(res, i, 0)[0]);
+                                                                    }) : uw_Basis_unsqlChar(ctx, 
+                                                                          PQgetvalue(res, i, 0)));
                                          
                                         
                                         acc =
@@ -779,7 +780,7 @@
                                       
                                      PGresult *res;
                                      
-                                     res = PQexecPrepared(conn, "uw2", 1, paramValues, paramLengths, paramFormats, 0);
+                                     res = PQexecPrepared(conn, "uw0", 1, paramValues, paramLengths, paramFormats, 0);
                                      
                                      if (res == NULL) {
                                                         uw_try_reconnecting_and_restarting(ctx);
@@ -849,7 +850,7 @@
                                                                                
                                                                                
                                                                                PGresult *res = 
-                                                                               PQexecPrepared(conn, "uw3", 0, paramValues, paramLengths, paramFormats, 0);
+                                                                               PQexecPrepared(conn, "uw1", 0, paramValues, paramLengths, paramFormats, 0);
                                                                                
                                                                                int n, i;
                                                                                
@@ -900,7 +901,8 @@
                                                                                uw_error(ctx, FATAL, "tests/sql_char/sql_char.ur:18:16-18:22: Unexpectedly NULL field #0");
                                                                                tmp;
                                                                                }) : 
-                                                                               PQgetvalue(res, i, 0)[0]);
+                                                                               uw_Basis_unsqlChar(ctx, 
+                                                                               PQgetvalue(res, i, 0)));
                                                                                
                                                                                __uwr_r_2.__uwf_T.__uwf_Id
                                                                                =
@@ -964,7 +966,7 @@
                                                          arg1);
                                         
                                        
-                                      PGresult *res = PQexecPrepared(conn, "uw4", 1, paramValues, paramLengths, paramFormats, 0);
+                                      PGresult *res = PQexecPrepared(conn, "uw2", 1, paramValues, paramLengths, paramFormats, 0);
                                       
                                       int n, i;
                                        
@@ -1009,7 +1011,8 @@
                                                                     tmp;
                                                                     uw_error(ctx, FATAL, "$/top.ur:431:17-431:18: Unexpectedly NULL field #0");
                                                                     tmp;
-                                                                    }) : PQgetvalue(res, i, 0)[0]);
+                                                                    }) : uw_Basis_unsqlChar(ctx, 
+                                                                          PQgetvalue(res, i, 0)));
                                          
                                          __uwr_r_2.__uwf_T.__uwf_Id =
                                           (PQgetisnull(res, i, 1) ? ({uw_Basis_int

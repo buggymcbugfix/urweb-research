@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 87
+Content-length: 138
 
-<!DOCTYPE html><html><head></head><body>1: 97<br />6: 39<br />7: 92<br /></body></html>
+<!DOCTYPE html><html><head></head><body>1: 97<br />2: 233<br />3: 20013<br />4: 128512<br />5: 9<br />6: 39<br />7: 92<br /></body></html>
