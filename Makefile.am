@@ -173,16 +173,18 @@ check-urt: urt
 
 # HTTP requests from io code, against a stub server: see
 # tests/io_curl/README.md.  Needs python3, curl and sqlite3, and libcurl to
-# link the application.
+# link the application.  The script runs through bash, not its first line:
+# the nix build sandbox has no /usr/bin/env.
 .PHONY: check-io-curl
 check-io-curl: bin/urweb
-	tests/io_curl/run.sh
+	bash tests/io_curl/run.sh
 
 # io code under contention, several clients at once: see
-# tests/io_concurrent/README.md.  Needs curl and sqlite3.
+# tests/io_concurrent/README.md.  Needs curl and sqlite3.  Through bash, as
+# check-io-curl.
 .PHONY: check-io-concurrent
 check-io-concurrent: bin/urweb
-	tests/io_concurrent/run.sh
+	bash tests/io_concurrent/run.sh
 
 check-local: bin/urweb check-io-curl check-io-concurrent
 	@$(TEST_PRELUDE); \
