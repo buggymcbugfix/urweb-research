@@ -507,8 +507,7 @@
                                            
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:9:24-9:88: DML step failed: %s<br />%s", 
@@ -592,8 +591,7 @@
                                              
                                             int r;
                                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                             sleep(1);
-                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                               }
                                              
                                              if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:15:28-15:98: DML step failed: %s<br />%s", 
@@ -670,8 +668,7 @@
                                            
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:22:24-22:100: DML step failed: %s<br />%s", 
@@ -747,8 +744,7 @@
                                            
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:22:24-22:100: DML step failed: %s<br />%s", 
@@ -840,8 +836,7 @@
                                                                    
                                                                   int r;
                                                                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                   sleep(1);
-                                                                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                     }
                                                                    
                                                                    if (r != SQLITE_DONE) 
@@ -929,8 +924,7 @@
                                                  
                                                 int r;
                                                  if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                 sleep(1);
-                                                  uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                 uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                   }
                                                  
                                                  if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:31:20-31:91: DML step failed: %s<br />%s", 
@@ -1027,8 +1021,7 @@
                                                         
                                                        int r;
                                                         if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                        sleep(1);
-                                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                          }
                                                         
                                                         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:31:20-31:91: DML step failed: %s<br />%s", 
@@ -1112,8 +1105,7 @@
                                                                    
                                                                   int r;
                                                                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                   sleep(1);
-                                                                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                     }
                                                                    
                                                                    if (r != SQLITE_DONE) 
@@ -1180,9 +1172,9 @@
                                                 });
                                                }
                                               
-                                              if (r == SQLITE_BUSY) {sleep(1);
-                                                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                      }
+                                              if (r == SQLITE_BUSY) {
+                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                               }
                                               
                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                               "SELECT COUNT(*) AS uw_1 FROM uw_Modules_t AS T_T WHERE (T_T.uw_S = 'runTwice')", sqlite3_errmsg(conn->conn));
@@ -1265,8 +1257,7 @@
                                                    
                                                   int r;
                                                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                   sleep(1);
-                                                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                     }
                                                    
                                                    if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:48:24-48:137: DML step failed: %s<br />%s", 
@@ -1331,9 +1322,9 @@
                                 });
                                }
                               
-                              if (r == SQLITE_BUSY) {sleep(1);
-                                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                      }
+                              if (r == SQLITE_BUSY) {
+                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                               }
                               
                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                               "SELECT COUNT(*) AS uw_1 FROM uw_Modules_t AS T_T WHERE (T_T.uw_S = 'runTwice')", sqlite3_errmsg(conn->conn));
@@ -1429,8 +1420,7 @@
                                           
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:54:4-54:79: DML step failed: %s<br />%s", 
@@ -1499,8 +1489,7 @@
                                                 
                                                 int r;
                                                  if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                 sleep(1);
-                                                  uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                 uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                   }
                                                  
                                                  if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:54:4-54:79: DML step failed: %s<br />%s", 
@@ -1585,7 +1574,6 @@
                                                                                
                                                                               int r;
                                                                                if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -1646,8 +1634,7 @@
                                                         
                                                         int r;
                                                          if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                         sleep(1);
-                                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                           }
                                                          
                                                          if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/modules/modules.ur:56:4-56:78: DML step failed: %s<br />%s", 
@@ -1708,8 +1695,7 @@
                                                             
                                                             int r;
                                                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                             sleep(1);
-                                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                               }
                                                              
                                                              if (r != SQLITE_DONE) 
@@ -1961,9 +1947,9 @@
                          });
                         }
                        
-                       if (r == SQLITE_BUSY) {sleep(1);
-                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                               }
+                       if (r == SQLITE_BUSY) {
+                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                        }
                        
                        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:288:16-288:18: query step failed: %s<br />%s", 
                        "SELECT COUNT(*) AS uw_C, SUM(T_T.uw_N) AS uw_Sum, T_T.uw_S FROM uw_Modules_t AS T_T GROUP BY T_T.uw_S ORDER BY T_T.uw_S", sqlite3_errmsg(conn->conn));

@@ -317,8 +317,7 @@
                                            
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:13:28-14:73: DML step failed: %s<br />%s", 
@@ -611,8 +610,7 @@
                                              
                                             int r;
                                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                             sleep(1);
-                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                               }
                                              
                                              if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:36:20-37:28: DML step failed: %s<br />%s", 
@@ -697,8 +695,7 @@
                                           
                                          int r;
                                           if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                          sleep(1);
-                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                            }
                                           
                                           if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:45:4-46:12: DML step failed: %s<br />%s", 
@@ -785,8 +782,7 @@
                                            
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:51:20-53:58: DML step failed: %s<br />%s", 
@@ -969,8 +965,7 @@
                                              
                                             int r;
                                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                             sleep(1);
-                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                               }
                                              
                                              if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:68:20-68:83: DML step failed: %s<br />%s", 
@@ -1048,8 +1043,7 @@
                                          
                                         int r;
                                          if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                         sleep(1);
-                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                           }
                                          
                                          if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:78:4-78:59: DML step failed: %s<br />%s", 
@@ -1120,8 +1114,7 @@
                                          
                                         int r;
                                          if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                         sleep(1);
-                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                           }
                                          
                                          if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:85:20-86:60: DML step failed: %s<br />%s", 
@@ -1334,7 +1327,6 @@
                                                                                }
                                                                                
                                                                                if (r == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                

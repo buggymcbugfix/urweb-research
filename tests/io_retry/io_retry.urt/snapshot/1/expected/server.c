@@ -590,7 +590,6 @@
                                                                                }
                                                                                
                                                                                if (r == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -663,9 +662,9 @@
                   uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                   
                   int r;
-                   if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                  uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                  }
+                   if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                    }
                    
                    if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_retry/io_retry.ur:21:32-22:40: DML step failed: %s<br />%s", 
                                           "INSERT INTO uw_Io_retry_t (uw_N) VALUES (1)", sqlite3_errmsg(conn->conn));
@@ -789,9 +788,9 @@
                          uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                          
                          int r;
-                          if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                         }
+                          if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                           }
                           
                           if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_retry/io_retry.ur:29:32-30:40: DML step failed: %s<br />%s", 
                                                  "INSERT INTO uw_Io_retry_t (uw_N) VALUES (2)", sqlite3_errmsg(conn->conn));
@@ -903,9 +902,9 @@
                           uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                           
                           int r;
-                           if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                          }
+                           if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                            }
                            
                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_retry/io_retry.ur:34:32-35:40: DML step failed: %s<br />%s", 
                                                   "INSERT INTO uw_Io_retry_t (uw_N) VALUES (3)", sqlite3_errmsg(conn->conn));
@@ -1016,9 +1015,9 @@
                              uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                              
                              int r;
-                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                             }
+                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                               }
                               
                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_retry/io_retry.ur:38:32-38:76: DML step failed: %s<br />%s", 
                                                      "INSERT INTO uw_Io_retry_t (uw_N) VALUES (4)", sqlite3_errmsg(conn->conn));
@@ -1201,8 +1200,7 @@
                                        
                                        int r;
                                         if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                        sleep(1);
-                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                          }
                                         
                                         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_retry/io_retry.ur:47:32-48:40: DML step failed: %s<br />%s", 
@@ -1317,8 +1315,7 @@
                                           
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_retry/io_retry.ur:51:32-52:40: DML step failed: %s<br />%s", 
@@ -1434,8 +1431,7 @@
                                              
                                              int r;
                                               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                              sleep(1);
-                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                }
                                               
                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_retry/io_retry.ur:55:32-56:40: DML step failed: %s<br />%s", 

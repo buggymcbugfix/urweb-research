@@ -461,8 +461,7 @@
                                                                       
                                                                      int r;
                                                                       if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                      sleep(1);
-                                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                        }
                                                                       
                                                                       if (r != SQLITE_DONE) 
@@ -556,9 +555,9 @@
                                                 });
                                                }
                                               
-                                              if (r == SQLITE_BUSY) {sleep(1);
-                                                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                      }
+                                              if (r == SQLITE_BUSY) {
+                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                               }
                                               
                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: query step failed: %s<br />%s", 
                                               "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", sqlite3_errmsg(conn->conn));
@@ -753,9 +752,9 @@
                                               });
                                              }
                                             
-                                            if (r == SQLITE_BUSY) {sleep(1);
-                                                                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                    }
+                                            if (r == SQLITE_BUSY) {
+                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                             }
                                             
                                             if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: query step failed: %s<br />%s", 
                                             "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", sqlite3_errmsg(conn->conn));
@@ -940,8 +939,7 @@
                                                                 }
                                                                
                                                                if (r == SQLITE_BUSY) {
-                                                               sleep(1);
-                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                 }
                                                                
                                                                if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: query step failed: %s<br />%s", 
@@ -1198,7 +1196,6 @@
                                                                                
                                                                                int r;
                                                                                if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -1285,9 +1282,9 @@
                          });
                         }
                        
-                       if (r == SQLITE_BUSY) {sleep(1);
-                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                               }
+                       if (r == SQLITE_BUSY) {
+                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                        }
                        
                        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                        "SELECT T_Counter.uw_V AS uw_1 FROM uw_Io_sqlcache_counter AS T_Counter WHERE (T_Counter.uw_Id = 1)", sqlite3_errmsg(conn->conn));

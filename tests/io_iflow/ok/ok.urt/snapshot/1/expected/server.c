@@ -358,9 +358,9 @@
                      });
                     }
                    
-                   if (r == SQLITE_BUSY) {sleep(1);
-                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                           }
+                   if (r == SQLITE_BUSY) {
+                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                    }
                    
                    if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                    "SELECT T_Fruit.uw_Nam AS uw_1 FROM uw_Ok_fruit AS T_Fruit WHERE (T_Fruit.uw_Id = \?)", sqlite3_errmsg(conn->conn));
@@ -427,9 +427,9 @@
                  if (sqlite3_bind_text(stmt, 1, arg1, -1, SQLITE_TRANSIENT) != SQLITE_OK) uw_error(ctx, FATAL, "tests/io_iflow/ok/ok.ur:15:4-15:63: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
                   
                  int r;
-                  if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                 uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                 }
+                  if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                  uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                   }
                   
                   if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_iflow/ok/ok.ur:15:4-15:63: DML step failed: %s<br />%s", 
                                          "INSERT INTO uw_Ok_pub (uw_Nam) VALUES (\?)", sqlite3_errmsg(conn->conn));

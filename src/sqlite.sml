@@ -51,12 +51,15 @@ val ident = String.translate (fn #"'" => "PRIME"
  * milliseconds: SQLite's busy_timeout, set on every connection. *)
 val busyTimeout = "10000"
 
-(* What a statement or a draw from a sequence does when SQLite has found the
- * database busy: the request is run again, after a pause. *)
+(* What a statement, a BEGIN IMMEDIATE or a draw from a sequence does when
+ * SQLite has found the database busy: the request is run again, with no
+ * pause.  A transaction that may write has held the write lock since its
+ * BEGIN, so a statement that is busy all the same has already waited for
+ * busy_timeout inside SQLite, and a pause here would keep the transaction,
+ * and its locks, open for nothing: uw_error is what unwinds to the
+ * ROLLBACK. *)
 val busyRetry =
-    box [string "sleep(1);",
-         newline,
-         string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+    box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
          newline]
 
 fun checkRel (table, checkNullable) (s, xts) =
@@ -544,8 +547,7 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                   newline],
              string "else if (r == SQLITE_BUSY) {",
              newline,
-             box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
-                  newline],
+             busyRetry,
              string "} else {",
              newline,
              box [string "fprintf(stderr, \"Begin error: %s<br />\", sqlite3_errmsg(conn->conn));",
@@ -713,6 +715,7 @@ fun queryCommon {loc, query, cols, doCols} =
          newline,
 
          string "if (r == SQLITE_BUSY) {",
+         newline,
          busyRetry,
          string "}",
          newline,
@@ -893,6 +896,7 @@ fun dmlCommon {loc, dml, mode} =
          newline,
 
          string "if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {",
+         newline,
          busyRetry,
          string "}",
          newline,

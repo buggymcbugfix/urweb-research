@@ -474,7 +474,6 @@
                                                                                
                                                                                int r;
                                                                                if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -600,7 +599,6 @@
                                                                                }
                                                                                
                                                                                if (r == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -972,7 +970,6 @@
                                                                                
                                                                                int r;
                                                                                if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -1116,7 +1113,6 @@
                                                                                }
                                                                                
                                                                                if (r == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -1423,8 +1419,7 @@
                                                                 }
                                                                
                                                                if (r == SQLITE_BUSY) {
-                                                               sleep(1);
-                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                 }
                                                                
                                                                if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: query step failed: %s<br />%s", 

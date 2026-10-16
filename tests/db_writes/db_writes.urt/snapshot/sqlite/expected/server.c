@@ -396,9 +396,9 @@
               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
               
               int r;
-               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                              }
+               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                }
                
                if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/failures.ur:7:4-9:3: DML step failed: %s<br />%s", 
                                       "INSERT INTO uw_Failures_failures (uw_N) VALUES (1)", sqlite3_errmsg(conn->conn));
@@ -497,9 +497,9 @@
                                             });
                                            }
                                           
-                                          if (r == SQLITE_BUSY) {sleep(1);
-                                                                  uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                  }
+                                          if (r == SQLITE_BUSY) {
+                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           }
                                           
                                           if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                           "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
@@ -571,8 +571,7 @@
                                            
                                           int r;
                                            if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                           sleep(1);
-                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                             }
                                            
                                            if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:45:4-45:59: DML step failed: %s<br />%s", 
@@ -653,9 +652,9 @@
               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
               
               int r;
-               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                              }
+               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                }
                
                if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:33:4-36:2: DML step failed: %s<br />%s", 
                                       "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", sqlite3_errmsg(conn->conn));
@@ -700,13 +699,11 @@
                                                                                int r;
                                                                                
                                                                                if ((r = sqlite3_exec(conn->conn, insert, NULL, NULL, NULL)) == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                if (r != SQLITE_OK) uw_error(ctx, FATAL, "'nextval' INSERT failed: %s", sqlite3_errmsg(conn->conn));
                                                                                n = sqlite3_last_insert_rowid(conn->conn);
                                                                                if ((r = sqlite3_exec(conn->conn, delete, NULL, NULL, NULL)) == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                if (r != SQLITE_OK) uw_error(ctx, FATAL, "'nextval' DELETE failed: %s", sqlite3_errmsg(conn->conn));
@@ -744,9 +741,9 @@
               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
               
               int r;
-               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                              }
+               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                }
                
                if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:22:4-25:2: DML step failed: %s<br />%s", 
                                       "INSERT INTO uw_Db_writes_t (uw_N) VALUES (1)", sqlite3_errmsg(conn->conn));
@@ -825,9 +822,9 @@
                                          });
                                         }
                                        
-                                       if (r == SQLITE_BUSY) {sleep(1);
-                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                               }
+                                       if (r == SQLITE_BUSY) {
+                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                        }
                                        
                                        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                        "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
@@ -932,9 +929,9 @@
                                          });
                                         }
                                        
-                                       if (r == SQLITE_BUSY) {sleep(1);
-                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                               }
+                                       if (r == SQLITE_BUSY) {
+                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                        }
                                        
                                        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                        "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
@@ -1051,9 +1048,9 @@
        uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
        
        int r;
-        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                       }
+        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+         }
         
         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:52:0-52:38: DML step failed: %s<br />%s", 
                                "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", sqlite3_errmsg(conn->conn));
@@ -1117,9 +1114,9 @@
                                     });
                                    }
                                   
-                                  if (r == SQLITE_BUSY) {sleep(1);
-                                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                          }
+                                  if (r == SQLITE_BUSY) {
+                                  uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                   }
                                   
                                   if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                   "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
@@ -1210,9 +1207,9 @@
                                        });
                                       }
                                      
-                                     if (r == SQLITE_BUSY) {sleep(1);
-                                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                             }
+                                     if (r == SQLITE_BUSY) {
+                                     uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                      }
                                      
                                      if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                      "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
@@ -1279,9 +1276,9 @@
              uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
              
              int r;
-              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                             }
+              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+               }
               
               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/db_writes/db_writes.ur:61:4-61:29: DML step failed: %s<br />%s", 
                                      "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", sqlite3_errmsg(conn->conn));
@@ -1612,9 +1609,9 @@
                                   });
                                  }
                                 
-                                if (r == SQLITE_BUSY) {sleep(1);
-                                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                        }
+                                if (r == SQLITE_BUSY) {
+                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                 }
                                 
                                 if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                 "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));

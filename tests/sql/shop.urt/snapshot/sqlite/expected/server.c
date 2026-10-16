@@ -423,7 +423,6 @@
                                                                                }
                                                                                
                                                                                if (r == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
