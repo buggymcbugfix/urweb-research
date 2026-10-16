@@ -576,8 +576,8 @@ val unurlifies = ref IS.empty
 val dbWriters = ref IS.empty
 
 (* Whether the transaction about to begin may write the database: Postgres
- * begins one that cannot READ ONLY.  Items to splice into the code around
- * them. *)
+ * begins one that cannot READ ONLY, and SQLite takes the write lock at BEGIN
+ * for one that can.  Items to splice into the code around them. *)
 fun couldWriteDb writes =
     [string "uw_set_could_write_db(ctx, ",
      string (if writes then "1" else "0"),

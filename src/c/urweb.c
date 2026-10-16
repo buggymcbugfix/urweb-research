@@ -532,6 +532,10 @@ struct uw_context {
 
   int needs_push, needs_sig, could_write_db, at_most_one_query;
 
+  // Whether the transaction about to begin may wait for a lock on the
+  // database that another connection holds (uw_db_may_wait).
+  int db_may_wait;
+
   size_t n_deltas, used_deltas;
   delta *deltas;
 
@@ -717,6 +721,7 @@ uw_context uw_init(int id, uw_loggers *lg) {
   ctx->needs_sig = 0;
   ctx->could_write_db = 1;
   ctx->at_most_one_query = 0;
+  ctx->db_may_wait = 1;
 
   ctx->source_count = 0;
 
@@ -1542,6 +1547,14 @@ void uw_set_needs_sig(uw_context ctx, int n) {
 
 void uw_set_could_write_db(uw_context ctx, int n) {
   ctx->could_write_db = n;
+}
+
+// For the backend's BEGIN: whether it may wait for a lock that another
+// connection holds, up to its timeout, such as SQLite's write lock for a
+// transaction that may write.  Only the expunger's may not: the client
+// pruner keeps every request of the process out while it runs.
+int uw_db_may_wait(uw_context ctx) {
+  return ctx->db_may_wait;
 }
 
 void uw_set_at_most_one_query(uw_context ctx, int n) {
@@ -4445,8 +4458,11 @@ static failure_kind uw_expunge(uw_context ctx, uw_Basis_client cli, void *data) 
 
   if (r == 0) {
     // The expunger deletes the rows that hold the client: its transaction
-    // always writes.
+    // always writes.  It does not wait for a database that another process
+    // holds, since every request waits for the pruner meanwhile: it fails,
+    // and the client is tried again at the next pass.
     uw_set_could_write_db(ctx, 1);
+    ctx->db_may_wait = 0;
     uw_do_expunge(ctx, cli, data);
     // The commit can fail without raising.  Before the database's COMMIT the
     // transaction was rolled back, and at COMMIT it may still be open: either
@@ -4459,8 +4475,14 @@ static failure_kind uw_expunge(uw_context ctx, uw_Basis_client cli, void *data) 
       }
       r = FATAL;
     }
-  } else
+  }
+  // A BEGIN that found the database busy fails before any transaction
+  // exists, and a conflict at COMMIT has ended it: nothing to roll back.
+  else if (ctx->transaction_started) {
+    ctx->transaction_started = 0;
     ctx->app->db_rollback(ctx);
+  }
+  ctx->db_may_wait = 1;
 
   uw_post_expunge(ctx, data);
 

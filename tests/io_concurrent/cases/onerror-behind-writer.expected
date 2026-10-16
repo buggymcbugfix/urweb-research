@@ -5,6 +5,6 @@ onError: failed after reading 0 and 0
 > hold
 HTTP/1.1 200 OK
 5000
-run again for "Database is busy": more than once
+run again for "Database is busy": never
 > failures logged
   1
