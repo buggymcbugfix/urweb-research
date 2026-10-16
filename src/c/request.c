@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <signal.h>
+#include <time.h>
 
 #include <pthread.h>
 
@@ -350,14 +351,17 @@ void uw_free_request_context(uw_request_context r) {
   free(r);
 }
 
-request_result uw_request(uw_request_context rc, uw_context ctx,
-                          char *method, char *path, char *query_string,
-                          char *body, size_t body_len,
-                          void (*on_success)(uw_context), void (*on_failure)(uw_context),
-                          void *logger_data, uw_logger log_error, uw_logger log_debug,
-                          int sock,
-                          int (*send)(int sockfd, const void *buf, ssize_t len),
-                          int (*close)(int fd)) {
+// uw_request, but for the line it logs at the end; *attempts counts how
+// many times the handler started.
+static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
+                                          char *method, char *path, char *query_string,
+                                          char *body, size_t body_len,
+                                          void (*on_success)(uw_context), void (*on_failure)(uw_context),
+                                          void *logger_data, uw_logger log_error, uw_logger log_debug,
+                                          int sock,
+                                          int (*send)(int sockfd, const void *buf, ssize_t len),
+                                          int (*close)(int fd),
+                                          int *attempts) {
   int attempts_left = UW_RETRY_ATTEMPTS;
   failure_kind fk;
   int is_post = 0;
@@ -596,6 +600,7 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
   }
 
   while (1) {
+    ++*attempts;
     uw_reproducible_attempt();
     uw_setQueryString(ctx, rc->queryString);
 
@@ -733,6 +738,100 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
 
     uw_reset_keep_request(ctx);
   }
+}
+
+// A figure for the line uw_request logs, to be printed with "%.*f %s".
+typedef struct {
+  int decimals;
+  double value;
+  const char *unit;
+} amount;
+
+// Where a figure moves to the next unit: from the value that would print
+// as the unit's whole, "1024.0" with one decimal, "1000.0", or "1000"
+// with none, since printf rounds.
+#define ROUNDS_TO_1024 1023.95
+#define ROUNDS_TO_1000 999.95
+#define ROUNDS_TO_WHOLE_1000 999.5
+
+// n bytes: as a whole number of B, or in the largest of KiB, MiB, GiB and
+// TiB that leaves at least 1, to one decimal.
+static amount in_bytes(size_t n) {
+  static const char *const units[] = {"KiB", "MiB", "GiB", "TiB"};
+  amount a = {0, (double)n, "B"};
+  int u = 0;
+
+  if (n < 1024)
+    return a;
+  for (a.value = n / 1024.0; u < 3 && a.value >= ROUNDS_TO_1024; ++u)
+    a.value /= 1024;
+  a.decimals = 1;
+  a.unit = units[u];
+  return a;
+}
+
+// A duration: as a whole number of us, or in ms or s to one decimal.
+static amount in_time(double secs) {
+  amount a = {0, secs * 1e6, "us"};
+
+  if (a.value < ROUNDS_TO_WHOLE_1000)
+    return a;
+  a.decimals = 1;
+  if (secs * 1e3 < ROUNDS_TO_1000) {
+    a.value = secs * 1e3;
+    a.unit = "ms";
+  } else {
+    a.value = secs;
+    a.unit = "s";
+  }
+  return a;
+}
+
+// Serve a request, and log a line for it: how long it took, how many
+// attempts when there was more than one, and the most heap it had in use
+// at once and all it allocated (uw_heap_usage).  The time is that of the
+// request's work, not of reading it in or of sending the response.  The
+// line is formatted by the logger, so that one that prints nothing (-q)
+// costs nothing more.  There is no line for a request for messages
+// (.msgs), which hands its connection over to the client's channel and
+// returns: nothing of the program runs.
+request_result uw_request(uw_request_context rc, uw_context ctx,
+                          char *method, char *path, char *query_string,
+                          char *body, size_t body_len,
+                          void (*on_success)(uw_context), void (*on_failure)(uw_context),
+                          void *logger_data, uw_logger log_error, uw_logger log_debug,
+                          int sock,
+                          int (*send)(int sockfd, const void *buf, ssize_t len),
+                          int (*close)(int fd)) {
+  struct timespec start, end;
+  int attempts = 0;
+  request_result rr;
+
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  rr = uw_request_attempts(rc, ctx, method, path, query_string, body, body_len, on_success, on_failure,
+                           logger_data, log_error, log_debug, sock, send, close, &attempts);
+
+  if (rr != KEEP_OPEN) {
+    const char *verb = rr == FAILED ? "Failed" : "Served";
+    size_t peak, total;
+    amount t, p, a;
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    uw_heap_usage(ctx, &peak, &total);
+    t = in_time((double)(end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9);
+    p = in_bytes(peak);
+    a = in_bytes(total);
+    if (attempts > 1)
+      log_debug(logger_data, "%s URI %s in %.*f %s; %d attempts; %.*f %s peak; %.*f %s total\n",
+                verb, path, t.decimals, t.value, t.unit, attempts,
+                p.decimals, p.value, p.unit, a.decimals, a.value, a.unit);
+    else
+      log_debug(logger_data, "%s URI %s in %.*f %s; %.*f %s peak; %.*f %s total\n",
+                verb, path, t.decimals, t.value, t.unit,
+                p.decimals, p.value, p.unit, a.decimals, a.value, a.unit);
+  }
+
+  return rr;
 }
 
 void *client_pruner(void *data) {

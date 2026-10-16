@@ -139,7 +139,7 @@ show_log() {
   local n
   n=$(wc -l < "$log")
   tail -n +"$((log_mark + 1))" "$log" | head -n "$((n - log_mark))" \
-    | grep -v -E '^(Database connection initialized|Starting the|ONLY DURING|behind a|Forking|Listening|Accepted|Handling|Serving)|^$' \
+    | grep -v -E '^(Database connection initialized|Starting the|ONLY DURING|behind a|Forking|Listening|Accepted|Handling|Serving|Served URI|Failed URI)|^$' \
     | sed 's/^/  | /'
   log_mark=$n
 }
