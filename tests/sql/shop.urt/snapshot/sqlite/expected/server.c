@@ -247,38 +247,35 @@
      return uw_db_check_with(ctx, UNLIMITED_RETRY);
       }
      
-     static void uw_db_validate(uw_context ctx) {
+     static int uw_db_validate(uw_context ctx) {
       static int validated;
-      char msg[ERROR_BUF_LEN];
       
       if (validated)
-      return;
-       
-      if (uw_db_check_with(ctx, FATAL)) {
-      strcpy(msg, uw_error_message(ctx));
-       uw_error(ctx, FATAL, "%s", msg);
-       }
-      
-      validated = 1;
+      return 0;
+       if (uw_db_check_with(ctx, FATAL))
+      return 1;
+       validated = 1;
+      return 0;
       }
       
-      static void uw_db_prepare(uw_context ctx) {
+      static int uw_db_prepare(uw_context ctx) {
       uw_conn *conn = uw_get_db(ctx);
       
       if (sqlite3_prepare_v2(conn->conn, "SELECT T_Cheap.uw_Name FROM uw_Shop_cheap AS T_Cheap", -1, &conn->p0, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Cheap.uw_Name FROM uw_Shop_cheap AS T_Cheap<br />%s"
-         , msg);
-         }
-       }
+       uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT T_Cheap.uw_Name FROM uw_Shop_cheap AS T_Cheap", sqlite3_errmsg(conn->conn));
+        return 1;
+        }
+       
+      return 0;
+      }
+    
+    static void uw_db_close(uw_context ctx);
     
     static void uw_db_init(uw_context ctx) {
     sqlite3 *sqlite;
     sqlite3_stmt *stmt;
     uw_conn *conn;
+    char failure[ERROR_BUF_LEN];
     
     char *env_db_str = getenv("URWEB_SQLITE_DB_PATH");
     const char *sqlite_db_path = env_db_str == NULL ? "shop" : env_db_str;
@@ -318,8 +315,14 @@
     conn = calloc(1, sizeof(uw_conn));
     conn->conn = sqlite;
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    strcpy(failure, uw_error_message(ctx));
+     uw_db_close(ctx);
+     free(conn);
+     uw_set_db(ctx, NULL);
+     uw_error(ctx, FATAL, "%s", failure);
+     }
     }
     
     static void uw_db_close(uw_context ctx) {

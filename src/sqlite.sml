@@ -353,95 +353,64 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                   * check: they would find what the first one found.  The
                   * flag is set before any thread exists, so the threads
                   * read it without a lock. *)
-                 box [string "static void uw_db_validate(uw_context ctx) {",
+                 box [string "static int uw_db_validate(uw_context ctx) {",
                       newline,
                       string "static int validated;",
-                      newline,
-                      string "char msg[ERROR_BUF_LEN];",
                       newline,
                       newline,
                       string "if (validated)",
                       newline,
-                      box [string "return;",
+                      box [string "return 0;",
                            newline],
+                      string "if (uw_db_check_with(ctx, FATAL))",
                       newline,
-                      string "if (uw_db_check_with(ctx, FATAL)) {",
-                      newline,
-                      box [string "strcpy(msg, uw_error_message(ctx));",
-                           newline,
-                           string "uw_error(ctx, FATAL, \"%s\", msg);",
+                      box [string "return 1;",
                            newline],
-                      string "}",
-                      newline,
-                      newline,
                       string "validated = 1;",
+                      newline,
+                      string "return 0;",
                       newline,
                       string "}",
                       newline,
                       newline,
 
-                      string "static void uw_db_prepare(uw_context ctx) {",
+                      string "static int uw_db_prepare(uw_context ctx) {",
                       newline,
                       string "uw_conn *conn = uw_get_db(ctx);",
                       newline,
                       newline,
 
                       p_list_sepi newline (fn i => fn (s, _) =>
-                                                      let
-                                                          fun uhoh this s args =
-                                                              box [p_list_sepi (box [])
-                                                                               (fn j => fn () =>
-                                                                                           box [string
-                                                                                                    "sqlite3_finalize(conn->p",
-                                                                                                string (Int.toString j),
-                                                                                                string ");",
-                                                                                                newline])
-                                                                               (List.tabulate (i, fn _ => ())),
-                                                                   box (if this then
-                                                                            [string
-                                                                                 "sqlite3_finalize(conn->p",
-                                                                             string (Int.toString i),
-                                                                             string ");",
-                                                                             newline]
-                                                                        else
-                                                                            []),
-                                                                   string "sqlite3_close(conn->conn);",
-                                                                   newline,
-                                                                   string "uw_error(ctx, FATAL, \"",
-                                                                   string s,
-                                                                   string "\"",
-                                                                   p_list_sep (box []) (fn s => box [string ", ",
-                                                                                                     string s]) args,
-                                                                   string ");",
-                                                                   newline]
-                                                      in
-                                                          box [string "if (sqlite3_prepare_v2(conn->conn, \"",
-                                                               string (Prim.toCString s),
-                                                               string "\", -1, &conn->p",
-                                                               string (Int.toString i),
-                                                               string ", NULL) != SQLITE_OK) {",
-                                                               newline,
-                                                               box [string "char msg[1024];",
-                                                                    newline,
-                                                                    string "strncpy(msg, sqlite3_errmsg(conn->conn), 1024);",
-                                                                    newline,
-                                                                    string "msg[1023] = 0;",
-                                                                    newline,
-                                                                    uhoh false ("Error preparing statement: "
-                                                                                ^ Prim.toCString s ^ "<br />%s") ["msg"]],
-                                                               string "}",
-                                                               newline]
-                                                      end)
+                                                      box [string "if (sqlite3_prepare_v2(conn->conn, \"",
+                                                           string (Prim.toCString s),
+                                                           string "\", -1, &conn->p",
+                                                           string (Int.toString i),
+                                                           string ", NULL) != SQLITE_OK) {",
+                                                           newline,
+                                                           box [string "uw_set_error_message(ctx, \"Error preparing statement: %s: %s\", \"",
+                                                                string (Prim.toCString s),
+                                                                string "\", sqlite3_errmsg(conn->conn));",
+                                                                newline,
+                                                                string "return 1;",
+                                                                newline],
+                                                           string "}",
+                                                           newline])
                                   ss,
 
+                      newline,
+                      string "return 0;",
+                      newline,
                       string "}"]
              else
-                 box [string "static void uw_db_prepare(uw_context ctx) { }",
+                 box [string "static int uw_db_prepare(uw_context ctx) { return 0; }",
                       newline,
-                      string "static void uw_db_validate(uw_context ctx) { }"],
+                      string "static int uw_db_validate(uw_context ctx) { return 0; }"],
              newline,
              newline,
 
+             string "static void uw_db_close(uw_context ctx);",
+             newline,
+             newline,
              string "static void uw_db_init(uw_context ctx) {",
              newline,
              string "sqlite3 *sqlite;",
@@ -449,6 +418,8 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              string "sqlite3_stmt *stmt;",
              newline,
              string "uw_conn *conn;",
+             newline,
+             string "char failure[ERROR_BUF_LEN];",
              newline,
              newline,
              string "char *env_db_str = getenv(\"URWEB_SQLITE_DB_PATH\");",
@@ -529,9 +500,24 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              string "uw_set_db(ctx, conn);",
              newline,
-             string "uw_db_validate(ctx);",
              newline,
-             string "uw_db_prepare(ctx);",
+             (* The connection stays the context's only once it is checked
+              * and prepared.  On a failure it goes, so that the next
+              * transaction connects afresh instead of using a connection
+              * half set up, or closed. *)
+             string "if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {",
+             newline,
+             box [string "strcpy(failure, uw_error_message(ctx));",
+                  newline,
+                  string "uw_db_close(ctx);",
+                  newline,
+                  string "free(conn);",
+                  newline,
+                  string "uw_set_db(ctx, NULL);",
+                  newline,
+                  string "uw_error(ctx, FATAL, \"%s\", failure);",
+                  newline],
+             string "}",
              newline,
              string "}",
              newline,

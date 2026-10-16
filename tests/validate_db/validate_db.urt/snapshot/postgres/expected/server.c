@@ -161,25 +161,23 @@
     return 0;
     }
     
-    static void uw_db_validate(uw_context ctx) {
+    static int uw_db_validate(uw_context ctx) {
      static int validated;
-     char msg[ERROR_BUF_LEN];
      
      if (validated)
-     return;
-      
-     if (uw_db_check(ctx)) {
-     strcpy(msg, uw_error_message(ctx));
-      uw_error(ctx, FATAL, "%s", msg);
-      }
-     
-     validated = 1;
+     return 0;
+      if (uw_db_check(ctx))
+     return 1;
+      validated = 1;
+     return 0;
      }
      
-     static void uw_db_prepare(uw_context ctx) {
+     static int uw_db_prepare(uw_context ctx) {
      PGconn *conn = uw_get_db(ctx);
      PGresult *res;
      
+     
+     return 0;
      }
      
      static void uw_client_init(void) {
@@ -247,6 +245,7 @@
     }
     
     static void uw_db_init(uw_context ctx) {
+    char failure[ERROR_BUF_LEN];
     char *env_db_str = getenv("URWEB_PQ_CON");
     PGconn *conn = PQconnectdb(env_db_str == NULL ? "dbname=validate_db.db" : env_db_str);
     if (conn == NULL) uw_error(ctx, FATAL, "libpq can't allocate a connection.");
@@ -258,8 +257,13 @@
      uw_error(ctx, BOUNDED_RETRY, "Connection to Postgres server failed: %s", msg);
     }
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    strcpy(failure, uw_error_message(ctx));
+     PQfinish(conn);
+     uw_set_db(ctx, NULL);
+     uw_error(ctx, FATAL, "%s", failure);
+     }
     }
  
  /* No global setup for LRU cache. */

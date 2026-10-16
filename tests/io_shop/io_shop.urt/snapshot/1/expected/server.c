@@ -299,361 +299,137 @@
      return uw_db_check_with(ctx, UNLIMITED_RETRY);
       }
      
-     static void uw_db_validate(uw_context ctx) {
+     static int uw_db_validate(uw_context ctx) {
       static int validated;
-      char msg[ERROR_BUF_LEN];
       
       if (validated)
-      return;
-       
-      if (uw_db_check_with(ctx, FATAL)) {
-      strcpy(msg, uw_error_message(ctx));
-       uw_error(ctx, FATAL, "%s", msg);
-       }
-      
-      validated = 1;
+      return 0;
+       if (uw_db_check_with(ctx, FATAL))
+      return 1;
+       validated = 1;
+      return 0;
       }
       
-      static void uw_db_prepare(uw_context ctx) {
+      static int uw_db_prepare(uw_context ctx) {
       uw_conn *conn = uw_get_db(ctx);
       
       if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Io_shop_watchers", -1, &conn->p0, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Io_shop_watchers<br />%s"
-         , msg);
-         }
+       uw_set_error_message(ctx, "Error preparing statement: %s: %s", "DELETE FROM uw_Io_shop_watchers", sqlite3_errmsg(conn->conn));
+        return 1;
+        }
        
        
        if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Io_shop_watchers WHERE ((uw_Ch >> 32) = \?)", -1, &conn->p1, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Io_shop_watchers WHERE ((uw_Ch >> 32) = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "DELETE FROM uw_Io_shop_watchers WHERE ((uw_Ch >> 32) = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_shop_payments (uw_Attempt, uw_OrderId, uw_Outcome) VALUES (\?, \?, \?)", -1, &conn->p2, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_shop_payments (uw_Attempt, uw_OrderId, uw_Outcome) VALUES (\?, \?, \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_shop_payments (uw_Attempt, uw_OrderId, uw_Outcome) VALUES (\?, \?, \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "UPDATE uw_Io_shop_orders SET uw_Status = 'paid' WHERE (uw_Id = \?)", -1, &conn->p3, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: UPDATE uw_Io_shop_orders SET uw_Status = 'paid' WHERE (uw_Id = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "UPDATE uw_Io_shop_orders SET uw_Status = 'paid' WHERE (uw_Id = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT T_Watchers.uw_Ch FROM uw_Io_shop_watchers AS T_Watchers", -1, &conn->p4, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Watchers.uw_Ch FROM uw_Io_shop_watchers AS T_Watchers<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT T_Watchers.uw_Ch FROM uw_Io_shop_watchers AS T_Watchers", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "UPDATE uw_Io_shop_orders SET uw_Status = 'declined' WHERE (uw_Id = \?)", -1, &conn->p5, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: UPDATE uw_Io_shop_orders SET uw_Status = 'declined' WHERE (uw_Id = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "UPDATE uw_Io_shop_orders SET uw_Status = 'declined' WHERE (uw_Id = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT T_Orders.uw_Id, T_Orders.uw_Status FROM uw_Io_shop_orders AS T_Orders WHERE (T_Orders.uw_CartId = \?)", -1, &conn->p6, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Orders.uw_Id, T_Orders.uw_Status FROM uw_Io_shop_orders AS T_Orders WHERE (T_Orders.uw_CartId = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT T_Orders.uw_Id, T_Orders.uw_Status FROM uw_Io_shop_orders AS T_Orders WHERE (T_Orders.uw_CartId = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT COALESCE(SUM((T_Cart.uw_Qty * T_Cart.uw_Price)),0) AS uw_1 FROM uw_Io_shop_cart AS T_Cart WHERE (T_Cart.uw_Id = \?)", -1, &conn->p7, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT COALESCE(SUM((T_Cart.uw_Qty * T_Cart.uw_Price)),0) AS uw_1 FROM uw_Io_shop_cart AS T_Cart WHERE (T_Cart.uw_Id = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT COALESCE(SUM((T_Cart.uw_Qty * T_Cart.uw_Price)),0) AS uw_1 FROM uw_Io_shop_cart AS T_Cart WHERE (T_Cart.uw_Id = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_shop_orders (uw_CartId, uw_Id, uw_Status, uw_Total) VALUES (\?, \?, 'pending', \?)", -1, &conn->p8, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_shop_orders (uw_CartId, uw_Id, uw_Status, uw_Total) VALUES (\?, \?, 'pending', \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_shop_orders (uw_CartId, uw_Id, uw_Status, uw_Total) VALUES (\?, \?, 'pending', \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Io_shop_cart WHERE (uw_Id = \?)", -1, &conn->p9, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Io_shop_cart WHERE (uw_Id = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "DELETE FROM uw_Io_shop_cart WHERE (uw_Id = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Io_shop_orders AS T_Orders WHERE ((T_Orders.uw_Id = \?) AND (T_Orders.uw_Status = 'pending'))", -1, &conn->p10, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Io_shop_orders AS T_Orders WHERE ((T_Orders.uw_Id = \?) AND (T_Orders.uw_Status = 'pending'))<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT COUNT(*) AS uw_1 FROM uw_Io_shop_orders AS T_Orders WHERE ((T_Orders.uw_Id = \?) AND (T_Orders.uw_Status = 'pending'))", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "UPDATE uw_Io_shop_orders SET uw_Status = 'cancelled' WHERE (uw_Id = \?)", -1, &conn->p11, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: UPDATE uw_Io_shop_orders SET uw_Status = 'cancelled' WHERE (uw_Id = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "UPDATE uw_Io_shop_orders SET uw_Status = 'cancelled' WHERE (uw_Id = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Io_shop_payments AS T_Payments WHERE (T_Payments.uw_OrderId = \?)", -1, &conn->p12, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Io_shop_payments AS T_Payments WHERE (T_Payments.uw_OrderId = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT COUNT(*) AS uw_1 FROM uw_Io_shop_payments AS T_Payments WHERE (T_Payments.uw_OrderId = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT T_Orders.uw_Id, T_Orders.uw_Total FROM uw_Io_shop_orders AS T_Orders WHERE (T_Orders.uw_Status = 'pending')", -1, &conn->p13, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Orders.uw_Id, T_Orders.uw_Total FROM uw_Io_shop_orders AS T_Orders WHERE (T_Orders.uw_Status = 'pending')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT T_Orders.uw_Id, T_Orders.uw_Total FROM uw_Io_shop_orders AS T_Orders WHERE (T_Orders.uw_Status = 'pending')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT T_Orders.uw_CartId, T_Orders.uw_Id, T_Orders.uw_Status, T_Orders.uw_Total FROM uw_Io_shop_orders AS T_Orders ORDER BY T_Orders.uw_Id", -1, &conn->p14, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_finalize(conn->p13);
-                       sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Orders.uw_CartId, T_Orders.uw_Id, T_Orders.uw_Status, T_Orders.uw_Total FROM uw_Io_shop_orders AS T_Orders ORDER BY T_Orders.uw_Id<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT T_Orders.uw_CartId, T_Orders.uw_Id, T_Orders.uw_Status, T_Orders.uw_Total FROM uw_Io_shop_orders AS T_Orders ORDER BY T_Orders.uw_Id", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT T_Payments.uw_Attempt, T_Payments.uw_OrderId, T_Payments.uw_Outcome FROM uw_Io_shop_payments AS T_Payments ORDER BY T_Payments.uw_OrderId, T_Payments.uw_Attempt", -1, &conn->p15, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_finalize(conn->p13);
-                       sqlite3_finalize(conn->p14);
-                        sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT T_Payments.uw_Attempt, T_Payments.uw_OrderId, T_Payments.uw_Outcome FROM uw_Io_shop_payments AS T_Payments ORDER BY T_Payments.uw_OrderId, T_Payments.uw_Attempt<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT T_Payments.uw_Attempt, T_Payments.uw_OrderId, T_Payments.uw_Outcome FROM uw_Io_shop_payments AS T_Payments ORDER BY T_Payments.uw_OrderId, T_Payments.uw_Attempt", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_N, T_Cart.uw_Id FROM uw_Io_shop_cart AS T_Cart GROUP BY T_Cart.uw_Id ORDER BY T_Cart.uw_Id", -1, &conn->p16, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_finalize(conn->p13);
-                       sqlite3_finalize(conn->p14);
-                        sqlite3_finalize(conn->p15);
-                         sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_N, T_Cart.uw_Id FROM uw_Io_shop_cart AS T_Cart GROUP BY T_Cart.uw_Id ORDER BY T_Cart.uw_Id<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT COUNT(*) AS uw_N, T_Cart.uw_Id FROM uw_Io_shop_cart AS T_Cart GROUP BY T_Cart.uw_Id ORDER BY T_Cart.uw_Id", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_shop_watchers (uw_Ch) VALUES (\?)", -1, &conn->p17, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_finalize(conn->p13);
-                       sqlite3_finalize(conn->p14);
-                        sqlite3_finalize(conn->p15);
-                         sqlite3_finalize(conn->p16);
-                          sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_shop_watchers (uw_Ch) VALUES (\?)<br />%s"
-          , msg);
-          }
-        }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_shop_watchers (uw_Ch) VALUES (\?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
+        
+      return 0;
+      }
+    
+    static void uw_db_close(uw_context ctx);
     
     static void uw_db_init(uw_context ctx) {
     sqlite3 *sqlite;
     sqlite3_stmt *stmt;
     uw_conn *conn;
+    char failure[ERROR_BUF_LEN];
     
     char *env_db_str = getenv("URWEB_SQLITE_DB_PATH");
     const char *sqlite_db_path = env_db_str == NULL ? "io_shop.db" : env_db_str;
@@ -693,8 +469,14 @@
     conn = calloc(1, sizeof(uw_conn));
     conn->conn = sqlite;
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    strcpy(failure, uw_error_message(ctx));
+     uw_db_close(ctx);
+     free(conn);
+     uw_set_db(ctx, NULL);
+     uw_error(ctx, FATAL, "%s", failure);
+     }
     }
     
     static void uw_db_close(uw_context ctx) {
