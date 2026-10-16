@@ -45,6 +45,8 @@ sanitizers' options reach the application.
 - locked-start: the application started while another process holds the
   database in exclusive locking mode for longer than the busy timeout:
   whether it starts, after how long, and what it logs.
+- rollback-journal: the application started on a database in
+  rollback-journal mode: whether it starts, and what it logs.
 - clients-and-task: four clients, each with a slow io RPC, three quick ones
   behind it and a poll, while the task ticks every channel each second.
 - messages: four clients polling, each sending twenty messages to every
