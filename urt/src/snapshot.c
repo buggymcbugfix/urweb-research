@@ -1145,7 +1145,9 @@ static void exe_of(const char *settings, char *exe) {
  * line, which goes only there: *after_banner says that its last line has
  * just been seen.  The server's lines about each connection and request
  * ("Accepted connection.", "Serving URI ...", "Processed request for
- * messages ...") go the same way: they narrate what the runner did. */
+ * messages ...") go the same way: they narrate what the runner did.  So
+ * do the lines that say what each request took ("Served URI ...", "Failed
+ * URI ..."), whose time differs from run to run. */
 
 static int keep_server_line(const char *line, int *after_banner) {
     static const char *const start[] = {
@@ -1170,7 +1172,8 @@ static int keep_server_line(const char *line, int *after_banner) {
     return !has_prefix(line, "Forking to PID ") && !has_prefix(line, "Listening on port ")
         && !has_prefix(line, "Error triggers unlimited retry: Couldn't allocate new ")
         && strcmp(line, "Accepted connection.\n") != 0 && !has_prefix(line, "Handling connection with thread #")
-        && !has_prefix(line, "Serving URI ");
+        && !has_prefix(line, "Serving URI ") && !has_prefix(line, "Served URI ")
+        && !has_prefix(line, "Failed URI ");
 }
 
 /* A line of n bytes of an output of a run as it is recorded: rewritten in
