@@ -129,6 +129,9 @@ typedef struct {
   int (*db_commit)(struct uw_context *);
   int (*db_rollback)(struct uw_context *);
   void (*db_close)(struct uw_context *);
+  // 0 when the database is as the program expects; otherwise 1, with what is
+  // wrong as the context's error message (Basis.validateDb).
+  int (*db_check)(struct uw_context *);
 
   void (*handle)(struct uw_context *, char *);
 

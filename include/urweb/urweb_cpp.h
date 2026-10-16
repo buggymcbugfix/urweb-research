@@ -60,6 +60,8 @@ int uw_commit(struct uw_context *);
 int uw_rollback(struct uw_context *, int will_retry);
 
 __attribute__((noreturn)) void uw_error(struct uw_context *, failure_kind, const char *fmt, ...);
+// uw_error with the error message already set, as uw_set_error_message sets it
+__attribute__((noreturn)) void uw_reraise(struct uw_context *, failure_kind);
 char *uw_error_message(struct uw_context *);
 void uw_set_error_message(struct uw_context *, const char *fmt, ...);
 uw_Basis_string uw_dup_and_clear_error_message(struct uw_context *);
@@ -391,6 +393,7 @@ uw_Basis_int uw_Basis_naughtyDebug(struct uw_context *, uw_Basis_string);
 void uw_set_client_data(struct uw_context *, void *);
 
 uw_Basis_int uw_Basis_rand(struct uw_context *);
+uw_Basis_string uw_Basis_validateDb(struct uw_context *);
 
 extern int uw_time_max, uw_supports_direct_status, uw_min_heap;
 

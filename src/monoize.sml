@@ -1199,6 +1199,12 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
           | L.EFfiApp ("Basis", "io_getenv", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "getenv", es), loc)
           | L.EFfiApp ("Basis", "io_now", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "now", es), loc)
           | L.EFfiApp ("Basis", "io_rand", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "rand", es), loc)
+          | L.EFfiApp ("Basis", "validateDb", []) =>
+            (if #name (Settings.currentDbms ()) = "mysql" then
+                 E.errorAt loc "Basis.validateDb is not supported for MySQL"
+             else
+                 ();
+             ((L'.EFfiApp ("Basis", "validateDb", []), loc), fm))
 
           | L.EApp ((L.ECApp ((L.EFfi ("Basis", "runTransaction"), _), t), _), m) =>
             runTransaction (t, m, false)

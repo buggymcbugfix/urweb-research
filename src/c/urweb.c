@@ -948,15 +948,22 @@ static void uw_run_cleanups(uw_context ctx) {
   ctx->cleanup_front = ctx->cleanup + ctx->cleanup_base;
 }
 
+// uw_error with the message already in place, as uw_set_error_message puts
+// it there: a failure found in one place (a callback, a check) is raised in
+// another without copying the message aside first.
+__attribute__((noreturn)) void uw_reraise(uw_context ctx, failure_kind fk) {
+  uw_run_cleanups(ctx);
+
+  longjmp(ctx->jmp_buf, fk);
+}
+
 __attribute__((noreturn)) void uw_error(uw_context ctx, failure_kind fk, const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
 
   vsnprintf(ctx->error_message, ERROR_BUF_LEN, fmt, ap);
 
-  uw_run_cleanups(ctx);
-
-  longjmp(ctx->jmp_buf, fk);
+  uw_reraise(ctx, fk);
 }
 
 size_t uw_cleanup_max = SIZE_MAX;
@@ -5341,6 +5348,18 @@ uw_Basis_int uw_Basis_rand(uw_context ctx) {
   return my_rand(ctx);
 }
 
+// The start-up check of the database, run in the caller's transaction.  What
+// is wrong comes as the context's error message, which must not stay set: the
+// request would be taken for failed.  A database found busy runs the request
+// again, as a busy statement does.
+uw_Basis_string uw_Basis_validateDb(uw_context ctx) {
+  uw_ensure_transaction(ctx);
+  if (ctx->app->db_check(ctx))
+    return uw_dup_and_clear_error_message(ctx);
+  else
+    return NULL;
+}
+
 void uw_noPostBody(uw_context ctx) {
   ctx->hasPostBody = 0;
 }
@@ -5542,11 +5561,8 @@ void uw_io_transaction_commit(uw_context ctx, uw_io_transaction *t) {
     // transactional's commit callback failed.  Not run again: a callback that
     // runs after COMMIT (one without a rollback callback) fails with the
     // database already committed.
-    char msg[ERROR_BUF_LEN];
-
-    strcpy(msg, ctx->error_message);
     ctx->used_transactionals = ctx->transactionals_base;
-    uw_error(ctx, FATAL, "%s", msg);
+    uw_reraise(ctx, FATAL);
   }
 
   uw_io_transaction_cut(ctx, t, 1);

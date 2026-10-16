@@ -1,6 +1,7 @@
 val main : unit -> transaction page
 val count : unit -> transaction page
 val hello : unit -> transaction page
+val validate : unit -> transaction page
 val readCounter : unit -> transaction page
 val readCounterSlowly : unit -> transaction page
 val bumpCounter : unit -> transaction page

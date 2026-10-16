@@ -1,0 +1,6 @@
+> GET /Concurrent/validate
+HTTP/1.1 200 OK
+ok
+> GET /Concurrent/validate
+HTTP/1.1 200 OK
+Table 'uw_Concurrent_spare' does not exist.

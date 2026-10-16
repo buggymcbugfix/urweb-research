@@ -76,53 +76,67 @@
      uw_sqlfmtUint4 = "%u%n";
      }
     
-    static void uw_db_validate(uw_context ctx) {
-     static int validated;
+    static int uw_db_check_with(uw_context ctx, failure_kind busy) {
      uw_conn *conn = uw_get_db(ctx);
      sqlite3_stmt *stmt;
      int res;
      
-     if (validated)
-     return;
-      
      if (sqlite3_prepare_v2(conn->conn, "PRAGMA journal_mode", -1, &stmt, NULL) != SQLITE_OK) {
-      sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Query preparation failed:<br />PRAGMA journal_mode");
+      uw_set_error_message(ctx, "Query preparation failed: %s: %s", "PRAGMA journal_mode", sqlite3_errmsg(conn->conn));
+       return 1;
        }
       
       res = sqlite3_step(stmt);
       
       if (res == SQLITE_BUSY) {
       sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Database is busy; can't validate:<br />PRAGMA journal_mode");
+       uw_error(ctx, busy, "Database is busy; can't validate: %s", "PRAGMA journal_mode");
        }
       
       if (res != SQLITE_ROW) {
+      uw_set_error_message(ctx, "Error getting row: %s: %s", "PRAGMA journal_mode", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
+       sqlite3_finalize(stmt);
+       return 1;
+       }
+      
+      if (sqlite3_column_count(stmt) != 1) {
       sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "Error getting row:<br />PRAGMA journal_mode");
+       uw_set_error_message(ctx, "Bad column count: %s", "PRAGMA journal_mode");
+       return 1;
        }
       
       if (sqlite3_stricmp((const char *)sqlite3_column_text(stmt, 0), "wal")) {
-      char mode[32];
+       uw_set_error_message(ctx, "The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)", (const char *)sqlite3_column_text(stmt, 0));
+        sqlite3_finalize(stmt);
+        return 1;
+        }
        
-       snprintf(mode, sizeof mode, "%s", (const char *)sqlite3_column_text(stmt, 0));
-       sqlite3_finalize(stmt);
-       sqlite3_close(conn->conn);
-       uw_error(ctx, FATAL, "The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)", mode);
-       }
-      
       sqlite3_finalize(stmt);
       
      
-     validated = 1;
+     return 0;
      }
      
-     static void uw_db_prepare(uw_context ctx) {
-     uw_conn *conn = uw_get_db(ctx);
+     static int uw_db_check(uw_context ctx) {
+     return uw_db_check_with(ctx, UNLIMITED_RETRY);
+      }
      
-     }
+     static void uw_db_validate(uw_context ctx) {
+      static int validated;
+      
+      if (validated)
+      return;
+       
+      if (uw_db_check_with(ctx, FATAL))
+      uw_reraise(ctx, FATAL);
+       
+      validated = 1;
+      }
+      
+      static void uw_db_prepare(uw_context ctx) {
+      uw_conn *conn = uw_get_db(ctx);
+      
+      }
     
     static void uw_db_init(uw_context ctx) {
     sqlite3 *sqlite;
@@ -419,24 +433,25 @@
                                                                uw_db_rollback,
                                                                               
                            uw_db_close,
-                                       uw_handle,
-                                                 uw_input_num,
-                                                              uw_cookie_sig,
-                                                                            
-                           uw_check_url,
-                                        uw_check_mime,
-                                                      uw_check_requestHeader,
-                                                                             
-                           uw_check_responseHeader,
-                                                   uw_check_envVar,
-                                                                   
-                           uw_check_meta,
-                                         NULL,
-                                              my_periodics,
-                                                           "%c",
-                                                                1,
-                                                                  NULL,
-                                                                       
-                           uw_served_files,
-                                           0};
+                                       uw_db_check,
+                                                   uw_handle,
+                                                             uw_input_num,
+                                                                          
+                           uw_cookie_sig,
+                                         uw_check_url,
+                                                      uw_check_mime,
+                                                                    
+                           uw_check_requestHeader,
+                                                  uw_check_responseHeader,
+                                                                          
+                           uw_check_envVar,
+                                           uw_check_meta,
+                                                         NULL,
+                                                              my_periodics,
+                                                                           
+                           "%c",
+                                1,
+                                  NULL,
+                                       uw_served_files,
+                                                       0};
  

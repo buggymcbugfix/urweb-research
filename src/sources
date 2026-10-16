@@ -42,6 +42,9 @@ $(SRC)/static.sml
 $(SRC)/prim.sig
 $(SRC)/prim.sml
 
+$(SRC)/db_init.sig
+$(SRC)/db_init.sml
+
 $(SRC)/mysql.sig
 $(SRC)/mysql.sml
 

@@ -7,6 +7,7 @@ onError ConcurrentE.err
 allow url /Concurrent/main
 allow url /Concurrent/count
 allow url /Concurrent/hello
+allow url /Concurrent/validate
 allow url /Concurrent/readCounter
 allow url /Concurrent/readCounterSlowly
 allow url /Concurrent/bumpCounter
