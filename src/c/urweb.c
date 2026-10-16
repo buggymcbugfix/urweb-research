@@ -950,23 +950,55 @@ void uw_login(uw_context ctx) {
 // the expunger thread, which garbage-collects unused clients, so that their IDs
 // can be reused.  To save ourselves from needing to deal with those anomalies,
 // we enforce that the expunger never runs simultaneously with other transactions.
+//
+// The lock is a gate: a count of the transactions in progress and a flag for
+// the expunger, the client pruner, of which there is one.  A transaction waits
+// while the expunger runs, never while it waits: the expunger goes in once no
+// transaction is in progress, and others may arrive in the meantime.  A
+// pthread_rwlock_t leaves that to the platform, and where a waiting writer
+// goes first, as on macOS, every request that came while the expunger waited
+// for a long one (an io RPC holds the lock across its body) waited with it.
+// So, as with glibc's rwlock, the expunger may wait long under constant load.
+// Every arrival must be matched by one departure.
 
-static pthread_rwlock_t expunge_lock = PTHREAD_RWLOCK_INITIALIZER;
+static pthread_mutex_t expunge_gate = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t expunger_gone = PTHREAD_COND_INITIALIZER;
+static pthread_cond_t transactions_gone = PTHREAD_COND_INITIALIZER;
+static unsigned transactions_in_progress = 0;
+static int expunger_running = 0;
 
 void uw_transaction_arrives() {
-  pthread_rwlock_rdlock(&expunge_lock);
+  pthread_mutex_lock(&expunge_gate);
+  while (expunger_running)
+    pthread_cond_wait(&expunger_gone, &expunge_gate);
+  ++transactions_in_progress;
+  pthread_mutex_unlock(&expunge_gate);
 }
 
 void uw_transaction_departs() {
-  pthread_rwlock_unlock(&expunge_lock);
+  pthread_mutex_lock(&expunge_gate);
+  if (transactions_in_progress == 0)
+    // A departure without an arrival.  Counting it would let the expunger in
+    // during the next transaction, so it is only reported.
+    fprintf(stderr, "Transaction departed without arriving\n");
+  else if (--transactions_in_progress == 0)
+    pthread_cond_signal(&transactions_gone);
+  pthread_mutex_unlock(&expunge_gate);
 }
 
 static void uw_expunger_arrives() {
-  pthread_rwlock_wrlock(&expunge_lock);
+  pthread_mutex_lock(&expunge_gate);
+  while (transactions_in_progress > 0)
+    pthread_cond_wait(&transactions_gone, &expunge_gate);
+  expunger_running = 1;
+  pthread_mutex_unlock(&expunge_gate);
 }
 
 static void uw_expunger_departs() {
-  pthread_rwlock_unlock(&expunge_lock);
+  pthread_mutex_lock(&expunge_gate);
+  expunger_running = 0;
+  pthread_cond_broadcast(&expunger_gone);
+  pthread_mutex_unlock(&expunge_gate);
 }
 
 failure_kind uw_begin(uw_context ctx, char *path) {
@@ -5284,7 +5316,7 @@ uw_Basis_string uw_Basis_io_errorMessage(uw_context ctx) {
 //     else uw_io_request_end(ctx, &r, fk); }
 //
 // The request came in under uw_request's protocol for a handler: the
-// expunger's read lock taken, uw_login done, no transaction begun yet (that
+// expunger's lock taken, uw_login done, no transaction begun yet (that
 // happens at the first query).  The body is an io computation: it opens no
 // transaction of the request's, runs its own (uw_io_transaction_*), and is
 // never run again, so a failure that reaches this level is re-raised to
@@ -5297,15 +5329,13 @@ uw_Basis_string uw_Basis_io_errorMessage(uw_context ctx) {
 // The client uw_login found or made stays held and named across the inner
 // transactions (release_client_of), for the request's own commit or rollback
 // to release, so that self and the channels work in every one of them.  The
-// expunger's read lock, which uw_request took, stays held across the body as
-// well, and the inner transactions do not take it again.  Releasing it for
-// the body, as an io task has it released, would wait on the client in the
-// wrong order: another request of the same client holds the read lock while
-// it waits for the client, the expunger waits for the write lock, and an
-// inner transaction asking for the read lock again then waits behind the
-// expunger wherever writers come first, which POSIX leaves to the
-// implementation.  The price is an expunger kept waiting while an io RPC
-// waits on the network, as it is kept waiting by any request.
+// expunger's lock, which uw_request took, stays held across the body as well,
+// and the inner transactions do not take it again.  So the expunger does not
+// run between them, and a channel the body read in one still has its client
+// in the next, which an io task, taking the lock for each transaction alone,
+// cannot count on.  The price is an expunger kept waiting while an io RPC
+// waits on the network, as it is kept waiting by any request.  Requests are
+// not held up by a waiting expunger (see uw_transaction_arrives).
 void uw_io_request_begin(uw_context ctx, uw_io_request *r) {
   if (!ctx->io)
     uw_error(ctx, FATAL, "io code in a request on a context without an io heap");
