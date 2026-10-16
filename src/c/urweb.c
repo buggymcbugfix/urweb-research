@@ -462,7 +462,8 @@ typedef struct uw_Sqlcache_Update {
 } uw_Sqlcache_Update;
 
 typedef struct uw_Sqlcache_Unlock {
-  pthread_rwlock_t *lock;
+  uw_Sqlcache_Lock *lock;
+  int write;
   struct uw_Sqlcache_Unlock *next;
 } uw_Sqlcache_Unlock;
 
@@ -5848,6 +5849,16 @@ static void uw_Sqlcache_commit(void *data) {
   }
 }
 
+static void uw_Sqlcache_unlockOut(uw_Sqlcache_Lock *l, int write) {
+  pthread_mutex_lock(&l->mutex);
+  if (write)
+    l->writer = 0;
+  else
+    --l->readers;
+  pthread_cond_broadcast(&l->changed);
+  pthread_mutex_unlock(&l->mutex);
+}
+
 static void uw_Sqlcache_free(void *data, int dontCare) {
   (void)dontCare;
   uw_context ctx = (uw_context)data;
@@ -5870,7 +5881,7 @@ static void uw_Sqlcache_free(void *data, int dontCare) {
   ctx->cacheUpdateTail = NULL;
   uw_Sqlcache_Unlock *unlock = ctx->cacheUnlock;
   while (unlock) {
-    pthread_rwlock_unlock(unlock->lock);
+    uw_Sqlcache_unlockOut(unlock->lock, unlock->write);
     uw_Sqlcache_Unlock *nextUnlock = unlock->next;
     free(unlock);
     unlock = nextUnlock;
@@ -5878,25 +5889,40 @@ static void uw_Sqlcache_free(void *data, int dontCare) {
   ctx->cacheUnlock = NULL;
 }
 
-static void uw_Sqlcache_pushUnlock(uw_context ctx, pthread_rwlock_t *lock) {
+static void uw_Sqlcache_pushUnlock(uw_context ctx, uw_Sqlcache_Lock *lock, int write) {
   if (!ctx->cacheUnlock) {
     // Just need one registered commit for both updating and unlocking.
     uw_register_transactional(ctx, ctx, uw_Sqlcache_commit, NULL, uw_Sqlcache_free);
   }
   uw_Sqlcache_Unlock *unlock = malloc(sizeof(uw_Sqlcache_Unlock));
   unlock->lock = lock;
+  unlock->write = write;
   unlock->next = ctx->cacheUnlock;
   ctx->cacheUnlock = unlock;
 }
 
 void uw_Sqlcache_rlock(uw_context ctx, uw_Sqlcache_Cache *cache) {
-  pthread_rwlock_rdlock(&cache->lockOut);
-  uw_Sqlcache_pushUnlock(ctx, &cache->lockOut);
+  uw_Sqlcache_Lock *l = &cache->lockOut;
+
+  pthread_mutex_lock(&l->mutex);
+  while (l->writer || l->writers_waiting)
+    pthread_cond_wait(&l->changed, &l->mutex);
+  ++l->readers;
+  pthread_mutex_unlock(&l->mutex);
+  uw_Sqlcache_pushUnlock(ctx, l, 0);
 }
 
 void uw_Sqlcache_wlock(uw_context ctx, uw_Sqlcache_Cache *cache) {
-  pthread_rwlock_wrlock(&cache->lockOut);
-  uw_Sqlcache_pushUnlock(ctx, &cache->lockOut);
+  uw_Sqlcache_Lock *l = &cache->lockOut;
+
+  pthread_mutex_lock(&l->mutex);
+  ++l->writers_waiting;
+  while (l->writer || l->readers)
+    pthread_cond_wait(&l->changed, &l->mutex);
+  --l->writers_waiting;
+  l->writer = 1;
+  pthread_mutex_unlock(&l->mutex);
+  uw_Sqlcache_pushUnlock(ctx, l, 1);
 }
 
 static char **uw_Sqlcache_copyKeys(char **keys, size_t numKeys) {

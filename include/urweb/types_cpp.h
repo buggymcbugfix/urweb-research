@@ -187,8 +187,23 @@ typedef struct uw_Sqlcache_Entry {
   UT_hash_handle hh;
 } uw_Sqlcache_Entry;
 
+// A cache's outer lock, held for a whole transaction: to read by one that
+// reads the cached table, to write by one that writes it.  Written out,
+// rather than a pthread_rwlock_t, so that readers wait behind a waiting
+// writer on every platform; glibc's rwlock let readers in, and readers that
+// kept coming and overlapping kept a writer out for good.
+typedef struct {
+  pthread_mutex_t mutex;
+  pthread_cond_t changed;
+  unsigned readers, writers_waiting;
+  int writer;
+} uw_Sqlcache_Lock;
+
+#define UW_SQLCACHE_LOCK_INITIALIZER \
+  { PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, 0, 0, 0 }
+
 typedef struct uw_Sqlcache_Cache {
-  pthread_rwlock_t lockOut;
+  uw_Sqlcache_Lock lockOut;
   pthread_rwlock_t lockIn;
   uw_Sqlcache_Entry *table;
   unsigned long timeInvalid;
