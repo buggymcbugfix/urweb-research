@@ -1,0 +1,1 @@
+GET /.msgs -H 'UrWeb-Client: 7' -H 'UrWeb-Pass: 1'
