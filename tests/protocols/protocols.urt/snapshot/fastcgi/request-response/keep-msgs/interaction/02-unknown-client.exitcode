@@ -1,2 +1,1 @@
-the connection ended before FCGI_END_REQUEST
 sent on a new connection, the program having closed the one it was asked to keep
