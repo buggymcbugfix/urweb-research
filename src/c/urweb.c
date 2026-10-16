@@ -285,7 +285,7 @@ void uw_set_on_success(char *s) {
   on_success = s;
 }
 
-static void chastise(int (*send)(int sockfd, const void *buf, ssize_t len), int sock) {
+static void chastise(int (*send)(int sockfd, const void *buf, ssize_t len), int (*close)(int fd), int sock) {
   send(sock, on_success, strlen(on_success));
   send(sock, begin_msgs, sizeof(begin_msgs) - 1);
   send(sock, "R", 1);
@@ -300,7 +300,7 @@ void uw_client_connect(unsigned id, int pass, int sock,
 
   if (c == NULL) {
     log_error(logger_data, "Out-of-bounds client request (%u)\n", id);
-    chastise(send, sock);
+    chastise(send, close, sock);
     return;
   }
 
@@ -309,14 +309,14 @@ void uw_client_connect(unsigned id, int pass, int sock,
   if (c->mode != USED) {
     pthread_mutex_unlock(&c->lock);
     log_error(logger_data, "Client request for unused slot (%u)\n", id);
-    chastise(send, sock);
+    chastise(send, close, sock);
     return;
   }
 
   if (pass != c->pass) {
     pthread_mutex_unlock(&c->lock);
     log_error(logger_data, "Wrong client password (%u, %d)\n", id, pass);
-    chastise(send, sock);
+    chastise(send, close, sock);
     return;
   }
 
