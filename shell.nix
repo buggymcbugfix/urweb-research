@@ -1,26 +1,37 @@
 { pkgs ? import ./nixpkgs.nix }:
 let
   # The shell takes the compiler's inputs from its package and builds it
-  # in the tree, where make reads the commit itself; the package's is not
-  # read, so that toolchainId does not change with every commit.
+  # in the tree, where make reads the commit itself. The package's commit
+  # is not read: mkShell compares the package with its inputs by output
+  # path, and without a rev that path would read .git at every start.
   urweb = pkgs.callPackage ./derivation.nix { rev = "?"; };
-  # Same derivation minus the sources: its outPath changes iff a reconfigure is needed.
-  toolchainId = builtins.unsafeDiscardStringContext (urweb.overrideAttrs (_: { src = null; })).outPath;
+  # The shell apart from its hook
+  shellInputs = {
+    inputsFrom = [ urweb ];
+
+    packages = with pkgs; [
+      git # read by make for `urweb -version`
+      python3 # urt's pty cases and stand-in server
+      rlwrap
+      smlnj
+      sqlite
+    ];
+  };
+  configureEnv = urweb.configureEnv "$DEVPREFIX";
+  # What configure sees: the shell's inputs, which the derivation of the
+  # shell without its hook records, and the variables configureEnv exports.
+  # The package's own steps (postPatch, checkPhase, ...) are not in it,
+  # since nix-shell runs none of them. Nor is the configure command below:
+  # after changing it, run make distclean.
+  toolchainId = builtins.hashString "sha256" (builtins.unsafeDiscardStringContext
+    ((pkgs.mkShell shellInputs).drvPath + configureEnv));
 in
 pkgs.mkShell {
-  inputsFrom = [ urweb ];
-
-  packages = with pkgs; [
-    git # read by make for `urweb -version`
-    python3 # urt's pty cases and stand-in server
-    rlwrap
-    smlnj
-    sqlite
-  ];
+  inherit (shellInputs) inputsFrom packages;
 
   shellHook = ''
     export DEVPREFIX="$PWD/out"
-    ${urweb.configureEnv "$DEVPREFIX"}
+    ${configureEnv}
     # The toolbox as built in the tree, by `make -C urt`
     export PATH="$PWD/urt:$PATH"
 
