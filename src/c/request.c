@@ -629,9 +629,11 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
         on_failure(ctx);
 
         if (uw_get_app(ctx)->on_error) {
+          // On to the end of the loop, which rolls back what COMMIT may have
+          // left open and leaves the expunger's lock, once, as for a failure
+          // in the handler; then onError runs as a new attempt.
           had_error = 1;
           strcpy(errmsg, uw_error_message(ctx));
-          uw_transaction_departs();
         } else {
           try_rollback(ctx, 0, logger_data, log_error);
           uw_transaction_departs();
