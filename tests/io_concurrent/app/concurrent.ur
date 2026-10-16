@@ -3,14 +3,16 @@
    whose transactions overlap, in io code and in plain RPCs, a draw from a
    sequence, a check of the database, a cached table an io RPC holds the
    cache's lock on while it sleeps, an io task that sends on every client's
-   channel each period, and a clientLeaves task that logs the pruner's work.
-   The sleeps and effects are the C probes of ../../ioprobe. *)
+   channel each period, a clientLeaves task that logs the pruner's work, and
+   an initializer whose COMMIT fails if a case asks.  The sleeps and effects
+   are the C probes of ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
 table chans : { Ch : channel string }
 sequence s
 table spare : { N : int }
+table initMode : { Mode : string }
 
 (* An io RPC that sleeps outside any transaction, then writes a row. *)
 fun slow (ms : int) (who : string) : io int =
@@ -113,6 +115,21 @@ task periodic 1 = fn () =>
     runTransaction (queryI (SELECT * FROM chans) (fn r => send r.Chans.Ch "tick"))
 
 task clientLeaves = fn _ => debug "a client left"
+
+(* An initializer that writes a row and then has its COMMIT fail, in the
+   way the table initMode names, if it names one: as a serialization
+   conflict does on Postgres, or with a write statement still in progress,
+   so that SQLite refuses to commit and the transaction stays open. *)
+task initialize = fn () =>
+    m <- oneOrNoRows1 (SELECT * FROM initMode);
+    case m of
+        None => return ()
+      | Some r =>
+        dml (INSERT INTO t (N, Who) VALUES (0, "init"));
+        case r.Mode of
+            "conflict" => Probe.armConflict "init"
+          | "pending" => Probe.pendingWrite "uw_Concurrent_spare"
+          | _ => return ()
 
 fun main () : transaction page =
     ch <- channel;

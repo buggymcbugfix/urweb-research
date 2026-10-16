@@ -1,0 +1,3 @@
+the application gave up within 1.5 s
+  | 1 x Failed to initialize database!  Error running SQL COMMIT
+  | 1 x db_commit: a serialization conflict
