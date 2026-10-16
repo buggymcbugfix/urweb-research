@@ -1,0 +1,1 @@
+GET /Sql_char/store/9/55296: Fatal error: Non-printable character 55296 in char to SQLify

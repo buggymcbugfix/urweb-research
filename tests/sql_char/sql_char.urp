@@ -1,0 +1,12 @@
+database dbname=sql_char.db
+sql sql_char.sql
+safeGet Sql_char/store
+safeGet Sql_char/get
+safeGet Sql_char/list
+safeGet Sql_char/drop
+safeGet Sql_char/echoLiteral
+safeGet Sql_char/echoComputed
+safeGet Sql_char/matchLiteral
+safeGet Sql_char/matchComputed
+
+sql_char
