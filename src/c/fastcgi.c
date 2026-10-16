@@ -557,6 +557,8 @@ int main(int argc, char *argv[]) {
   }
 
   signal(SIGPIPE, SIG_IGN);
+  // A line at a time, whatever stdout is, as for the HTTP server.
+  setvbuf(stdout, NULL, _IOLBF, 0);
 
   while ((opt = getopt(argc, argv, "hqt:")) != -1) {
     switch (opt) {
