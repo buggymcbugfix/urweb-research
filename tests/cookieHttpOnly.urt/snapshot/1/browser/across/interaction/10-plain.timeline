@@ -1,0 +1,2 @@
+2.500 3.000 Hana: click 'input[value=Plain]'
+2.900 3.000 Hana.1: POST /plain 200

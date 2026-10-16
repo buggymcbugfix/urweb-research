@@ -1,0 +1,4 @@
+rewrite all CookieHttpOnly/*
+
+$/option
+cookieHttpOnly
