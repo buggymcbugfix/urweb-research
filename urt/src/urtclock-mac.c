@@ -7,10 +7,13 @@
  * int64, nanoseconds since the epoch, mapped once and read at every call;
  * 0 there, or no file, and the real clock reads through.
  *
- * Untried as yet: make builds it only when asked for (make -C urt
- * liburtclock.dylib), and urt-browse uses it when it is there.  An engine
- * built with the hardened runtime and without leave to take DYLD_
- * variables does not load it.
+ * make builds it on macOS, and urt-browse does not start there without
+ * it.  Every process of Playwright's three engines loads it, WebKit's UI
+ * process because urt-browse starts that itself: Playwright's script for
+ * it goes by way of /usr/bin/env, which SIP protects, and macOS drops
+ * every DYLD_ variable when it starts such a program.  An engine built
+ * with the hardened runtime and without leave to take DYLD_ variables
+ * would not load it.
  *
  * Every condition is on the realtime clock on macOS, there being no
  * pthread_condattr_setclock, so every timed wait on one has its deadline

@@ -6,10 +6,13 @@ HDR = src/commands.h src/report.h src/fs.h src/runs.h src/tui.h
 
 all: urt urt-format
 
-# The engines' wall clock on the run's, loaded into them by urt-browse
-# (src/urtclock.c); Linux only.
+# The engines' wall clock on the run's, loaded into them by urt-browse:
+# src/urtclock.c on Linux, src/urtclock-mac.c on macOS.
 ifeq ($(shell uname -s),Linux)
 all: liburtclock.so
+endif
+ifeq ($(shell uname -s),Darwin)
+all: liburtclock.dylib
 endif
 
 urt: $(SRC) $(HDR)
@@ -18,7 +21,6 @@ urt: $(SRC) $(HDR)
 liburtclock.so: src/urtclock.c
 	$(CC) $(CFLAGS) -shared -fPIC -o liburtclock.so src/urtclock.c -ldl
 
-# On macOS, untried as yet, so built only when asked for, and then used.
 liburtclock.dylib: src/urtclock-mac.c
 	$(CC) $(CFLAGS) -dynamiclib -o liburtclock.dylib src/urtclock-mac.c
 

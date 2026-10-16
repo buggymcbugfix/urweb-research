@@ -88,23 +88,21 @@ due at the same time is done in a fixed order: the server's part first,
 its tasks and the requests arriving, in the order the context's tie rule
 says; then the pages' timers and the answers coming back; then the
 users' input, users in the tie order.  A run comes out the same every
-time, whatever the machine.  On Linux the engines' own wall clock is the
-run's as well, through liburtclock (urt/src/urtclock.c), which the
-driver loads into every process of theirs: what goes by it inside an
-engine, a cookie's expiry first of all, goes by the run's time; a
-driver that cannot find the library, beside it or in ../lib/urt from
-there, does not start.  There the driver also drops a cookie past its
-expiry from the user's context before it forwards a request, since
-Playwright fills in a Cookie header from the context's cookies for a
-request without one, and Firefox and WebKit list expired ones with the
-rest.  On macOS the same library (urt/src/urtclock-mac.c) is used once
-`make -C urt liburtclock.dylib` has built it, untried as yet; otherwise
-the engines keep the wall clock there.  Everywhere, the cookies an
-answer sets are written once, when the server has given it, as an HTTP
-answer leaves them, and the page gets the answer without them:
-Playwright stores them through the engine's cookie API, and WebKit's on
-macOS keeps an HttpOnly cookie that a line without HttpOnly replaces or
-clears, which the driver then does itself.
+time, whatever the machine.  On Linux and macOS the engines' own wall
+clock is the run's as well, through liburtclock (urt/src/urtclock.c, on
+macOS urtclock-mac.c), which the driver loads into every process of
+theirs: what goes by it inside an engine, a cookie's expiry first of
+all, goes by the run's time; a driver that cannot find the library,
+beside it or in ../lib/urt from there, does not start.  The driver also
+drops a cookie past its expiry from the user's context before it
+forwards a request, since Playwright fills in a Cookie header from the
+context's cookies for a request without one, and Firefox and WebKit
+list expired ones with the rest.  The cookies an answer sets are written
+once, when the server has given it, as an HTTP answer leaves them, and
+the page gets the answer without them: Playwright stores them through
+the engine's cookie API, and WebKit's on macOS keeps an HttpOnly cookie
+that a line without HttpOnly replaces or clears, which the driver then
+does itself.
 
 What moves on its own in a page is on the clock too.  An animation (a
 CSS transition or animation, element.animate()) is held where the clock
@@ -4065,7 +4063,7 @@ class Run:
 def clock_library():
     """liburtclock as shipped with this driver: beside it, as in the tree,
     or in ../lib/urt, as installed; None if it is not there.  On macOS
-    the .dylib, which make builds only when asked for, untried as yet."""
+    the .dylib."""
     here = os.path.dirname(os.path.realpath(__file__))
     name = 'liburtclock.dylib' if sys.platform == 'darwin' else 'liburtclock.so'
     for lib in (os.path.join(here, name), os.path.join(here, '..', 'lib', 'urt', name)):
@@ -4334,14 +4332,15 @@ def main():
             for c in complaints:
                 print(c, file=sys.stderr)
             return 2
-    # On Linux the engines' clock is the run's, or there is no run: one
-    # on the wall clock would be recorded as if it were right.  On macOS
-    # the library is tried where it has been built.
-    clock_lib = clock_library() if sys.platform.startswith('linux') or sys.platform == 'darwin' else None
-    if sys.platform.startswith('linux'):
+    # On Linux and macOS the engines' clock is the run's, or there is no
+    # run: one on the wall clock would be recorded as if it were right.
+    clock_lib = None
+    if sys.platform.startswith('linux') or sys.platform == 'darwin':
+        clock_lib = clock_library()
         if clock_lib is None:
-            print('urt-browse: no liburtclock.so beside %s or in ../lib/urt from there; `make -C urt` builds it'
-                  % os.path.realpath(__file__), file=sys.stderr)
+            print('urt-browse: no %s beside %s or in ../lib/urt from there; `make -C urt` builds it'
+                  % ('liburtclock.dylib' if sys.platform == 'darwin' else 'liburtclock.so',
+                     os.path.realpath(__file__)), file=sys.stderr)
             return 2
     # Playwright is imported here so that --check needs only python3.
     from playwright.async_api import Error as PlaywrightError, async_playwright

@@ -162,24 +162,21 @@ the page asks for is the driver's, 300ms of frames 16ms apart; a wheel
 is the page's event and an exact scroll at once; and the tab in front
 of a user is visible and has the focus, the others hidden, without
 animation frames, a dialog in one waiting for the user to come to it.
-On Linux the engines' own wall clock follows it too: the driver loads a
-library into every process of theirs (`urt/src/urtclock.c`) that makes
+On Linux and macOS the engines' own wall clock follows it too: the
+driver loads a library into every process of theirs
+(`urt/src/urtclock.c`, on macOS `urt/src/urtclock-mac.c`) that makes
 the realtime clock read the run's time, which the driver writes to a
 file the library maps, so that a cookie expires at its time; the
 monotonic clocks, by which the engines time their own work, are left
-alone.  There the driver also drops a cookie past its expiry from the
-user's context before it forwards a request, since Playwright fills in
-a Cookie header from the context's cookies for a request without one,
-and Firefox and WebKit list expired ones with the rest.  On macOS the
-same library, from `urt/src/urtclock-mac.c`, is used once `make -C urt
-liburtclock.dylib` has built it (untried as yet: an engine built with
-the hardened runtime ignores it); otherwise the engines keep the wall
-clock there.  Everywhere, the cookies an answer sets are written once,
-when the server has given it, as an HTTP answer leaves them, and the
-page gets the answer without them: Playwright stores them through the
-engine's cookie API, and WebKit's on macOS keeps an HttpOnly cookie
-that a line without HttpOnly replaces or clears, which the driver then
-does itself.
+alone.  The driver also drops a cookie past its expiry from the user's
+context before it forwards a request, since Playwright fills in a
+Cookie header from the context's cookies for a request without one, and
+Firefox and WebKit list expired ones with the rest.  The cookies an
+answer sets are written once, when the server has given it, as an HTTP
+answer leaves them, and the page gets the answer without them:
+Playwright stores them through the engine's cookie API, and WebKit's on
+macOS keeps an HttpOnly cookie that a line without HttpOnly replaces or
+clears, which the driver then does itself.
 An element is ready to act on when it is shown, enabled and still: no
 animation of its own or around it under way and, while anything else
 in the page moves, the same box on two frames in a row.  A run comes
