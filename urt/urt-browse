@@ -99,7 +99,12 @@ Playwright fills in a Cookie header from the context's cookies for a
 request without one, and Firefox and WebKit list expired ones with the
 rest.  On macOS the same library (urt/src/urtclock-mac.c) is used once
 `make -C urt liburtclock.dylib` has built it, untried as yet; otherwise
-the engines keep the wall clock there.
+the engines keep the wall clock there.  Everywhere, the cookies an
+answer sets are written once, when the server has given it, as an HTTP
+answer leaves them, and the page gets the answer without them:
+Playwright stores them through the engine's cookie API, and WebKit's on
+macOS keeps an HttpOnly cookie that a line without HttpOnly replaces or
+clears, which the driver then does itself.
 
 What moves on its own in a page is on the clock too.  An animation (a
 CSS transition or animation, element.animate()) is held where the clock
@@ -239,6 +244,7 @@ import datetime
 import functools
 import heapq
 import html
+import http.cookiejar
 import json
 import mimetypes
 import mmap
@@ -251,6 +257,7 @@ import struct
 import sys
 import tempfile
 import time
+import urllib.parse
 
 
 # The page as HTML, from the DOM as the browser has it: one element per
@@ -845,6 +852,57 @@ def refill(body, ctype, files):
             head = re.sub(rb'(?im)^content-type:[^\r\n]*', b'Content-Type: ' + kind.encode('latin-1'), head)
             pieces[i] = head + gap + data + b'\r\n'
     return sep.join(pieces)
+
+
+# Playwright's latest expiry for a cookie, the last second of 9999.
+COOKIE_EXPIRES_MAX = 253402300799
+
+
+def parse_set_cookie(line, url):
+    """A Set-Cookie line read as route.fetch reads it into a cookie for the
+    URL that answered (Playwright's parseRawCookie and
+    _parseSetCookieHeader): its domain the URL's host unless it names one,
+    its path the URL's directory unless it gives one; Expires in seconds
+    since the epoch and Max-Age as given, each None if absent.  None for a
+    line without a name, or for another host's domain, which Playwright
+    passes over too."""
+    pairs = []
+    for part in line.split(';'):
+        if part.strip():
+            key, eq, value = part.partition('=')
+            pairs.append((key.strip(), value.strip()) if eq else (part.strip(), ''))
+    if not pairs or not pairs[0][0]:
+        return None
+    c = {'name': pairs[0][0], 'value': pairs[0][1], 'domain': '', 'path': '', 'httpOnly': False,
+         'secure': False, 'sameSite': 'Lax', 'expires': None, 'maxAge': None}
+    for key, value in pairs[1:]:
+        key = key.lower()
+        if key == 'expires':
+            c['expires'] = http.cookiejar.http2time(value)
+        elif key == 'max-age':
+            m = re.match(r'[-+]?\d+', value)
+            if m:
+                c['maxAge'] = int(m.group(0))
+        elif key == 'domain':
+            d = value.lower()
+            c['domain'] = '.' + d if d and not d.startswith('.') and '.' in d else d
+        elif key == 'path':
+            c['path'] = value
+        elif key == 'secure':
+            c['secure'] = True
+        elif key == 'httponly':
+            c['httpOnly'] = True
+        elif key == 'samesite':
+            c['sameSite'] = {'none': 'None', 'lax': 'Lax', 'strict': 'Strict'}.get(value.lower(), c['sameSite'])
+    u = urllib.parse.urlsplit(url)
+    host = u.hostname or ''
+    if not c['domain']:
+        c['domain'] = host
+    elif not (host == c['domain'] or (c['domain'].startswith('.') and ('.' + host).endswith(c['domain']))):
+        return None
+    if not c['path'].startswith('/'):
+        c['path'] = '/' + '/'.join(u.path[1:].split('/')[:-1])
+    return c
 
 
 # The engines, in the order that names a pass and settles a tie between
@@ -3196,6 +3254,17 @@ class Run:
         rtt = self.setup.rtt_of(tab.user.name)
         self.push(self.now + rtt // 2, PHASE_SERVER, tab.user.rank, functools.partial(self.arrive, h))
 
+    async def forget_cookies(self, context, cookies):
+        """Cookies of the context's list out of it, each by an expired copy
+        with its own flags, as clear_cookies does, but alive again first:
+        Firefox sets nothing for an expired copy of a cookie already past
+        its time, which stays in the list, and WebKit on macOS nothing for
+        a copy whose HttpOnly is not the cookie's.  No page sends a request
+        in between: they are quiet while a request arrives."""
+        kept = ('name', 'value', 'domain', 'path', 'httpOnly', 'secure', 'sameSite')
+        await context.add_cookies([dict({k: c[k] for k in kept}, expires=-1) for c in cookies])
+        await context.add_cookies([dict({k: c[k] for k in kept}, value='', expires=0) for c in cookies])
+
     async def expire_cookies(self, h):
         """The user's cookies past their expiry when the page sent the
         request, out of their context, where liburtclock has put the
@@ -3212,16 +3281,69 @@ class Run:
         try:
             gone = [c for c in await context.cookies() if c['expires'] != -1 and c['expires'] * 1000 <= h.sent]
             if gone:
-                # Expired by an expired copy, as clear_cookies does, but alive
-                # again first: Firefox sets nothing for an expired copy of a
-                # cookie already past its time, which stays in the list.  No
-                # page sends a request in between: they are quiet while a
-                # request arrives.
-                kept = ('name', 'value', 'domain', 'path', 'httpOnly', 'secure', 'sameSite')
-                await context.add_cookies([dict({k: c[k] for k in kept}, expires=-1) for c in gone])
-                await context.add_cookies([dict({k: c[k] for k in kept}, value='', expires=0) for c in gone])
+                await self.forget_cookies(context, gone)
         except self.PlaywrightError:
             pass
+
+    async def answer_cookies(self, h):
+        """The cookies the server's answer sets, in the user's context as an
+        HTTP answer leaves them where route.fetch, which has stored them
+        through the context's API, did not.  Under WebKit on macOS that API
+        is Apple's, which keeps an HttpOnly cookie that a line without
+        HttpOnly would replace or clear, as an HTTP answer may; and
+        Playwright counts Max-Age on the wall clock, where liburtclock has
+        put the engines on the run's.  Such a cookie is put right: the one
+        in the list forgotten, and the line's added unless it clears the
+        cookie.  For each cookie only the answer's last line counts, the one
+        that stands once the answer is read; nothing else is compared, the
+        engines listing SameSite and expiries each their own way.  The page
+        gets the answer without the lines (answer_headers), so that they
+        are written this once, the same way under every engine."""
+        context = h.tab.user.context
+        if context is None or h.response is None:
+            return
+        lines = {}
+        for header in h.response.headers_array:
+            if header['name'].lower() == 'set-cookie':
+                for line in header['value'].split('\n'):
+                    c = parse_set_cookie(line, h.response.url)
+                    if c is not None:
+                        lines[(c['name'], c['domain'].lstrip('.'), c['path'])] = c
+        if not lines:
+            return
+        on_clock = self.drv.clock.lib is not None
+        now = self.now / 1000 if on_clock else time.time()
+        try:
+            listed = {(c['name'], c['domain'].lstrip('.'), c['path']): c for c in await context.cookies()}
+            stale, fresh = [], []
+            for key, c in lines.items():
+                old = listed.get(key)
+                if not ((old is not None and old['httpOnly'] != c['httpOnly'])
+                        or (on_clock and c['maxAge'] is not None)):
+                    continue
+                if old is not None:
+                    stale.append(old)
+                expires = (now + c['maxAge'] if c['maxAge'] is not None
+                           else c['expires'] if c['expires'] is not None else -1)
+                if expires == -1 or expires > now:
+                    fresh.append({'name': c['name'], 'value': c['value'], 'domain': c['domain'], 'path': c['path'],
+                                  'expires': -1 if expires == -1 else min(expires, COOKIE_EXPIRES_MAX),
+                                  'httpOnly': c['httpOnly'], 'secure': c['secure'], 'sameSite': c['sameSite']})
+            if stale:
+                await self.forget_cookies(context, stale)
+            if fresh:
+                await context.add_cookies(fresh)
+        except self.PlaywrightError:
+            pass
+
+    @staticmethod
+    def answer_headers(h):
+        """The answer's headers as the page gets them: without its cookies,
+        which answer_cookies has left in the context as the server gave
+        them; an engine's own handling of them in a fulfilled answer would
+        write them a second time, under WebKit on macOS through the same
+        API, undoing what was put right."""
+        return {k: v for k, v in h.response.headers.items() if k.lower() != 'set-cookie'}
 
     async def arrive(self, h):
         h.arrived = self.now
@@ -3254,6 +3376,7 @@ class Run:
         except self.PlaywrightError as e:
             h.error = e
             trace('fetch failed', self.path_of(h.req.url), str(e).splitlines()[0])
+        await self.answer_cookies(h)
         self.deliver_later(h)
 
     async def fetch_poll(self, h, headers):
@@ -3262,6 +3385,7 @@ class Run:
                                              timeout=0)
         except self.PlaywrightError as e:
             h.error = e
+        await self.answer_cookies(h)
         trace('poll back', h.tab.label, h.response.status if h.response else h.error)
         self.polls.append(h)
         self.activity += 1
@@ -3287,11 +3411,11 @@ class Run:
             elif h.navigation and 'html' in h.response.headers.get('content-type', ''):
                 tab.shown = tab is tab.user.front
                 self.docs += 1
-                await self.call(tab, h.route.fulfill(response=h.response,
+                await self.call(tab, h.route.fulfill(response=h.response, headers=self.answer_headers(h),
                                                      body=with_clock(await h.response.body(), self.now, tab.shown,
                                                                      tab.hidden_since, self.docs)))
             else:
-                await self.call(tab, h.route.fulfill(response=h.response))
+                await self.call(tab, h.route.fulfill(response=h.response, headers=self.answer_headers(h)))
             # The page's to read now, but for a redirect, which the engine
             # follows with a request of the same number.
             if h.tag is not None and (h.error is not None or not 300 <= h.response.status < 400):

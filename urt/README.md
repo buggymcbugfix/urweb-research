@@ -174,7 +174,12 @@ and Firefox and WebKit list expired ones with the rest.  On macOS the
 same library, from `urt/src/urtclock-mac.c`, is used once `make -C urt
 liburtclock.dylib` has built it (untried as yet: an engine built with
 the hardened runtime ignores it); otherwise the engines keep the wall
-clock there.
+clock there.  Everywhere, the cookies an answer sets are written once,
+when the server has given it, as an HTTP answer leaves them, and the
+page gets the answer without them: Playwright stores them through the
+engine's cookie API, and WebKit's on macOS keeps an HttpOnly cookie
+that a line without HttpOnly replaces or clears, which the driver then
+does itself.
 An element is ready to act on when it is shown, enabled and still: no
 animation of its own or around it under way and, while anything else
 in the page moves, the same box on two frames in a row.  A run comes
