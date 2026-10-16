@@ -49,3 +49,12 @@ fun big () = return <xml><body>{[strlen (doubled 17)]} bytes</body></xml>
 fun touch () =
     dml (INSERT INTO note (Id, Text) VALUES (2, 'touched'));
     return <xml><body>touched</body></xml>
+
+(* A form whose handler says how long the field was: for a body of some
+ * size, sent as a web server sends it. *)
+fun measure () =
+    return <xml><body>
+      <form><textbox{#Text}/><submit action={size}/></form>
+    </body></xml>
+
+and size (r : { Text : string }) = return <xml><body>{[strlen r.Text]} bytes</body></xml>
