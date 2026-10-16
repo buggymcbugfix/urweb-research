@@ -1,0 +1,6 @@
+database dbname=setval.db
+sql setval.sql
+safeGet Setval/next
+safeGet Setval/set
+
+setval
