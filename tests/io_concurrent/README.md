@@ -32,6 +32,11 @@ sanitizers' options reach the application.
   COMMIT (a transactional's commit callback reports an error) is answered
   by the onError handler, and the pruner goes on: A, left alone, is
   expunged, and a poll of A's is refused.
+- expunge-fails: the clientLeaves task fails the first time it runs, and A's
+  expunge with it; A is tried again at the next pass and expunged then.
+- expunge-commit-fails: the clientLeaves task's commit fails before the
+  database's COMMIT, every time; every expunge of A is rolled back, so A
+  and its row in chans stay, and A is tried again at every pass.
 - cache-lock: with -sqlcache, an io RPC that updates a cached table takes
   the cache's write lock inside its transactions, not across the sleep
   between them; a page reading the table during the sleep is served at

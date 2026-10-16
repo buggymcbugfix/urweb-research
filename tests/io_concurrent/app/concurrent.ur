@@ -2,13 +2,19 @@
    outside any transaction, with and without the request's client, writers
    whose transactions overlap, a cached table an io RPC holds the cache's
    lock on while it sleeps, an io task that sends on every client's channel
-   each period, a clientLeaves task that logs the pruner's work, and a page
-   whose commit fails, for the onError handler of concurrentE.ur.  The
+   each period, a clientLeaves task that logs the pruner's work and fails
+   when a case asks it to, and a page whose commit fails, for the onError
+   handler of concurrentE.ur.  The
    sleeps, effects and failures are the C probes of ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
 table chans : { Ch : channel string }
+
+(* What a case asks of the clientLeaves task, seeded before the start:
+   failLeave, that it fail once; failLeaveCommit, that its commit fail,
+   every time, before the database's COMMIT. *)
+table flags : { Name : string }
 
 (* An io RPC that sleeps outside any transaction, then writes a row. *)
 fun slow (ms : int) (who : string) : io int =
@@ -91,7 +97,16 @@ task periodic 1 = fn () =>
     Probe.sleepIo 100;
     runTransaction (queryI (SELECT * FROM chans) (fn r => send r.Chans.Ch "tick"))
 
-task clientLeaves = fn _ => debug "a client left"
+task clientLeaves = fn _ =>
+    failOnce <- oneOrNoRows1 (SELECT * FROM flags WHERE flags.Name = 'failLeave');
+    failCommit <- oneOrNoRows1 (SELECT * FROM flags WHERE flags.Name = 'failLeaveCommit');
+    (case failOnce of
+         None => return ()
+       | Some _ => Probe.failOnce "leave");
+    (case failCommit of
+         None => return ()
+       | Some _ => Probe.failInCommitBeforeDb "leave");
+    debug "a client left"
 
 fun main () : transaction page =
     ch <- channel;
