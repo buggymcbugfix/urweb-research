@@ -81,6 +81,9 @@ fun readCounter () : transaction page =
     v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
     return <xml><body>v = {[v]}</body></xml>
 
+(* A page that runs no SQL. *)
+fun hello () : transaction page = return <xml><body>hello</body></xml>
+
 fun count () : transaction page =
     n <- oneRowE1 (SELECT COUNT( * ) FROM t);
     return <xml><body>rows = {[n]}</body></xml>

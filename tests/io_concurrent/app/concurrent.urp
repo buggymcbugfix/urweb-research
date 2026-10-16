@@ -6,10 +6,12 @@ timeout 4
 onError ConcurrentE.err
 allow url /Concurrent/main
 allow url /Concurrent/count
+allow url /Concurrent/hello
 allow url /Concurrent/readCounter
 allow url /Concurrent/failCommit
 safeGet Concurrent/main
 safeGet Concurrent/count
+safeGet Concurrent/hello
 safeGet Concurrent/readCounter
 safeGet Concurrent/failCommit
 
