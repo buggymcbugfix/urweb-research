@@ -23,6 +23,11 @@ sanitizers' options reach the application.
   against a client whose io RPC runs for seven seconds: pages are served
   meanwhile, the client polls and stays, and once it stops polling it is
   expunged.
+- pruner-waiting: the pruner waiting for a twelve-second io RPC holds up no
+  other request: a page is answered at once.  It runs with read-write locks
+  that let a waiting writer go first, as macOS's do: on Linux under
+  writer_first.c, an LD_PRELOAD shim that makes glibc's locks do so, and
+  that run.sh builds with cc.
 - pruner-after-error: a request whose commit fails after the database's
   COMMIT (a transactional's commit callback reports an error) is answered
   by the onError handler, and the pruner goes on: A, left alone, is

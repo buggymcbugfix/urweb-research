@@ -18,8 +18,9 @@
 #
 # Run from the root of the tree (make check-io-concurrent): the compiler is
 # the one URWEB names, with the flags in URWEB_FLAGS, or else bin/urweb with
-# -boot -noEmacs.  Needs curl and sqlite3.  Exit status: 0 every case
-# passed, 1 some failed, 2 could not run.
+# -boot -noEmacs.  Needs curl and sqlite3, and on Linux cc for the shim
+# writer_first.c.  Exit status: 0 every case passed, 1 some failed, 2
+# could not run.
 
 set -u
 
@@ -52,6 +53,16 @@ build() {
 build -sql "$out/schema.sql" -output "$out/concurrent.exe"
 build -sqlcache -output "$out/concurrent-cache.exe"
 
+# For the cases that need read-write locks to let a waiting writer go first,
+# as macOS's do: on Linux a shim that makes glibc's locks do so (see
+# writer_first.c); elsewhere the platform's own locks.
+writer_first=
+if [ "$(uname -s)" = Linux ]; then
+  cc -shared -fPIC -O2 -o "$out/writer_first.so" "$here/writer_first.c" -ldl > "$out/writer_first.log" 2>&1 \
+    || { cat "$out/writer_first.log" >&2; die "the shim writer_first.c failed to build"; }
+  writer_first=$out/writer_first.so
+fi
+
 app_pid=
 cleanup() {
   [ -n "$app_pid" ] && kill "$app_pid" 2>/dev/null
@@ -73,16 +84,25 @@ declare -A client_id client_pass
 # seed SQL...: rows for the database, before the application starts.
 seed() { printf '%s\n' "$@" | sqlite3 "$db"; }
 
-# start [-cache] [FLAGS...]: the application, with eight worker threads
-# unless the flags say otherwise, on the case's database; the case's seed
-# must come first.  With -cache, the build with the SQL cache.  The server
-# says pid=, port= and status= on descriptor 3 once it listens (-d3), and
-# goes to the background.
+# start [-cache] [-writer-first] [FLAGS...]: the application, with eight
+# worker threads unless the flags say otherwise, on the case's database; the
+# case's seed must come first.  With -cache, the build with the SQL cache;
+# with -writer-first, under the shim above where there is one (ASan is told
+# not to mind that it comes first).  The server says pid=, port= and status=
+# on descriptor 3 once it listens (-d3), and goes to the background.
 start() {
-  local exe=$out/concurrent.exe
-  if [ "${1:-}" = -cache ]; then exe=$out/concurrent-cache.exe; shift; fi
+  local exe=$out/concurrent.exe preload= asan=${ASAN_OPTIONS:-}
+  while :; do
+    case "${1:-}" in
+      -cache) exe=$out/concurrent-cache.exe; shift ;;
+      -writer-first) preload=$writer_first; shift ;;
+      *) break ;;
+    esac
+  done
+  [ -n "$preload" ] && asan="${asan:+$asan:}verify_asan_link_order=0"
   eval "$( env -i ${LD_LIBRARY_PATH:+LD_LIBRARY_PATH="$LD_LIBRARY_PATH"} PATH="$PATH" \
-             ${ASAN_OPTIONS:+ASAN_OPTIONS="$ASAN_OPTIONS"} ${UBSAN_OPTIONS:+UBSAN_OPTIONS="$UBSAN_OPTIONS"} \
+             ${asan:+ASAN_OPTIONS="$asan"} ${UBSAN_OPTIONS:+UBSAN_OPTIONS="$UBSAN_OPTIONS"} \
+             ${preload:+LD_PRELOAD="$preload"} \
              URWEB_SQLITE_DB_PATH="$db" URWEB_MIN_HEAP=$((64 * 1024 * 1024)) \
              "$exe" -t 8 "$@" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>> "$log" 2>&1 )"
   [ "${status:-}" = OK ] || { cat "$log" >&2; die "the application did not start"; }
