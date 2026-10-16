@@ -340,10 +340,19 @@
                                                                                tmp;
                                                                                });
                                                                                }));
+                                                                               int r;
                                                                                
-                                                                               if (sqlite3_exec(conn->conn, insert, NULL, NULL, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "'nextval' INSERT failed: %s", sqlite3_errmsg(conn->conn));
+                                                                               if ((r = sqlite3_exec(conn->conn, insert, NULL, NULL, NULL)) == SQLITE_BUSY) {
+                                                                               sleep(1);
+                                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                               }
+                                                                               if (r != SQLITE_OK) uw_error(ctx, FATAL, "'nextval' INSERT failed: %s", sqlite3_errmsg(conn->conn));
                                                                                n = sqlite3_last_insert_rowid(conn->conn);
-                                                                               if (sqlite3_exec(conn->conn, delete, NULL, NULL, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "'nextval' DELETE failed: %s", sqlite3_errmsg(conn->conn));
+                                                                               if ((r = sqlite3_exec(conn->conn, delete, NULL, NULL, NULL)) == SQLITE_BUSY) {
+                                                                               sleep(1);
+                                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                               }
+                                                                               if (r != SQLITE_OK) uw_error(ctx, FATAL, "'nextval' DELETE failed: %s", sqlite3_errmsg(conn->conn));
                                                                                if (uw_dml_log_enabled()) {
                                                                                uw_log_dml(ctx, "nextval 1/2", insert, -1);
                                                                                uw_log_dml(ctx, "nextval 2/2", delete, -1);
