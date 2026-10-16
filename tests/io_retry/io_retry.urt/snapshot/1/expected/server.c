@@ -1654,7 +1654,8 @@
     });
    }
   
-  static uw_periodic my_periodics[] = {{uw_periodic0, 1, 1},{NULL}};
+  static uw_periodic my_periodics[] = {{uw_periodic0, 1, 1,
+                                        "tests/io_retry/io_retry.ur:17:0-66:17"},{NULL}};
  
  static int uw_check_url(const char *s) {
   if (!strncmp(s, "#", 1)) return 1;

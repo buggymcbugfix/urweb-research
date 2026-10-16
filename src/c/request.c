@@ -116,7 +116,7 @@ static void *io_periodic_loop(periodic *p) {
 
   if (!ctx)
     exit(1);
-  uw_set_activity(ctx, "periodic task %d", p->id);
+  uw_set_activity(ctx, "periodic task at %s", p->pdic.where);
   uw_io_prepare(ctx);
 
   while (1) {
@@ -160,7 +160,7 @@ static void *periodic_loop(void *data) {
 
   if (!ctx)
     exit(1);
-  uw_set_activity(ctx, "periodic task %d", p->id);
+  uw_set_activity(ctx, "periodic task at %s", p->pdic.where);
 
   while (1) {
     int attempts_left = UW_RETRY_ATTEMPTS;

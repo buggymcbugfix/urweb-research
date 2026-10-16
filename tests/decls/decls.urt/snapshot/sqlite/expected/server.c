@@ -905,7 +905,8 @@
    0;
    }
   
-  static uw_periodic my_periodics[] = {{uw_periodic0, 3600, 0},{NULL}};
+  static uw_periodic my_periodics[] = {{uw_periodic0, 3600, 0,
+                                        "tests/decls/decls.ur:24:0-24:60"},{NULL}};
  
  static int uw_check_url(const char *s) {
   if (!strncmp(s, "#", 1)) return 1;
