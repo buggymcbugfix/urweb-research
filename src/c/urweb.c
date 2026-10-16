@@ -4178,6 +4178,7 @@ static failure_kind uw_expunge(uw_context ctx, uw_Basis_client cli, void *data) 
 void uw_prune_clients(uw_context ctx) {
   client *c, *next, *prev = NULL;
   time_t cutoff;
+  int stop = 0;
 
   cutoff = time(NULL) - ctx->app->timeout;
 
@@ -4187,17 +4188,13 @@ void uw_prune_clients(uw_context ctx) {
   pruning_thread = pthread_self();
   pruning_thread_initialized = 1;
 
-  for (c = clients_used; c; c = next) {
+  for (c = clients_used; c && !stop; c = next) {
     next = c->next;
     pthread_mutex_lock(&c->lock);
     if (c->last_contact < cutoff && c->refcount == 0) {
-      failure_kind fk = UNLIMITED_RETRY;
-      while (fk == UNLIMITED_RETRY) {
-        uw_reset(ctx);
-        fk = uw_expunge(ctx, c->id, c->data);
-        if (fk == UNLIMITED_RETRY)
-          printf("Unlimited retry during expunge: %s\n", uw_error_message(ctx));
-      }
+      failure_kind fk;
+      uw_reset(ctx);
+      fk = uw_expunge(ctx, c->id, c->data);
       if (fk == SUCCESS) {
         if (uw_has_error(ctx))
           ctx->loggers->log_error(ctx->loggers->logger_data,
@@ -4215,6 +4212,11 @@ void uw_prune_clients(uw_context ctx) {
                                 "Expunge of client %u failed, to be tried again at the next pass: %s\n",
                                 c->id, uw_error_message(ctx));
         prev = c;
+        // A database that is busy, or a conflict: the pass ends here, since
+        // it keeps every request out while it waits on the database, and
+        // the next client's expunge would most likely meet the same.
+        if (fk == UNLIMITED_RETRY || fk == BOUNDED_RETRY)
+          stop = 1;
       }
     }
     else
