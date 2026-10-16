@@ -385,6 +385,8 @@ fastcgi.server = (
 
     A FastCGI process reads the environment variable \texttt{URWEB\_NUM\_THREADS} to determine how many threads to spawn for handling client requests.  The default is 1.
 
+    Its debug output, from \cd{debug} and from the runtime, goes to stdout, as the HTTP server's does, and the \texttt{-q} option turns it off.  Its errors go to stderr, as the HTTP server's do.  Nothing goes to the web server but the responses, so none of the program's lines end up in the web server's error log.  Started by \texttt{spawn-fcgi}, the program needs its \texttt{-n} option to keep its stdout and stderr; otherwise both go to \texttt{/dev/null}.
+
   \item \texttt{static}: This protocol may be used to generate static web pages from Ur/Web code.  The output executable expects a single command-line argument, giving the URI of a page to generate.  For instance, this argument might be \cd{/main}, in which case a static HTTP response for that page will be written to stdout.
   \end{itemize}
 
