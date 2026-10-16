@@ -174,7 +174,7 @@ Here is the complete list of directive forms.  ``FFI'' stands for ``foreign func
   \begin{itemize}
   \item \texttt{cleanup}: maximum number of cleanup operations (e.g., entries recording the need to deallocate certain temporary objects) that may be active at once per request
   \item \texttt{clients}: maximum number of simultaneous connections to one application by web clients waiting for new asynchronous messages sent with \texttt{Basis.send}
-  \item \texttt{database}: maximum size of a database file (currently only used by SQLite, which interprets the parameter as a number of pages, where page size is itself a quantity configurable in SQLite)
+  \item \texttt{database}: maximum size (in bytes) of a database file (currently only used by SQLite, in whole pages: the number is divided by the page size of the database, 4096 bytes unless configured otherwise in SQLite; a limit of less than one page keeps the application from starting, and a database already larger keeps its size)
   \item \texttt{deltas}: maximum number of messages sendable in a single request handler with \texttt{Basis.send}
   \item \texttt{globals}: maximum number of global variables that FFI libraries may set in a single request context
   \item \texttt{headers}: maximum size (in bytes) of per-request buffer used to hold HTTP headers for generated pages
