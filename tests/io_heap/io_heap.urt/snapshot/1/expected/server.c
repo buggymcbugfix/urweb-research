@@ -396,8 +396,7 @@
                                                    
                                                   int r;
                                                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                   sleep(1);
-                                                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                     }
                                                    
                                                    if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/basis.urs:722:0-722:33: DML step failed: %s<br />%s", 
@@ -712,7 +711,6 @@
                                                                                }
                                                                                
                                                                                if (r == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                

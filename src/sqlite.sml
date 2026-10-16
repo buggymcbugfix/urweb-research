@@ -687,10 +687,15 @@ fun queryCommon {loc, query, cols, doCols} =
          newline,
          newline,
 
+         (* No pause before the request is run again.  A transaction that
+          * may write has held the write lock since its BEGIN, so a
+          * statement that is busy all the same has already waited for
+          * busy_timeout inside sqlite3_step, and a pause here would keep
+          * the transaction, and its locks, open for nothing: uw_error is
+          * what unwinds to the ROLLBACK. *)
          string "if (r == SQLITE_BUSY) {",
-         box [string "sleep(1);",
-              newline,
-              string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+         newline,
+         box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
               newline],
          string "}",
          newline,
@@ -870,10 +875,10 @@ fun dmlCommon {loc, dml, mode} =
     box [string "int r;",
          newline,
 
+         (* No pause before the request is run again: see queryCommon. *)
          string "if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {",
-         box [string "sleep(1);",
-              newline,
-              string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+         newline,
+         box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
               newline],
          string "}",
          newline,
@@ -987,12 +992,10 @@ fun nextval {loc, seqE, seqName} =
          newline,
 
          (* A busy database asks for the request to be run again, as it
-          * does for a DML statement (dmlCommon). *)
+          * does for a DML statement, and with no pause: see queryCommon. *)
          string "if ((r = sqlite3_exec(conn->conn, insert, NULL, NULL, NULL)) == SQLITE_BUSY) {",
          newline,
-         box [string "sleep(1);",
-              newline,
-              string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+         box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
               newline],
          string "}",
          newline,
@@ -1002,9 +1005,7 @@ fun nextval {loc, seqE, seqName} =
          newline,
          string "if ((r = sqlite3_exec(conn->conn, delete, NULL, NULL, NULL)) == SQLITE_BUSY) {",
          newline,
-         box [string "sleep(1);",
-              newline,
-              string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+         box [string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
               newline],
          string "}",
          newline,

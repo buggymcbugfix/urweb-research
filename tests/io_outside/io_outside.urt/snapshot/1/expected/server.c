@@ -463,7 +463,6 @@
                                                                                }
                                                                                
                                                                                if (r == SQLITE_BUSY) {
-                                                                               sleep(1);
                                                                                uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                                }
                                                                                
@@ -549,9 +548,9 @@
                         uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                         
                         int r;
-                         if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                        }
+                         if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                          }
                          
                          if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_outside/io_outside.ur:17:32-18:40: DML step failed: %s<br />%s", 
                                                 "INSERT INTO uw_Io_outside_t (uw_N) VALUES (1)", sqlite3_errmsg(conn->conn));
@@ -717,8 +716,7 @@
                                             
                                             int r;
                                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                             sleep(1);
-                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                               }
                                              
                                              if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_outside/io_outside.ur:28:13-28:64: DML step failed: %s<br />%s", 

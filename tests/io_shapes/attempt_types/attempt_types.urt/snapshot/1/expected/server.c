@@ -803,8 +803,7 @@
                                                        
                                                       int r;
                                                        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                       sleep(1);
-                                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                         }
                                                        
                                                        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/attempt_types/attempt_types.ur:27:4-27:59: DML step failed: %s<br />%s", 
@@ -1738,8 +1737,7 @@
                                                      
                                                     int r;
                                                      if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                     sleep(1);
-                                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                     uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                       }
                                                      
                                                      if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/attempt_types/attempt_types.ur:45:4-45:59: DML step failed: %s<br />%s", 
@@ -2242,9 +2240,9 @@
                                                });
                                               }
                                              
-                                             if (r == SQLITE_BUSY) {sleep(1);
-                                                                     uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                     }
+                                             if (r == SQLITE_BUSY) {
+                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                              }
                                              
                                              if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                              "SELECT COUNT(*) AS uw_1 FROM uw_Attempt_types_t AS T_T", sqlite3_errmsg(conn->conn));
@@ -2298,8 +2296,7 @@
                                               
                                              int r;
                                               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                              sleep(1);
-                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                }
                                               
                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/attempt_types/attempt_types.ur:53:71-53:179: DML step failed: %s<br />%s", 
@@ -2437,9 +2434,9 @@
                         });
                        }
                       
-                      if (r == SQLITE_BUSY) {sleep(1);
-                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                              }
+                      if (r == SQLITE_BUSY) {
+                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                       }
                       
                       if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                       "SELECT COUNT(*) AS uw_1 FROM uw_Attempt_types_t AS T_T", sqlite3_errmsg(conn->conn));

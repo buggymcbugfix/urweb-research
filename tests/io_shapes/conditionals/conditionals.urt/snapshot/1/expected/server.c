@@ -362,9 +362,9 @@
                    uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                    
                    int r;
-                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                   }
+                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                     }
                     
                     if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/conditionals/conditionals.ur:11:30-11:85: DML step failed: %s<br />%s", 
                                            "INSERT INTO uw_Conditionals_t (uw_N, uw_S) VALUES (1, 'cond')", sqlite3_errmsg(conn->conn));
@@ -449,8 +449,7 @@
                                                                        
                                                                       int r;
                                                                        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                                                       sleep(1);
-                                                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                                         }
                                                                        
                                                                        if (r != SQLITE_DONE) 
@@ -530,9 +529,9 @@
                    uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
                    
                    int r;
-                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                                   uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                   }
+                    if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                    uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                     }
                     
                     if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/conditionals/conditionals.ur:24:42-24:99: DML step failed: %s<br />%s", 
                                            "INSERT INTO uw_Conditionals_t (uw_N, uw_S) VALUES (3, 'chosen')", sqlite3_errmsg(conn->conn));
@@ -659,8 +658,7 @@
                                              
                                             int r;
                                              if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                             sleep(1);
-                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                               }
                                              
                                              if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/conditionals/conditionals.ur:38:16-38:83: DML step failed: %s<br />%s", 
@@ -755,8 +753,7 @@
                                           
                                          int r;
                                           if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                          sleep(1);
-                                           uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                            }
                                           
                                           if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_shapes/conditionals/conditionals.ur:48:29-48:87: DML step failed: %s<br />%s", 
@@ -1017,9 +1014,9 @@
                          });
                         }
                        
-                       if (r == SQLITE_BUSY) {sleep(1);
-                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                               }
+                       if (r == SQLITE_BUSY) {
+                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                        }
                        
                        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:288:16-288:18: query step failed: %s<br />%s", 
                        "SELECT T_T.uw_N, T_T.uw_S FROM uw_Conditionals_t AS T_T ORDER BY T_T.uw_S, T_T.uw_N", sqlite3_errmsg(conn->conn));

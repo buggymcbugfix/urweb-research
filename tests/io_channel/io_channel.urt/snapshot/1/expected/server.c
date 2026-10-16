@@ -370,9 +370,9 @@
               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
               
               int r;
-               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                              }
+               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                }
                
                if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
                                       "DELETE FROM uw_Io_channel_chans", sqlite3_errmsg(conn->conn));
@@ -410,8 +410,7 @@
                                      
                                     int r;
                                      if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                     sleep(1);
-                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                     uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                       }
                                      
                                      if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
@@ -509,8 +508,7 @@
                                         
                                        int r;
                                         if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                        sleep(1);
-                                         uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                          }
                                         
                                         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_channel/io_channel.ur:24:4-29:3: DML step failed: %s<br />%s", 
@@ -646,9 +644,9 @@
                 });
                }
               
-              if (r == SQLITE_BUSY) {sleep(1);
-                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                      }
+              if (r == SQLITE_BUSY) {
+              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+               }
               
               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:292:16-292:18: query step failed: %s<br />%s", 
               "SELECT T_Chans.uw_Ch FROM uw_Io_channel_chans AS T_Chans", sqlite3_errmsg(conn->conn));
@@ -727,9 +725,9 @@
                         });
                        }
                       
-                      if (r == SQLITE_BUSY) {sleep(1);
-                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                              }
+                      if (r == SQLITE_BUSY) {
+                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                       }
                       
                       if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                       "SELECT COUNT(*) AS uw_1 FROM uw_Io_channel_sent AS T_Sent", sqlite3_errmsg(conn->conn));
@@ -829,8 +827,7 @@
                                              
                                              int r;
                                               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                              sleep(1);
-                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                                }
                                               
                                               if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_channel/io_channel.ur:19:12-19:66: DML step failed: %s<br />%s", 

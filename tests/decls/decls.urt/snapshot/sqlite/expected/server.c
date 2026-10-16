@@ -401,9 +401,9 @@
               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
               
               int r;
-               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                              uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                              }
+               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                }
                
                if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
                                       "DELETE FROM uw_Decls_chans", sqlite3_errmsg(conn->conn));
@@ -444,8 +444,7 @@
                                       
                                     int r;
                                      if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                     sleep(1);
-                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                     uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                       }
                                      
                                      if (r != SQLITE_DONE) uw_error(ctx, FATAL, ":0:0-0:0: DML step failed: %s<br />%s", 
@@ -546,9 +545,9 @@
                                          });
                                         }
                                        
-                                       if (r == SQLITE_BUSY) {sleep(1);
-                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                               }
+                                       if (r == SQLITE_BUSY) {
+                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                        }
                                        
                                        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:425:17-425:18: query step failed: %s<br />%s", 
                                        "SELECT T_Chans.uw_Channel FROM uw_Decls_chans AS T_Chans WHERE (T_Chans.uw_Client = \?)", sqlite3_errmsg(conn->conn));
@@ -672,8 +671,7 @@
                                              
                                            int r;
                                             if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
-                                            sleep(1);
-                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                            uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                              }
                                             
                                             if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:40:4-53:17: DML step failed: %s<br />%s", 
@@ -741,9 +739,9 @@
                                                  });
                                                 }
                                                
-                                               if (r == SQLITE_BUSY) {sleep(1);
-                                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                                       }
+                                               if (r == SQLITE_BUSY) {
+                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                }
                                                
                                                if (r != SQLITE_DONE) uw_error(ctx, FATAL, "$/top.ur:437:17-437:18: query step failed: %s<br />%s", 
                                                "SELECT COUNT(*) AS uw_1 FROM uw_Decls_t AS T_T", sqlite3_errmsg(conn->conn));
@@ -1067,9 +1065,9 @@
       if (sqlite3_bind_int(stmt, 1, arg1) != SQLITE_OK) uw_error(ctx, FATAL, "tests/decls/decls.ur:26:0-26:76: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
        
       int r;
-       if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                      uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                      }
+       if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+        }
        
        if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:26:0-26:76: DML step failed: %s<br />%s", 
                               "DELETE FROM uw_Decls_chans WHERE (uw_Client = \?)", sqlite3_errmsg(conn->conn));
@@ -1112,9 +1110,9 @@
        uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
        
        int r;
-        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                       }
+        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+         }
         
         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:21:4-22:53: DML step failed: %s<br />%s", 
                                "DELETE FROM uw_Decls_t WHERE (uw_Id = 1)", sqlite3_errmsg(conn->conn));
@@ -1146,9 +1144,9 @@
        uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
        
        int r;
-        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {sleep(1);
-                                                       uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
-                                                       }
+        if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+        uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+         }
         
         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/decls/decls.ur:21:4-22:53: DML step failed: %s<br />%s", 
                                "INSERT INTO uw_Decls_t (uw_Id, uw_Name) VALUES (1, 'init')", sqlite3_errmsg(conn->conn));
