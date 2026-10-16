@@ -208,6 +208,7 @@ Here is the complete list of directive forms.  ``FFI'' stands for ``foreign func
 \item \texttt{sql FILENAME} sets where to write an SQL file with the commands to create the expected database schema.  The default is not to create such a file.
 \item \texttt{timeFormat FMT} accepts a time format string, as processed by the POSIX C function \texttt{strftime()}.  This controls the default rendering of $\mt{time}$ values, via the $\mt{show}$ instance for $\mt{time}$.
 \item \texttt{timeout N} sets to \texttt{N} seconds the amount of time that the generated server will wait after the last contact from a client before determining that that client has exited the application.  Clients that remain active will take the timeout setting into account in determining how often to ping the server, so it only makes sense to set a high timeout to cope with browser and network delays and failures.  Higher timeouts can lead to more unnecessary client information taking up memory on the server.  The timeout goes unused by any page that doesn't involve the \texttt{recv} function, since the server only needs to store per-client information for clients that receive asynchronous messages.
+\item \texttt{writesDB Module.ident} registers an FFI function or transaction that writes to the database through the application's own connection, which its C code gets with \texttt{uw\_get\_db}.  The compiler cannot see such a write.  The function is also registered as \texttt{effectful}, and declaring it \texttt{benignEffectful} as well is an error.
 \item \texttt{xhtml} asks to generate XHTML code, which primarily affects the first few lines of the output documents, like the \texttt{DOCTYPE}.
 \end{itemize}
 
@@ -2577,6 +2578,7 @@ It is most convenient to encapsulate an FFI binding with a new \texttt{.urp} fil
 \item \texttt{link FILE} requests that \texttt{FILE} be linked into applications.  It should be a C object or library archive file, which you are responsible for generating with your own build process, or a C source file ending in \texttt{.c}, which the compiler compiles with the flags it uses for the C it generates, the \texttt{-I}, \texttt{-D} and \texttt{-U} given to \texttt{link} among them.
 \item \texttt{script URL} requests inclusion of a JavaScript source file within application HTML.
 \item \texttt{serverOnly Module.ident} registers a value as being allowed only in server-side code.
+\item \texttt{writesDB Module.ident} registers a function that writes to the database through the application's own connection, as the project directive of that name does.
 \end{itemize}
 
 \subsection{Writing C FFI Code}
@@ -2707,6 +2709,7 @@ Now \texttt{foo} is available as a normal function.  If called in server-side co
 \begin{itemize}
 \item \texttt{effectful}
 \item \texttt{benignEffectful}
+\item \texttt{writesDB}
 \item \texttt{clientOnly}
 \item \texttt{serverOnly}
 \item \texttt{jsFunc "putJsFuncNameHere"}

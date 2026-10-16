@@ -1,2 +1,1 @@
-tests/urp/writesdb/bothinline.ur:1:10: (to 1:18) Invalid FFI mode
-Parse failure
+tests/urp/writesdb/bothinline.ur:1:0: (to 1:53) FFI function Bothinline.touch is declared both writesDB and benignEffectful

@@ -1,1 +1,1 @@
-GET /One_query/twoQueries/2: Fatal error: tests/db_writes/one_query.ur:17:4-19:2: failed after 1 and 0
+GET /One_query/twoQueries/2: Fatal error: tests/db_writes/one_query.ur:17:4-19:2: failed after 0 and 0

@@ -149,6 +149,7 @@ and edecl = edecl' located
 datatype ffi_mode =
          Effectful
        | BenignEffectful
+       | WritesDB
        | ClientOnly
        | ServerOnly
        | JsFunc of string

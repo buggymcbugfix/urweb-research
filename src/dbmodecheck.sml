@@ -39,12 +39,17 @@ fun classify (ds, ps) =
               | (_, NoDb) => m1
               | _ => AnyDb
 
+        (* An FFI function declared writesDB writes through the
+         * application's connection, as a DML statement does, and so needs
+         * the handler's transaction. *)
         fun modeOf modes =
             MonoUtil.Exp.fold {typ = fn (_, dbm) => dbm,
                                exp = fn (EQuery _, dbm) => mergeModes (OneQuery, dbm)
                                       | (EDml _, _) => AnyDb
                                       | (ENextval _, _) => AnyDb
                                       | (ESetval _, _) => AnyDb
+                                      | (EFfi x, dbm) => if Settings.isWritesDB x then AnyDb else dbm
+                                      | (EFfiApp (m, x, _), dbm) => if Settings.isWritesDB (m, x) then AnyDb else dbm
                                       | (ENamed n, dbm) =>
                                         (case IM.find (modes, n) of
                                              NONE => dbm

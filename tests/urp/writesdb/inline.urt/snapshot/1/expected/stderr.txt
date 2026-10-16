@@ -1,2 +1,0 @@
-tests/urp/writesdb/inline.ur:1:10: (to 1:18) Invalid FFI mode
-Parse failure

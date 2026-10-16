@@ -52,6 +52,7 @@ type job = {
      clientToServer : Settings.ffi list,
      effectful : Settings.ffi list,
      benignEffectful : Settings.ffi list,
+     writesDB : Settings.ffi list,
      clientOnly : Settings.ffi list,
      serverOnly : Settings.ffi list,
      jsModule : string option,
@@ -389,6 +390,7 @@ fun p_job (job : job) =
                  @ each ("ClientToServer", map ffi (#clientToServer job))
                  @ each ("Effectful", map ffi (#effectful job))
                  @ each ("BenignEffectful", map ffi (#benignEffectful job))
+                 @ each ("WritesDB", map ffi (#writesDB job))
                  @ each ("ClientOnly", map ffi (#clientOnly job))
                  @ each ("ServerOnly", map ffi (#serverOnly job))
                  @ [opt ("JsModule", #jsModule job)]
@@ -482,6 +484,13 @@ fun institutionalizeJob (job : job) =
      Settings.setClientToServer (#clientToServer job);
      Settings.setEffectful (#effectful job);
      Settings.setBenignEffectful (#benignEffectful job);
+     Settings.setWritesDB (#writesDB job);
+     app (fn x as (m, f) =>
+             if Settings.isBenignEffectful x then
+                 ErrorMsg.error ("FFI function " ^ m ^ "." ^ f
+                                 ^ " is declared both writesDB and benignEffectful")
+             else
+                 ()) (#writesDB job);
      Settings.setClientOnly (#clientOnly job);
      Settings.setServerOnly (#serverOnly job);
      Settings.setJsModule (#jsModule job);
@@ -569,6 +578,7 @@ fun parseUrp' accLibs fname =
                         clientToServer = [],
                         effectful = [],
                         benignEffectful = [],
+                        writesDB = [],
                         clientOnly = [],
                         serverOnly = [],
                         jsModule = NONE,
@@ -714,6 +724,7 @@ fun parseUrp' accLibs fname =
                      val clientToServer = ref []
                      val effectful = ref []
                      val benignEffectful = ref []
+                     val writesDB = ref []
                      val clientOnly = ref []
                      val serverOnly = ref []
                      val jsModule = ref NONE
@@ -762,6 +773,7 @@ fun parseUrp' accLibs fname =
                                  clientToServer = rev (!clientToServer),
                                  effectful = rev (!effectful),
                                  benignEffectful = rev (!benignEffectful),
+                                 writesDB = rev (!writesDB),
                                  clientOnly = rev (!clientOnly),
                                  serverOnly = rev (!serverOnly),
                                  jsModule = !jsModule,
@@ -806,6 +818,7 @@ fun parseUrp' accLibs fname =
                                  clientToServer = #clientToServer old @ #clientToServer new,
                                  effectful = #effectful old @ #effectful new,
                                  benignEffectful = #benignEffectful old @ #benignEffectful new,
+                                 writesDB = #writesDB old @ #writesDB new,
                                  clientOnly = #clientOnly old @ #clientOnly new,
                                  serverOnly = #serverOnly old @ #serverOnly new,
                                  jsModule = #jsModule old,
@@ -982,6 +995,7 @@ fun parseUrp' accLibs fname =
                                    | "safeGet" => safeGets := arg :: !safeGets
                                    | "effectful" => effectful := ffiS () :: !effectful
                                    | "benignEffectful" => benignEffectful := ffiS () :: !benignEffectful
+                                   | "writesDB" => writesDB := ffiS () :: !writesDB
                                    | "clientOnly" => clientOnly := ffiS () :: !clientOnly
                                    | "serverOnly" => serverOnly := ffiS () :: !serverOnly
                                    | "jsModule" =>

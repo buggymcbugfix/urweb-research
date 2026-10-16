@@ -10,6 +10,7 @@ safeGet Db_writes/writes
 safeGet Db_writes/draws
 safeGet Db_writes/writesThroughCall
 safeGet Db_writes/writesThroughFfi
+writesDB Probe.pendingWrite
 minHeap 65536
 
 failures

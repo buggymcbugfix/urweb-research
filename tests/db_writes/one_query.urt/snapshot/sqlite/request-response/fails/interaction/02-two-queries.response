@@ -3,5 +3,5 @@ Content-type: text/html
 Connection: close
 Content-length: 139
 
-<html><head><title>Fatal Error</title></head><body>Fatal error: tests/db_writes/one_query.ur:17:4-19:2: failed after 1 and 0
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/db_writes/one_query.ur:17:4-19:2: failed after 0 and 0
 </body></html>

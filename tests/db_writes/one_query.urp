@@ -3,7 +3,7 @@ sql one_query.sql
 ffi insert
 include insert.h
 link insert.c
-effectful Insert.row
+writesDB Insert.row
 safeGet One_query/oneQuery
 safeGet One_query/twoQueries
 safeGet One_query/rows

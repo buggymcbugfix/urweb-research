@@ -94,6 +94,13 @@ signature SETTINGS = sig
     val addBenignEffectful : ffi -> unit
     val isBenignEffectful : ffi -> bool
 
+    (* Which FFI functions write the database through the application's own
+     * connection, where the compiler cannot see the write?  Each is also
+     * effectful. *)
+    val setWritesDB : ffi list -> unit
+    val addWritesDB : ffi -> unit
+    val isWritesDB : ffi -> bool
+
     (* Which FFI functions may only be run in clients? *)
     val setClientOnly : ffi list -> unit
     val addClientOnly : ffi -> unit
