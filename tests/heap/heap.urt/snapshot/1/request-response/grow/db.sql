@@ -1,3 +1,6 @@
+PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+
 CREATE TABLE uw_T (
     uw_Id integer NOT NULL,
     uw_Payload text NOT NULL,

@@ -1,3 +1,6 @@
+PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+
 CREATE TABLE uw_Chan (
     uw_Cli integer NOT NULL,
     uw_Ch integer NOT NULL,

@@ -163,6 +163,65 @@ fun checkRel (table, checkNullable) (s, xts) =
              newline]
     end
 
+(* The runtime relies on WAL mode: there a reader does not wait for a
+ * writer, and a COMMIT only appends to the log, so that readers cannot keep
+ * it waiting past busy_timeout.  The mode belongs to the file, set by the
+ * PRAGMA the schema starts with; a database made some other way may be in
+ * rollback-journal mode instead. *)
+val checkWal =
+    box [string "if (sqlite3_prepare_v2(conn->conn, \"PRAGMA journal_mode\", -1, &stmt, NULL) != SQLITE_OK) {",
+         newline,
+         box [string "sqlite3_close(conn->conn);",
+              newline,
+              string "uw_error(ctx, FATAL, \"Query preparation failed:<br />PRAGMA journal_mode\");",
+              newline],
+         string "}",
+         newline,
+         newline,
+         string "res = sqlite3_step(stmt);",
+         newline,
+         newline,
+         string "if (res == SQLITE_BUSY) {",
+         newline,
+         box [string "sqlite3_finalize(stmt);",
+              newline,
+              string "sqlite3_close(conn->conn);",
+              newline,
+              string "uw_error(ctx, FATAL, \"Database is busy; can't validate:<br />PRAGMA journal_mode\");",
+              newline],
+         string "}",
+         newline,
+         newline,
+         string "if (res != SQLITE_ROW) {",
+         newline,
+         box [string "sqlite3_finalize(stmt);",
+              newline,
+              string "sqlite3_close(conn->conn);",
+              newline,
+              string "uw_error(ctx, FATAL, \"Error getting row:<br />PRAGMA journal_mode\");",
+              newline],
+         string "}",
+         newline,
+         newline,
+         string "if (sqlite3_stricmp((const char *)sqlite3_column_text(stmt, 0), \"wal\")) {",
+         newline,
+         box [string "char mode[32];",
+              newline,
+              newline,
+              string "snprintf(mode, sizeof mode, \"%s\", (const char *)sqlite3_column_text(stmt, 0));",
+              newline,
+              string "sqlite3_finalize(stmt);",
+              newline,
+              string "sqlite3_close(conn->conn);",
+              newline,
+              string "uw_error(ctx, FATAL, \"The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)\", mode);",
+              newline],
+         string "}",
+         newline,
+         newline,
+         string "sqlite3_finalize(stmt);",
+         newline]
+
 fun init {dbstring, prepared = ss, tables, views, sequences} =
     let
         val db = ref dbstring
@@ -344,6 +403,8 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                       newline,
                       box [string "return;",
                            newline],
+                      newline,
+                      checkWal,
                       newline,
                       p_list_sep newline (checkRel ("table", true)) tables,
                       p_list_sep newline (fn name => checkRel ("table", true)
