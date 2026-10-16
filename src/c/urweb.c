@@ -483,6 +483,11 @@ struct uw_context {
 
   void *db;
   int transaction_started;
+  // Whether the last uw_commit got its transaction into the database.  When
+  // uw_commit returns 0 with an error, the error came before COMMIT or from
+  // it, and nothing was written, or after it, from a commit callback, and
+  // everything was.
+  int committed;
 
   // An io context (uw_io_prepare): the heap is a reserved mapping that grows
   // in place, since io code cannot be run again after a failure; heap.max is
@@ -625,6 +630,7 @@ uw_context uw_init(int id, uw_loggers *lg) {
 
   ctx->db = NULL;
   ctx->transaction_started = 0;
+  ctx->committed = 0;
   ctx->io = 0;
   ctx->io_error_message[0] = 0;
   ctx->transactionals_base = 0;
@@ -3950,6 +3956,8 @@ int uw_commit(uw_context ctx) {
   int i;
   char *sig;
 
+  ctx->committed = 0;
+
   if (uw_has_error(ctx) || !uw_commit_transactionals(ctx, 1)) {
     uw_rollback(ctx, 0);
     return 0;
@@ -3990,6 +3998,7 @@ int uw_commit(uw_context ctx) {
   }
 
   ctx->transaction_started = 0;
+  ctx->committed = 1;
 
   if (!uw_commit_transactionals(ctx, 0)) {
     if (ctx->used_deltas > 0)
@@ -4145,9 +4154,20 @@ void uw_post_expunge(uw_context ctx, void *data);
 static failure_kind uw_expunge(uw_context ctx, uw_Basis_client cli, void *data) {
   int r = setjmp(ctx->jmp_buf);
 
-  if (r == 0)
+  if (r == 0) {
     uw_do_expunge(ctx, cli, data);
-  else
+    // The commit can fail without raising.  Before the database's COMMIT the
+    // transaction was rolled back, and at COMMIT it may still be open: either
+    // way nothing was written, so the expunge failed.  After COMMIT, in a
+    // commit callback, it is done (see uw_prune_clients).
+    if (uw_has_error(ctx) && !ctx->committed) {
+      if (ctx->transaction_started) {
+        ctx->transaction_started = 0;
+        ctx->app->db_rollback(ctx);
+      }
+      r = FATAL;
+    }
+  } else
     ctx->app->db_rollback(ctx);
 
   uw_post_expunge(ctx, data);
@@ -4172,20 +4192,30 @@ void uw_prune_clients(uw_context ctx) {
     pthread_mutex_lock(&c->lock);
     if (c->last_contact < cutoff && c->refcount == 0) {
       failure_kind fk = UNLIMITED_RETRY;
-      if (prev)
-        prev->next = next;
-      else
-        clients_used = next;
       while (fk == UNLIMITED_RETRY) {
         uw_reset(ctx);
         fk = uw_expunge(ctx, c->id, c->data);
         if (fk == UNLIMITED_RETRY)
           printf("Unlimited retry during expunge: %s\n", uw_error_message(ctx));
       }
-      if (fk == SUCCESS)
+      if (fk == SUCCESS) {
+        if (uw_has_error(ctx))
+          ctx->loggers->log_error(ctx->loggers->logger_data,
+                                  "Expunge of client %u done, but a commit callback failed: %s\n",
+                                  c->id, uw_error_message(ctx));
+        if (prev)
+          prev->next = next;
+        else
+          clients_used = next;
         free_client(c);
-      else
-        fprintf(stderr, "Expunge blocked by error: %s\n", uw_error_message(ctx));
+      } else {
+        // Nothing was written, so the client is as it was: it stays, to be
+        // tried again at the next pass unless it is heard from by then.
+        ctx->loggers->log_error(ctx->loggers->logger_data,
+                                "Expunge of client %u failed, to be tried again at the next pass: %s\n",
+                                c->id, uw_error_message(ctx));
+        prev = c;
+      }
     }
     else
       prev = c;
