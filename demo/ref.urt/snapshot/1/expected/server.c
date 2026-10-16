@@ -185,129 +185,103 @@
     return 0;
     }
     
-    static void uw_db_validate(uw_context ctx) {
+    static int uw_db_validate(uw_context ctx) {
      static int validated;
      
      if (validated)
-     return;
-      
-     if (uw_db_check(ctx))
-     uw_reraise(ctx, FATAL);
-      
-     validated = 1;
+     return 0;
+      if (uw_db_check(ctx))
+     return 1;
+      validated = 1;
+     return 0;
      }
      
-     static void uw_db_prepare(uw_context ctx) {
+     static int uw_db_prepare(uw_context ctx) {
      PGconn *conn = uw_get_db(ctx);
      PGresult *res;
      
      res = PQprepare(conn, "uw0", "SELECT NEXTVAL('uw_Ref_IR_s')", 0, NULL);
       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+      uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT NEXTVAL('uw_Ref_IR_s')", PQerrorMessage(conn));
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Ref_IR_s')\n%s", msg);
+       return 1;
        }
       PQclear(res);
       
       
       res = PQprepare(conn, "uw1", "INSERT INTO uw_Ref_IR_t (uw_Data, uw_Id) VALUES ($1::int8, $2::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "INSERT INTO uw_Ref_IR_t (uw_Data, uw_Id) VALUES ($1::int8, $2::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Ref_IR_t (uw_Data, uw_Id) VALUES ($1::int8, $2::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw2", "SELECT T_T.uw_Data FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT T_T.uw_Data FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_T.uw_Data FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw3", "DELETE FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "DELETE FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Ref_IR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw4", "SELECT NEXTVAL('uw_Ref_SR_s')", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT NEXTVAL('uw_Ref_SR_s')", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Ref_SR_s')\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw5", "INSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES (E'hi'::text, $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "INSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES (E'hi'::text, $1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Ref_SR_t (uw_Data, uw_Id) VALUES (E'hi'::text, $1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw6", "UPDATE uw_Ref_IR_t AS T_T SET uw_Data = 10::int8 WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "UPDATE uw_Ref_IR_t AS T_T SET uw_Data = 10::int8 WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nUPDATE uw_Ref_IR_t AS T_T SET uw_Data = 10::int8 WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw7", "SELECT T_T.uw_Data FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT T_T.uw_Data FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_T.uw_Data FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw8", "DELETE FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "DELETE FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Ref_SR_t AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
-       }
+       
+     return 0;
+     }
      
      static void uw_client_init(void) {
     uw_sqlfmtInt = "%lld::int8%n";
@@ -385,8 +359,12 @@
      uw_error(ctx, BOUNDED_RETRY, "Connection to Postgres server failed: %s", msg);
     }
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    PQfinish(conn);
+     uw_set_db(ctx, NULL);
+     uw_reraise(ctx, FATAL);
+     }
     }
  
  /* No global setup for LRU cache. */

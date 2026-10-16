@@ -10,25 +10,39 @@ open Print
  * what the first one found.  The flag is set before any thread exists, so
  * the threads read it without a lock. *)
 fun validateOnce check =
-    [string "static void uw_db_validate(uw_context ctx) {",
+    [string "static int uw_db_validate(uw_context ctx) {",
      newline,
      string "static int validated;",
      newline,
      newline,
      string "if (validated)",
      newline,
-     box [string "return;",
+     box [string "return 0;",
           newline],
-     newline,
      string ("if (" ^ check ^ ")"),
      newline,
-     box [string "uw_reraise(ctx, FATAL);",
+     box [string "return 1;",
           newline],
-     newline,
      string "validated = 1;",
+     newline,
+     string "return 0;",
      newline,
      string "}",
      newline,
+     newline]
+
+(* The connection stays the context's only once it is checked and prepared.
+ * On a failure it goes, so that the next transaction connects afresh
+ * instead of using a connection half set up, or closed. *)
+fun checkAndPrepare close =
+    [string "if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {",
+     newline,
+     box (close
+          @ [string "uw_set_db(ctx, NULL);",
+             newline,
+             string "uw_reraise(ctx, FATAL);",
+             newline]),
+     string "}",
      newline]
 
 end

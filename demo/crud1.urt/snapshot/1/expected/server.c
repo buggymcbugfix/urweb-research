@@ -101,93 +101,76 @@
     return 0;
     }
     
-    static void uw_db_validate(uw_context ctx) {
+    static int uw_db_validate(uw_context ctx) {
      static int validated;
      
      if (validated)
-     return;
-      
-     if (uw_db_check(ctx))
-     uw_reraise(ctx, FATAL);
-      
-     validated = 1;
+     return 0;
+      if (uw_db_check(ctx))
+     return 1;
+      validated = 1;
+     return 0;
      }
      
-     static void uw_db_prepare(uw_context ctx) {
+     static int uw_db_prepare(uw_context ctx) {
      PGconn *conn = uw_get_db(ctx);
      PGresult *res;
      
      res = PQprepare(conn, "uw0", "SELECT T_Tab.uw_A, T_Tab.uw_B, T_Tab.uw_C, T_Tab.uw_D FROM uw_Crud1_t1 AS T_Tab WHERE (T_Tab.uw_Id = $1::int8)", 0, NULL);
       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+      uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT T_Tab.uw_A, T_Tab.uw_B, T_Tab.uw_C, T_Tab.uw_D FROM uw_Crud1_t1 AS T_Tab WHERE (T_Tab.uw_Id = $1::int8)", PQerrorMessage(conn));
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_Tab.uw_A, T_Tab.uw_B, T_Tab.uw_C, T_Tab.uw_D FROM uw_Crud1_t1 AS T_Tab WHERE (T_Tab.uw_Id = $1::int8)\n%s", msg);
+       return 1;
        }
       PQclear(res);
       
       
       res = PQprepare(conn, "uw1", "SELECT T_T.uw_A, T_T.uw_B, T_T.uw_C, T_T.uw_D, T_T.uw_Id FROM uw_Crud1_t1 AS T_T", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT T_T.uw_A, T_T.uw_B, T_T.uw_C, T_T.uw_D, T_T.uw_Id FROM uw_Crud1_t1 AS T_T", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT T_T.uw_A, T_T.uw_B, T_T.uw_C, T_T.uw_D, T_T.uw_Id FROM uw_Crud1_t1 AS T_T\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw2", "UPDATE uw_Crud1_t1 AS T_T SET uw_A = $1::int8, uw_B = $2::text, uw_C = $3::float8, uw_D = $4::bool WHERE (T_T.uw_Id = $5::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "UPDATE uw_Crud1_t1 AS T_T SET uw_A = $1::int8, uw_B = $2::text, uw_C = $3::float8, uw_D = $4::bool WHERE (T_T.uw_Id = $5::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nUPDATE uw_Crud1_t1 AS T_T SET uw_A = $1::int8, uw_B = $2::text, uw_C = $3::float8, uw_D = $4::bool WHERE (T_T.uw_Id = $5::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw3", "DELETE FROM uw_Crud1_t1 AS T_T WHERE (T_T.uw_Id = $1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "DELETE FROM uw_Crud1_t1 AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Crud1_t1 AS T_T WHERE (T_T.uw_Id = $1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw4", "SELECT NEXTVAL('uw_Crud1_seq')", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT NEXTVAL('uw_Crud1_seq')", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Crud1_seq')\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw5", "INSERT INTO uw_Crud1_t1 (uw_A, uw_B, uw_C, uw_D, uw_Id) VALUES ($1::int8, $2::text, $3::float8, $4::bool, $5::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "INSERT INTO uw_Crud1_t1 (uw_A, uw_B, uw_C, uw_D, uw_Id) VALUES ($1::int8, $2::text, $3::float8, $4::bool, $5::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Crud1_t1 (uw_A, uw_B, uw_C, uw_D, uw_Id) VALUES ($1::int8, $2::text, $3::float8, $4::bool, $5::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
-       }
+       
+     return 0;
+     }
      
      static void uw_client_init(void) {
     uw_sqlfmtInt = "%lld::int8%n";
@@ -265,8 +248,12 @@
      uw_error(ctx, BOUNDED_RETRY, "Connection to Postgres server failed: %s", msg);
     }
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    PQfinish(conn);
+     uw_set_db(ctx, NULL);
+     uw_reraise(ctx, FATAL);
+     }
     }
  
  /* No global setup for LRU cache. */

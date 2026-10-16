@@ -168,326 +168,125 @@
      return uw_db_check_with(ctx, UNLIMITED_RETRY);
       }
      
-     static void uw_db_validate(uw_context ctx) {
+     static int uw_db_validate(uw_context ctx) {
       static int validated;
       
       if (validated)
-      return;
-       
-      if (uw_db_check_with(ctx, FATAL))
-      uw_reraise(ctx, FATAL);
-       
-      validated = 1;
+      return 0;
+       if (uw_db_check_with(ctx, FATAL))
+      return 1;
+       validated = 1;
+      return 0;
       }
       
-      static void uw_db_prepare(uw_context ctx) {
+      static int uw_db_prepare(uw_context ctx) {
       uw_conn *conn = uw_get_db(ctx);
       
       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'viaAlias')", -1, &conn->p0, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'viaAlias')<br />%s"
-         , msg);
-         }
+       uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'viaAlias')", sqlite3_errmsg(conn->conn));
+        return 1;
+        }
        
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'wrapped')", -1, &conn->p1, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'wrapped')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'wrapped')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, \?)", -1, &conn->p2, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'min')", -1, &conn->p3, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'min')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'min')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'max')", -1, &conn->p4, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'max')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'max')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT MIN(T_T.uw_N) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = 'min')", -1, &conn->p5, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT MIN(T_T.uw_N) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = 'min')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT MIN(T_T.uw_N) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = 'min')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT MAX(T_T.uw_N) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = 'max')", -1, &conn->p6, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT MAX(T_T.uw_N) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = 'max')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT MAX(T_T.uw_N) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = 'max')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (0, \?)", -1, &conn->p7, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (0, \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (0, \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = \?)", -1, &conn->p8, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = \?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT COUNT(*) AS uw_1 FROM uw_Rpc_types_t AS T_T WHERE (T_T.uw_S = \?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'unit')", -1, &conn->p9, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'unit')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'unit')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'opt')", -1, &conn->p10, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'opt')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'opt')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'list')", -1, &conn->p11, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'list')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'list')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (0, 'color')", -1, &conn->p12, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (0, 'color')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (0, 'color')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'xb')", -1, &conn->p13, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'xb')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'xb')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'tryNone')", -1, &conn->p14, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_finalize(conn->p13);
-                       sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'tryNone')<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'tryNone')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_C, SUM(T_T.uw_N) AS uw_Sum, T_T.uw_S FROM uw_Rpc_types_t AS T_T GROUP BY T_T.uw_S ORDER BY T_T.uw_S", -1, &conn->p15, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_finalize(conn->p13);
-                       sqlite3_finalize(conn->p14);
-                        sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_C, SUM(T_T.uw_N) AS uw_Sum, T_T.uw_S FROM uw_Rpc_types_t AS T_T GROUP BY T_T.uw_S ORDER BY T_T.uw_S<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT COUNT(*) AS uw_C, SUM(T_T.uw_N) AS uw_Sum, T_T.uw_S FROM uw_Rpc_types_t AS T_T GROUP BY T_T.uw_S ORDER BY T_T.uw_S", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'partial')", -1, &conn->p16, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_finalize(conn->p4);
-              sqlite3_finalize(conn->p5);
-               sqlite3_finalize(conn->p6);
-                sqlite3_finalize(conn->p7);
-                 sqlite3_finalize(conn->p8);
-                  sqlite3_finalize(conn->p9);
-                   sqlite3_finalize(conn->p10);
-                    sqlite3_finalize(conn->p11);
-                     sqlite3_finalize(conn->p12);
-                      sqlite3_finalize(conn->p13);
-                       sqlite3_finalize(conn->p14);
-                        sqlite3_finalize(conn->p15);
-                         sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'partial')<br />%s"
-          , msg);
-          }
-        }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Rpc_types_t (uw_N, uw_S) VALUES (\?, 'partial')", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
+        
+      return 0;
+      }
+    
+    static void uw_db_close(uw_context ctx);
     
     static void uw_db_init(uw_context ctx) {
     sqlite3 *sqlite;
@@ -532,8 +331,13 @@
     conn = calloc(1, sizeof(uw_conn));
     conn->conn = sqlite;
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    uw_db_close(ctx);
+     free(conn);
+     uw_set_db(ctx, NULL);
+     uw_reraise(ctx, FATAL);
+     }
     }
     
     static void uw_db_close(uw_context ctx) {

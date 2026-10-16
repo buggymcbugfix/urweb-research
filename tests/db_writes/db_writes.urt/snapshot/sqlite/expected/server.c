@@ -223,80 +223,53 @@
      return uw_db_check_with(ctx, UNLIMITED_RETRY);
       }
      
-     static void uw_db_validate(uw_context ctx) {
+     static int uw_db_validate(uw_context ctx) {
       static int validated;
       
       if (validated)
-      return;
-       
-      if (uw_db_check_with(ctx, FATAL))
-      uw_reraise(ctx, FATAL);
-       
-      validated = 1;
+      return 0;
+       if (uw_db_check_with(ctx, FATAL))
+      return 1;
+       validated = 1;
+      return 0;
       }
       
-      static void uw_db_prepare(uw_context ctx) {
+      static int uw_db_prepare(uw_context ctx) {
       uw_conn *conn = uw_get_db(ctx);
       
       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Failures_failures (uw_N) VALUES (1)", -1, &conn->p0, NULL) != SQLITE_OK) {
-       char msg[1024];
-        strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-        msg[1023] = 0;
-        sqlite3_close(conn->conn);
-         uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Failures_failures (uw_N) VALUES (1)<br />%s"
-         , msg);
-         }
+       uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Failures_failures (uw_N) VALUES (1)", sqlite3_errmsg(conn->conn));
+        return 1;
+        }
        
        
        if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", -1, &conn->p1, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Db_writes_t (uw_N) VALUES (\?)", -1, &conn->p2, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Db_writes_t (uw_N) VALUES (\?)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Db_writes_t (uw_N) VALUES (\?)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", -1, &conn->p3, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)<br />%s"
-          , msg);
-          }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "DELETE FROM uw_Db_writes_t WHERE (uw_N < 0)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
         
        
        if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Db_writes_t (uw_N) VALUES (1)", -1, &conn->p4, NULL) != SQLITE_OK) {
-        char msg[1024];
-         strncpy(msg, sqlite3_errmsg(conn->conn), 1024);
-         msg[1023] = 0;
-         sqlite3_finalize(conn->p0);
-          sqlite3_finalize(conn->p1);
-           sqlite3_finalize(conn->p2);
-            sqlite3_finalize(conn->p3);
-             sqlite3_close(conn->conn);
-          uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Db_writes_t (uw_N) VALUES (1)<br />%s"
-          , msg);
-          }
-        }
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Db_writes_t (uw_N) VALUES (1)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
+        
+      return 0;
+      }
+    
+    static void uw_db_close(uw_context ctx);
     
     static void uw_db_init(uw_context ctx) {
     sqlite3 *sqlite;
@@ -341,8 +314,13 @@
     conn = calloc(1, sizeof(uw_conn));
     conn->conn = sqlite;
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    uw_db_close(ctx);
+     free(conn);
+     uw_set_db(ctx, NULL);
+     uw_reraise(ctx, FATAL);
+     }
     }
     
     static void uw_db_close(uw_context ctx) {

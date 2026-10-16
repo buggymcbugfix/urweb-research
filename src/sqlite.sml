@@ -179,7 +179,7 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                        | _ => ())
                   | _ => ()) (String.tokens Char.isSpace dbstring);
 
-        box [string "typedef struct {",
+        box ([string "typedef struct {",
              newline,
              box [string "sqlite3 *conn;",
                   newline,
@@ -361,68 +361,43 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
 
              if #persistent (currentProtocol ()) then
                  box (DbInit.validateOnce "uw_db_check_with(ctx, FATAL)"
-                      @ [string "static void uw_db_prepare(uw_context ctx) {",
+                      @ [string "static int uw_db_prepare(uw_context ctx) {",
                       newline,
                       string "uw_conn *conn = uw_get_db(ctx);",
                       newline,
                       newline,
 
                       p_list_sepi newline (fn i => fn (s, _) =>
-                                                      let
-                                                          fun uhoh this s args =
-                                                              box [p_list_sepi (box [])
-                                                                               (fn j => fn () =>
-                                                                                           box [string
-                                                                                                    "sqlite3_finalize(conn->p",
-                                                                                                string (Int.toString j),
-                                                                                                string ");",
-                                                                                                newline])
-                                                                               (List.tabulate (i, fn _ => ())),
-                                                                   box (if this then
-                                                                            [string
-                                                                                 "sqlite3_finalize(conn->p",
-                                                                             string (Int.toString i),
-                                                                             string ");",
-                                                                             newline]
-                                                                        else
-                                                                            []),
-                                                                   string "sqlite3_close(conn->conn);",
-                                                                   newline,
-                                                                   string "uw_error(ctx, FATAL, \"",
-                                                                   string s,
-                                                                   string "\"",
-                                                                   p_list_sep (box []) (fn s => box [string ", ",
-                                                                                                     string s]) args,
-                                                                   string ");",
-                                                                   newline]
-                                                      in
-                                                          box [string "if (sqlite3_prepare_v2(conn->conn, \"",
-                                                               string (Prim.toCString s),
-                                                               string "\", -1, &conn->p",
-                                                               string (Int.toString i),
-                                                               string ", NULL) != SQLITE_OK) {",
-                                                               newline,
-                                                               box [string "char msg[1024];",
-                                                                    newline,
-                                                                    string "strncpy(msg, sqlite3_errmsg(conn->conn), 1024);",
-                                                                    newline,
-                                                                    string "msg[1023] = 0;",
-                                                                    newline,
-                                                                    uhoh false ("Error preparing statement: "
-                                                                                ^ Prim.toCString s ^ "<br />%s") ["msg"]],
-                                                               string "}",
-                                                               newline]
-                                                      end)
+                                                      box [string "if (sqlite3_prepare_v2(conn->conn, \"",
+                                                           string (Prim.toCString s),
+                                                           string "\", -1, &conn->p",
+                                                           string (Int.toString i),
+                                                           string ", NULL) != SQLITE_OK) {",
+                                                           newline,
+                                                           box [string "uw_set_error_message(ctx, \"Error preparing statement: %s: %s\", \"",
+                                                                string (Prim.toCString s),
+                                                                string "\", sqlite3_errmsg(conn->conn));",
+                                                                newline,
+                                                                string "return 1;",
+                                                                newline],
+                                                           string "}",
+                                                           newline])
                                   ss,
 
+                      newline,
+                      string "return 0;",
+                      newline,
                       string "}"])
              else
-                 box [string "static void uw_db_prepare(uw_context ctx) { }",
+                 box [string "static int uw_db_prepare(uw_context ctx) { return 0; }",
                       newline,
-                      string "static void uw_db_validate(uw_context ctx) { }"],
+                      string "static int uw_db_validate(uw_context ctx) { return 0; }"],
              newline,
              newline,
 
+             string "static void uw_db_close(uw_context ctx);",
+             newline,
+             newline,
              string "static void uw_db_init(uw_context ctx) {",
              newline,
              string "sqlite3 *sqlite;",
@@ -510,11 +485,12 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              string "uw_set_db(ctx, conn);",
              newline,
-             string "uw_db_validate(ctx);",
-             newline,
-             string "uw_db_prepare(ctx);",
-             newline,
-             string "}",
+             newline]
+             @ DbInit.checkAndPrepare [string "uw_db_close(ctx);",
+                                       newline,
+                                       string "free(conn);",
+                                       newline]
+             @ [string "}",
              newline,
              newline,
 
@@ -638,7 +614,7 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              string "}",
              newline,
-             newline]
+             newline])
     end
 
 val fmt = "\"%Y-%m-%d %H:%M:%S\""

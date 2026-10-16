@@ -184,22 +184,25 @@
      return uw_db_check_with(ctx, UNLIMITED_RETRY);
       }
      
-     static void uw_db_validate(uw_context ctx) {
+     static int uw_db_validate(uw_context ctx) {
       static int validated;
       
       if (validated)
-      return;
-       
-      if (uw_db_check_with(ctx, FATAL))
-      uw_reraise(ctx, FATAL);
-       
-      validated = 1;
+      return 0;
+       if (uw_db_check_with(ctx, FATAL))
+      return 1;
+       validated = 1;
+      return 0;
       }
       
-      static void uw_db_prepare(uw_context ctx) {
+      static int uw_db_prepare(uw_context ctx) {
       uw_conn *conn = uw_get_db(ctx);
       
+      
+      return 0;
       }
+    
+    static void uw_db_close(uw_context ctx);
     
     static void uw_db_init(uw_context ctx) {
     sqlite3 *sqlite;
@@ -244,8 +247,13 @@
     conn = calloc(1, sizeof(uw_conn));
     conn->conn = sqlite;
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    uw_db_close(ctx);
+     free(conn);
+     uw_set_db(ctx, NULL);
+     uw_reraise(ctx, FATAL);
+     }
     }
     
     static void uw_db_close(uw_context ctx) {

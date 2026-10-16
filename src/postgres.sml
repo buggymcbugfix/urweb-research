@@ -161,7 +161,7 @@ fun checkRel (table, checkNullable) (s, xts) =
     end
 
 fun init {dbstring, prepared = ss, tables, views, sequences} =
-    box [(* The schema check, for Basis.validateDb and for the start-up
+    box ([(* The schema check, for Basis.validateDb and for the start-up
           * (uw_db_validate): 0, or 1 with what is wrong as the context's
           * error message. *)
          string "static int uw_db_check(uw_context ctx) {",
@@ -195,7 +195,7 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
               * information_schema queries a table, on every reconnection
               * during an outage too. *)
              box (DbInit.validateOnce "uw_db_check(ctx)"
-                  @ [string "static void uw_db_prepare(uw_context ctx) {",
+                  @ [string "static int uw_db_prepare(uw_context ctx) {",
                   newline,
                   string "PGconn *conn = uw_get_db(ctx);",
                   newline,
@@ -212,19 +212,13 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                                                        newline,
                                                        string "if (PQresultStatus(res) != PGRES_COMMAND_OK) {",
                                                        newline,
-                                                       box [string "char msg[1024];",
-                                                            newline,
-                                                            string "strncpy(msg, PQerrorMessage(conn), 1024);",
-                                                            newline,
-                                                            string "msg[1023] = 0;",
+                                                       box [string "uw_set_error_message(ctx, \"Unable to create prepared statement:\\n%s\\n%s\", \"",
+                                                            string (Prim.toCString s),
+                                                            string "\", PQerrorMessage(conn));",
                                                             newline,
                                                             string "PQclear(res);",
                                                             newline,
-                                                            string "PQfinish(conn);",
-                                                            newline,
-                                                            string "uw_error(ctx, FATAL, \"Unable to create prepared statement:\\n",
-                                                            string (Prim.toCString s),
-                                                            string "\\n%s\", msg);",
+                                                            string "return 1;",
                                                             newline],
                                                        string "}",
                                                        newline,
@@ -232,13 +226,16 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                                                        newline])
                               ss,
 
+                  newline,
+                  string "return 0;",
+                  newline,
                   string "}",
                   newline,
                   newline])
          else
-             box [string "static void uw_db_validate(uw_context ctx) { }",
+             box [string "static int uw_db_validate(uw_context ctx) { return 0; }",
                   newline,
-                  string "static void uw_db_prepare(uw_context ctx) { }"],
+                  string "static int uw_db_prepare(uw_context ctx) { return 0; }"],
 
          string "static void uw_client_init(void) {",
          newline,
@@ -390,11 +387,10 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
          newline,
          string "uw_set_db(ctx, conn);",
          newline,
-         string "uw_db_validate(ctx);",
-         newline,
-         string "uw_db_prepare(ctx);",
-         newline,
-         string "}"]
+         newline]
+         @ DbInit.checkAndPrepare [string "PQfinish(conn);",
+                                   newline]
+         @ [string "}"])
 
 fun p_getcol {loc, wontLeakStrings, col = i, typ = t} =
     let

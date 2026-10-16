@@ -166,93 +166,76 @@
     return 0;
     }
     
-    static void uw_db_validate(uw_context ctx) {
+    static int uw_db_validate(uw_context ctx) {
      static int validated;
      
      if (validated)
-     return;
-      
-     if (uw_db_check(ctx))
-     uw_reraise(ctx, FATAL);
-      
-     validated = 1;
+     return 0;
+      if (uw_db_check(ctx))
+     return 1;
+      validated = 1;
+     return 0;
      }
      
-     static void uw_db_prepare(uw_context ctx) {
+     static int uw_db_prepare(uw_context ctx) {
      PGconn *conn = uw_get_db(ctx);
      PGresult *res;
      
      res = PQprepare(conn, "uw0", "INSERT INTO uw_Failures_failures (uw_N) VALUES (1::int8)", 0, NULL);
       if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-      char msg[1024];
-       strncpy(msg, PQerrorMessage(conn), 1024);
-       msg[1023] = 0;
+      uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "INSERT INTO uw_Failures_failures (uw_N) VALUES (1::int8)", PQerrorMessage(conn));
        PQclear(res);
-       PQfinish(conn);
-       uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Failures_failures (uw_N) VALUES (1::int8)\n%s", msg);
+       return 1;
        }
       PQclear(res);
       
       
       res = PQprepare(conn, "uw1", "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT COUNT(*) AS uw_1 FROM uw_Db_writes_t AS T_T\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw2", "INSERT INTO uw_Db_writes_t (uw_N) VALUES ($1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "INSERT INTO uw_Db_writes_t (uw_N) VALUES ($1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Db_writes_t (uw_N) VALUES ($1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw3", "DELETE FROM uw_Db_writes_t AS T_T WHERE (T_T.uw_N < 0::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "DELETE FROM uw_Db_writes_t AS T_T WHERE (T_T.uw_N < 0::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nDELETE FROM uw_Db_writes_t AS T_T WHERE (T_T.uw_N < 0::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw4", "SELECT NEXTVAL('uw_Db_writes_s')", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "SELECT NEXTVAL('uw_Db_writes_s')", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nSELECT NEXTVAL('uw_Db_writes_s')\n%s", msg);
+        return 1;
         }
        PQclear(res);
        
       
       res = PQprepare(conn, "uw5", "INSERT INTO uw_Db_writes_t (uw_N) VALUES (1::int8)", 0, NULL);
        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       char msg[1024];
-        strncpy(msg, PQerrorMessage(conn), 1024);
-        msg[1023] = 0;
+       uw_set_error_message(ctx, "Unable to create prepared statement:\n%s\n%s", "INSERT INTO uw_Db_writes_t (uw_N) VALUES (1::int8)", PQerrorMessage(conn));
         PQclear(res);
-        PQfinish(conn);
-        uw_error(ctx, FATAL, "Unable to create prepared statement:\nINSERT INTO uw_Db_writes_t (uw_N) VALUES (1::int8)\n%s", msg);
+        return 1;
         }
        PQclear(res);
-       }
+       
+     return 0;
+     }
      
      static void uw_client_init(void) {
     uw_sqlfmtInt = "%lld::int8%n";
@@ -330,8 +313,12 @@
      uw_error(ctx, BOUNDED_RETRY, "Connection to Postgres server failed: %s", msg);
     }
     uw_set_db(ctx, conn);
-    uw_db_validate(ctx);
-    uw_db_prepare(ctx);
+    
+    if (uw_db_validate(ctx) || uw_db_prepare(ctx)) {
+    PQfinish(conn);
+     uw_set_db(ctx, NULL);
+     uw_reraise(ctx, FATAL);
+     }
     }
  
  /* No global setup for LRU cache. */
