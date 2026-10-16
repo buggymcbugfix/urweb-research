@@ -1,0 +1,9 @@
+database dbname=task_push.db
+rewrite all Task_push/*
+ffi ../heap/tick
+include ../heap/tick.h
+link ../heap/tick.c
+effectful Tick.periodic
+safeGet chat
+
+task_push
