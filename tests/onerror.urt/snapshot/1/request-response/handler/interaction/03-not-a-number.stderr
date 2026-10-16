@@ -1,1 +1,1 @@
-Fatal error: tests/onerror.ur:3:11-4:3: Zero is bad!
+GET /Onerror/main/x: Fatal error: tests/onerror.ur:3:11-4:3: Zero is bad!

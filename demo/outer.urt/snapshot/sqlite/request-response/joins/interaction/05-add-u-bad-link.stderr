@@ -1,1 +1,1 @@
-Fatal error: demo/outer.ur:34:4-35:11: DML step failed: INSERT INTO uw_Outer_u (uw_C, uw_D, uw_Id, uw_Link) VALUES (?, ?, ?, ?)<br />FOREIGN KEY constraint failed
+POST /Outer/addU: Fatal error: demo/outer.ur:34:4-35:11: DML step failed: INSERT INTO uw_Outer_u (uw_C, uw_D, uw_Id, uw_Link) VALUES (?, ?, ?, ?)<br />FOREIGN KEY constraint failed

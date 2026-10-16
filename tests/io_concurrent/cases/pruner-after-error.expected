@@ -2,7 +2,7 @@ client A made
 > GET /Concurrent/failCommit
 HTTP/1.1 500 Internal Server Error
 onError: failCommit
-  | 1 x Fatal error: failCommit
+  | 1 x GET /Concurrent/failCommit: Fatal error: failCommit
   | 1 x transactional failCommit: commit
   | 1 x transactional failCommit: free
   | 1 x a client left

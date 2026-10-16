@@ -16,11 +16,11 @@
 #include "urweb.h"
 #include "request.h"
 
-static int try_rollback(uw_context ctx, int will_retry, void *logger_data, uw_logger log_error) {
+static int try_rollback(uw_context ctx, int will_retry) {
   int r = uw_rollback(ctx, will_retry);
 
   if (r) {
-    log_error(logger_data, "Error running SQL ROLLBACK\n");
+    uw_log_error(ctx, "Error running SQL ROLLBACK\n");
     uw_reset(ctx);
     uw_write(ctx, "HTTP/1.1 500 Internal Server Error\r\n");
     uw_write(ctx, "Content-type: text/plain\r\n\r\n");
@@ -41,12 +41,11 @@ static int try_rollback(uw_context ctx, int will_retry, void *logger_data, uw_lo
 static uw_context new_context(int id, uw_app *app, uw_loggers *ls, int serves_requests) {
   void *logger_data = ls->logger_data;
   uw_logger log_debug = ls->log_debug;
-  uw_logger log_error = ls->log_error;
   uw_context ctx = uw_init(id, ls);
   int attempts_left = UW_RETRY_ATTEMPTS;
 
   if (uw_set_app(ctx, app)) {
-    log_error(logger_data, "Unable to initialize request context.  Most likely the limit on number of form inputs has been exceeded.\n");
+    uw_log_error(ctx, "Unable to initialize request context.  Most likely the limit on number of form inputs has been exceeded.\n");
     uw_free(ctx);
     return NULL;
   }
@@ -64,18 +63,18 @@ static uw_context new_context(int id, uw_app *app, uw_loggers *ls, int serves_re
       if (uw_retry_again(fk, &attempts_left))
         log_debug(logger_data, "Initialization error triggers bounded retry: %s\n", uw_error_message(ctx));
       else {
-        log_error(logger_data, "Fatal initialization error (out of retries): %s\n", uw_error_message(ctx));
+        uw_log_error(ctx, "Fatal initialization error (out of retries): %s\n", uw_error_message(ctx));
         uw_free(ctx);
         return NULL;
       }
     } else if (fk == UNLIMITED_RETRY)
       log_debug(logger_data, "Initialization error triggers unlimited retry: %s\n", uw_error_message(ctx));
     else if (fk == FATAL) {
-      log_error(logger_data, "Fatal initialization error: %s\n", uw_error_message(ctx));
+      uw_log_error(ctx, "Fatal initialization error: %s\n", uw_error_message(ctx));
       uw_free(ctx);
       return NULL;
     } else {
-      log_error(logger_data, "Unknown uw_begin_init return code!\n");
+      uw_log_error(ctx, "Unknown uw_begin_init return code!\n");
       uw_free(ctx);
       return NULL;
     }
@@ -113,12 +112,11 @@ typedef struct {
 // cannot be undone.  The expunger's lock is taken by those transactions
 // only, not across the body, which may be slow (a network call, say).
 static void *io_periodic_loop(periodic *p) {
-  uw_loggers *ls = p->ls;
-  void *ld = ls->logger_data;
   uw_context ctx = uw_request_new_context(p->id, p->app, p->ls);
 
   if (!ctx)
     exit(1);
+  uw_set_activity(ctx, "periodic task %d", p->id);
   uw_io_prepare(ctx);
 
   while (1) {
@@ -130,13 +128,13 @@ static void *io_periodic_loop(periodic *p) {
       // request's would be by the request's own commit.
       uw_commit(ctx);
       if (uw_has_error(ctx))
-        ls->log_error(ld, "Fatal error in io task, at its end: %s\n", uw_error_message(ctx));
+        uw_log_error(ctx, "Fatal error in io task, at its end: %s\n", uw_error_message(ctx));
     } else {
-      ls->log_error(ld, "Fatal error in io task: %s\n", uw_error_message(ctx));
+      uw_log_error(ctx, "Fatal error in io task: %s\n", uw_error_message(ctx));
       // Rolls back what was registered outside any transaction, and a
       // database transaction if an FFI left one open.
       if (uw_rollback(ctx, 0))
-        ls->log_error(ld, "Error running SQL ROLLBACK after a failed io task\n");
+        uw_log_error(ctx, "Error running SQL ROLLBACK after a failed io task\n");
     }
 
     uw_heap_shrink(ctx);
@@ -162,6 +160,7 @@ static void *periodic_loop(void *data) {
 
   if (!ctx)
     exit(1);
+  uw_set_activity(ctx, "periodic task %d", p->id);
 
   while (1) {
     int attempts_left = UW_RETRY_ATTEMPTS;
@@ -190,10 +189,10 @@ static void *periodic_loop(void *data) {
           // commit callback failed after the database committed.  uw_commit
           // has freed the transactionals either way; an open transaction is
           // rolled back, so that the next tick can begin its own.
-          ls->log_error(ld, "Fatal error in periodic task, at or after commit: %s\n", uw_error_message(ctx));
+          uw_log_error(ctx, "Fatal error in periodic task, at or after commit: %s\n", uw_error_message(ctx));
           uw_reset_keep_error_message(ctx);
-          if (try_rollback(ctx, 0, ld, ls->log_error))
-            ls->log_error(ld, "Periodic task continues after the failed rollback\n");
+          if (try_rollback(ctx, 0))
+            uw_log_error(ctx, "Periodic task continues after the failed rollback\n");
         }
         break;
       }
@@ -203,20 +202,20 @@ static void *periodic_loop(void *data) {
       else if (r == UNLIMITED_RETRY)
         ls->log_debug(ld, "Error triggers unlimited retry in periodic: %s\n", uw_error_message(ctx));
       else if (r == FATAL)
-        ls->log_error(ld, "Fatal error in periodic task: %s\n", uw_error_message(ctx));
+        uw_log_error(ctx, "Fatal error in periodic task: %s\n", uw_error_message(ctx));
       else
-        ls->log_error(ld, "Unknown uw_runCallback return code in periodic task!\n");
+        uw_log_error(ctx, "Unknown uw_runCallback return code in periodic task!\n");
 
       again = uw_retry_again(r, &attempts_left);
-      if (try_rollback(ctx, again, ld, ls->log_error))
+      if (try_rollback(ctx, again))
         // The rollback itself failed (no transaction was active, or the
         // connection is gone).  Nothing is held: the next period starts
         // afresh, and uw_ensure_transaction reconnects if it has to.
-        ls->log_error(ld, "Periodic task continues after the failed rollback\n");
+        uw_log_error(ctx, "Periodic task continues after the failed rollback\n");
     } while (again);
 
     if (r == BOUNDED_RETRY)
-      ls->log_error(ld, "Fatal error in periodic task (out of retries): %s\n", uw_error_message(ctx));
+      uw_log_error(ctx, "Fatal error in periodic task (out of retries): %s\n", uw_error_message(ctx));
 
     uw_transaction_departs();
 
@@ -253,7 +252,6 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
   char *stackSize_s;
 
   uw_logger log_debug = ls->log_debug;
-  uw_logger log_error = ls->log_error;
   void* logger_data = ls->logger_data;
 
   if ((stackSize_s = getenv("URWEB_STACK_SIZE")) != NULL && stackSize_s[0] != 0) {
@@ -280,7 +278,7 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
   }
 
   if (fk != SUCCESS) {
-    log_error(logger_data, "Failed to initialize database!  %s\n", uw_error_message(ctx));
+    uw_log_error(ctx, "Failed to initialize database!  %s\n", uw_error_message(ctx));
     uw_rollback(ctx, 0);
     exit(1);
   }
@@ -357,7 +355,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
                                           char *method, char *path, char *query_string,
                                           char *body, size_t body_len,
                                           void (*on_success)(uw_context), void (*on_failure)(uw_context),
-                                          void *logger_data, uw_logger log_error, uw_logger log_debug,
+                                          void *logger_data, uw_logger log_debug,
                                           int sock,
                                           int (*send)(int sockfd, const void *buf, ssize_t len),
                                           int (*close)(int fd),
@@ -391,17 +389,17 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     char *clen_s = uw_Basis_requestHeader(ctx, "Content-length");
     if (!clen_s) {
       clen_s = "0";
-      /*log_error(logger_data, "No Content-length with POST\n");
+      /*uw_log_error(ctx, "No Content-length with POST\n");
       return FAILED;*/
     }
     int clen = atoi(clen_s);
     if (clen < 0) {
-      log_error(logger_data, "Negative Content-length with POST\n");
+      uw_log_error(ctx, "Negative Content-length with POST\n");
       return FAILED;
     }
 
     if (body_len < clen) {
-      log_error(logger_data, "Request doesn't contain all POST data (according to Content-Length)\n");
+      uw_log_error(ctx, "Request doesn't contain all POST data (according to Content-Length)\n");
       return FAILED;
     }
 
@@ -415,7 +413,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
     if (clen_s && !strncasecmp(clen_s, "multipart/form-data", 19)) {
       if (strncasecmp(clen_s + 19, "; boundary=", 11)) {
-        log_error(logger_data, "Bad multipart boundary spec");
+        uw_log_error(ctx, "Bad multipart boundary spec");
         return FAILED;
       }
 
@@ -428,7 +426,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       uw_postBody(ctx, pb);
     }
   } else if (strcmp(method, "GET")) {
-    log_error(logger_data, "Not ready for non-GET/POST command: %s\n", method);
+    uw_log_error(ctx, "Not ready for non-GET/POST command: %s\n", method);
     return FAILED;
   }
 
@@ -438,18 +436,18 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     char *pass = uw_Basis_requestHeader(ctx, "UrWeb-Pass");
 
     if (sock < 0) {
-      log_error(logger_data, ".msgs requested, but not socket supplied\n");
+      uw_log_error(ctx, ".msgs requested, but not socket supplied\n");
       return FAILED;
     }
 
     if (id && pass) {
       unsigned idn = atoi(id);
-      uw_client_connect(idn, atoi(pass), sock, send, close, logger_data, log_error);
+      uw_client_connect(ctx, idn, atoi(pass), sock, send, close);
       log_debug(logger_data, "Processed request for messages by client %u\n\n", idn);
       return KEEP_OPEN;
     }
     else {
-      log_error(logger_data, "Missing fields in .msgs request: %s, %s\n\n", id, pass);
+      uw_log_error(ctx, "Missing fields in .msgs request: %s, %s\n\n", id, pass);
       return FAILED;
     }
   }
@@ -460,7 +458,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
     part = strstr(part, boundary);
     if (!part) {
-      log_error(logger_data, "Missing first multipart boundary\n");
+      uw_log_error(ctx, "Missing first multipart boundary\n");
       return FAILED;
     }
     part += boundary_len;
@@ -472,18 +470,18 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         break;
 
       if (*part != '\r') {
-        log_error(logger_data, "No \\r after multipart boundary\n");
+        uw_log_error(ctx, "No \\r after multipart boundary\n");
         return FAILED;
       }
       ++part;
       if (*part != '\n') {
-        log_error(logger_data, "No \\n after multipart boundary\n");
+        uw_log_error(ctx, "No \\n after multipart boundary\n");
         return FAILED;
       }
       ++part;
             
       if (!(after_sub_headers = strstr(part, "\r\n\r\n"))) {
-        log_error(logger_data, "Missing end of headers after multipart boundary\n");
+        uw_log_error(ctx, "Missing end of headers after multipart boundary\n");
         return FAILED;
       }
       after_sub_headers[2] = 0;
@@ -494,18 +492,18 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
         *after_header = 0;
         if (!(colon = strchr(header, ':'))) {
-          log_error(logger_data, "Missing colon in multipart sub-header\n");
+          uw_log_error(ctx, "Missing colon in multipart sub-header\n");
           return FAILED;
         }
         *colon++ = 0;
         if (*colon++ != ' ') {
-          log_error(logger_data, "No space after colon in multipart sub-header\n");
+          uw_log_error(ctx, "No space after colon in multipart sub-header\n");
           return FAILED;
         }
         
         if (!strcasecmp(header, "Content-Disposition")) {
           if (strncmp(colon, "form-data; ", 11)) {
-            log_error(logger_data, "Multipart data is not \"form-data\"\n");
+            uw_log_error(ctx, "Multipart data is not \"form-data\"\n");
             return FAILED;
           }
 
@@ -513,12 +511,12 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
             char *data;
             after_colon[0] = 0;
             if (after_colon[1] != '"') {
-              log_error(logger_data, "Disposition setting is missing initial quote\n");
+              uw_log_error(ctx, "Disposition setting is missing initial quote\n");
               return FAILED;
             }
             data = after_colon+2;
             if (!(after_colon = strchr(data, '"'))) {
-              log_error(logger_data, "Disposition setting is missing final quote\n");
+              uw_log_error(ctx, "Disposition setting is missing final quote\n");
               return FAILED;
             }
             after_colon[0] = 0;
@@ -538,7 +536,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
       part = memmem(after_sub_headers, body + body_len - after_sub_headers, boundary, boundary_len);
       if (!part) {
-        log_error(logger_data, "Missing boundary after multipart payload\n");
+        uw_log_error(ctx, "Missing boundary after multipart payload\n");
         return FAILED;
       }
       part[-2] = 0;
@@ -550,11 +548,11 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         uw_Basis_file f = {filename, type, {part_len, after_sub_headers}};
 
         if (uw_set_file_input(ctx, name, f)) {
-          log_error(logger_data, "%s\n", uw_error_message(ctx));
+          uw_log_error(ctx, "%s\n", uw_error_message(ctx));
           return FAILED;
         }
       } else if (uw_set_input(ctx, name, after_sub_headers)) {
-        log_error(logger_data, "%s\n", uw_error_message(ctx));
+        uw_log_error(ctx, "%s\n", uw_error_message(ctx));
         return FAILED;
       }
     }
@@ -569,7 +567,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       if (len+1 > rc->queryString_size) {
         char *qs = realloc(rc->queryString, len+1); 
         if(qs == NULL) {
-          log_error(logger_data, "queryString is too long (not enough memory)\n");
+          uw_log_error(ctx, "queryString is too long (not enough memory)\n");
           return FAILED;
         }
         rc->queryString = qs;
@@ -587,12 +585,12 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         if ((value = strchr(name, '='))) {
           *value++ = 0;
           if (uw_set_input(ctx, name, value)) {
-            log_error(logger_data, "%s\n", uw_error_message(ctx));
+            uw_log_error(ctx, "%s\n", uw_error_message(ctx));
             return FAILED;
           }
         }
         else if (uw_set_input(ctx, name, "")) {
-          log_error(logger_data, "%s\n", uw_error_message(ctx));
+          uw_log_error(ctx, "%s\n", uw_error_message(ctx));
           return FAILED;
         }
       }
@@ -612,7 +610,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       if (path_len + 1 > rc->path_copy_size) {
         char *pc = realloc(rc->path_copy, path_len + 1);
         if(pc == NULL) {
-          log_error(logger_data, "Path is too long (not enough memory)\n");
+          uw_log_error(ctx, "Path is too long (not enough memory)\n");
           return FAILED;
         }
         rc->path_copy = pc;
@@ -640,7 +638,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         continue;
       }
       if (uw_has_error(ctx) && !had_error) {
-        log_error(logger_data, "Fatal error: %s\n", uw_error_message(ctx));
+        uw_log_error(ctx, "Fatal error: %s\n", uw_error_message(ctx));
         uw_reset_keep_error_message(ctx);
         on_failure(ctx);
 
@@ -651,7 +649,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
           had_error = 1;
           strcpy(errmsg, uw_error_message(ctx));
         } else {
-          try_rollback(ctx, 0, logger_data, log_error);
+          try_rollback(ctx, 0);
           uw_transaction_departs();
 
           uw_write_header(ctx, "Content-type: text/html\r\n");
@@ -670,13 +668,13 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       if (uw_retry_again(fk, &attempts_left))
         log_debug(logger_data, "Error triggers bounded retry: %s\n", uw_error_message(ctx));
       else {
-        log_error(logger_data, "Fatal error (out of retries): %s\n", uw_error_message(ctx));
+        uw_log_error(ctx, "Fatal error (out of retries): %s\n", uw_error_message(ctx));
 
         if (!had_error && uw_get_app(ctx)->on_error) {
           had_error = 1;
           strcpy(errmsg, uw_error_message(ctx));
         } else {
-          try_rollback(ctx, 0, logger_data, log_error);
+          try_rollback(ctx, 0);
           uw_transaction_departs();
 
           uw_reset_keep_error_message(ctx);
@@ -692,13 +690,13 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     } else if (fk == UNLIMITED_RETRY)
       log_debug(logger_data, "Error triggers unlimited retry: %s\n", uw_error_message(ctx));
     else if (fk == FATAL) {
-      log_error(logger_data, "Fatal error: %s\n", uw_error_message(ctx));
+      uw_log_error(ctx, "Fatal error: %s\n", uw_error_message(ctx));
 
       if (uw_get_app(ctx)->on_error && !had_error) {
         had_error = 1;
         strcpy(errmsg, uw_error_message(ctx));
       } else {
-        try_rollback(ctx, 0, logger_data, log_error);
+        try_rollback(ctx, 0);
         uw_transaction_departs();
 
         uw_reset_keep_error_message(ctx);
@@ -712,13 +710,13 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         return FAILED;
       }
     } else {
-      log_error(logger_data, "Unknown uw_handle return code!\n");
+      uw_log_error(ctx, "Unknown uw_handle return code!\n");
 
       if (uw_get_app(ctx)->on_error && !had_error) {
         had_error = 1;
         strcpy(errmsg, "Unknown uw_handle return code");
       } else {
-        try_rollback(ctx, 0, logger_data, log_error);
+        try_rollback(ctx, 0);
         uw_transaction_departs();
         
         uw_reset_keep_request(ctx);
@@ -730,7 +728,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       }
     }
 
-    if (try_rollback(ctx, 1, logger_data, log_error)) {
+    if (try_rollback(ctx, 1)) {
       uw_transaction_departs();
       return FAILED;
     }
@@ -807,9 +805,11 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
   int attempts = 0;
   request_result rr;
 
+  (void)log_error;  // errors go through uw_log_error, with the request's method and path
+  uw_set_activity(ctx, "%s %s", method, path);
   clock_gettime(CLOCK_MONOTONIC, &start);
   rr = uw_request_attempts(rc, ctx, method, path, query_string, body, body_len, on_success, on_failure,
-                           logger_data, log_error, log_debug, sock, send, close, &attempts);
+                           logger_data, log_debug, sock, send, close, &attempts);
 
   if (rr != KEEP_OPEN) {
     const char *verb = rr == FAILED ? "Failed" : "Served";

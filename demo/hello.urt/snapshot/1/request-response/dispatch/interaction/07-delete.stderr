@@ -1,1 +1,1 @@
-Not ready for non-GET/POST command: DELETE
+DELETE /Hello/main: Not ready for non-GET/POST command: DELETE
