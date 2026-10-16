@@ -374,6 +374,9 @@ int main(int argc, char *argv[]) {
   int meta_fd = -1; // -1 => no -d argument given; otherwise the file descriptor the parent should write structured metadata to before exiting.
 
   signal(SIGPIPE, SIG_IGN); 
+  // A line at a time, whatever stdout is: a journal or a pipe gets each
+  // line when it is written, not when a block has filled.
+  setvbuf(stdout, NULL, _IOLBF, 0);
 
   // default if not specified: IPv4 with my IP
   memset(&my_addr, 0, sizeof my_addr);
@@ -630,7 +633,6 @@ int main(int argc, char *argv[]) {
       return 0;
     }
     if (meta_fd >= 0) close(meta_fd);
-    setvbuf(stdout, NULL, _IOLBF, 0);
   }
 
   uw_request_start_threads(&uw_application, &ls);
