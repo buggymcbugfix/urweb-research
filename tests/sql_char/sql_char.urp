@@ -1,0 +1,8 @@
+database dbname=sql_char.db
+sql sql_char.sql
+safeGet Sql_char/store
+safeGet Sql_char/get
+safeGet Sql_char/list
+safeGet Sql_char/drop
+
+sql_char
