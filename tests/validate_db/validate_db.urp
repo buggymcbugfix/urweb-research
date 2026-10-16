@@ -1,0 +1,3 @@
+database dbname=validate_db.db
+
+validate_db
