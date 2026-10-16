@@ -88,6 +88,36 @@
      if (validated)
      return;
       
+     if (sqlite3_prepare_v2(conn->conn, "PRAGMA journal_mode", -1, &stmt, NULL) != SQLITE_OK) {
+      sqlite3_close(conn->conn);
+       uw_error(ctx, FATAL, "Query preparation failed:<br />PRAGMA journal_mode");
+       }
+      
+      res = sqlite3_step(stmt);
+      
+      if (res == SQLITE_BUSY) {
+      sqlite3_finalize(stmt);
+       sqlite3_close(conn->conn);
+       uw_error(ctx, FATAL, "Database is busy; can't validate:<br />PRAGMA journal_mode");
+       }
+      
+      if (res != SQLITE_ROW) {
+      sqlite3_finalize(stmt);
+       sqlite3_close(conn->conn);
+       uw_error(ctx, FATAL, "Error getting row:<br />PRAGMA journal_mode");
+       }
+      
+      if (sqlite3_stricmp((const char *)sqlite3_column_text(stmt, 0), "wal")) {
+      char mode[32];
+       
+       snprintf(mode, sizeof mode, "%s", (const char *)sqlite3_column_text(stmt, 0));
+       sqlite3_finalize(stmt);
+       sqlite3_close(conn->conn);
+       uw_error(ctx, FATAL, "The SQLite database is in journal mode %s, not WAL (set it with PRAGMA journal_mode = WAL)", mode);
+       }
+      
+      sqlite3_finalize(stmt);
+      
      if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_heap_limit_t' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
       sqlite3_close(conn->conn);
        uw_error(ctx, FATAL, "Query preparation failed:<br />SELECT COUNT(*) FROM sqlite_schema WHERE name = 'uw_Io_heap_limit_t' COLLATE NOCASE");
