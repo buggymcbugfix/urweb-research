@@ -1,0 +1,5 @@
+Status: 500 Internal Server Error
+Content-type: text/html
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/fastcgi_log/fastcgi_log.ur:11:4-12:3: failed on purpose
+</body></html>
