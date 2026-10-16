@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-type: text/plain
+Connection: close
+Content-Length: 30
+
+next 4102444800000
+released 0

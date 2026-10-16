@@ -1,0 +1,6 @@
+database dbname=clockEdge.db
+rewrite all ClockEdge/*
+safeGet chan
+timeout 30
+
+clockEdge

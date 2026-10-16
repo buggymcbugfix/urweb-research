@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT
+Content-Length: 113
+Cache-Control: max-age=31536000, public
+Connection: close
+
+rewrite all Files/*
+file /hello_world.txt hello.txt
+file /img/web.png web.png
+file /files.urp ./files.urp
+
+files
