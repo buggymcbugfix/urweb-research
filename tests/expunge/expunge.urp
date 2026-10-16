@@ -1,0 +1,7 @@
+database dbname=expunge.db
+rewrite all Expunge/*
+timeout 2
+safeGet chat
+safeGet msg
+
+expunge
