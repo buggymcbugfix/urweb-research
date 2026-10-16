@@ -47,6 +47,14 @@ fun p_sql_type t =
 val ident = String.translate (fn #"'" => "PRIME"
                                | ch => str ch)
 
+(* What a statement or a draw from a sequence does when SQLite has found the
+ * database busy: the request is run again, after a pause. *)
+val busyRetry =
+    box [string "sleep(1);",
+         newline,
+         string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
+         newline]
+
 fun checkRel (table, checkNullable) (s, xts) =
     let
         (* The catalog stores the bare name, without the quotes an identifier
@@ -656,10 +664,7 @@ fun queryCommon {loc, query, cols, doCols} =
          newline,
 
          string "if (r == SQLITE_BUSY) {",
-         box [string "sleep(1);",
-              newline,
-              string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
-              newline],
+         busyRetry,
          string "}",
          newline,
          newline,
@@ -839,10 +844,7 @@ fun dmlCommon {loc, dml, mode} =
          newline,
 
          string "if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {",
-         box [string "sleep(1);",
-              newline,
-              string "uw_error(ctx, UNLIMITED_RETRY, \"Database is busy\");",
-              newline],
+         busyRetry,
          string "}",
          newline,
          newline,
@@ -950,13 +952,27 @@ fun nextval {loc, seqE, seqName} =
                           string ")"],
          string ";",
          newline,
+         string "int r;",
+         newline,
          newline,
 
-         string "if (sqlite3_exec(conn->conn, insert, NULL, NULL, NULL) != SQLITE_OK) uw_error(ctx, FATAL, \"'nextval' INSERT failed: %s\", sqlite3_errmsg(conn->conn));",
+         (* A busy database asks for the request to be run again, as it
+          * does for a DML statement. *)
+         string "if ((r = sqlite3_exec(conn->conn, insert, NULL, NULL, NULL)) == SQLITE_BUSY) {",
+         newline,
+         busyRetry,
+         string "}",
+         newline,
+         string "if (r != SQLITE_OK) uw_error(ctx, FATAL, \"'nextval' INSERT failed: %s\", sqlite3_errmsg(conn->conn));",
          newline,
          string "n = sqlite3_last_insert_rowid(conn->conn);",
          newline,
-         string "if (sqlite3_exec(conn->conn, delete, NULL, NULL, NULL) != SQLITE_OK) uw_error(ctx, FATAL, \"'nextval' DELETE failed: %s\", sqlite3_errmsg(conn->conn));",
+         string "if ((r = sqlite3_exec(conn->conn, delete, NULL, NULL, NULL)) == SQLITE_BUSY) {",
+         newline,
+         busyRetry,
+         string "}",
+         newline,
+         string "if (r != SQLITE_OK) uw_error(ctx, FATAL, \"'nextval' DELETE failed: %s\", sqlite3_errmsg(conn->conn));",
          newline,
          (* A sequence is a table here, and a number is drawn by adding a
           * row and deleting it again: both go to the log, as issued. *)
