@@ -1,0 +1,7 @@
+page: answered after 3 s or more
+slowA: answered after 3 s or more
+> slowA
+HTTP/1.1 200 OK
+12000
+  | 1 x effect: slow A begins
+  | 1 x effect: slow A ends

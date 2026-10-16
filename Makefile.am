@@ -180,8 +180,8 @@ check-io-curl: bin/urweb
 	bash tests/io_curl/run.sh
 
 # io code under contention, several clients at once: see
-# tests/io_concurrent/README.md.  Needs curl and sqlite3.  Through bash, as
-# check-io-curl.
+# tests/io_concurrent/README.md.  Needs curl and sqlite3, and on Linux cc.
+# Through bash, as check-io-curl.
 .PHONY: check-io-concurrent
 check-io-concurrent: bin/urweb
 	bash tests/io_concurrent/run.sh
