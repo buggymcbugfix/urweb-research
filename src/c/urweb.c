@@ -4176,8 +4176,19 @@ failure_kind uw_initialize(uw_context ctx) {
 
   if (r == 0) {
     ctx->app->initializer(ctx);
+
+    // uw_commit returns 1 for a serialization conflict alone, after which the
+    // database has rolled the transaction back: the initializer runs again,
+    // as for a conflict before COMMIT.  Any other failure leaves an error
+    // message, and the start-up fails, whether or not the database committed.
     if (uw_commit(ctx))
-      uw_error(ctx, FATAL, "Error running SQL COMMIT");
+      uw_error(ctx, UNLIMITED_RETRY, "Commit conflict");
+    if (uw_has_error(ctx)) {
+      char msg[ERROR_BUF_LEN];
+
+      strcpy(msg, uw_error_message(ctx));
+      uw_error(ctx, FATAL, "%s", msg);
+    }
   }
 
   return r;
