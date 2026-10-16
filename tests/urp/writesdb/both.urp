@@ -1,0 +1,6 @@
+ffi lib
+writesDB Lib.touch
+benignEffectful Lib.touch
+safeGet Both/main
+
+both

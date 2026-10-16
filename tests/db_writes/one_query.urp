@@ -1,0 +1,11 @@
+database dbname=one_query.db
+sql one_query.sql
+ffi insert
+include insert.h
+link insert.c
+effectful Insert.row
+safeGet One_query/oneQuery
+safeGet One_query/twoQueries
+safeGet One_query/rows
+
+one_query

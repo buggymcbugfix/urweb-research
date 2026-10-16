@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 133
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/db_writes/one_query.ur:11:4-13:2: failed after 0
+</body></html>
