@@ -1,0 +1,9 @@
+client A made
+> GET /Concurrent/failCommit
+HTTP/1.1 500 Internal Server Error
+onError: failCommit
+  | 1 x Fatal error: failCommit
+  | 1 x transactional failCommit: commit
+  | 1 x transactional failCommit: free
+~ not logged within 30 s: a client left
+a poll of A: answered, A is still there
