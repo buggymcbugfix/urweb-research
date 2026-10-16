@@ -1,0 +1,3 @@
+urt snapshot runs/serves-cgi-bad
+urt snapshot runs/serves-static-bad
+urt snapshot runs/serves-gopher

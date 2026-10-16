@@ -35,7 +35,19 @@ val () = addProtocol {name = "static",
                       linkStatic = "liburweb_static.a",
                       linkDynamic = "-lurweb_static",
                       persistent = false,
-                      code = fn () => box [string "void uw_global_custom() { }",
+                      code = fn () => box [string "void uw_global_custom() {",
+                                           newline,
+                                           case getSigFile () of
+                                               NONE => box []
+                                             | SOME sf => box [string "extern char *uw_sig_file;",
+                                                               newline,
+                                                               string "uw_sig_file = \"",
+                                                               string sf,
+                                                               string "\";",
+                                                               newline],
+                                           string "uw_setup_limits();",
+                                           newline,
+                                           string "}",
                                            newline]}
 
 end

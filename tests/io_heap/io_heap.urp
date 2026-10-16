@@ -4,7 +4,7 @@ include ../ioprobe/probe.h
 link ../ioprobe/probe.c
 allow url /Io_heap/rows
 safeGet Io_heap/rows
-limit heap 320000000
+limit heap 100000000
 
 $/list
 $/option

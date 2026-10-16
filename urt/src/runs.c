@@ -6,6 +6,9 @@
 #define _DARWIN_C_SOURCE
 #include <errno.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -237,6 +240,7 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
 
     s->pid = 0;
     s->port = 0;
+    s->ours = 0;
     *why = 0;
     sl_push(&argv, exe);
     for (i = 0; i < args->n; i++) {
@@ -287,6 +291,47 @@ int server_start(const char *exe, const struct strlist *args, const char *out_pa
     return 0;
 }
 
+int fastcgi_start(const char *exe, const struct strlist *args, const char *sock_path, const char *out_path,
+                  const char *err_path, struct server *s, char *why, size_t why_size) {
+    struct strlist argv = { 0, 0, 0 };
+    char spawner[PATHLEN], **command;
+    int i, null;
+
+    s->pid = 0;
+    s->port = 0;
+    s->ours = 1;
+    *why = 0;
+    if (!find_on_path("spawn-fcgi", spawner)) {
+        snprintf(why, why_size, "there is no spawn-fcgi on the PATH to start it with");
+        return -1;
+    }
+    /* -n: no fork, and no /dev/null for its stdout and stderr, as spawn-fcgi
+     * gives the program it forks: it becomes the program, our child. */
+    sl_push(&argv, spawner);
+    sl_push(&argv, "-n");
+    sl_push(&argv, "-s");
+    sl_push(&argv, sock_path);
+    sl_push(&argv, "--");
+    sl_push(&argv, exe);
+    for (i = 0; i < args->n; i++) {
+        sl_push(&argv, args->v[i]);
+    }
+    command = sl_argv(&argv);
+    null = open("/dev/null", O_RDONLY);
+    s->pid = null < 0 ? -1 : spawn_on(command, null, out_path, err_path);
+    if (null >= 0) {
+        close(null);
+    }
+    free(command);
+    sl_free(&argv);
+    if (s->pid < 0) {
+        s->pid = 0;
+        snprintf(why, why_size, "it could not be started: %s", strerror(errno));
+        return -1;
+    }
+    return 0;
+}
+
 /* Whether the process is dead but not yet reaped: it is not ours to
  * reap, and under a PID 1 that reaps no orphans (some containers') it
  * stays so, answering kill(pid, 0) as if alive.  Linux says in /proc;
@@ -319,9 +364,24 @@ void server_stop(struct server *s) {
     if (s->pid <= 0) {
         return;
     }
+    kill((pid_t) s->pid, SIGTERM);
+    if (s->ours) {
+        /* Our child, started on a socket: reaped, or it would stay a
+         * zombie. */
+        for (i = 0; i < 500 && waitpid((pid_t) s->pid, NULL, WNOHANG) == 0; i++) {
+            nanosleep(&nap, NULL);
+        }
+        if (i == 500) {
+            kill((pid_t) s->pid, SIGKILL);
+            while (waitpid((pid_t) s->pid, NULL, 0) < 0 && errno == EINTR) {
+                ;
+            }
+        }
+        s->pid = 0;
+        return;
+    }
     /* Not our child -- it left its parent when it went to the background
      * -- so there is nothing to wait for but its disappearance. */
-    kill((pid_t) s->pid, SIGTERM);
     for (i = 0; i < 500 && kill((pid_t) s->pid, 0) == 0 && !is_zombie(s->pid); i++) {
         nanosleep(&nap, NULL);
     }

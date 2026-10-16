@@ -28,11 +28,7 @@ initialize` shows here) and printed after the last (`shutdown.stdout`,
 The application's clock and random numbers are
 pinned through its environment (`URWEB_REPRODUCIBLE_EPOCH`,
 `URWEB_REPRODUCIBLE_PRNG_SEED`; see `src/c/reproducible.c` in the
-compiler's tree), and its heap starts at 256 MiB (`URWEB_MIN_HEAP`), so
-that no handler is run a second time for the heap to have grown and
-moved; a run repeats byte for byte.  (A project whose `limit heap` is
-below 256 MiB cannot have runs yet: the application refuses to start
-with a heap above its limit, and the run fails with its message.)  The
+compiler's tree); a run repeats byte for byte.  The
 application is
 built where the project has it built and then moved into the case, as
 `app.exe` beside `expected/`, where it stays: git ignores it, and it is
@@ -42,6 +38,17 @@ dumped, in its safe mode, where no dot-command reaches outside the
 database) on the PATH; the compiler's `nix-shell` and package have
 both.
 
+An application built with `-protocol cgi` or `-protocol static` is
+started once for every request instead, as a web server starts a CGI
+program, or with the path, as a static one is; its stdout is the
+response, and an exit status other than 0 goes beside it as
+`NAME.exitcode`.  One built with `-protocol fastcgi` is started once on
+a Unix socket by `spawn-fcgi`, as in production, and each request
+reaches it through `cgi-fcgi`, from the FastCGI development kit; the
+compiler's `nix-shell` has both.  Either way the program gets the
+request as the CGI variables a web server would set.  `urt snapshot
+--help` has the details.
+
 Not there yet:
 
 - What an application does beside serving requests (`task periodic`,
@@ -49,12 +56,6 @@ Not there yet:
   happens to be scheduled, so responses that depend on when a task ran do
   not repeat, and should not be snapshotted.  Its random numbers do
   repeat: each such thread has a stream of its own.
-- A handler that needs more than the 256 MiB its heap starts with is
-  run again from the start whenever growing the heap moves it, and
-  whether that happens is the libc's business.  Responses and the database do not show it,
-  but what the handler prints with `debug` does: once per attempt.  The
-  cure is an allocator that grows the heap in place; until then, such a
-  handler's `NAME.stdout` is not worth snapshotting.
 - Requests are sent one after the other.  Sent at the same time they
   would be numbered, and so timed and given their random numbers, in the
   order they happen to arrive; nothing can pin that.  A run's `args`

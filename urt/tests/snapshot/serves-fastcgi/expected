@@ -1,0 +1,145 @@
+$ urt snapshot runs/serves-fastcgi
+UPDATED runs/serves-fastcgi.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi (interaction/01.response, interaction/01.stderr, interaction/02-form.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-env.response)
+1 case and 1 run: 2 updated, in T
+exit 0
+$ urt snapshot -w runs/serves-fastcgi
+OK runs/serves-fastcgi.urt/snapshot/1
+OK runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi
+1 case and 1 run: 2 ok, in T
+exit 0
+$ cd runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi && for f in interaction/*.response interaction/*.stdout interaction/*.stderr interaction/*.sql; do echo "== $f"; tr -d '\r' < "$f"; done
+== interaction/01.response
+Content-type: text/plain
+
+1: 13 parameters
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+body: []
+== interaction/02-form.response
+Content-type: text/plain
+
+2: 16 parameters
+CONTENT_LENGTH=11
+CONTENT_TYPE=application/x-www-form-urlencoded
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=text/html
+HTTP_COOKIE=visitor=somebody
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/Shop/add
+QUERY_STRING=x=1
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=POST
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+body: [name=kettle]
+== interaction/03-debug.response
+Content-type: text/plain
+
+3: 13 parameters
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/debug
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+body: []
+== interaction/04-err.response
+Content-type: text/plain
+
+4: 13 parameters
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/err
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+body: []
+== interaction/05-dml.response
+Content-type: text/plain
+
+5: 13 parameters
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/dml
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+body: []
+== interaction/06-env.response
+Content-type: text/plain
+
+6: 13 parameters
+GATEWAY_INTERFACE=CGI/1.1
+HTTP_ACCEPT=*/*
+HTTP_HOST=localhost
+HTTP_USER_AGENT=urt
+PATH_INFO=/env/APP_GREETING
+QUERY_STRING=
+REMOTE_ADDR=127.0.0.1
+REQUEST_METHOD=GET
+SCRIPT_NAME=
+SERVER_NAME=localhost
+SERVER_PORT=80
+SERVER_PROTOCOL=HTTP/1.1
+SERVER_SOFTWARE=urt
+body: []
+APP_GREETING=hello, server
+== interaction/03-debug.stdout
+fastcgi: a line on stdout
+== interaction/01.stderr
+fastcgi: started
+== interaction/04-err.stderr
+fastcgi: a line on stderr
+== interaction/05-dml.sql
+INSERT INTO t VALUES (3);
+exit 0
+$ changes
+added: ./runs/serves-fastcgi.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-fastcgi.urt/snapshot/1/expected/exitcode
+added (298 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/01.response
+added (17 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/01.stderr
+added (421 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/02-form.response
+added (303 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/03-debug.response
+added (26 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/03-debug.stdout
+added (301 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/04-err.response
+added (26 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/04-err.stderr
+added (301 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/05-dml.response
+added (26 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/05-dml.sql
+added (341 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/06-env.response

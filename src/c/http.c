@@ -331,6 +331,7 @@ static void *worker(void *data) {
 
   done:
     uw_reset(ctx);
+    uw_heap_shrink(ctx);
   }
 
   return NULL;

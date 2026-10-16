@@ -83,7 +83,7 @@ start() {
   if [ "${1:-}" = -cache ]; then exe=$out/concurrent-cache.exe; shift; fi
   eval "$( env -i ${LD_LIBRARY_PATH:+LD_LIBRARY_PATH="$LD_LIBRARY_PATH"} PATH="$PATH" \
              ${ASAN_OPTIONS:+ASAN_OPTIONS="$ASAN_OPTIONS"} ${UBSAN_OPTIONS:+UBSAN_OPTIONS="$UBSAN_OPTIONS"} \
-             URWEB_SQLITE_DB_PATH="$db" URWEB_MIN_HEAP=$((64 * 1024 * 1024)) \
+             URWEB_SQLITE_DB_PATH="$db" \
              "$exe" -t 8 "$@" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>> "$log" 2>&1 )"
   [ "${status:-}" = OK ] || { cat "$log" >&2; die "the application did not start"; }
   app_pid=$pid
@@ -194,7 +194,7 @@ show_log() {
   local n
   n=$(wc -l < "$log")
   tail -n +"$((log_mark + 1))" "$log" | head -n "$((n - log_mark))" \
-    | grep -v -E '^(Database connection initialized|Starting the|ONLY DURING|behind a|Forking|Listening|Accepted|Handling|Serving|Processed request for messages)|^$' \
+    | grep -v -E '^(Database connection initialized|Starting the|ONLY DURING|behind a|Forking|Listening|Accepted|Handling|Serving|Served URI|Failed URI|Processed request for messages)|^$' \
     | sort | uniq -c | sed 's/^ *\([0-9]*\) /  | \1 x /'
   log_mark=$n
 }
@@ -205,7 +205,7 @@ log_kinds() {
   local n
   n=$(wc -l < "$log")
   tail -n +"$((log_mark + 1))" "$log" | head -n "$((n - log_mark))" \
-    | grep -v -E '^(Database connection initialized|Starting the|ONLY DURING|behind a|Forking|Listening|Accepted|Handling|Serving|Processed request for messages)|^$' \
+    | grep -v -E '^(Database connection initialized|Starting the|ONLY DURING|behind a|Forking|Listening|Accepted|Handling|Serving|Served URI|Failed URI|Processed request for messages)|^$' \
     | sort -u | sed 's/^/  | /'
   log_mark=$n
 }

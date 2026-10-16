@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 116
+
+<!DOCTYPE html><html><head></head><body>
+<p>rand: 1401122455</p>
+<p>now: Sat Jan  1 00:00:00 2000</p>
+</body></html>

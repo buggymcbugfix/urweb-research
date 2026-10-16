@@ -318,6 +318,13 @@ extern const uw_Basis_time uw_Basis_minTime;
 int uw_register_transactional(struct uw_context *, void *data, uw_callback commit, uw_callback rollback, uw_callback_with_retry free);
 
 void uw_check_heap(struct uw_context *, size_t extra);
+// Between pieces of work (a request served, a task's tick, a pass of the
+// expunger): empty the heap, and give back the memory not recently needed.
+void uw_heap_shrink(struct uw_context *);
+// The most the heap has had in use at once, and all that was allocated on
+// it, since it was last emptied by uw_heap_shrink: for a request, through
+// all its attempts so far.
+void uw_heap_usage(struct uw_context *, size_t *peak, size_t *total);
 char *uw_heap_front(struct uw_context *);
 void uw_set_heap_front(struct uw_context *, char*);
 
@@ -378,9 +385,8 @@ extern int uw_time_max, uw_supports_direct_status, uw_min_heap;
 failure_kind uw_runCallback(struct uw_context *, void (*callback)(struct uw_context *));
 
 // io computations (Basis.io): a periodic task whose body runs outside any
-// transaction, on a heap that never moves, so that it is never run again
-// after a failure.
-void uw_io_prepare(struct uw_context *);   // give the context its io heap; once, before uw_runIo
+// transaction and is never run again after a failure.
+void uw_io_prepare(struct uw_context *);   // mark the context as one that runs io computations; before uw_runIo
 // Runs the body; SUCCESS, or FATAL with the message set (a retry asked for
 // outside any transaction is fatal too).
 failure_kind uw_runIo(struct uw_context *, void (*callback)(struct uw_context *));

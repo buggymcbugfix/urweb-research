@@ -38,7 +38,9 @@ int parse_request(const char *text, char *method, size_t method_size, char *url_
 
 /* --------------------------------------------------------------- servers */
 
-struct server { long pid; int port; };
+/* A server: its process, the port it listens on (0 for a socket), and
+ * whether it is this process's child, to be reaped when it is stopped. */
+struct server { long pid; int port; int ours; };
 
 /* Start exe, an Ur/Web application with the built-in HTTP server, with
  * args and then the flags that make it listen on a free port of the
@@ -49,6 +51,17 @@ struct server { long pid; int port; };
  * within ten seconds. */
 int server_start(const char *exe, const struct strlist *args, const char *out_path, const char *err_path,
                  struct server *s, char *why, size_t why_size);
+
+/* Start exe, a FastCGI program, with args, as spawn-fcgi starts one in
+ * production: a Unix socket at sock_path, listening, as its descriptor 0,
+ * where it takes its connections from.  spawn-fcgi has to be on the PATH.
+ * stdout and stderr go to the files named.  It is started and not waited
+ * for: nothing says when the socket is there, nor when the program is
+ * ready, and a connection made before the one fails while one made
+ * before the other waits in the socket's queue.  0 with the server filled
+ * in, or -1 with why. */
+int fastcgi_start(const char *exe, const struct strlist *args, const char *sock_path, const char *out_path,
+                  const char *err_path, struct server *s, char *why, size_t why_size);
 
 /* Stop it and wait until it is gone.  Safe to call twice. */
 void server_stop(struct server *s);

@@ -404,6 +404,11 @@ int run(char *const argv[], const char *out_path, const char *err_path) {
 }
 
 int run_in(char *const argv[], const char *in_path, const char *out_path, const char *err_path) {
+    return run_in_for(argv, in_path, out_path, err_path, 0);
+}
+
+int run_in_for(char *const argv[], const char *in_path, const char *out_path, const char *err_path,
+               unsigned seconds) {
     pid_t pid;
     int st;
     fflush(stdout);
@@ -422,6 +427,9 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
         }
         redirect(STDOUT_FILENO, out_path);
         redirect(STDERR_FILENO, err_path);
+        if (seconds) {
+            alarm(seconds);
+        }
         execvp(argv[0], argv);
         _exit(127);
     }
@@ -437,6 +445,29 @@ int run_in(char *const argv[], const char *in_path, const char *out_path, const 
         return 128 + WTERMSIG(st);
     }
     return 127;
+}
+
+long spawn_on(char *const argv[], int in_fd, const char *out_path, const char *err_path) {
+    pid_t pid;
+    fflush(stdout);
+    fflush(stderr);
+    pid = fork();
+    if (pid < 0) {
+        return -1;
+    }
+    if (pid == 0) {
+        if (in_fd != STDIN_FILENO) {
+            if (dup2(in_fd, STDIN_FILENO) < 0) {
+                _exit(127);
+            }
+            close(in_fd);
+        }
+        redirect(STDOUT_FILENO, out_path);
+        redirect(STDERR_FILENO, err_path);
+        execvp(argv[0], argv);
+        _exit(127);
+    }
+    return (long) pid;
 }
 
 char *run_fd3(char *const argv[], const char *out_path, const char *err_path, int seconds, int *status) {
@@ -552,7 +583,7 @@ void fs_set_argv0(const char *a) { argv0 = a; }
 /* The first program called name on the PATH, into dst; 0 if none.  A
  * program: a regular file that may be executed, since access(X_OK) is
  * as true of a directory that may be searched. */
-static int find_on_path(const char *name, char *dst) {
+int find_on_path(const char *name, char *dst) {
     const char *p = getenv("PATH"), *colon;
     if (!p) {
         return 0;

@@ -36,5 +36,5 @@ Settings:
  TimeFormat: %c
  CoreInline: 5
  MonoInline: 5
- Limits: heap=300000000
+ Limits: heap=64000000
  MimeTypes: /etc/mime.types

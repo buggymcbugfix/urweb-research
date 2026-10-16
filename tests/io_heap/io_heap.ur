@@ -1,10 +1,10 @@
 (* The heap of an io computation across transactions that fail.  The heap
-   limit is 320 MB, of which the test runner's starting heap takes 256 MiB;
-   each of twenty transactions allocates a 4 MiB string and then fails, in
-   an FFI call or in a dml, which the generated code runs inside regions of
-   their own.  What a failed attempt allocated is given back, so all twenty
-   fail for their own reason and a 32 MiB string can still be built
-   afterwards. *)
+   limit is 100 MB; each of twenty transactions allocates a 4 MiB string,
+   8 MiB on the way, and then fails, in an FFI call or in a dml, which the
+   generated code runs inside regions of their own.  What a failed attempt
+   allocated is given back, so all twenty fail for their own reason and a
+   32 MiB string, 64 MiB on the way, can still be built afterwards; it
+   would not fit beside what they took if they kept it. *)
 
 table t : { N : int }
 

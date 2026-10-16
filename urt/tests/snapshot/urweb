@@ -11,7 +11,9 @@
 #   a project *serves*     the same, with PROJECT.exe running the stand-in
 #                          server beside this script, app, through the
 #                          python3 on the PATH (the nix sandbox has no
-#                          /usr/bin/env for app's own first line)
+#                          /usr/bin/env for app's own first line); with
+#                          -protocol cgi, static or fastcgi, the stand-in
+#                          program of that name beside this script instead
 #
 # The settings dump names the files it was asked for, canonicalised as
 # the compiler's OS.Path.mkCanonical would (a doubled slash becomes one),
@@ -22,12 +24,13 @@
 echo "urweb $*"
 echo "epoch=${SOURCE_DATE_EPOCH-unset}"
 
-files='' dbms='' project='' stopped=''
+files='' dbms='' project='' stopped='' protocol=http
 while [ $# -gt 0 ]; do
     case $1 in
         -saveSettings|-saveParsetree|-saveTypecheck|-sql|-saveJs|-endpoints|-saveC)
             files="$files $1=$2"; shift 2 ;;
         -dbms) dbms=$2; shift 2 ;;
+        -protocol) protocol=$2; shift 2 ;;
         -stop) stopped=1; shift 2 ;;
         -demo|-prefix|-db|-output|-sigfile) shift 2 ;;
         -*) shift ;;
@@ -83,7 +86,11 @@ if [ -z "$stopped" ]; then
             printf '#!/bin/sh\necho "not a server" >&2\nexit 3\n' > "$project.exe"
             chmod +x "$project.exe" ;;
         *serves*)
-            printf '#!/bin/sh\nexec python3 '"'"'%s'"'"' "$@"\n' "$(dirname "$0")/app" > "$project.exe"
+            case $protocol in
+                cgi | static) printf '#!/bin/sh\nexec sh '"'"'%s'"'"' "$@"\n' "$(dirname "$0")/$protocol" > "$project.exe" ;;
+                fastcgi) printf '#!/bin/sh\nexec python3 '"'"'%s'"'"' "$@"\n' "$(dirname "$0")/fastcgi" > "$project.exe" ;;
+                *) printf '#!/bin/sh\nexec python3 '"'"'%s'"'"' "$@"\n' "$(dirname "$0")/app" > "$project.exe" ;;
+            esac
             chmod +x "$project.exe" ;;
     esac
 fi

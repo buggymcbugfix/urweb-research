@@ -1,0 +1,5 @@
+rewrite all Limit_env/*
+limit heap 1000000
+minHeap 2000000
+
+limit_env
