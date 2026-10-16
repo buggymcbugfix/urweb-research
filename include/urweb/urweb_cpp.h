@@ -229,6 +229,8 @@ uw_Basis_client uw_Basis_stringToClient_error(struct uw_context *, uw_Basis_stri
 
 uw_Basis_char uw_Basis_unsqlChar(struct uw_context *, const char *);
 uw_Basis_time uw_Basis_unsqlTime(struct uw_context *, uw_Basis_string);
+char *uw_Basis_ensqlTimeUtc(struct uw_context *, uw_Basis_time);
+uw_Basis_time uw_Basis_unsqlTimeUtc(struct uw_context *, const char *);
 
 uw_Basis_string uw_Basis_requestHeader(struct uw_context *, uw_Basis_string);
 
@@ -326,7 +328,7 @@ uw_Basis_string uw_Basis_unAs(struct uw_context *, uw_Basis_string);
 
 extern char *uw_sqlfmtInt;
 extern char *uw_sqlfmtFloat;
-extern int uw_Estrings, uw_sql_type_annotations;
+extern int uw_Estrings, uw_sql_type_annotations, uw_sql_utc_times;
 extern char *uw_sqlsuffixString;
 extern char *uw_sqlsuffixChar;
 extern uw_Basis_char uw_sqlmaxChar;

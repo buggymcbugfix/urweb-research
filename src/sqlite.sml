@@ -297,6 +297,10 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
                   newline,
                   string "uw_sql_type_annotations = 0;",
                   newline,
+                  (* SQLite has no type for times.  They are text, in UTC as
+                   * CURRENT_TIMESTAMP gives it (uw_Basis_ensqlTimeUtc). *)
+                  string "uw_sql_utc_times = 1;",
+                  newline,
                   string "uw_sqlsuffixString = \"\";",
                   newline,
                   string "uw_sqlsuffixChar = \"\";",
@@ -692,8 +696,6 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline]
     end
 
-val fmt = "\"%Y-%m-%d %H:%M:%S\""
-
 fun p_getcol {loc, wontLeakStrings, col = i, typ = t} =
     let
         fun p_unsql t =
@@ -707,9 +709,7 @@ fun p_getcol {loc, wontLeakStrings, col = i, typ = t} =
                     box [string "uw_strdup(ctx, (uw_Basis_string)sqlite3_column_text(stmt, ", string (Int.toString i), string "))"]
               | Char => box [string "uw_Basis_unsqlChar(ctx, (const char *)sqlite3_column_text(stmt, ", string (Int.toString i), string "))"]
               | Bool => box [string "(uw_Basis_bool)sqlite3_column_int(stmt, ", string (Int.toString i), string ")"]
-              | Time => box [string "uw_Basis_stringToTimef_error(ctx, ",
-                             string fmt,
-                             string ", (uw_Basis_string)sqlite3_column_text(stmt, ",
+              | Time => box [string "uw_Basis_unsqlTimeUtc(ctx, (const char *)sqlite3_column_text(stmt, ",
                              string (Int.toString i),
                              string "))"]
               | Blob => box [string "({",
@@ -892,9 +892,7 @@ fun p_inputs loc =
                                                      string ")"]
                                       | Time => box [string "sqlite3_bind_text(stmt, ",
                                                      string (Int.toString (i + 1)),
-                                                     string ", uw_Basis_timef(ctx, ",
-                                                     string fmt,
-                                                     string ", ",
+                                                     string ", uw_Basis_ensqlTimeUtc(ctx, ",
                                                      arg,
                                                      string "), -1, SQLITE_TRANSIENT)"]
                                       | Blob => box [string "sqlite3_bind_blob(stmt, ",
