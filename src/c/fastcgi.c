@@ -27,6 +27,9 @@
 
 extern uw_app uw_application;
 
+// The most content a record carries: its length has two bytes.
+#define FCGI_CONTENT_MAX 65535
+
 typedef struct {
   unsigned char version;
   unsigned char type;
@@ -36,13 +39,24 @@ typedef struct {
   unsigned char contentLengthB0;
   unsigned char paddingLength;
   unsigned char reserved;
-  unsigned char contentData[65535];
+  unsigned char contentData[FCGI_CONTENT_MAX];
 } FCGI_Record;
+
+// A record's header: what comes before its content.
+#define FCGI_HEADER_SIZE (sizeof(FCGI_Record) - FCGI_CONTENT_MAX)
 
 typedef struct {
   FCGI_Record r;
   int sock;
+  // While a worker writes a response: the records not sent yet, to go out
+  // in one write.  NULL when each record is sent as it is made.
+  unsigned char *buf;
+  size_t used;
 } FCGI_Output;
+
+// Room for two whole records: a response that fits goes out in one write,
+// and one that does not in pieces of at least one record.
+#define FCGI_OUTPUT_BUFFER (2 * sizeof(FCGI_Record))
 
 typedef struct {
   FCGI_Record r;
@@ -65,9 +79,10 @@ static int fastcgi_request_id(const FCGI_Record* const r) {
 }
 
 // An output on the connection sock (-1: none yet): the fields of its
-// record that every record shares.
+// record that every record shares, and no buffer.
 static void fastcgi_output_init(FCGI_Output *o, int sock) {
   o->sock = sock;
+  o->buf = NULL;
   o->r.version = FCGI_VERSION_1;
   o->r.paddingLength = 0;
   o->r.reserved = 0;
@@ -93,6 +108,23 @@ static void fastcgi_input_reset(FCGI_Input *i) {
   i->available = i->used = 0;
 }
 
+// The records buffered for a response, sent.
+static int fastcgi_flush(FCGI_Output *o) {
+  int r = o->used ? uw_really_send(o->sock, o->buf, o->used) : 0;
+  o->used = 0;
+  return r;
+}
+
+// n bytes of records added to a response's buffer, sent first if they would
+// not fit.
+static int fastcgi_append(FCGI_Output *o, const unsigned char *bytes, size_t n) {
+  if (o->used + n > FCGI_OUTPUT_BUFFER && fastcgi_flush(o))
+    return -1;
+  memcpy(o->buf + o->used, bytes, n);
+  o->used += n;
+  return 0;
+}
+
 static int fastcgi_send(FCGI_Output *o,
                         unsigned char type,
                         unsigned short contentLength) {
@@ -102,7 +134,9 @@ static int fastcgi_send(FCGI_Output *o,
   o->r.requestIdB0 = current_request_id & 0x000000ff;
   o->r.contentLengthB1 = contentLength >> 8;
   o->r.contentLengthB0 = contentLength & 255;
-  return uw_really_send(o->sock, &o->r, sizeof(o->r) - 65535 + contentLength);
+  if (o->buf)
+    return fastcgi_append(o, (const unsigned char *)&o->r, FCGI_HEADER_SIZE + contentLength);
+  return uw_really_send(o->sock, &o->r, FCGI_HEADER_SIZE + contentLength);
 }
 
 static FCGI_Record *fastcgi_recv(FCGI_Input *i) {
@@ -115,11 +149,11 @@ static FCGI_Record *fastcgi_recv(FCGI_Input *i) {
   while (1) {
     ssize_t n;
 
-    if (i->available >= sizeof(FCGI_Record) - 65535
-        && i->available >= sizeof(FCGI_Record) - 65535
+    if (i->available >= FCGI_HEADER_SIZE
+        && i->available >= FCGI_HEADER_SIZE
         + ((i->r.contentLengthB1 << 8) | i->r.contentLengthB0)
         + i->r.paddingLength) {
-      i->used = sizeof(FCGI_Record) - 65535
+      i->used = FCGI_HEADER_SIZE
         + ((i->r.contentLengthB1 << 8) | i->r.contentLengthB0)
         + i->r.paddingLength;
 
@@ -147,8 +181,24 @@ static int write_stdout(void *data, const char *buf, size_t len) {
   FCGI_Output *o = (FCGI_Output *)data;
   while (len > 0) {
     size_t len2 = len;
-    if (len2 > 65535)
-      len2 = 65535;
+    if (len2 > FCGI_CONTENT_MAX)
+      len2 = FCGI_CONTENT_MAX;
+    if (o->buf) {
+      // The header in place, then the data, copied once.
+      o->r.type = FCGI_STDOUT;
+      o->r.requestIdB1 = current_request_id >> 8;
+      o->r.requestIdB0 = current_request_id & 0x000000ff;
+      o->r.contentLengthB1 = len2 >> 8;
+      o->r.contentLengthB0 = len2 & 255;
+      if (fastcgi_append(o, (const unsigned char *)&o->r, FCGI_HEADER_SIZE)
+          || fastcgi_append(o, (const unsigned char *)buf, len2)) {
+        fprintf(stderr, "fastcgi_send() failed in write_stdout().\n");
+        return -1;
+      }
+      buf += len2;
+      len -= len2;
+      continue;
+    }
     memcpy(o->r.contentData, buf, len2);
     if (fastcgi_send(o, FCGI_STDOUT, len2)) {
       fprintf(stderr, "fastcgi_send() failed in write_stdout().\n");
@@ -312,6 +362,8 @@ static void fastcgi_end_request(FCGI_Output *out, request_result rr) {
 
   erb->protocolStatus = FCGI_REQUEST_COMPLETE;
   fastcgi_send(out, FCGI_END_REQUEST, sizeof(FCGI_EndRequestBody));
+  if (out->buf && fastcgi_flush(out))
+    fprintf(stderr, "fastcgi_flush() failed in fastcgi_end_request().\n");
 }
 
 static int fastcgi_close_with(FCGI_Output *out, request_result rr) {
@@ -351,6 +403,7 @@ int fastcgi_send_normal(int sock, const void *buf, ssize_t len) {
 static void *worker(void *data) {
   FCGI_Input *in = fastcgi_input();
   FCGI_Output *out = fastcgi_output();
+  unsigned char *response = malloc(FCGI_OUTPUT_BUFFER);
   uw_loggers ls = {out, log_error, log_debug};
   uw_context ctx = uw_request_new_context(*(int *)data, &uw_application, &ls);
   uw_request_context rc = uw_new_request_context();
@@ -559,6 +612,9 @@ static void *worker(void *data) {
         goto done2;
       }
 
+      // The response, its end included, in one write when it fits.
+      out->buf = response;
+      out->used = 0;
       uw_output(ctx, write_stdout, out);
       if (keep) {
         fastcgi_end_request(out, rr);
@@ -566,6 +622,7 @@ static void *worker(void *data) {
           idle_limit(in->sock, recv_timeout);
       } else
         fastcgi_close_with(out, rr);
+      out->buf = NULL;
       goto done2;
     }
 
