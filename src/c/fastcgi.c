@@ -23,8 +23,6 @@
 
 #include "fastcgi.h"
 
-#define THREAD_LOCAL __thread
-
 extern uw_app uw_application;
 
 // The most content a record carries: its length has two bytes.
@@ -53,6 +51,9 @@ typedef struct {
 typedef struct {
   FCGI_Record r;
   int sock;
+  // The id the web server gave the request, which every record of its
+  // response carries.
+  int request_id;
   // While a worker writes a response: the records not sent yet, to go out
   // in one write.  NULL when each record is sent as it is made.
   unsigned char *buf;
@@ -73,11 +74,6 @@ typedef struct {
   int available, used, sock;
 } FCGI_Input;
 
-// The FastCGI request ID corresponding to the request being handled by the
-// current worker thread.  (Each worker thread can only handle one request at a
-// time.)
-static THREAD_LOCAL int current_request_id;
-
 // Reads the FastCGI request ID from a FastCGI record.  The result is guaranteed
 // to be in the range [0, 2^16); this function returns an int to avoid C type
 // promotion insanity.
@@ -88,10 +84,12 @@ static int fastcgi_request_id(const FCGI_Record* const r) {
   return requestid;
 }
 
-// An output on the connection sock (-1: none yet): the fields of its
-// record that every record shares, and no buffer.
-static void fastcgi_output_init(FCGI_Output *o, int sock) {
+// An output on the connection sock (-1: none yet) for the request
+// request_id: the fields of its record that every record shares, and no
+// buffer.
+static void fastcgi_output_init(FCGI_Output *o, int sock, int request_id) {
   o->sock = sock;
+  o->request_id = request_id;
   o->buf = NULL;
   o->r.version = FCGI_VERSION_1;
   o->r.paddingLength = 0;
@@ -101,7 +99,7 @@ static void fastcgi_output_init(FCGI_Output *o, int sock) {
 static FCGI_Output *fastcgi_output() {
   FCGI_Output *o = malloc(sizeof(FCGI_Output));
 
-  fastcgi_output_init(o, -1);
+  fastcgi_output_init(o, -1, 0);
 
   return o;
 }
@@ -139,9 +137,9 @@ static int fastcgi_send(FCGI_Output *o,
                         unsigned char type,
                         unsigned short contentLength) {
   o->r.type = type;
-  assert(current_request_id <= UINT16_MAX);
-  o->r.requestIdB1 = current_request_id >> 8;
-  o->r.requestIdB0 = current_request_id & 0x000000ff;
+  assert(o->request_id <= UINT16_MAX);
+  o->r.requestIdB1 = o->request_id >> 8;
+  o->r.requestIdB0 = o->request_id & 0x000000ff;
   o->r.contentLengthB1 = contentLength >> 8;
   o->r.contentLengthB0 = contentLength & 255;
   if (o->buf)
@@ -196,8 +194,8 @@ static int write_stdout(void *data, const char *buf, size_t len) {
     if (o->buf) {
       // The header in place, then the data, copied once.
       o->r.type = FCGI_STDOUT;
-      o->r.requestIdB1 = current_request_id >> 8;
-      o->r.requestIdB0 = current_request_id & 0x000000ff;
+      o->r.requestIdB1 = o->request_id >> 8;
+      o->r.requestIdB0 = o->request_id & 0x000000ff;
       o->r.contentLengthB1 = len2 >> 8;
       o->r.contentLengthB0 = len2 & 255;
       if (fastcgi_append(o, (const unsigned char *)&o->r, FCGI_HEADER_SIZE)
@@ -396,17 +394,53 @@ static void idle_limit(int sock, int seconds) {
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
 }
 
+// The id of the request last begun on a connection, by socket.  A request
+// for messages (/.msgs) hands its connection to the runtime, which answers
+// on it from whichever thread sends the message, through
+// fastcgi_send_normal and fastcgi_close, which get the socket alone.  The
+// records they write must carry the id the web server gave the request.
+// A worker enters the id before every request, since the handing over
+// happens inside uw_request; the entry is read once the connection has
+// been handed over, which the runtime orders after the handing over
+// through the client's lock.
+static int *handed_ids;
+static size_t n_handed_ids;
+static pthread_mutex_t handed_ids_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void set_handed_id(int sock, int request_id) {
+  pthread_mutex_lock(&handed_ids_mutex);
+  if ((size_t)sock >= n_handed_ids) {
+    size_t n = n_handed_ids ? n_handed_ids : 256;
+
+    while ((size_t)sock >= n)
+      n *= 2;
+    handed_ids = realloc(handed_ids, n * sizeof(int));
+    n_handed_ids = n;
+  }
+  handed_ids[sock] = request_id;
+  pthread_mutex_unlock(&handed_ids_mutex);
+}
+
+static int handed_id(int sock) {
+  int request_id;
+
+  pthread_mutex_lock(&handed_ids_mutex);
+  request_id = handed_ids[sock];
+  pthread_mutex_unlock(&handed_ids_mutex);
+  return request_id;
+}
+
 static int fastcgi_close(int sock) {
   FCGI_Output out;
 
-  fastcgi_output_init(&out, sock);
+  fastcgi_output_init(&out, sock, handed_id(sock));
   return fastcgi_close_with(&out, SERVED);
 }
 
 int fastcgi_send_normal(int sock, const void *buf, ssize_t len) {
   FCGI_Output out;
 
-  fastcgi_output_init(&out, sock);
+  fastcgi_output_init(&out, sock, handed_id(sock));
   return write_stdout(&out, buf, len);
 }
 
@@ -459,9 +493,7 @@ static void *worker(void *data) {
     if (kept && recv_timeout > 0)
       idle_limit(in->sock, 0);   // the request has begun: no limit on its bytes
 
-    // Save the FastCGI request ID this worker is handling so that fastcgi_send
-    // can include it in its response.
-    current_request_id = fastcgi_request_id(r);
+    out->request_id = fastcgi_request_id(r);
 
     if (r->type != FCGI_BEGIN_REQUEST) {
       log_error(out, "First message is not BEGIN_REQUEST\n");
@@ -482,9 +514,9 @@ static void *worker(void *data) {
         goto done;
       }
 
-      if (fastcgi_request_id(r) != current_request_id) {
+      if (fastcgi_request_id(r) != out->request_id) {
         log_error(out, "Ignoring environment variables for request %d (current request has id %d)\n",
-                  fastcgi_request_id(r), current_request_id);
+                  fastcgi_request_id(r), out->request_id);
         continue;
       }
 
@@ -548,9 +580,9 @@ static void *worker(void *data) {
         goto done;
       }
 
-      if (fastcgi_request_id(r) != current_request_id) {
+      if (fastcgi_request_id(r) != out->request_id) {
         log_error(out, "Ignoring STDIN for request %d (current request has id %d)\n",
-                  fastcgi_request_id(r), current_request_id);
+                  fastcgi_request_id(r), out->request_id);
         continue;
       }
 
@@ -610,6 +642,7 @@ static void *worker(void *data) {
     {
       request_result rr;
 
+      set_handed_id(in->sock, out->request_id);
       rr = uw_request(rc, ctx, method, path, query_string, body, body_read,
                       on_success, on_failure,
                       out, log_error, log_debug,
