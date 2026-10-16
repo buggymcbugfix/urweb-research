@@ -1,0 +1,3 @@
+rewrite all Fastcgi_log/*
+
+fastcgi_log
