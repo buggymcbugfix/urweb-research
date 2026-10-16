@@ -81,6 +81,17 @@ fun readCounter () : transaction page =
     v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
     return <xml><body>v = {[v]}</body></xml>
 
+(* With -sqlcache: a reader of the cached table that stays in its
+   transaction for 300 ms, and a writer of it. *)
+fun readCounterSlowly () : transaction page =
+    v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
+    Probe.sleepT 300;
+    return <xml><body>v = {[v]}</body></xml>
+
+fun bumpCounter () : transaction page =
+    dml (UPDATE counter SET V = V + 1 WHERE Id = 1);
+    return <xml><body>bumped</body></xml>
+
 (* A page that runs no SQL. *)
 fun hello () : transaction page = return <xml><body>hello</body></xml>
 
