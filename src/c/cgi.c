@@ -84,6 +84,10 @@ int main(int argc, char *argv[]) {
   char *body = malloc(1);
   ssize_t body_len = 1, body_pos = 0, res;
 
+  // No context: the reason is logged.
+  if (!ctx)
+    exit(1);
+
   uppercased = malloc(6);
 
   if (!method) {

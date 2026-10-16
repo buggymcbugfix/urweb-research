@@ -94,6 +94,12 @@ static void *worker(void *data) {
   uw_request_context rc = uw_new_request_context();
   int sock = 0;
 
+  // No context: the reason is logged.  A server that cannot serve with all
+  // its threads stops, as when the pruner or a periodic task cannot start,
+  // rather than crash at the first request this thread takes.
+  if (!ctx)
+    exit(1);
+
   while (1) {
     if (sock == 0) {
       back = buf;
