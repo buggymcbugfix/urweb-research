@@ -1,0 +1,6 @@
+database dbname=limit_database.db
+sql limit_database.sql
+safeGet Limit_database/store
+limit database 8192
+
+limit_database
