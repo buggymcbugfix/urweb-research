@@ -231,7 +231,7 @@
  /* No global setup for LRU cache. */
   static uw_Sqlcache_Cache cacheStruct2 = {
      .lockIn = PTHREAD_RWLOCK_INITIALIZER,
-     .lockOut = PTHREAD_RWLOCK_INITIALIZER,
+     .lockOut = UW_SQLCACHE_LOCK_INITIALIZER,
      .table = NULL,
      .numKeys = 0,
      .timeInvalid = 0,
@@ -277,7 +277,7 @@
    
    static uw_Sqlcache_Cache cacheStruct1 = {
       .lockIn = PTHREAD_RWLOCK_INITIALIZER,
-      .lockOut = PTHREAD_RWLOCK_INITIALIZER,
+      .lockOut = UW_SQLCACHE_LOCK_INITIALIZER,
       .table = NULL,
       .numKeys = 0,
       .timeInvalid = 0,
@@ -323,7 +323,7 @@
     
     static uw_Sqlcache_Cache cacheStruct0 = {
        .lockIn = PTHREAD_RWLOCK_INITIALIZER,
-       .lockOut = PTHREAD_RWLOCK_INITIALIZER,
+       .lockOut = UW_SQLCACHE_LOCK_INITIALIZER,
        .table = NULL,
        .numKeys = 0,
        .timeInvalid = 0,

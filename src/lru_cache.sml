@@ -72,7 +72,7 @@ fun setupQuery {index, params} =
              newline,
              string "  .lockIn = PTHREAD_RWLOCK_INITIALIZER,",
              newline,
-             string "  .lockOut = PTHREAD_RWLOCK_INITIALIZER,",
+             string "  .lockOut = UW_SQLCACHE_LOCK_INITIALIZER,",
              newline,
              string "  .table = NULL,",
              newline,
