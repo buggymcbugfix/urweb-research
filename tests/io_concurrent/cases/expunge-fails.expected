@@ -1,4 +1,4 @@
 client A made
-  | 1 x Expunge of client 0 failed, to be tried again at the next pass: first try of leave
   | 1 x a client left
+  | 1 x expunging client 0: Expunge failed, to be tried again at the next pass: first try of leave
 a poll of A: refused

@@ -1,4 +1,4 @@
 client A made
 hello: answered within 1.5 s
-  | Expunge of client 0 failed, to be tried again at the next pass: Database is busy
   | a client left
+  | expunging client 0: Expunge failed, to be tried again at the next pass: Database is busy

@@ -1,6 +1,6 @@
 client A made
-  | Expunge of client 0 failed, to be tried again at the next pass: leave
   | a client left
+  | expunging client 0: Expunge failed, to be tried again at the next pass: leave
   | transactional leave: commit
   | transactional leave: free
   | transactional leave: rollback

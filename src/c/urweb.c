@@ -30,6 +30,9 @@
 
 #include "uthash.h"
 
+// Defined with the context below, used before it.
+void uw_log_error(uw_context ctx, const char *fmt, ...);
+
 uw_unit uw_unit_v = 0;
 
 
@@ -292,14 +295,13 @@ static void chastise(int (*send)(int sockfd, const void *buf, ssize_t len), int 
   close(sock);
 }
 
-void uw_client_connect(unsigned id, int pass, int sock,
+void uw_client_connect(uw_context ctx, unsigned id, int pass, int sock,
                        int (*send)(int sockfd, const void *buf, ssize_t len),
-                       int (*close)(int fd),
-                       void *logger_data, uw_logger log_error) {
+                       int (*close)(int fd)) {
   client *c = find_client(id);
 
   if (c == NULL) {
-    log_error(logger_data, "Out-of-bounds client request (%u)\n", id);
+    uw_log_error(ctx, "Out-of-bounds client request (%u)\n", id);
     chastise(send, close, sock);
     return;
   }
@@ -308,14 +310,14 @@ void uw_client_connect(unsigned id, int pass, int sock,
 
   if (c->mode != USED) {
     pthread_mutex_unlock(&c->lock);
-    log_error(logger_data, "Client request for unused slot (%u)\n", id);
+    uw_log_error(ctx, "Client request for unused slot (%u)\n", id);
     chastise(send, close, sock);
     return;
   }
 
   if (pass != c->pass) {
     pthread_mutex_unlock(&c->lock);
-    log_error(logger_data, "Wrong client password (%u, %d)\n", id, pass);
+    uw_log_error(ctx, "Wrong client password (%u, %d)\n", id, pass);
     chastise(send, close, sock);
     return;
   }
@@ -356,7 +358,7 @@ static uw_Basis_channel new_channel(client *c) {
   return ch;
 }
 
-static void client_send(client *c, uw_buffer *msg, const char *script, int script_len) {
+static void client_send(uw_context ctx, client *c, uw_buffer *msg, const char *script, int script_len) {
   pthread_mutex_lock(&c->lock);
 
   if (c->mode != USED) { }
@@ -372,7 +374,7 @@ static void client_send(client *c, uw_buffer *msg, const char *script, int scrip
     c->close(c->sock);
     c->sock = -1;
   } else if (uw_buffer_append(&c->msgs, msg->start, uw_buffer_used(msg)))
-    fprintf(stderr, "Client message buffer size exceeded\n");
+    uw_log_error(ctx, "Client message buffer size exceeded\n");
 
   pthread_mutex_unlock(&c->lock);
 }
@@ -549,6 +551,10 @@ struct uw_context {
 
   uw_loggers *loggers;
 
+  // What the context is doing, for its error lines: "start-up", a
+  // request's method and path, a task, expunging a client.
+  char activity[256];
+
   int isPost, hasPostBody;
   uw_Basis_postBody postBody;
   uw_Basis_string queryString;
@@ -640,11 +646,38 @@ static void uw_heap_from_env() {
   }
 }
 
+void uw_set_activity(uw_context ctx, const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(ctx->activity, sizeof ctx->activity, fmt, ap);
+  va_end(ap);
+}
+
+void uw_log_error(uw_context ctx, const char *fmt, ...) {
+  char small[1024], *msg = small;
+  va_list ap, again;
+  int n;
+
+  va_start(ap, fmt);
+  va_copy(again, ap);
+  n = vsnprintf(small, sizeof small, fmt, ap);
+  if (n >= (int)sizeof small && (msg = malloc(n + 1)))
+    vsnprintf(msg, n + 1, fmt, again);
+  else if (!msg)
+    msg = small;   // what fitted
+  va_end(again);
+  va_end(ap);
+  ctx->loggers->log_error(ctx->loggers->logger_data, "%s: %s", ctx->activity, n < 0 ? fmt : msg);
+  if (msg != small)
+    free(msg);
+}
+
 uw_context uw_init(int id, uw_loggers *lg) {
   uw_context ctx = malloc(sizeof(struct uw_context));
 
   ctx->app = NULL;
   ctx->id = id;
+  strcpy(ctx->activity, "start-up");
 
   ctx->get_header = NULL;
   ctx->get_header_data = NULL;
@@ -4259,7 +4292,7 @@ int uw_commit(uw_context ctx) {
 
     assert (c != NULL);
 
-    client_send(c, &d->msgs, ctx->script.start, uw_buffer_used(&ctx->script));
+    client_send(ctx, c, &d->msgs, ctx->script.start, uw_buffer_used(&ctx->script));
   }
 
   if (ctx->used_deltas > 0)
@@ -4435,13 +4468,12 @@ void uw_prune_clients(uw_context ctx) {
     pthread_mutex_lock(&c->lock);
     if (c->last_contact < cutoff && c->refcount == 0) {
       failure_kind fk;
+      uw_set_activity(ctx, "expunging client %u", c->id);
       uw_reset(ctx);
       fk = uw_expunge(ctx, c->id, c->data);
       if (fk == SUCCESS) {
         if (uw_has_error(ctx))
-          ctx->loggers->log_error(ctx->loggers->logger_data,
-                                  "Expunge of client %u done, but a commit callback failed: %s\n",
-                                  c->id, uw_error_message(ctx));
+          uw_log_error(ctx, "Expunge done, but a commit callback failed: %s\n", uw_error_message(ctx));
         if (prev)
           prev->next = next;
         else
@@ -4450,9 +4482,7 @@ void uw_prune_clients(uw_context ctx) {
       } else {
         // Nothing was written, so the client is as it was: it stays, to be
         // tried again at the next pass unless it is heard from by then.
-        ctx->loggers->log_error(ctx->loggers->logger_data,
-                                "Expunge of client %u failed, to be tried again at the next pass: %s\n",
-                                c->id, uw_error_message(ctx));
+        uw_log_error(ctx, "Expunge failed, to be tried again at the next pass: %s\n", uw_error_message(ctx));
         prev = c;
         // A database that is busy, or a conflict: the pass ends here, since
         // it keeps every request out while it waits on the database, and
