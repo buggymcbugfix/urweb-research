@@ -2,8 +2,9 @@
    outside any transaction, with and without the request's client, writers
    whose transactions overlap, a cached table an io RPC holds the cache's
    lock on while it sleeps, an io task that sends on every client's channel
-   each period, and a clientLeaves task that logs the pruner's work.  The
-   sleeps and effects are the C probes of ../../ioprobe. *)
+   each period, a clientLeaves task that logs the pruner's work, and a page
+   whose commit fails, for the onError handler of concurrentE.ur.  The
+   sleeps, effects and failures are the C probes of ../../ioprobe. *)
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
@@ -77,6 +78,12 @@ fun readCounter () : transaction page =
 fun count () : transaction page =
     n <- oneRowE1 (SELECT COUNT( * ) FROM t);
     return <xml><body>rows = {[n]}</body></xml>
+
+(* A page whose commit fails after the database's COMMIT: a transactional's
+   commit callback reports an error, and onError answers the request. *)
+fun failCommit () : transaction page =
+    Probe.failInCommit "failCommit";
+    return <xml><body>failCommit</body></xml>
 
 (* A tick on every client's channel each period, sent from a transaction
    after a wait outside any transaction. *)
