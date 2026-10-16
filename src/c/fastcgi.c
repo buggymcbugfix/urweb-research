@@ -456,7 +456,12 @@ static void *worker(void *data) {
       body = realloc(body, body_size);
     }
 
-    for (body_read = 0; body_read < body_len; ) {
+    // Read the stream to its end, the empty record, even past Content-Length
+    // bytes and even when there is no body.  Answering before that record
+    // has come closes the connection while the web server may still be
+    // writing it, and the web server then fails with EPIPE after the
+    // response was sent.
+    for (body_read = 0; ; ) {
       int this_len;
 
       if (!(r = fastcgi_recv(in))) {
@@ -479,7 +484,8 @@ static void *worker(void *data) {
       }
 
       if (r->contentLengthB1 == 0 && r->contentLengthB0 == 0) {
-        write_stderr(out, "End of STDIN\n");
+        if (body_read < body_len)
+          write_stderr(out, "End of STDIN\n");
         break;
       }
 
