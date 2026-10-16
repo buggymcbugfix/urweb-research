@@ -81,6 +81,7 @@ typedef struct {
   void (*callback)(struct uw_context *);
   unsigned int period;
   int io; // the body is an io computation, run outside any transaction
+  const char *where; // where the task is declared, for its error lines
 } uw_periodic;
 
 // The state of one transaction run inline in an io computation, by the code

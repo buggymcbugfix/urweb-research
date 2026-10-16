@@ -346,9 +346,12 @@
       }));
      }
     
-    static uw_periodic my_periodics[] = {{uw_periodic0, 7, 1},{uw_periodic1, 9,
-                                                               1},{uw_periodic2,
-                                                                   11, 0},{NULL}};
+    static uw_periodic my_periodics[] = {{uw_periodic0, 7, 1,
+                                          "tests/task_kind/alias/alias.ur:19:0-19:89"},
+                                          {uw_periodic1, 9, 1,
+                                           "tests/task_kind/alias/alias.ur:20:0-20:60"},
+                                          {uw_periodic2, 11, 0,
+                                           "tests/task_kind/alias/alias.ur:21:0-21:73"},{NULL}};
  
  static int uw_check_url(const char *s) {
   if (!strncmp(s, "#", 1)) return 1;

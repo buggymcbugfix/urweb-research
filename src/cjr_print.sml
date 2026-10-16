@@ -3492,8 +3492,8 @@ fun p_file env (ds, ps) =
                                             SOME (x1, x2, p_exp (E.pushERel (E.pushERel env x1 (TFfi ("Basis", "client"), ErrorMsg.dummySpan))
                                                                             x2 dummyt) e)
                                           | _ => NONE) ds
-        val periodics = List.mapPartial (fn (DTask (Periodic (n, io), x1, x2, e), _) =>
-                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e)
+        val periodics = List.mapPartial (fn (DTask (Periodic (n, io), x1, x2, e), loc) =>
+                                            SOME (n, io, x1, x2, p_exp (E.pushERel (E.pushERel env x1 dummyt) x2 dummyt) e, loc)
                                           | _ => NONE) ds
 
         val (protos', defs') = ListPair.unzip (latestUrlHandlers ())
@@ -3626,7 +3626,7 @@ fun p_file env (ds, ps) =
              newline,
              newline,
 
-             box (ListUtil.mapi (fn (i, (_, _, x1, x2, pe)) =>
+             box (ListUtil.mapi (fn (i, (_, _, x1, x2, pe, _)) =>
                                     box [string "static void uw_periodic",
                                          string (Int.toString i),
                                          string "(uw_context ctx) {",
@@ -3645,7 +3645,7 @@ fun p_file env (ds, ps) =
                                          newline]) periodics),
 
              string "static uw_periodic my_periodics[] = {",
-             box (ListUtil.mapi (fn (i, (n, io, _, _, _)) =>
+             box (ListUtil.mapi (fn (i, (n, io, _, _, _, loc)) =>
                                     box [string "{uw_periodic",
                                          string (Int.toString i),
                                          string ",",
@@ -3654,6 +3654,9 @@ fun p_file env (ds, ps) =
                                          string ",",
                                          space,
                                          string (if io then "1" else "0"),
+                                         string ",",
+                                         space,
+                                         Prim.p_t_GCC (Prim.String (Prim.Normal, ErrorMsg.spanToString loc)),
                                          string "},"]) periodics),
              string "{NULL}};",
              newline,
