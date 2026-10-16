@@ -8,7 +8,7 @@
   libtool,
   linkFarm,
   makeBinaryWrapper,
-  mlton20210117,
+  mlton20241230,
   openssl,
   pkg-config,
   postgresql,
@@ -49,6 +49,23 @@ let
       -L${postgresql.lib}/lib \
       -Wno-error=int-conversion"
   '';
+
+  # MLton compiles the SML/NJ Library into every program, from the sources it
+  # installs under lib/mlton/sml. MLton 20241230 has SML/NJ 110.99.6.1 there,
+  # whose IntBinarySet.split_gt has its two comparisons the wrong way round.
+  # union, intersection and difference then return wrong sets, and the
+  # compiler hangs in core_untangle or fails later on. SML/NJ 110.99.9 has
+  # the fix (smlnj/smlnj 9cdd824, by Darin Minamoto). The mlton script finds
+  # its library relative to itself, so a copy of MLton with that file fixed
+  # needs no rebuild. --replace-fail stops the build once MLton has the fix.
+  mlton = runCommand "${mlton20241230.name}-intbinaryset-fix" { } ''
+    cp -r ${mlton20241230} $out
+    chmod -R u+w $out
+    substituteInPlace $out/lib/mlton/sml/smlnj-lib/Util/int-binary-set.sml \
+      --replace-fail 'if (x < v) then split_gt(r,x)' 'if (x > v) then split_gt(r,x)' \
+      --replace-fail 'else if (x > v) then concat3(split_gt(l,x),v,r)' \
+        'else if (x < v) then concat3(split_gt(l,x),v,r)'
+  '';
 in
 
 stdenv.mkDerivation (finalAttrs: {
@@ -82,7 +99,7 @@ stdenv.mkDerivation (finalAttrs: {
     autoconf
     automake
     libtool
-    mlton20210117
+    mlton
     pkg-config
   ]
   ++ lib.optional withUrt makeBinaryWrapper;

@@ -77,7 +77,7 @@ run() {
   case_ 'flag added to CCARGS in configureEnv'      derivation.nix 's/-Wno-error=int-conversion"/-Wno-error=int-conversion -Wno-foo"/'
   case_ 'python3 dropped from the check inputs'     derivation.nix "/^    python3 # tests\\/io_curl/d"
   case_ 'icu dropped from the build inputs'         derivation.nix '/^  buildInputs = \[$/{n;/^    icu$/d}'
-  case_ 'mlton changed in nixpkgs.nix'              nixpkgs.nix    's/doCheck = !prev.stdenv.hostPlatform.isDarwin;/doCheck = false;/'
+  case_ 'mlton changed in derivation.nix'           derivation.nix 's/-intbinaryset-fix"/-intbinaryset-fix2"/'
   # What configure sees through the shell's own packages: the id changes,
   # also for tools configure never looks for (rlwrap, smlnj).
   case_ 'rlwrap dropped from the shell packages'    shell.nix      '/^      rlwrap$/d'

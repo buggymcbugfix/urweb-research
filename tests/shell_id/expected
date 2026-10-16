@@ -7,7 +7,7 @@ same     comment in the shell hook edited
 changes  flag added to CCARGS in configureEnv
 changes  python3 dropped from the check inputs
 changes  icu dropped from the build inputs
-changes  mlton changed in nixpkgs.nix
+changes  mlton changed in derivation.nix
 changes  rlwrap dropped from the shell packages
 changes  smlnj dropped from the shell packages
 same     configure command in the hook changed
