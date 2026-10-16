@@ -4058,7 +4058,24 @@ class Driver:
                                                                      'general.smoothScroll': False},
                                                  env=env)
             else:
-                browser = await p.webkit.launch(env=env)
+                how = {'env': env}
+                if sys.platform == 'darwin' and self.clock.lib is not None:
+                    # Playwright starts WebKit through pw_run.sh, by way of
+                    # #!/usr/bin/env, a binary under SIP, which macOS
+                    # starts with every DYLD_ variable dropped: the __XPC_
+                    # ones still reach the XPC services, but the UI process
+                    # the script starts gets no library.  So the driver
+                    # starts that itself, with the two variables the script
+                    # gives it.
+                    home = os.path.realpath(os.path.dirname(p.webkit.executable_path))
+                    exe = os.path.join(home, 'Playwright.app', 'Contents', 'MacOS', 'Playwright')
+                    if not os.path.isfile(exe):
+                        print('webkit does not start: no %s, which the driver starts itself on macOS, '
+                              'for liburtclock' % exe, file=sys.stderr)
+                        return False
+                    how = {'executable_path': exe,
+                           'env': dict(env, DYLD_FRAMEWORK_PATH=home, DYLD_LIBRARY_PATH=home)}
+                browser = await p.webkit.launch(**how)
         except self.PlaywrightError as e:
             print('%s does not start: %s' % (engine, self.complaint(e)), file=sys.stderr)
             return False
