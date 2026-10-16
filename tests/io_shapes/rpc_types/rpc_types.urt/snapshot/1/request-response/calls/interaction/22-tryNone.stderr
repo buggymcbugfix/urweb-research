@@ -1,1 +1,1 @@
-Fatal error: tests/io_shapes/rpc_types/rpc_types.ur:65:19-65:51: tryNone fails
+POST /Rpc_types/tryNone/1: Fatal error: tests/io_shapes/rpc_types/rpc_types.ur:65:19-65:51: tryNone fails

@@ -1,2 +1,2 @@
 Fatal error in io transaction (out of retries): flaky
-Fatal error in io task: tests/io_task/io_task.ur:34:23-34:74: boom outside, via runTransaction
+periodic task 1: Fatal error in io task: tests/io_task/io_task.ur:34:23-34:74: boom outside, via runTransaction

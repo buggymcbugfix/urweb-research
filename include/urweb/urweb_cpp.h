@@ -13,10 +13,15 @@ extern uw_unit uw_unit_v;
 void uw_global_init(void);
 void uw_app_init(uw_app*);
 
-void uw_client_connect(unsigned id, int pass, int sock,
+void uw_client_connect(struct uw_context *, unsigned id, int pass, int sock,
                        int (*send)(int sockfd, const void *buf, ssize_t len),
-                       int (*close)(int fd),
-                       void *logger_data, uw_logger log_error);
+                       int (*close)(int fd));
+
+// What the context is doing, as printf would say it, for its error lines.
+void uw_set_activity(struct uw_context *, const char *fmt, ...);
+// An error on the context's error logger, after what the context is doing:
+// "GET /Foo/bar: Fatal error: ...".
+void uw_log_error(struct uw_context *, const char *fmt, ...);
 void uw_prune_clients(struct uw_context *);
 failure_kind uw_initialize(struct uw_context *);
 

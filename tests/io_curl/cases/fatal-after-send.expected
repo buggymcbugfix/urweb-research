@@ -13,4 +13,4 @@ order+1+is+sending
   order-1
 > database
   order 1 (ok): sending
-  | Fatal error: tests/io_curl/app/curl_io.ur:104:23-104:68: cannot record order 1
+  | POST /Curl_io/payThenFail/1: Fatal error: tests/io_curl/app/curl_io.ur:104:23-104:68: cannot record order 1

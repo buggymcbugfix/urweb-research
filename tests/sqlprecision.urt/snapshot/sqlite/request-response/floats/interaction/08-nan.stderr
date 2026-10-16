@@ -1,1 +1,1 @@
-Fatal error: tests/sqlprecision.ur:4:4-7:2: DML step failed: INSERT INTO uw_Sqlprecision_t (uw_N) VALUES (?)<br />NOT NULL constraint failed: uw_Sqlprecision_t.uw_N
+POST /insert: Fatal error: tests/sqlprecision.ur:4:4-7:2: DML step failed: INSERT INTO uw_Sqlprecision_t (uw_N) VALUES (?)<br />NOT NULL constraint failed: uw_Sqlprecision_t.uw_N
