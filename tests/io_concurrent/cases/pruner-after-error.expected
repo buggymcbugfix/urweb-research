@@ -5,5 +5,5 @@ onError: failCommit
   | 1 x Fatal error: failCommit
   | 1 x transactional failCommit: commit
   | 1 x transactional failCommit: free
-~ not logged within 30 s: a client left
-a poll of A: answered, A is still there
+  | 1 x a client left
+a poll of A: refused
