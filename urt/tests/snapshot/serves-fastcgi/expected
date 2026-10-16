@@ -1,12 +1,16 @@
 $ urt snapshot runs/serves-fastcgi
 UPDATED runs/serves-fastcgi.urt/snapshot/1 (exitcode)
 UPDATED runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi (interaction/01.response, interaction/01.stderr, interaction/02-form.response, interaction/03-debug.response, interaction/03-debug.stdout, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-env.response, interaction/07-log.fcgi-stderr, interaction/07-log.response, interaction/08-noend.exitcode, interaction/08-noend.response, interaction/09-proto3.exitcode, interaction/09-proto3.response, interaction/10-id2.exitcode, interaction/10-id2.response, interaction/11-after.response)
-1 case and 1 run: 2 updated, in T
+UPDATED runs/serves-fastcgi.urt/snapshot/1/request-response/keep (interaction/01-one.response, interaction/01.response, interaction/01.stderr, interaction/02-two.response, interaction/03-noend.exitcode, interaction/03-noend.response, interaction/04-three.response)
+UPDATED runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye (interaction/01-one.response, interaction/01.response, interaction/01.stderr, interaction/02-bye.response, interaction/03-three.exitcode, interaction/03-three.response, interaction/04-bye-late.response, interaction/05-five.exitcode, interaction/05-five.response, interaction/06-drop.exitcode, interaction/06-drop.response, interaction/07-seven.response)
+1 case and 3 runs: 4 updated, in T
 exit 0
 $ urt snapshot -w runs/serves-fastcgi
 OK runs/serves-fastcgi.urt/snapshot/1
 OK runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi
-1 case and 1 run: 2 ok, in T
+OK runs/serves-fastcgi.urt/snapshot/1/request-response/keep
+OK runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye
+1 case and 3 runs: 4 ok, in T
 exit 0
 $ cd runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi && for f in interaction/*.response interaction/*.stdout interaction/*.stderr interaction/*.fcgi-stderr interaction/*.exitcode interaction/*.sql; do echo "== $f"; tr -d '\r' < "$f"; done
 == interaction/01.response
@@ -232,6 +236,112 @@ the answer came as request 2, and urt had sent request 1
 == interaction/05-dml.sql
 INSERT INTO t VALUES (3);
 exit 0
+$ cd runs/serves-fastcgi.urt/snapshot/1/request-response/keep && for f in interaction/*.response interaction/*.exitcode; do echo "== $f"; tr -d '\r' < "$f" | grep -v '^[A-Z_]*='; done
+== interaction/01-one.response
+Content-type: text/plain
+
+2: 13 parameters
+body: []
+kept: request 2 on this connection
+== interaction/01.response
+Content-type: text/plain
+
+1: 13 parameters
+body: []
+kept: request 1 on this connection
+== interaction/02-two.response
+Content-type: text/plain
+
+3: 13 parameters
+body: []
+kept: request 3 on this connection
+== interaction/03-noend.response
+Content-type: text/plain
+
+4: 13 parameters
+body: []
+kept: request 4 on this connection
+== interaction/04-three.response
+Content-type: text/plain
+
+5: 13 parameters
+body: []
+kept: request 1 on this connection
+== interaction/03-noend.exitcode
+the connection ended before FCGI_END_REQUEST
+exit 0
+$ cd runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye && ls interaction && for f in interaction/*.response interaction/*.exitcode; do echo "== $f"; tr -d '\r' < "$f" | grep -v '^[A-Z_]*='; done
+01-one.request
+01-one.response
+01.request
+01.response
+01.stderr
+02-bye.request
+02-bye.response
+03-three.exitcode
+03-three.request
+03-three.response
+04-bye-late.request
+04-bye-late.response
+05-five.exitcode
+05-five.request
+05-five.response
+06-drop.exitcode
+06-drop.request
+06-drop.response
+07-seven.request
+07-seven.response
+== interaction/01-one.response
+Content-type: text/plain
+
+2: 13 parameters
+body: []
+kept: request 2 on this connection
+== interaction/01.response
+Content-type: text/plain
+
+1: 13 parameters
+body: []
+kept: request 1 on this connection
+== interaction/02-bye.response
+Content-type: text/plain
+
+3: 13 parameters
+body: []
+kept: request 3 on this connection
+== interaction/03-three.response
+Content-type: text/plain
+
+4: 13 parameters
+body: []
+kept: request 1 on this connection
+== interaction/04-bye-late.response
+Content-type: text/plain
+
+5: 13 parameters
+body: []
+kept: request 2 on this connection
+== interaction/05-five.response
+Content-type: text/plain
+
+6: 13 parameters
+body: []
+kept: request 1 on this connection
+== interaction/06-drop.response
+== interaction/07-seven.response
+Content-type: text/plain
+
+9: 13 parameters
+body: []
+kept: request 1 on this connection
+== interaction/03-three.exitcode
+sent on a new connection, the program having closed the one it was asked to keep
+== interaction/05-five.exitcode
+sent on a new connection, the program having closed the one it was asked to keep
+== interaction/06-drop.exitcode
+the connection ended before FCGI_END_REQUEST
+sent on a new connection, the program having closed the one it was asked to keep
+exit 0
 $ changes
 added: ./runs/serves-fastcgi.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-fastcgi.urt/snapshot/1/expected/exitcode
@@ -254,3 +364,22 @@ added (304 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/in
 added (59 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/10-id2.exitcode
 added (344 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/10-id2.response
 added (304 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/fcgi/interaction/11-after.response
+added (336 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/01-one.response
+added (333 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/01.response
+added (17 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/01.stderr
+added (336 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/02-bye.response
+added (81 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/03-three.exitcode
+added (338 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/03-three.response
+added (341 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/04-bye-late.response
+added (81 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/05-five.exitcode
+added (337 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/05-five.response
+added (126 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/06-drop.exitcode
+added (0 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/06-drop.response
+added (338 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye/interaction/07-seven.response
+added (336 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep/interaction/01-one.response
+added (333 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep/interaction/01.response
+added (17 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep/interaction/01.stderr
+added (336 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep/interaction/02-two.response
+added (45 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep/interaction/03-noend.exitcode
+added (338 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep/interaction/03-noend.response
+added (338 bytes): ./runs/serves-fastcgi.urt/snapshot/1/request-response/keep/interaction/04-three.response

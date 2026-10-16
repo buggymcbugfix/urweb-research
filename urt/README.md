@@ -50,9 +50,12 @@ a web server puts in its error log, goes beside the response as
 `NAME.fcgi-stderr`, and `NAME.exitcode` holds its status for the request
 when not 0, or says that the connection ended before the program had
 said the request was over, that the answer came as another request, or
-that the program refused the request.  Either way the program gets the
-request as the CGI variables a web server would set.  `urt snapshot
---help` has the details.
+that the program refused the request.  A FastCGI run with a file
+`keep-conn` sends all its requests on one connection that the program
+is asked to keep open, and a request on a new one when the program has
+closed it, whether before the request went out or just after.
+Either way the program gets the request as the CGI variables a web
+server would set.  `urt snapshot --help` has the details.
 
 Not there yet:
 

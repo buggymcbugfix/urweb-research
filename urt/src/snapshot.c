@@ -182,10 +182,16 @@ static const char usage_text[] =
     "said the request is over, NAME.exitcode says so instead, and it also says when\n"
     "the answer came as another request than the one sent, or FCGI_END_REQUEST\n"
     "refused the request.  What the program wrote on its stderr stream, which a web\n"
-    "server puts in its error log, is NAME.fcgi-stderr, if anything.  Nothing says\n"
-    "when it is ready: the first request is sent again while its socket is not\n"
-    "there yet, for up to 10 seconds, and what the program does while starting goes\n"
-    "with the first step rather than under out/.  Otherwise its run is as a server's.\n"
+    "server puts in its error log, is NAME.fcgi-stderr, if anything.  A run with a\n"
+    "file keep-conn, empty, sends all its requests on one connection, each asking\n"
+    "the program to keep it open (FCGI_KEEP_CONN).  A request that gets nothing of\n"
+    "an answer on it, the program having closed it just before or just after urt\n"
+    "sent the request, is sent again on a new one, as a web server does, and\n"
+    "NAME.exitcode says so; a connection that ends in mid-answer is recorded as\n"
+    "such.  Nothing says when it is ready: the first request is sent again\n"
+    "while its socket is not there yet, for up to 10 seconds, and what the program\n"
+    "does while starting goes with the first step rather than under out/.\n"
+    "Otherwise its run is as a server's.\n"
     "\n"
     "Runs share nothing.  Each has its own database -- SQLite, so the case's args\n"
     "need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows\n"
@@ -504,7 +510,7 @@ static int layout_run(const char *e, const char *rest) {
             return 1;
         }
     } else if (n == 2 && (!strcmp(part[1], "args") || !strcmp(part[1], "secret") || !strcmp(part[1], "db.sql")
-                          || !strcmp(part[1], "env"))) {
+                          || !strcmp(part[1], "env") || !strcmp(part[1], "keep-conn"))) {
         if (!is_file(e)) {
             die_later(fmt("%s should be a file", path(e)), NULL);
         }
@@ -542,7 +548,7 @@ static int layout_run(const char *e, const char *rest) {
         ;
     } else {
         die_later(fmt("%s does not belong in a run", path(e)),
-                  "a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response,",
+                  "a run holds args, env, secret, db.sql, keep-conn and README.md; NAME.request, NAME.wait, NAME.response,",
                   "NAME.exitcode, NAME.fcgi-stderr, NAME.sql, NAME.stdout and NAME.stderr under interaction/; startup.sql,",
                   "startup.stdout, startup.stderr, shutdown.stdout, shutdown.stderr and db_final.sql under out/", NULL);
         return is_dir(e);
@@ -1828,18 +1834,20 @@ static void cgi_environment(const struct strlist *vars) {
  * parameters, and the body as its stdin.  What the program answered goes into
  * the file response, and what it logged on its stderr stream, which a web
  * server puts in its error log, into stream; what was odd about the answer
- * into *odd.  Returns what fastcgi_request does: the program's status for
- * the request, 0 or 255 for a failure, or one of the FASTCGI_ outcomes. */
+ * into *odd.  The connection is *conn, kept for the next request with keep,
+ * as fastcgi_request says.  Returns what fastcgi_request does: the
+ * program's status for the request, 0 or 255 for a failure, or one of the
+ * FASTCGI_ outcomes. */
 static int send_fastcgi(const char *method, const char *url_path, const struct strlist *options,
-                        const char *socket_path, const char *response, const char *stream, const char *rw,
-                        struct fastcgi_oddity *odd) {
+                        const char *socket_path, int *conn, int keep, const char *response, const char *stream,
+                        const char *rw, struct fastcgi_oddity *odd) {
     struct strlist vars = { 0, 0, 0 };
     char body[PATHLEN];
     int status;
 
     join(body, rw, "body");
     cgi_variables(method, url_path, options, body, &vars);
-    status = fastcgi_request(socket_path, &vars, body, response, stream, WAIT_SECONDS, odd);
+    status = fastcgi_request(socket_path, conn, keep, &vars, body, response, stream, WAIT_SECONDS, odd);
     sl_free(&vars);
     return status;
 }
@@ -1875,6 +1883,9 @@ static const char *fastcgi_exitcode(int status, const struct fastcgi_oddity *odd
     if (odd->protocol_status != 0) {
         sprintf(text + strlen(text), "FCGI_END_REQUEST refused the request, with protocolStatus %d\n",
                 odd->protocol_status);
+    }
+    if (odd->reconnected) {
+        strcat(text, "sent on a new connection, the program having closed the one it was asked to keep\n");
     }
     return *text ? text : NULL;
 }
@@ -1989,6 +2000,15 @@ static int run_ready(const char *run_dir, enum protocol proto) {
         free(args);
     }
 
+    join(f, run_dir, "keep-conn");
+    if (is_file(f) && proto != PROTO_FASTCGI) {
+        die_later(fmt("%s asks to keep a FastCGI connection", path(f)),
+                  "only a run of a program built with -protocol fastcgi has one to keep", "take it out", NULL);
+    } else if (is_file(f) && file_size(f) != 0) {
+        die_later(fmt("%s holds something", path(f)), "keep-conn says what it says by being there; leave it empty",
+                  NULL);
+    }
+
     join(f, run_dir, "env");
     if (is_file(f)) {
         struct strlist names = { 0, 0, 0 }, values = { 0, 0, 0 };
@@ -2058,6 +2078,7 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
     struct strlist env_names = { 0, 0, 0 }, env_values = { 0, 0, 0 };
     char *text, **env_saved;
     int i, has_db, started = 0, before = report_problems, is_server = proto == PROTO_HTTP || proto == PROTO_FASTCGI;
+    int conn = -1, keep_conn = is_file(fmt("%s/keep-conn", run_dir));
     long t0 = tenths_now(), n_requests = 0;
 
     /* The outputs land under rw as they are laid out under the run. */
@@ -2233,7 +2254,7 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
             }
         } else {
             char response[PATHLEN], stream[PATHLEN];
-            struct fastcgi_oddity odd = { -1, 0 };
+            struct fastcgi_oddity odd = { -1, 0, 0 };
             int status, exited = 0, exit_status = 0, tries;
             const char *unsent;
             pathf(response, "%s/interaction/%s.response", rw, name);
@@ -2247,7 +2268,8 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
                 long deadline = tenths_now() + START_SECONDS * 10L;
                 struct timespec nap = { 0, 20 * 1000 * 1000 };
                 for (;;) {
-                    status = send_fastcgi(method, url_path, &options, socket_path, response, stream, rw, &odd);
+                    status = send_fastcgi(method, url_path, &options, socket_path, &conn, keep_conn, response,
+                                          stream, rw, &odd);
                     unsent = never_sent_fastcgi(status);
                     exited = server_exited(&serving, &exit_status);
                     if (status != FASTCGI_REFUSED || n_requests > 0 || exited || tenths_now() >= deadline
@@ -2256,11 +2278,16 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
                     }
                     nanosleep(&nap, NULL);
                 }
-                /* A connection that ended without an answer from a program
-                 * that is gone: the exit, not the connection, is what there
-                 * is to say, and the requests after this one cannot be sent.
-                 * The exit may lag the connection's end by a moment. */
-                for (tries = 0; status == FASTCGI_NO_END && !exited && tries < 5; tries++) {
+                /* A connection that ended without an answer, or one that
+                 * was refused, from a program that is gone: the exit, not
+                 * the connection, is what there is to say, and the requests
+                 * after this one cannot be sent.  The exit may lag the
+                 * connection's end by a moment.  A kept connection that
+                 * ends with nothing of the answer has its request sent
+                 * again on a new one; when the program died, that new one
+                 * is refused, or ends too if it came while the program was
+                 * still going down, and the record is the same either way. */
+                for (tries = 0; (status == FASTCGI_NO_END || status == FASTCGI_REFUSED) && !exited && tries < 5; tries++) {
                     nanosleep(&nap, NULL);
                     exited = server_exited(&serving, &exit_status);
                 }
@@ -2319,6 +2346,9 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
         if (fs_interrupted) {
             break;
         }
+    }
+    if (conn >= 0) {
+        close(conn);
     }
     server_stop(&serving);
     for (i = 0; !is_server && i < env_names.n; i++) {

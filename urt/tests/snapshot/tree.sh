@@ -280,6 +280,31 @@ printf 'GET /proto3\n' > interaction/09-proto3.request
 printf 'GET /id2\n' > interaction/10-id2.request
 printf 'GET /after\n' > interaction/11-after.request
 cd "$root"
+arun runs/serves-fastcgi.urt/snapshot/1/request-response/keep
+cd runs/serves-fastcgi.urt/snapshot/1/request-response/keep
+: > keep-conn
+printf 'GET /one\n' > interaction/01-one.request
+printf 'GET /two\n' > interaction/02-two.request
+printf 'GET /noend\n' > interaction/03-noend.request
+printf 'GET /three\n' > interaction/04-three.request
+cd "$root"
+# A kept connection that the program closes after a complete answer, as
+# one does that does not keep connections, or keeps them only so long: the
+# request after it goes on a new connection, whether the close comes before
+# urt sends it (/bye) or just after (/bye-late).  A request that the
+# program reads and then drops with no answer (/drop) is sent again too,
+# and the program's numbers show that it got it twice.
+arun runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye
+cd runs/serves-fastcgi.urt/snapshot/1/request-response/keep-bye
+: > keep-conn
+printf 'GET /one\n' > interaction/01-one.request
+printf 'GET /bye\n' > interaction/02-bye.request
+printf 'GET /three\n' > interaction/03-three.request
+printf 'GET /bye-late\n' > interaction/04-bye-late.request
+printf 'GET /five\n' > interaction/05-five.request
+printf 'GET /drop\n' > interaction/06-drop.request
+printf 'GET /seven\n' > interaction/07-seven.request
+cd "$root"
 # A FastCGI program that exits before its first request.
 proj runs serves-fastcgi-dead
 snap runs/serves-fastcgi-dead.urt/snapshot/1 exitcode

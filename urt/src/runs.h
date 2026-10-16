@@ -71,9 +71,10 @@ int fastcgi_start(const char *exe, const struct strlist *args, const char *sock_
 
 /* What came of a request besides its status: the id of the first record
  * that was for another request, -1 when every record was for this one;
- * and the protocolStatus of its FCGI_END_REQUEST, 0 (FCGI_REQUEST_COMPLETE)
- * unless the program refused the request. */
-struct fastcgi_oddity { int request_id; int protocol_status; };
+ * the protocolStatus of its FCGI_END_REQUEST, 0 (FCGI_REQUEST_COMPLETE)
+ * unless the program refused the request; and whether it went on a new
+ * connection because the program had closed the one kept for it. */
+struct fastcgi_oddity { int request_id; int protocol_status; int reconnected; };
 
 /* The id urt gives the one request a connection carries. */
 #define FCGI_REQUEST_ID 1
@@ -87,7 +88,13 @@ struct fastcgi_oddity { int request_id; int protocol_status; };
 /* Send one request to the FastCGI program listening at sock_path, as a web
  * server would: FCGI_BEGIN_REQUEST for a responder, then params, a list of
  * NAME=value, as its parameters, and what the file body holds as its stdin,
- * all in one write.  What the program answers on its stdout stream goes
+ * all in one write.  It goes on *conn, or on a new connection when that is
+ * -1 or when the program has closed the one kept, as a web server checks a
+ * kept connection before reusing it.  With keep, the request asks the
+ * program to keep the connection open (FCGI_KEEP_CONN), and after
+ * FCGI_END_REQUEST it stays in *conn for the next request; otherwise, or
+ * when it has ended, it is closed and *conn is -1.  What the program
+ * answers on its stdout stream goes
  * into the file response, and what it logs on its stderr stream, which a
  * web server puts in its error log, into the file stream.  Both files are
  * written, empty if nothing came.  Returns the program's status for the
@@ -95,8 +102,8 @@ struct fastcgi_oddity { int request_id; int protocol_status; };
  * it: the low byte, so 255 for Ur/Web's failure; or one of the FASTCGI_
  * values above.  What was odd about the answer goes into *odd.  The
  * answer has seconds to come. */
-int fastcgi_request(const char *sock_path, const struct strlist *params, const char *body, const char *response,
-                    const char *stream, int seconds, struct fastcgi_oddity *odd);
+int fastcgi_request(const char *sock_path, int *conn, int keep, const struct strlist *params, const char *body,
+                    const char *response, const char *stream, int seconds, struct fastcgi_oddity *odd);
 
 /* Whether a server started as our child (fastcgi_start) has exited: then
  * it is reaped, the server forgotten, and its exit status (128 + the
