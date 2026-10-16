@@ -83,6 +83,9 @@ sanitizers' options reach the application.
   rollback-journal mode: whether it starts, and what it logs.
 - validate-db: Basis.validateDb on the database as the schema made it, and
   after another process has dropped a table.
+- other-process: the sqlite3 shell writing while the daemonized
+  application holds the write lock: every request is answered, and
+  nothing either wrote is lost.
 - clients-and-task: four clients, each with a slow io RPC, three quick ones
   behind it and a poll, while the task ticks every channel each second.
 - messages: four clients polling, each sending twenty messages to every
