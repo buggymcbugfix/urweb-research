@@ -1,7 +1,7 @@
 HTTP/1.1 500 Internal Server Error
 Content-type: text/html
 Connection: close
-Content-length: 220
+Content-Length: 220
 
 <html><head><title>Fatal Error</title></head><body>Fatal error: demo/batch.ur:15:8-16:19: DML step failed: INSERT INTO uw_Batch_t (uw_A, uw_Id) VALUES (?, ?)<br />UNIQUE constraint failed: uw_Batch_t.uw_Id
 </body></html>

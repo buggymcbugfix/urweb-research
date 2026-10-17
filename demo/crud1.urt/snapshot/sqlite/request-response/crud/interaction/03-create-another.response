@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 770
+Content-Length: 770
 
 <!DOCTYPE html><html><head></head><body>
 <p>Inserted with ID 2.</p>

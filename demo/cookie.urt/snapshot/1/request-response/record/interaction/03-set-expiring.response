@@ -2,6 +2,6 @@ HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Set-Cookie: Cookie/c=later/2.25/7; path=/; expires=Tue, 06-Nov-2012 00:00:00 GMT; httponly
 Connection: close
-Content-length: 61
+Content-Length: 61
 
 <!DOCTYPE html><html>Cookie set robustly.<head></head></html>

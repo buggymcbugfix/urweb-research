@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 195
+Content-Length: 195
 
 <!DOCTYPE html><html><head></head><body>
 <a href="/Redirect/other">Go there</a><br />

@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 114
+Content-Length: 114
 
 <!DOCTYPE html><html><head></head><body>Thu Jan  2 04:06:07 2003<br />Thu Jan  2 04:06:07 2003<br /></body></html>

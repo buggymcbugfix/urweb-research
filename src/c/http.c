@@ -293,7 +293,7 @@ static void *worker(void *data) {
           if (!uw_has_contentLength(ctx)) {
             char clen[100];
 
-            sprintf(clen, "Content-length: %d\r\n", uw_pagelen(ctx));
+            sprintf(clen, "Content-Length: %d\r\n", uw_pagelen(ctx));
             uw_write_header(ctx, clen);
           }
 

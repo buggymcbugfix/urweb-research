@@ -1,7 +1,7 @@
 HTTP/1.1 500 Internal Server Error
 Content-type: text/html
 Connection: close
-Content-length: 111
+Content-Length: 111
 
 <html><head><title>Fatal Error</title></head><body>Fatal error: Error unurlifying datatype wlist
 </body></html>

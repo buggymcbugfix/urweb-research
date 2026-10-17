@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 82
+Content-Length: 82
 
 <!DOCTYPE html><html><head></head><body>served on the second attempt</body></html>

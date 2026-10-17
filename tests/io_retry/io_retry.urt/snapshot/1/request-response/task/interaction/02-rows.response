@@ -1,6 +1,6 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 71
+Content-Length: 71
 
 <!DOCTYPE html><html><head></head><body>stored: 1 2 4 6 7</body></html>
