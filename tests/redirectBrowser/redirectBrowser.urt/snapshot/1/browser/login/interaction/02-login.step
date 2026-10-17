@@ -1,0 +1,3 @@
+Alice:
+	fill 'input[type=text]' Alice
+	click 'input[type=submit]'
