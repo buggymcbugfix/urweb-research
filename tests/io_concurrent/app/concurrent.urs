@@ -5,3 +5,6 @@ val readCounter : unit -> transaction page
 val readCounterSlowly : unit -> transaction page
 val bumpCounter : unit -> transaction page
 val failCommit : unit -> transaction page
+val readCounterFor : int -> transaction page
+val readSolo : unit -> transaction page
+val bumpSoloFor : int -> transaction page

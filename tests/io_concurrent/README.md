@@ -2,7 +2,7 @@ io code under contention: an application (app/) with io RPCs that sleep
 outside any transaction, driven by several clients at once over eight
 worker threads, with what each request answered, when it was answered
 relative to the others, the server's log and the database compared with
-what each case expects.  Timing goes into the transcripts in coarse
+what each case expects. Timing goes into the transcripts in coarse
 buckets, within 1.5 s or after 3 s or more, with the sleeps long enough for
 the buckets to be far apart, so that a run repeats on any machine; what is
 a matter of timing (which writer went first, how often a transaction was
@@ -24,7 +24,7 @@ sanitizers' options reach the application.
   meanwhile, the client polls and stays, and once it stops polling it is
   expunged.
 - pruner-waiting: the pruner waiting for a twelve-second io RPC holds up no
-  other request: a page is answered at once.  It runs with read-write locks
+  other request: a page is answered at once. It runs with read-write locks
   that let a waiting writer go first, as macOS's do: on Linux under
   writer_first.c, an LD_PRELOAD shim that makes glibc's locks do so, and
   that run.sh builds with cc.
@@ -49,6 +49,15 @@ sanitizers' options reach the application.
   pages that read it overlap, four loops of readers that stay 300 ms in
   their transactions: the writer waits for the readers it found, not for
   every reader to come.
+- cache-reader: with -sqlcache, a reader that comes while a writer waits
+  for a cached table waits too: one reader stays in its transaction for
+  five seconds, a writer comes at 0.5 s and a second reader at 1 s; the
+  second is answered after the writer, with the value the writer wrote.
+- cache-readers-starved: with -sqlcache, writers that overlap keep a
+  reader out: two loops of writers of a table of its own, and a reader of
+  it at 1 s, which is answered when the loops stop. It records the cost of
+  a lock that lets a waiting writer go first, and is the case to change if
+  the lock gets a bound on how long a reader waits.
 - writers: eight writers at once, transactions overlapping, run again by
   the runtime (write), by the function (writeAttempt), and read-pause-write
   on one counter (increment): every call answered, every row there, the

@@ -1,0 +1,12 @@
+r1: answered after 3 s or more
+w: answered after 3 s or more
+r2: answered after 3 s or more
+> r1
+HTTP/1.1 200 OK
+v = 0
+> w
+HTTP/1.1 200 OK
+bumped
+> r2
+HTTP/1.1 200 OK
+v = 1

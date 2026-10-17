@@ -9,6 +9,7 @@
 
 table t : { N : int, Who : string }
 table counter : { Id : int, V : int }
+table solo : { Id : int, V : int }
 table chans : { Ch : channel string }
 
 (* What a case asks of the clientLeaves task, seeded before the start:
@@ -90,6 +91,24 @@ fun readCounterSlowly () : transaction page =
 
 fun bumpCounter () : transaction page =
     dml (UPDATE counter SET V = V + 1 WHERE Id = 1);
+    return <xml><body>bumped</body></xml>
+
+(* The same reader, for as long as the case says. *)
+fun readCounterFor (ms : int) : transaction page =
+    v <- oneRowE1 (SELECT (counter.V) FROM counter WHERE counter.Id = 1);
+    Probe.sleepT ms;
+    return <xml><body>v = {[v]}</body></xml>
+
+(* A table of its own, read by one page only: with -sqlcache, a writer of
+   it takes the write lock of one cache, the reader's.  A writer of the
+   counter takes the write locks of every cache on the counter, in order. *)
+fun readSolo () : transaction page =
+    v <- oneRowE1 (SELECT (solo.V) FROM solo WHERE solo.Id = 1);
+    return <xml><body>solo = {[v]}</body></xml>
+
+fun bumpSoloFor (ms : int) : transaction page =
+    dml (UPDATE solo SET V = V + 1 WHERE Id = 1);
+    Probe.sleepT ms;
     return <xml><body>bumped</body></xml>
 
 (* A page that runs no SQL. *)
