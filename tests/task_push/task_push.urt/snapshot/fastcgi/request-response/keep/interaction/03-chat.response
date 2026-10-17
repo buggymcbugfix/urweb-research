@@ -1,0 +1,4 @@
+Content-type: text/html; charset=utf-8
+Content-script-type: text/javascript
+
+<!DOCTYPE html><html><head></head><body onload='isPost=false;client_id=1;client_pass=1997777116;url_prefix="/";timeout=60;listener();'>chat</body></html>
