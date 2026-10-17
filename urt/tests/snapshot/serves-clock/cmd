@@ -1,0 +1,2 @@
+urt snapshot runs/serves-clock
+cd runs/serves-clock.urt/snapshot/1/request-response/exits/interaction && for f in *; do echo "== $f"; tr -d '\r' < "$f"; echo; done

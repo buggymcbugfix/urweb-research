@@ -264,6 +264,17 @@ cd "$root"
 arun runs/serves-never.urt/snapshot/1/request-response/far
 printf 'GET /year\n' > runs/serves-never.urt/snapshot/1/request-response/far/interaction/01.request
 printf 'until a line from a task\n' > runs/serves-never.urt/snapshot/1/request-response/far/interaction/02-task.wait
+# A project whose server's clock misbehaves: one that exits in the task
+# a wait is for, after printing the line the wait is for.
+proj runs serves-clock
+snap runs/serves-clock.urt/snapshot/1 exitcode
+arun runs/serves-clock.urt/snapshot/1/request-response/exits
+printf 'APP_CLOCK=exit\n' > runs/serves-clock.urt/snapshot/1/request-response/exits/env
+cd runs/serves-clock.urt/snapshot/1/request-response/exits/interaction
+printf 'GET /later\n' > 01.request
+printf 'until a line from a task\n' > 02-task.wait
+printf 'GET /after\n' > 03-after.request
+cd "$root"
 proj runs serves-gone
 snap runs/serves-gone.urt/snapshot/1 exitcode
 arun runs/serves-gone.urt/snapshot/1/request-response/gone
