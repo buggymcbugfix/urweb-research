@@ -26,3 +26,8 @@ fun laterOr (all : int) (ms : int) : transaction page =
     n <- oneRowE1 (SELECT COUNT( * ) FROM t
                    WHERE {if all = 1 then (WHERE TRUE) else (WHERE t.T > {[fromMilliseconds ms]})});
     return <xml><body>{[n]} later</body></xml>
+
+(* [store], with the time as a URL gives it, a count of microseconds. *)
+fun storeTime (id : int) (tm : time) : transaction page =
+    dml (INSERT INTO t (Id, T) VALUES ({[id]}, {[tm]}));
+    return <xml><body>stored {[toMilliseconds tm]}</body></xml>
