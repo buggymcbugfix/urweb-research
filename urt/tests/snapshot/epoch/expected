@@ -1,0 +1,16 @@
+$ urt-browse --epoch -1 --serve
+urt-browse: --epoch takes seconds since 1970, above 0 and at most 253402300799, the end of 9999
+exit 2
+$ urt-browse --epoch 0 --serve
+urt-browse: --epoch takes seconds since 1970, above 0 and at most 253402300799, the end of 9999
+exit 2
+$ urt-browse --epoch nan --serve
+urt-browse: --epoch takes seconds since 1970, above 0 and at most 253402300799, the end of 9999
+exit 2
+$ urt-browse --epoch inf --serve
+urt-browse: --epoch takes seconds since 1970, above 0 and at most 253402300799, the end of 9999
+exit 2
+$ urt-browse --epoch 253402300800 --serve
+urt-browse: --epoch takes seconds since 1970, above 0 and at most 253402300799, the end of 9999
+exit 2
+$ changes

@@ -291,15 +291,18 @@ the users' input, the users in the context's order.  So a run comes out the
 same every time, whatever the machine, and NAME.timeline says what happened
 when, in seconds since the epoch.  What moves on its own in a page follows the
 clock as well: animations, smooth scrolls, and which tab of a user's is in
-front, visible and with the focus.  A last line 'wait T' in a step, for no
-user, lets T pass for everyone before the records are taken.  No engine caches
-or fetches a favicon, so that each sends the same requests.  A request for any
-other server is refused by the driver and recorded as such: a run drives this
-application, and the network is not its business; what the pages need, the
-application serves (the 'file' directive).  One engine difference is left as
-it is: back to a page that answered a POST sends the POST again in Chromium
-and WebKit, and is refused by Firefox, where the step cannot be done and says
-so; a run meant for every engine opens the page instead.
+front, visible and with the focus.  On Linux and macOS so does the engines'
+own wall clock, through a library the driver loads into them
+(urt/src/urtclock.c, on macOS urtclock-mac.c): a cookie expires at its time on
+the run's clock.  A last line 'wait T' in a step, for no user, lets T pass for
+everyone before the records are taken.  No engine caches or fetches a favicon,
+so that each sends the same requests.  A request for any other server is
+refused by the driver and recorded as such: a run drives this application, and
+the network is not its business; what the pages need, the application serves
+(the 'file' directive).  One engine difference is left as it is: back to a
+page that answered a POST sends the POST again in Chromium and WebKit, and is
+refused by Firefox, where the step cannot be done and says so; a run meant for
+every engine opens the page instead.
 A step that cannot be done -- no such element, two of them, an until whose
 element does not come in time -- stops the run, as a request that cannot be
 sent does: the step's NAME.error holds the engine's complaint, beside its

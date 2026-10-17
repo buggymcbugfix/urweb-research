@@ -311,15 +311,18 @@ static const char usage_text[] =
     "same every time, whatever the machine, and NAME.timeline says what happened\n"
     "when, in seconds since the epoch.  What moves on its own in a page follows the\n"
     "clock as well: animations, smooth scrolls, and which tab of a user's is in\n"
-    "front, visible and with the focus.  A last line 'wait T' in a step, for no\n"
-    "user, lets T pass for everyone before the records are taken.  No engine caches\n"
-    "or fetches a favicon, so that each sends the same requests.  A request for any\n"
-    "other server is refused by the driver and recorded as such: a run drives this\n"
-    "application, and the network is not its business; what the pages need, the\n"
-    "application serves (the 'file' directive).  One engine difference is left as\n"
-    "it is: back to a page that answered a POST sends the POST again in Chromium\n"
-    "and WebKit, and is refused by Firefox, where the step cannot be done and says\n"
-    "so; a run meant for every engine opens the page instead.\n"
+    "front, visible and with the focus.  On Linux and macOS so does the engines'\n"
+    "own wall clock, through a library the driver loads into them\n"
+    "(urt/src/urtclock.c, on macOS urtclock-mac.c): a cookie expires at its time on\n"
+    "the run's clock.  A last line 'wait T' in a step, for no user, lets T pass for\n"
+    "everyone before the records are taken.  No engine caches or fetches a favicon,\n"
+    "so that each sends the same requests.  A request for any other server is\n"
+    "refused by the driver and recorded as such: a run drives this application, and\n"
+    "the network is not its business; what the pages need, the application serves\n"
+    "(the 'file' directive).  One engine difference is left as it is: back to a\n"
+    "page that answered a POST sends the POST again in Chromium and WebKit, and is\n"
+    "refused by Firefox, where the step cannot be done and says so; a run meant for\n"
+    "every engine opens the page instead.\n"
     "A step that cannot be done -- no such element, two of them, an until whose\n"
     "element does not come in time -- stops the run, as a request that cannot be\n"
     "sent does: the step's NAME.error holds the engine's complaint, beside its\n"
@@ -2342,9 +2345,25 @@ static struct child *driver_for(int slot) {
     argv[n++] = "--epoch";
     argv[n++] = RUN_TIME;
     argv[n] = NULL;
-    if (child_start(argv, driver_err_path(slot), &drivers[slot]) < 0) {
-        die_later(fmt("cannot start %s: %s", path("urt-browse"), strerror(errno)), NULL);
-        return NULL;
+    {
+        /* Its temporary directory is our scratch directory: what it and
+         * the engines leave there (the clock's file, the frames of films,
+         * the engines' profiles) goes with it once the drivers are
+         * stopped, however urt leaves. */
+        char *was = getenv("TMPDIR") ? xstrdup(getenv("TMPDIR")) : NULL;
+        int r;
+        setenv("TMPDIR", tmp, 1);
+        r = child_start(argv, driver_err_path(slot), &drivers[slot]);
+        if (was) {
+            setenv("TMPDIR", was, 1);
+            free(was);
+        } else {
+            unsetenv("TMPDIR");
+        }
+        if (r < 0) {
+            die_later(fmt("cannot start %s: %s", path("urt-browse"), strerror(errno)), NULL);
+            return NULL;
+        }
     }
     driver_up[slot] = 1;
     /* Its stderr goes on where the one before it, if any, left off. */

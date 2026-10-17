@@ -86,7 +86,21 @@ due at the same time is done in a fixed order: the server's part first,
 its tasks and the requests arriving, in the order the context's tie rule
 says; then the pages' timers and the answers coming back; then the
 users' input, users in the tie order.  A run comes out the same every
-time, whatever the machine.
+time, whatever the machine.  On Linux and macOS the engines' own wall
+clock is the run's as well, through liburtclock (urt/src/urtclock.c, on
+macOS urtclock-mac.c), which the driver loads into every process of
+theirs: what goes by it inside an engine, a cookie's expiry first of
+all, goes by the run's time; a driver that cannot find the library,
+beside it or in ../lib/urt from there, does not start.  The driver also
+drops a cookie past its expiry from the user's context before it
+forwards a request, since Playwright fills in a Cookie header from the
+context's cookies for a request without one, and Firefox and WebKit
+list expired ones with the rest.  The cookies an answer sets are written
+once, when the server has given it, as an HTTP answer leaves them, and
+the page gets the answer without them: Playwright stores them through
+the engine's cookie API, and WebKit's on macOS keeps an HttpOnly cookie
+that a line without HttpOnly replaces or clears, which the driver then
+does itself.
 
 What moves on its own in a page is on the clock too.  An animation (a
 CSS transition or animation, element.animate()) is held where the clock
@@ -224,12 +238,15 @@ drives this application, and the network is not its business.
 import argparse
 import asyncio
 import base64
+import ctypes
 import datetime
 import functools
 import heapq
 import html
+import http.cookiejar
 import json
 import mimetypes
+import mmap
 import os
 import re
 import shlex
@@ -239,6 +256,7 @@ import struct
 import sys
 import tempfile
 import time
+import urllib.parse
 
 
 # The page as HTML, from the DOM as the browser has it: one element per
@@ -845,6 +863,57 @@ def refill(body, ctype, fields):
             head = re.sub(rb'(?im)^content-type:[^\r\n]*', b'Content-Type: ' + kind.encode('latin-1'), head)
             pieces[i] = head + gap + data + b'\r\n'
     return sep.join(pieces)
+
+
+# Playwright's latest expiry for a cookie, the last second of 9999.
+COOKIE_EXPIRES_MAX = 253402300799
+
+
+def parse_set_cookie(line, url):
+    """A Set-Cookie line read as route.fetch reads it into a cookie for the
+    URL that answered (Playwright's parseRawCookie and
+    _parseSetCookieHeader): its domain the URL's host unless it names one,
+    its path the URL's directory unless it gives one; Expires in seconds
+    since the epoch and Max-Age as given, each None if absent.  None for a
+    line without a name, or for another host's domain, which Playwright
+    passes over too."""
+    pairs = []
+    for part in line.split(';'):
+        if part.strip():
+            key, eq, value = part.partition('=')
+            pairs.append((key.strip(), value.strip()) if eq else (part.strip(), ''))
+    if not pairs or not pairs[0][0]:
+        return None
+    c = {'name': pairs[0][0], 'value': pairs[0][1], 'domain': '', 'path': '', 'httpOnly': False,
+         'secure': False, 'sameSite': 'Lax', 'expires': None, 'maxAge': None}
+    for key, value in pairs[1:]:
+        key = key.lower()
+        if key == 'expires':
+            c['expires'] = http.cookiejar.http2time(value)
+        elif key == 'max-age':
+            m = re.match(r'[-+]?\d+', value)
+            if m:
+                c['maxAge'] = int(m.group(0))
+        elif key == 'domain':
+            d = value.lower()
+            c['domain'] = '.' + d if d and not d.startswith('.') and '.' in d else d
+        elif key == 'path':
+            c['path'] = value
+        elif key == 'secure':
+            c['secure'] = True
+        elif key == 'httponly':
+            c['httpOnly'] = True
+        elif key == 'samesite':
+            c['sameSite'] = {'none': 'None', 'lax': 'Lax', 'strict': 'Strict'}.get(value.lower(), c['sameSite'])
+    u = urllib.parse.urlsplit(url)
+    host = u.hostname or ''
+    if not c['domain']:
+        c['domain'] = host
+    elif not (host == c['domain'] or (c['domain'].startswith('.') and ('.' + host).endswith(c['domain']))):
+        return None
+    if not c['path'].startswith('/'):
+        c['path'] = '/' + '/'.join(u.path[1:].split('/')[:-1])
+    return c
 
 
 # The engines, in the order that names a pass and settles a tie between
@@ -2656,6 +2725,17 @@ class Run:
         self.frames = set()         # frame stops to come
         self.docs = 0               # the documents delivered, which number them
 
+    @property
+    def now(self):
+        """The clock, in ms since the epoch."""
+        return self._now
+
+    @now.setter
+    def now(self, ms):
+        # The engines' wall clock too, where liburtclock is in them.
+        self._now = ms
+        self.drv.clock.set(ms)
+
     # ---- the queue
 
     def push(self, tag, phase, rank, fn):
@@ -3190,6 +3270,97 @@ class Run:
         rtt = self.setup.rtt_of(tab.user.name)
         self.push(self.now + rtt // 2, PHASE_SERVER, tab.user.rank, functools.partial(self.arrive, h))
 
+    async def forget_cookies(self, context, cookies):
+        """Cookies of the context's list out of it, each by an expired copy
+        with its own flags, as clear_cookies does, but alive again first:
+        Firefox sets nothing for an expired copy of a cookie already past
+        its time, which stays in the list, and WebKit on macOS nothing for
+        a copy whose HttpOnly is not the cookie's.  No page sends a request
+        in between: they are quiet while a request arrives."""
+        kept = ('name', 'value', 'domain', 'path', 'httpOnly', 'secure', 'sameSite')
+        await context.add_cookies([dict({k: c[k] for k in kept}, expires=-1) for c in cookies])
+        await context.add_cookies([dict({k: c[k] for k in kept}, value='', expires=0) for c in cookies])
+
+    async def expire_cookies(self, h):
+        """The user's cookies past their expiry when the page sent the
+        request, out of their context, where liburtclock has put the
+        engine's jar on the run's clock: route.fetch writes a Cookie header
+        from the context's cookies for a request that has none (WebKit's
+        never has one here, Firefox's not when it has nothing to send), and
+        Firefox and WebKit list a cookie past its expiry with the rest.
+        Without the library the engines' jars, and the expiries they report
+        (Chromium and Firefox cap them at 400 days from their now), go by
+        the wall clock, and so do the cookies."""
+        context = h.tab.user.context
+        if context is None or self.drv.clock.lib is None:
+            return
+        try:
+            gone = [c for c in await context.cookies() if c['expires'] != -1 and c['expires'] * 1000 <= h.sent]
+            if gone:
+                await self.forget_cookies(context, gone)
+        except self.PlaywrightError:
+            pass
+
+    async def answer_cookies(self, h):
+        """The cookies the server's answer sets, in the user's context as an
+        HTTP answer leaves them where route.fetch, which has stored them
+        through the context's API, did not.  Under WebKit on macOS that API
+        is Apple's, which keeps an HttpOnly cookie that a line without
+        HttpOnly would replace or clear, as an HTTP answer may; and
+        Playwright counts Max-Age on the wall clock, where liburtclock has
+        put the engines on the run's.  Such a cookie is put right: the one
+        in the list forgotten, and the line's added unless it clears the
+        cookie.  For each cookie only the answer's last line counts, the one
+        that stands once the answer is read; nothing else is compared, the
+        engines listing SameSite and expiries each their own way.  The page
+        gets the answer without the lines (answer_headers), so that they
+        are written this once, the same way under every engine."""
+        context = h.tab.user.context
+        if context is None or h.response is None:
+            return
+        lines = {}
+        for header in h.response.headers_array:
+            if header['name'].lower() == 'set-cookie':
+                for line in header['value'].split('\n'):
+                    c = parse_set_cookie(line, h.response.url)
+                    if c is not None:
+                        lines[(c['name'], c['domain'].lstrip('.'), c['path'])] = c
+        if not lines:
+            return
+        on_clock = self.drv.clock.lib is not None
+        now = self.now / 1000 if on_clock else time.time()
+        try:
+            listed = {(c['name'], c['domain'].lstrip('.'), c['path']): c for c in await context.cookies()}
+            stale, fresh = [], []
+            for key, c in lines.items():
+                old = listed.get(key)
+                if not ((old is not None and old['httpOnly'] != c['httpOnly'])
+                        or (on_clock and c['maxAge'] is not None)):
+                    continue
+                if old is not None:
+                    stale.append(old)
+                expires = (now + c['maxAge'] if c['maxAge'] is not None
+                           else c['expires'] if c['expires'] is not None else -1)
+                if expires == -1 or expires > now:
+                    fresh.append({'name': c['name'], 'value': c['value'], 'domain': c['domain'], 'path': c['path'],
+                                  'expires': -1 if expires == -1 else min(expires, COOKIE_EXPIRES_MAX),
+                                  'httpOnly': c['httpOnly'], 'secure': c['secure'], 'sameSite': c['sameSite']})
+            if stale:
+                await self.forget_cookies(context, stale)
+            if fresh:
+                await context.add_cookies(fresh)
+        except self.PlaywrightError:
+            pass
+
+    @staticmethod
+    def answer_headers(h):
+        """The answer's headers as the page gets them: without its cookies,
+        which answer_cookies has left in the context as the server gave
+        them; an engine's own handling of them in a fulfilled answer would
+        write them a second time, under WebKit on macOS through the same
+        API, undoing what was put right."""
+        return {k: v for k, v in h.response.headers.items() if k.lower() != 'set-cookie'}
+
     async def arrive(self, h):
         h.arrived = self.now
         trace('arrive', h.tab.label, self.path_of(h.req.url))
@@ -3205,6 +3376,7 @@ class Run:
                 pass
             return
         headers = {k: v for k, v in h.req.headers.items() if k.lower() not in ('host', 'x-urt-sent')}
+        await self.expire_cookies(h)
         headers['urweb-time'] = str(self.now)
         if h.poll:
             h.task = asyncio.ensure_future(self.fetch_poll(h, headers))
@@ -3220,6 +3392,7 @@ class Run:
         except self.PlaywrightError as e:
             h.error = e
             trace('fetch failed', self.path_of(h.req.url), str(e).splitlines()[0])
+        await self.answer_cookies(h)
         self.deliver_later(h)
 
     async def fetch_poll(self, h, headers):
@@ -3228,6 +3401,7 @@ class Run:
                                              timeout=0)
         except self.PlaywrightError as e:
             h.error = e
+        await self.answer_cookies(h)
         trace('poll back', h.tab.label, h.response.status if h.response else h.error)
         self.polls.append(h)
         self.activity += 1
@@ -3286,11 +3460,11 @@ class Run:
             elif h.navigation and 'html' in h.response.headers.get('content-type', ''):
                 tab.shown = tab is tab.user.front
                 self.docs += 1
-                await self.call(tab, h.route.fulfill(response=h.response,
+                await self.call(tab, h.route.fulfill(response=h.response, headers=self.answer_headers(h),
                                                      body=with_clock(await h.response.body(), self.now, tab.shown,
                                                                      tab.hidden_since, self.docs)))
             else:
-                await self.call(tab, h.route.fulfill(response=h.response))
+                await self.call(tab, h.route.fulfill(response=h.response, headers=self.answer_headers(h)))
             # The page's to read now, but for a redirect the engine follows
             # with a request of the same number; one the driver follows is
             # over here.
@@ -3917,16 +4091,81 @@ class Run:
         return ok
 # ------------------------------------------------------------- the driver
 
+def clock_library():
+    """liburtclock as shipped with this driver: beside it, as in the tree,
+    or in ../lib/urt, as installed; None if it is not there.  On macOS
+    the .dylib."""
+    here = os.path.dirname(os.path.realpath(__file__))
+    name = 'liburtclock.dylib' if sys.platform == 'darwin' else 'liburtclock.so'
+    for lib in (os.path.join(here, name), os.path.join(here, '..', 'lib', 'urt', name)):
+        if os.path.exists(lib):
+            return os.path.realpath(lib)
+    return None
+
+
+class Clock:
+    """The engines' wall clock on the run's: liburtclock (urt/src/urtclock.c,
+    on macOS urtclock-mac.c) in every process of theirs, reading the time
+    from a file of 8 bytes that the driver writes whenever its clock moves.
+    lib None, the engines keep the wall clock, and only the pages' is the
+    run's."""
+
+    def __init__(self, lib):
+        self.lib, self.path, self.map, self.word = lib, None, None, None
+        if lib is None:
+            return
+        fd, self.path = tempfile.mkstemp(prefix='urt-clock-')
+        try:
+            os.write(fd, bytes(8))
+            self.map = mmap.mmap(fd, 8)
+        finally:
+            os.close(fd)
+        # One store of 8 bytes, which a reader never sees half done.
+        self.word = ctypes.c_int64.from_buffer(self.map)
+
+    def env(self):
+        """The environment an engine starts in; None, the driver's own,
+        without the library."""
+        if self.lib is None:
+            return None
+        if sys.platform == 'darwin':
+            # WebKit's helpers are XPC services, which get from the
+            # environment only the __XPC_ names launchd hands them.
+            insert = ':'.join(p for p in (self.lib, os.environ.get('DYLD_INSERT_LIBRARIES')) if p)
+            return dict(os.environ, DYLD_INSERT_LIBRARIES=insert, URT_CLOCK_FILE=self.path,
+                        __XPC_DYLD_INSERT_LIBRARIES=insert, __XPC_URT_CLOCK_FILE=self.path)
+        preload = ' '.join(p for p in (self.lib, os.environ.get('LD_PRELOAD')) if p)
+        return dict(os.environ, LD_PRELOAD=preload, URT_CLOCK_FILE=self.path)
+
+    def set(self, ms):
+        if self.word is not None:
+            self.word.value = ms * 1000000
+
+    def close(self):
+        if self.map is not None:
+            del self.word
+            self.word = None
+            self.map.close()
+            self.map = None
+        if self.path is not None:
+            try:
+                os.unlink(self.path)
+            except OSError:
+                pass
+            self.path = None
+
+
 class Driver:
     """The engines, each started at the first pass that needs it and kept,
     and the runs done through them."""
 
-    def __init__(self, args, playwright_error):
+    def __init__(self, args, playwright_error, clock_lib):
         self.args = args
         self.PlaywrightError = playwright_error
         self.playwright = None
         self.browsers = {}
         self.launching = {}         # engine -> the lock of its start
+        self.clock = Clock(clock_lib)
 
     def complaint(self, e):
         """What Playwright said, less its call log, which narrates what the
@@ -3955,21 +4194,41 @@ class Driver:
         shows of this is the first lines, and a traceback's are the least
         telling."""
         p = self.playwright
+        env = self.clock.env()
         try:
             if engine == 'chromium':
                 # Chromium keeps renderer memory under /dev/shm unless told
                 # not to, and a build sandbox (nix's) has next to none
                 # there, which closes the page before the first step.
                 # Smooth scrolling (the keyboard's) would land in wall time.
-                browser = await p.chromium.launch(args=['--disable-dev-shm-usage', '--disable-smooth-scrolling'])
+                browser = await p.chromium.launch(args=['--disable-dev-shm-usage', '--disable-smooth-scrolling'],
+                                                  env=env)
             elif engine == 'firefox':
                 # Firefox fetches a page's favicon from outside the page,
                 # where Playwright does not see it; the server would.  And
                 # smooth scrolling (the keyboard's) would land in wall time.
                 browser = await p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False,
-                                                                     'general.smoothScroll': False})
+                                                                     'general.smoothScroll': False},
+                                                 env=env)
             else:
-                browser = await p.webkit.launch()
+                how = {'env': env}
+                if sys.platform == 'darwin' and self.clock.lib is not None:
+                    # Playwright starts WebKit through pw_run.sh, by way of
+                    # #!/usr/bin/env, a binary under SIP, which macOS
+                    # starts with every DYLD_ variable dropped: the __XPC_
+                    # ones still reach the XPC services, but the UI process
+                    # the script starts gets no library.  So the driver
+                    # starts that itself, with the two variables the script
+                    # gives it.
+                    home = os.path.realpath(os.path.dirname(p.webkit.executable_path))
+                    exe = os.path.join(home, 'Playwright.app', 'Contents', 'MacOS', 'Playwright')
+                    if not os.path.isfile(exe):
+                        print('webkit does not start: no %s, which the driver starts itself on macOS, '
+                              'for liburtclock' % exe, file=sys.stderr)
+                        return False
+                    how = {'executable_path': exe,
+                           'env': dict(env, DYLD_FRAMEWORK_PATH=home, DYLD_LIBRARY_PATH=home)}
+                browser = await p.webkit.launch(**how)
         except self.PlaywrightError as e:
             print('%s does not start: %s' % (engine, self.complaint(e)), file=sys.stderr)
             return False
@@ -4025,33 +4284,36 @@ class Driver:
             if not isinstance(context.get('exception'), self.PlaywrightError):
                 loop.default_exception_handler(context)
         asyncio.get_running_loop().set_exception_handler(quiet)
-        async with async_playwright() as p:
-            self.playwright = p
-            if not self.args.serve:
-                ok = await self.run_one(self.args.url, self.args.run, self.args.out, self.args.pass_,
-                                        self.args.screenshots, self.args.recordings, self.args.frame)
+        try:
+            async with async_playwright() as p:
+                self.playwright = p
+                if not self.args.serve:
+                    ok = await self.run_one(self.args.url, self.args.run, self.args.out, self.args.pass_,
+                                            self.args.screenshots, self.args.recordings, self.args.frame)
+                    for browser in self.browsers.values():
+                        await browser.close()
+                    return 0 if ok else 1
+                loop = asyncio.get_running_loop()
+                while True:
+                    line = await loop.run_in_executor(None, sys.stdin.readline)
+                    if not line:
+                        break
+                    words = shlex.split(line)
+                    options = dict(w.split('=', 1) for w in words[4:] if '=' in w)
+                    frame = parse_time(options.get('frame', '16ms'))
+                    if len(words) < 4 or words[0] != 'run' or len(options) != len(words) - 4 \
+                            or set(options) - {'pass', 'screenshots', 'recordings', 'frame', 'films'} or not frame \
+                            or options.get('films', 'one') != 'one':
+                        print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
+                        print('done', flush=True)
+                        continue
+                    await self.run_one(words[1], words[2], words[3], options.get('pass'), options.get('screenshots'),
+                                       options.get('recordings'), frame, 'films' in options)
                 for browser in self.browsers.values():
                     await browser.close()
-                return 0 if ok else 1
-            loop = asyncio.get_running_loop()
-            while True:
-                line = await loop.run_in_executor(None, sys.stdin.readline)
-                if not line:
-                    break
-                words = shlex.split(line)
-                options = dict(w.split('=', 1) for w in words[4:] if '=' in w)
-                frame = parse_time(options.get('frame', '16ms'))
-                if len(words) < 4 or words[0] != 'run' or len(options) != len(words) - 4 \
-                        or set(options) - {'pass', 'screenshots', 'recordings', 'frame', 'films'} or not frame \
-                        or options.get('films', 'one') != 'one':
-                    print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
-                    print('done', flush=True)
-                    continue
-                await self.run_one(words[1], words[2], words[3], options.get('pass'), options.get('screenshots'),
-                                   options.get('recordings'), frame, 'films' in options)
-            for browser in self.browsers.values():
-                await browser.close()
-        return 0
+            return 0
+        finally:
+            self.clock.close()
 
 
 def main():
@@ -4073,6 +4335,12 @@ def main():
     args.frame = parse_time(args.frame)
     if not args.frame:
         print('urt-browse: --frame takes a time above 0, a number and its unit: 16ms, 33ms', file=sys.stderr)
+        return 2
+    # liburtclock takes 0 for the real clock and is not made for times
+    # before it, and the engines keep no cookie past 9999.
+    if not 0 < args.epoch <= COOKIE_EXPIRES_MAX:
+        print('urt-browse: --epoch takes seconds since 1970, above 0 and at most %d, the end of 9999'
+              % COOKIE_EXPIRES_MAX, file=sys.stderr)
         return 2
     if args.check:
         if len(args.rest) != 1:
@@ -4101,10 +4369,20 @@ def main():
             for c in complaints:
                 print(c, file=sys.stderr)
             return 2
+    # On Linux and macOS the engines' clock is the run's, or there is no
+    # run: one on the wall clock would be recorded as if it were right.
+    clock_lib = None
+    if sys.platform.startswith('linux') or sys.platform == 'darwin':
+        clock_lib = clock_library()
+        if clock_lib is None:
+            print('urt-browse: no %s beside %s or in ../lib/urt from there; `make -C urt` builds it'
+                  % ('liburtclock.dylib' if sys.platform == 'darwin' else 'liburtclock.so',
+                     os.path.realpath(__file__)), file=sys.stderr)
+            return 2
     # Playwright is imported here so that --check needs only python3.
     from playwright.async_api import Error as PlaywrightError, async_playwright
     unstack_playwright()
-    return asyncio.run(Driver(args, PlaywrightError).main(async_playwright))
+    return asyncio.run(Driver(args, PlaywrightError, clock_lib).main(async_playwright))
 
 
 def unstack_playwright():

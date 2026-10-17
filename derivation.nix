@@ -283,6 +283,17 @@ stdenv.mkDerivation (finalAttrs: {
     wrapProgram "$out/bin/urt" --set-default URWEB "$out/bin/urweb" ${browserFlags}
     wrapProgram "$out/bin/urt-browse" ${browserFlags}
   ''
+  # The engines' clock, which urt's Makefile builds on Linux and macOS:
+  # urt-browse looks for it beside itself, as in the tree, and in
+  # ../lib/urt
+  + lib.optionalString (withUrt && (stdenv.hostPlatform.isLinux || stdenv.hostPlatform.isDarwin)) (
+    let
+      clock = if stdenv.hostPlatform.isDarwin then "liburtclock.dylib" else "liburtclock.so";
+    in
+    ''
+      install -D -m 644 urt/${clock} "$out/lib/urt/${clock}"
+    ''
+  )
   + ''
     runHook postInstall
   '';
