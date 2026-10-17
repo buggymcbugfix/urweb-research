@@ -1,0 +1,12 @@
+5.900 6.700 Bernd.1: POST /.msgs aborted
+6.700 6.800 Bernd.1: GET /RoundTrip/main 200
+6.700 6.800 Bernd: open /RoundTrip/main
+6.800 7.800 Bernd: wait 1s
+7.800 8.400 Bernd: click 'text=Begin demo'
+8.200 8.300 Bernd.1: POST /RoundTrip/action 200
+8.300 8.400 Bernd.1: GET /app.7B8AF21EB5F74E41607DB6479F09E9C972EE6E36.js 200
+8.300 8.400 Bernd.1: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+8.400 10.500 Bernd.1: POST /.msgs 200
+8.400 11.400 Bernd: wait 3s
+10.400 10.500 Bernd.1: POST /RoundTrip/writeBack/_/0/0 200
+10.500 ... Bernd.1: POST /.msgs ...

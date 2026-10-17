@@ -1,0 +1,8 @@
+0.100 0.500 Eun-ji: click 'input[name=A] >> nth=0'
+0.500 1.180 Eun-ji: type 'input[name=A] >> nth=0' 'blue' [170ms]
+1.180 1.280 Eun-ji: press Tab
+1.280 1.960 Eun-ji: type 'input[name=B] >> nth=0' '2.75' [170ms]
+1.960 2.060 Eun-ji: press Tab
+2.060 2.230 Eun-ji: type 'input[name=C] >> nth=0' '7' [170ms]
+2.230 2.330 Eun-ji.1: POST /Cookie/set 200
+2.230 2.330 Eun-ji: press Enter

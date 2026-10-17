@@ -1,0 +1,7 @@
+6.800 7.700 Farid: type 'input[name=Surname]' 'Hadad' [180ms]
+7.700 8.100 Farid: wait 400ms
+8.100 8.200 Farid: press Backspace
+8.200 8.300 Farid: press Backspace
+8.300 8.840 Farid: type 'input[name=Surname]' 'dad' [180ms]
+8.840 8.940 Farid.1: POST /Nested/pageC'/Farid 200
+8.840 8.940 Farid: press Enter

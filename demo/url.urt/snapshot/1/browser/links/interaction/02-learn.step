@@ -1,0 +1,3 @@
+Divya:
+	wait 2s
+	click 'text="Learn something"'

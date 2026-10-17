@@ -1,0 +1,6 @@
+Alice:
+	wait 2s
+	back
+	fill 'input[name=B]' ''
+	type 'input[name=B]' 'X' [200ms]
+	click 'input[type=submit]'

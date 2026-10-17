@@ -1,0 +1,2 @@
+0.700 1.200 Hana: click 'input[value=Clear]'
+1.100 1.200 Hana.1: POST /clear 200

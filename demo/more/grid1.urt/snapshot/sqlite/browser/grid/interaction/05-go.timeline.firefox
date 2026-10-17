@@ -1,0 +1,13 @@
+7.080 8.080 Bernd: wait 1s
+8.080 8.580 Bernd: click 'text=Go >> nth=0'
+8.480 8.580 Bernd.1: GET /Grid1/page/5/five 200
+8.580 10.580 Bernd: wait 2s
+10.580 10.680 Bernd.1: GET /Grid1/main 200
+10.580 11.180 Bernd: back
+10.680 10.780 Bernd.1: GET /app.628DFD3223CBB637AFD919CAF52FD14024A55308.js 200
+10.680 10.780 Bernd.1: GET /grid.css 404
+10.680 10.780 Bernd.1: GET /runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js 200
+10.780 10.880 Bernd.1: POST /Grid1/list 200
+10.880 10.980 Bernd.1: POST /Grid1/F/getChoice/0 200
+10.980 11.080 Bernd.1: POST /Grid1/F/getChoice/1 200
+11.080 11.180 Bernd.1: POST /Grid1/F/getChoice/2 200

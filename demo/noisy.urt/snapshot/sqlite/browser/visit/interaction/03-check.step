@@ -1,0 +1,5 @@
+Carlos:
+	dialog accept [2s]
+	dialog accept [1500ms]
+	dialog accept [1s]
+	click 'text=Check values'

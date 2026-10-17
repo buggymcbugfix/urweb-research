@@ -1,0 +1,3 @@
+1.700 2.700 Eun-ji: wait 1s
+2.700 3.200 Eun-ji: click 'text=Update'
+3.100 3.200 Eun-ji.1: POST /Increment/increment/_ 200

@@ -1,0 +1,5 @@
+0.200 0.700 Bernd: click 'text=Update'
+0.600 0.700 Bernd.1: POST /Increment/increment/_ 200
+0.700 1.200 Bernd: wait 500ms
+1.200 1.700 Bernd: click 'text=Update'
+1.600 1.700 Bernd.1: POST /Increment/increment/_ 200

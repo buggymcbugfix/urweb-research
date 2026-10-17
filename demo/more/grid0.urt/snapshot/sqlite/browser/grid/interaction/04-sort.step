@@ -1,0 +1,5 @@
+Eun-ji:
+	wait 1s
+	click 'th >> text="A"'
+	wait 1s
+	click 'text="No sort"'

@@ -1,0 +1,5 @@
+8.500 9.500 Carlos: wait 1s
+9.500 13.200 Carlos: click 'text=Check values'
+9.900 10.000 Carlos.1: POST /Noisy/lookup/1 200
+11.000 11.100 Carlos.1: POST /Noisy/lookup/2 200
+12.100 12.200 Carlos.1: POST /Noisy/lookup/3 200

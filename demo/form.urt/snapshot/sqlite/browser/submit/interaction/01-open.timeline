@@ -1,0 +1,2 @@
+0.000 0.100 Alice.1: GET /Form/main 200
+0.000 0.100 Alice: open /Form/main [target=1]

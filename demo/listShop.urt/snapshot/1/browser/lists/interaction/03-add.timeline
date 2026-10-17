@@ -1,0 +1,9 @@
+0.600 0.750 Farid: type 'input[name=X]' '3' [150ms]
+0.750 0.850 Farid.1: POST /ListShop/IL/cons/Nil 200
+0.750 0.850 Farid: press Enter
+0.850 1.000 Farid: type 'input[name=X]' '1' [150ms]
+1.000 1.100 Farid.1: POST /ListShop/IL/cons/Cons/3/Nil 200
+1.000 1.100 Farid: press Enter
+1.100 1.250 Farid: type 'input[name=X]' '4' [150ms]
+1.250 1.350 Farid.1: POST /ListShop/IL/cons/Cons/1/Cons/3/Nil 200
+1.250 1.350 Farid: press Enter

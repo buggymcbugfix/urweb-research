@@ -1,0 +1,8 @@
+Carlos:
+	fill 'input[type=text] >> nth=0' ''
+	type 'input[type=text] >> nth=0' '2'
+	fill 'input[type=text] >> nth=1' ''
+	type 'input[type=text] >> nth=1' 'cups'
+	fill 'input[type=text] >> nth=2' ''
+	type 'input[type=text] >> nth=2' '3.2'
+	click 'text=Batch it'

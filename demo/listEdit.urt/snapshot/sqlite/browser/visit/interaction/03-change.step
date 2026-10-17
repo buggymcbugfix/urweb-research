@@ -1,0 +1,5 @@
+Farid:
+	wait 1s
+	fill 'input >> nth=1' ''
+	type 'input >> nth=1' 'oat milk' [140ms]
+	click 'text=Change to: >> nth=0'

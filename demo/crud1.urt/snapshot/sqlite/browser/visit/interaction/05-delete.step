@@ -1,0 +1,5 @@
+Carlos:
+	open /Crud1/main
+	click 'text=[Delete]'
+	wait 2s
+	click 'text=I was born sure!'

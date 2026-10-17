@@ -1,0 +1,7 @@
+2.250 2.250 Carlos: dialog accept [1500ms]
+2.250 2.250 Carlos: dialog accept [1s]
+2.250 2.250 Carlos: dialog accept [2s]
+2.250 7.450 Carlos: click 'text=Check values'
+2.650 2.750 Carlos.1: POST /Noisy/lookup/1 200
+4.750 4.850 Carlos.1: POST /Noisy/lookup/2 200
+6.350 6.450 Carlos.1: POST /Noisy/lookup/3 200

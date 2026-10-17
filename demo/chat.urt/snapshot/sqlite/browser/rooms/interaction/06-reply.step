@@ -1,0 +1,3 @@
+Bernd: fill 'input[type=text]' 'hello back'
+Bernd: click 'text=Send:'
+Alice: until 'text=hello back'

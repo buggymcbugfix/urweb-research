@@ -1,0 +1,2 @@
+1.300 1.800 Hana: click 'input[value="Set and clear"]'
+1.700 1.800 Hana.1: POST /setClear 200

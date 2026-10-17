@@ -1,6 +1,6 @@
 Prefix: /
 Database: (none)
-Exe: demo/sum.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

@@ -1,0 +1,4 @@
+Bernd:
+	upload 'input[type=file] >> nth=0' c/x.txt
+	upload 'input[type=file] >> nth=1' a/x.txt
+	click 'input[type=submit]'

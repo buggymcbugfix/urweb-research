@@ -1,0 +1,4 @@
+Divya:
+	reload
+	type 'input[name=Nam] >> nth=0' 'shelf' [170ms]
+	click 'input[type=submit] >> nth=1'

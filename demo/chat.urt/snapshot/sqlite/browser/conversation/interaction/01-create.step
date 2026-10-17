@@ -1,0 +1,5 @@
+Divya:
+	open /Chat/main [target=1]
+	click 'input[name=Title]'
+	type 'input[name=Title]' 'kitchen' [130ms]
+	press Enter

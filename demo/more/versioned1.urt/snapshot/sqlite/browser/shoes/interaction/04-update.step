@@ -1,0 +1,7 @@
+Carlos:
+	wait 1min
+	reload
+	click 'div:has-text("1:") >> text=Latest'
+	fill 'div:has-text("1:") >> input[type=text] >> nth=1' ''
+	type 'div:has-text("1:") >> input[type=text] >> nth=1' '45'
+	click 'div:has-text("1:") >> text=Update'

@@ -1,0 +1,4 @@
+Bernd:
+	click 'text=Update'
+	wait 500ms
+	click 'text=Update'

@@ -1,0 +1,6 @@
+Carlos:
+	click 'input >> nth=0'
+	type 'input >> nth=0' '2'
+	press Tab
+	type 'input >> nth=1' 'second'
+	click 'text=Add'

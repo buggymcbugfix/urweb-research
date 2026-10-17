@@ -1,0 +1,4 @@
+POST /.msgs 200
+POST /Chat/speak/1/I.20do.2C.20coming 200
+POST /.msgs ...
+POST /.msgs 200 (sent in 03-hello)

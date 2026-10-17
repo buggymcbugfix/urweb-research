@@ -1,0 +1,2 @@
+3660.900 3661.400 Hana: click 'input[value=Forget]'
+3661.300 3661.400 Hana.1: POST /forget 200

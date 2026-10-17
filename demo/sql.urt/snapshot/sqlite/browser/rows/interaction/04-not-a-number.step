@@ -1,0 +1,5 @@
+Divya:
+	type 'input[name=A]' 'three' [160ms]
+	press Tab
+	type 'input[name=B]' '1' [160ms]
+	click 'text=Add Row'

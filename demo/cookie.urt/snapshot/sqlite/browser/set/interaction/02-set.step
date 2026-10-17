@@ -1,0 +1,4 @@
+Bernd: fill 'input[name=A] >> nth=0' 'hello'
+Bernd: fill 'input[name=B] >> nth=0' '1.5'
+Bernd: fill 'input[name=C] >> nth=0' '42'
+Bernd: click 'input[type=submit] >> nth=0'

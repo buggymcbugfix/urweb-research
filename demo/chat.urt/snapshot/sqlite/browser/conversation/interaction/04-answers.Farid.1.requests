@@ -1,0 +1,4 @@
+POST /Chat/speak/1/not.20me 200
+POST /.msgs 200
+POST /.msgs ...
+POST /.msgs 200 (sent in 03-hello)

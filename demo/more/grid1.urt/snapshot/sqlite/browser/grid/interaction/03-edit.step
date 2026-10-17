@@ -1,0 +1,2 @@
+Bernd:
+	click 'text="Update" >> nth=0'

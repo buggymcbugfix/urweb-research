@@ -1,0 +1,5 @@
+Carlos:
+	wait 1500ms
+	hover 'text="Go there"'
+	wait 700ms
+	click 'text="Go there"'

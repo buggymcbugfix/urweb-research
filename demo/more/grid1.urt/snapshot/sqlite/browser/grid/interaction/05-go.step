@@ -1,0 +1,5 @@
+Bernd:
+	wait 1s
+	click 'text=Go >> nth=0'
+	wait 2s
+	back

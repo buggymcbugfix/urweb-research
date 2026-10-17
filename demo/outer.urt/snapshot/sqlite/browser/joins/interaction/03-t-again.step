@@ -1,0 +1,5 @@
+Farid:
+	type 'input[name=Id] >> nth=0' '2'
+	press Tab
+	type 'input[name=B]' 'two'
+	press Enter

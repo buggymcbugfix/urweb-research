@@ -1,0 +1,4 @@
+rewrite all RedirectBrowser/*
+safeGet shown
+
+redirectBrowser

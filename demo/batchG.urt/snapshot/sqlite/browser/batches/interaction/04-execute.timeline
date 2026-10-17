@@ -1,0 +1,3 @@
+5.050 6.050 Carlos: wait 1s
+6.050 6.550 Carlos: click 'text=Execute'
+6.450 6.550 Carlos.1: POST /BatchG/doBatch/Cons/cups/3.2/2/Cons/kettle/24.5/1/Nil 200

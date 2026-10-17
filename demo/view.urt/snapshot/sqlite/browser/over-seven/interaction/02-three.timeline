@@ -1,0 +1,4 @@
+0.100 0.500 Eun-ji: click 'input[name=A]'
+0.500 0.650 Eun-ji: type 'input[name=A]' '3'
+0.650 0.750 Eun-ji.1: POST /View/ins 200
+0.650 0.750 Eun-ji: press Enter

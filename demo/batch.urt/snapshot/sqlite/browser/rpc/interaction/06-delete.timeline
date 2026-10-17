@@ -1,0 +1,2 @@
+2.800 3.300 Eun-ji: click 'text=Delete >> nth=0'
+3.200 3.300 Eun-ji.1: POST /Batch/del/2 200

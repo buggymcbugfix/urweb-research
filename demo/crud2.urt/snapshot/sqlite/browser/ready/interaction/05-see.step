@@ -1,0 +1,5 @@
+Bernd:
+	open /Crud2/main
+	wait 2s
+	click 'text=[Delete] >> nth=1'
+	click 'text=I was born sure!'

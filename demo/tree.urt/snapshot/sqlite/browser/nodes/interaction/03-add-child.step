@@ -1,0 +1,2 @@
+Eun-ji: fill 'input[name=Nam] >> nth=0' 'leaf'
+Eun-ji: click 'input[type=submit] >> nth=1'

@@ -1,0 +1,3 @@
+Alice: click 'text=Enter'
+Bernd: open /Chat/main [target=1]
+Bernd: click 'text=Enter'

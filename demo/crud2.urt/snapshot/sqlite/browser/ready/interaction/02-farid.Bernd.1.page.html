@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!-- /Crud2/main -->
+<html>
+  <head>
+    <title>Are you ready?</title>
+  </head>
+  <body>
+    <h1>Are you ready?</h1>
+    <table border="1">
+      <tbody>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Ready</th>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+    <hr>
+    <br>
+    <form method="post" action="/Crud2/create">
+      <p>
+        Name:
+        <input type="text" name="Name" value="">
+      </p>
+      <p>
+        Ready:
+        <select name="Ready" value="Ready">
+          <option selected hidden>Ready</option>
+          <option hidden>Not ready</option>
+        </select>
+      </p>
+      <input type="submit">
+    </form>
+  </body>
+</html>

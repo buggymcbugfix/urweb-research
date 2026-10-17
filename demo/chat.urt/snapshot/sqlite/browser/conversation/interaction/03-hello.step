@@ -1,0 +1,5 @@
+Divya:
+	type 'input[type=text]' 'who has the kettle?' [120ms]
+	press Enter
+	wait 1500ms
+	click 'text=Send:'

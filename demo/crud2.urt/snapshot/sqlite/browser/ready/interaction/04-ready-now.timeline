@@ -1,0 +1,6 @@
+3.750 4.250 Farid: click 'text=[Update] >> nth=0'
+4.150 4.250 Farid.1: GET /Crud2/upd/1 200
+4.250 4.750 Farid: wait 500ms
+4.750 5.250 Farid: select 'select[name=Ready]' 'Ready'
+5.250 5.750 Farid: click 'input[type=submit]'
+5.650 5.750 Farid.1: POST /Crud2/save/1 200

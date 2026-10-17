@@ -1,0 +1,3 @@
+0.100 1.100 Farid: wait 1s
+1.100 1.600 Farid: click 'input[type=submit]'
+1.500 1.600 Farid.1: POST /Orm1/action 200

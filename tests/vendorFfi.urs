@@ -1,0 +1,1 @@
+val vendor : unit -> string

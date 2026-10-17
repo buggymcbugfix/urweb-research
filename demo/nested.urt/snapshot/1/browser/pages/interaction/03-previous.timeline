@@ -1,0 +1,3 @@
+2.400 3.900 Farid: wait 1500ms
+3.900 4.400 Farid: click 'text=Previous'
+4.300 4.400 Farid.1: GET /Nested/pageA 200

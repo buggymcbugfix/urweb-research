@@ -1,0 +1,5 @@
+1.580 1.680 Divya.1: GET /Tree/main 200
+1.580 1.680 Divya: reload
+1.680 2.530 Divya: type 'input[name=Nam] >> nth=0' 'shelf' [170ms]
+2.530 3.030 Divya: click 'input[type=submit] >> nth=1'
+2.930 3.030 Divya.1: POST /Tree/add/Some/1 200

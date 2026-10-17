@@ -1,0 +1,7 @@
+5.750 5.850 Bernd.1: GET /Crud2/main 200
+5.750 5.850 Bernd: open /Crud2/main
+5.850 7.850 Bernd: wait 2s
+7.850 8.350 Bernd: click 'text=[Delete] >> nth=1'
+8.250 8.350 Bernd.1: GET /Crud2/confirm/2 200
+8.350 8.850 Bernd: click 'text=I was born sure!'
+8.750 8.850 Bernd.1: POST /Crud2/delete/2 200

@@ -1,0 +1,4 @@
+0.100 2.100 Alice: upload 'input[type=file] >> nth=0' a/x.txt
+2.100 4.100 Alice: upload 'input[type=file] >> nth=1' b/x.txt
+4.100 4.600 Alice: click 'input[type=submit]'
+4.500 4.600 Alice.1: POST /echo 200

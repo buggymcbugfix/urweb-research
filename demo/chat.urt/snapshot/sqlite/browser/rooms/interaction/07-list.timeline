@@ -1,0 +1,4 @@
+2.900 2.900 Alice: close
+2.900 2.900 Bernd.1: POST /.msgs aborted
+2.900 3.000 Bernd.1: GET /Chat/main 200
+2.900 3.000 Bernd: open /Chat/main

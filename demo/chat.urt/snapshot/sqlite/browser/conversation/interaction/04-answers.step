@@ -1,0 +1,11 @@
+Farid:
+	until 'text=who has the kettle?'
+	wait 2s
+	type 'input[type=text]' 'not me' [160ms]
+	click 'text=Send:'
+	label "answered"
+Carlos:
+	after Farid."answered"
+	wait 3s
+	type 'input[type=text]' 'I do, coming' [140ms]
+	click 'text=Send:'

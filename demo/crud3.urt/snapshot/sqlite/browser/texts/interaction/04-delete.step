@@ -1,0 +1,5 @@
+Divya:
+	wait 1s
+	click 'text=[Delete]'
+	wait 1500ms
+	click 'text=I was born sure!'

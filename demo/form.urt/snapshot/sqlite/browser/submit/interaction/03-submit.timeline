@@ -1,0 +1,2 @@
+0.900 1.400 Alice: click 'input[type=submit]'
+1.300 1.400 Alice.1: POST /Form/handler 200

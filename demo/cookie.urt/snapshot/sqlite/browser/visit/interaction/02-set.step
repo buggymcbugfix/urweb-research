@@ -1,0 +1,8 @@
+Eun-ji:
+	click 'input[name=A] >> nth=0'
+	type 'input[name=A] >> nth=0' 'blue' [170ms]
+	press Tab
+	type 'input[name=B] >> nth=0' '2.75' [170ms]
+	press Tab
+	type 'input[name=C] >> nth=0' '7' [170ms]
+	press Enter

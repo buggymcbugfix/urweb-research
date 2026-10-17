@@ -1,0 +1,5 @@
+Eun-ji:
+	wait 2s
+	back
+	upload 'input[type=file]' dot.png [3s]
+	click 'input[type=submit]'

@@ -1,0 +1,4 @@
+Eun-ji:
+	click 'text="Delete" >> nth=0'
+	wait 1s
+	click 'text="Refresh"'

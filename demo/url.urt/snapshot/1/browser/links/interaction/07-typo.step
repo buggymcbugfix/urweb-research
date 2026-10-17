@@ -1,0 +1,5 @@
+Divya:
+	back
+	fill 'input[name=Url]' ''
+	type 'input[name=Url]' 'htp://en.wikipedia.org/wiki/Haskell' [110ms]
+	press Enter

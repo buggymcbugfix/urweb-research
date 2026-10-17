@@ -1,0 +1,5 @@
+0.100 1.100 Eun-ji: wait 1s
+1.100 3.100 Eun-ji: upload 'input[type=file]' note.txt
+3.100 3.600 Eun-ji: wait 500ms
+3.600 4.100 Eun-ji: click 'input[type=submit]'
+4.000 4.100 Eun-ji.1: POST /Upload/echo 200

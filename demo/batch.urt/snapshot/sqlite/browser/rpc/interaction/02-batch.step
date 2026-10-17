@@ -1,0 +1,3 @@
+Eun-ji: fill 'input >> nth=0' '1'
+Eun-ji: fill 'input >> nth=1' 'one'
+Eun-ji: click 'text=Batch it'

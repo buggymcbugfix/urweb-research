@@ -1,0 +1,7 @@
+Eun-ji:
+	open /CookieSec/main
+	wait 1500ms
+	type 'input[name=User]' 'eunji' [190ms]
+	click 'input[type=submit] >> nth=0'
+	wait 500ms
+	click 'input[type=submit] >> nth=1'

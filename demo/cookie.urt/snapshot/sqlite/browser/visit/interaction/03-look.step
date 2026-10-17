@@ -1,0 +1,4 @@
+Eun-ji:
+	wait 1s
+	open /Cookie/main
+	wait 2s

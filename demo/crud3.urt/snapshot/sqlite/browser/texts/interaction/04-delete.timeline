@@ -1,0 +1,6 @@
+4.100 5.100 Divya: wait 1s
+5.100 5.600 Divya: click 'text=[Delete]'
+5.500 5.600 Divya.1: GET /Crud3/confirm/1 200
+5.600 7.100 Divya: wait 1500ms
+7.100 7.600 Divya: click 'text=I was born sure!'
+7.500 7.600 Divya.1: POST /Crud3/delete/1 200

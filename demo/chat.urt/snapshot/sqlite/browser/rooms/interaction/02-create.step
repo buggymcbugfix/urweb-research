@@ -1,0 +1,2 @@
+Alice: fill 'input[name=Title]' 'lounge'
+Alice: click 'input[type=submit]'

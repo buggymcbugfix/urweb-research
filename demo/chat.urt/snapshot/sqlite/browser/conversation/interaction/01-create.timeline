@@ -1,0 +1,6 @@
+0.000 0.100 Divya.1: GET /Chat/main 200
+0.000 0.100 Divya: open /Chat/main [target=1]
+0.100 0.500 Divya: click 'input[name=Title]'
+0.500 1.410 Divya: type 'input[name=Title]' 'kitchen' [130ms]
+1.410 1.510 Divya.1: POST /Chat/create 200
+1.410 1.510 Divya: press Enter

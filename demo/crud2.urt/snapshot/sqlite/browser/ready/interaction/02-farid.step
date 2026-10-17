@@ -1,0 +1,5 @@
+Farid:
+	click 'input[name=Name]'
+	type 'input[name=Name]' 'Farid' [150ms]
+	select 'select[name=Ready]' 'Not ready'
+	click 'input[type=submit]'

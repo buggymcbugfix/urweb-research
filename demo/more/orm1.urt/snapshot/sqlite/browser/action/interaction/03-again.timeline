@@ -1,0 +1,4 @@
+1.600 1.700 Farid.1: GET /Orm1/main 200
+1.600 1.700 Farid: back
+1.700 2.200 Farid: click 'input[type=submit]'
+2.100 2.200 Farid.1: POST /Orm1/action 200

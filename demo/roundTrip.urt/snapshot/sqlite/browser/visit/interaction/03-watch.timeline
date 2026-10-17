@@ -1,0 +1,5 @@
+1.700 3.800 Bernd.1: POST /.msgs 200
+3.700 3.800 Bernd.1: POST /RoundTrip/writeBack/_/0/0 200
+3.800 5.900 Bernd.1: POST /.msgs 200
+5.800 5.900 Bernd.1: POST /RoundTrip/writeBack/!/1/1.23 200
+5.900 ... Bernd.1: POST /.msgs ...

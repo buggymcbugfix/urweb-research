@@ -1,0 +1,7 @@
+Farid:
+	click 'input >> nth=0'
+	type 'input >> nth=0' 'milk' [140ms]
+	click 'text=Add'
+	fill 'input >> nth=0' ''
+	type 'input >> nth=0' 'bread' [140ms]
+	click 'text=Add'

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<!-- /Chat/create -->
+<html>
+  <head></head>
+  <body>
+    <h1>Current Channels</h1>
+    <table>
+      <tbody>
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>#Subscribers</th>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>kitchen</td>
+          <td>0</td>
+          <td>
+            <form method="post" action="/Chat/chat/1">
+              <input type="submit" value="Enter">
+            </form>
+          </td>
+          <td>
+            <form method="post" action="/Chat/delete/1">
+              <input type="submit" value="Delete">
+            </form>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <h1>New Channel</h1>
+    <form method="post" action="/Chat/create">
+      Title:
+      <input type="text" name="Title" value="">
+      <br>
+      <input type="submit">
+    </form>
+  </body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<!-- /CookieSec/imHere -->
+<html>
+  <head></head>
+  <body>
+    Cookie: eunji
+    <br>
+    <table>
+      <tbody>
+        <tr>
+          <th>User</th>
+          <th>Last Visit</th>
+        </tr>
+        <tr>
+          <td>alice</td>
+          <td>Fri Jan 1 00:00:04 2100</td>
+        </tr>
+        <tr>
+          <td>eunji</td>
+          <td>Fri Jan 1 00:00:08 2100</td>
+        </tr>
+      </tbody>
+    </table>
+    <h2>Set cookie value</h2>
+    <form method="post" action="/CookieSec/set">
+      <input type="text" name="User" value="">
+      <input type="submit">
+    </form>
+    <h2>Record your visit</h2>
+    <form method="post" action="/CookieSec/imHere">
+      <input type="hidden" name="Sig" value="6ECF240638FFF001A96C6BFCFD7761C4CBDFAA520C6998BBAB21DD7A64C07C3C" hidden>
+      <input type="submit">
+    </form>
+  </body>
+</html>

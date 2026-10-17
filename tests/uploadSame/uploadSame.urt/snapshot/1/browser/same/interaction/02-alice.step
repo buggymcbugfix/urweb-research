@@ -1,0 +1,4 @@
+Alice:
+	upload 'input[type=file] >> nth=0' a/x.txt
+	upload 'input[type=file] >> nth=1' b/x.txt
+	click 'input[type=submit]'

@@ -1,0 +1,6 @@
+0.200 0.600 Farid: click 'input >> nth=0'
+0.600 1.160 Farid: type 'input >> nth=0' 'milk' [140ms]
+1.160 1.560 Farid: click 'text=Add'
+1.560 1.760 Farid: fill 'input >> nth=0' ''
+1.760 2.460 Farid: type 'input >> nth=0' 'bread' [140ms]
+2.460 2.860 Farid: click 'text=Add'

@@ -1,0 +1,7 @@
+10.450 10.550 Carlos.1: GET /Crud1/main 200
+10.450 10.550 Carlos: open /Crud1/main
+10.550 11.050 Carlos: click 'text=[Delete]'
+10.950 11.050 Carlos.1: GET /Crud1/confirm/1 200
+11.050 13.050 Carlos: wait 2s
+13.050 13.550 Carlos: click 'text=I was born sure!'
+13.450 13.550 Carlos.1: POST /Crud1/delete/1 200

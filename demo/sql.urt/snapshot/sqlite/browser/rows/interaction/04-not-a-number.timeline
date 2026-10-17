@@ -1,0 +1,5 @@
+4.980 5.780 Divya: type 'input[name=A]' 'three' [160ms]
+5.780 5.880 Divya: press Tab
+5.880 6.040 Divya: type 'input[name=B]' '1' [160ms]
+6.040 6.540 Divya: click 'text=Add Row'
+6.440 6.540 Divya.1: POST /Sql/add 500

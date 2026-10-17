@@ -1,0 +1,6 @@
+Divya:
+	click 'input[type=text] >> nth=0'
+	type 'input[type=text] >> nth=0' 'tea'
+	press Tab
+	type 'input[type=text] >> nth=1' 'pot'
+	click 'input[type=submit]'

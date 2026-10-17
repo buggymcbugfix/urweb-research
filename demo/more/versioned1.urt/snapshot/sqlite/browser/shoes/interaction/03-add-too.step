@@ -1,0 +1,8 @@
+Eun-ji:
+	reload
+	type 'input[type=text] >> nth=2' '2' [180ms]
+	press Tab
+	type 'input[type=text] >> nth=3' 'Eun-ji' [180ms]
+	press Tab
+	type 'input[type=text] >> nth=4' '37' [180ms]
+	click 'text="Add"'

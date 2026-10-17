@@ -1,0 +1,7 @@
+2.400 4.400 Alice: wait 2s
+4.400 4.500 Alice.1: GET /Metaform1/main 200
+4.400 4.500 Alice: back
+4.500 4.700 Alice: fill 'input[name=B]' ''
+4.700 4.900 Alice: type 'input[name=B]' 'X' [200ms]
+4.900 5.400 Alice: click 'input[type=submit]'
+5.300 5.400 Alice.1: POST /Metaform1/handler 200

@@ -1,0 +1,8 @@
+order Eun-ji Farid
+
+# Eun-ji on Chromium, Farid on Firefox and WebKit: a pass for each of his,
+# chromium+firefox and chromium+webkit, and his page says which.
+[Eun-ji]
+engines chromium
+[Farid]
+engines firefox webkit

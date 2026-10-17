@@ -1,0 +1,3 @@
+Divya: fill 'input >> nth=0' '2'
+Divya: fill 'input >> nth=1' 'two'
+Divya: click 'text=Add'

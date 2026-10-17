@@ -1,0 +1,2 @@
+POST /go 303
+GET /shown 200

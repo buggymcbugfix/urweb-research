@@ -1,0 +1,7 @@
+4.400 4.800 Farid: click 'input[name=Forename]'
+4.800 5.600 Farid: type 'input[name=Forename]' 'Farid' [160ms]
+5.600 5.700 Farid: press Tab
+5.700 5.800 Farid: press Space
+5.800 6.300 Farid: wait 500ms
+6.300 6.800 Farid: click 'input[type=submit]'
+6.700 6.800 Farid.1: POST /Nested/fromA 200

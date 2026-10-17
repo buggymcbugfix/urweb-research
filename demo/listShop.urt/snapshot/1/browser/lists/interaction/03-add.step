@@ -1,0 +1,7 @@
+Farid:
+	type 'input[name=X]' '3' [150ms]
+	press Enter
+	type 'input[name=X]' '1' [150ms]
+	press Enter
+	type 'input[name=X]' '4' [150ms]
+	press Enter

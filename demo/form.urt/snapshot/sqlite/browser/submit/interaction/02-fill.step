@@ -1,0 +1,3 @@
+Alice: fill 'input[name=A]' 'hello'
+Alice: fill 'input[name=B]' 'world'
+Alice: check 'input[name=C]'

@@ -1,0 +1,3 @@
+11.180 11.580 Bernd: check 'tr.Grid1_row >> nth=1 >> input[type=checkbox] >> nth=0'
+11.580 12.580 Bernd: wait 1s
+12.580 12.980 Bernd: uncheck 'input[type=checkbox] >> nth=-1'

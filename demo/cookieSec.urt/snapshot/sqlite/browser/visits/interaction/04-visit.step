@@ -1,0 +1,3 @@
+Alice:
+	wait 1s
+	click 'input[type=submit] >> nth=1'

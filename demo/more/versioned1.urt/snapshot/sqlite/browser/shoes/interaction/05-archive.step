@@ -1,0 +1,7 @@
+Eun-ji:
+	reload
+	wait 1s
+	click 'li >> nth=1 >> a'
+	wait 2s
+	back
+	click 'li >> nth=2 >> a'

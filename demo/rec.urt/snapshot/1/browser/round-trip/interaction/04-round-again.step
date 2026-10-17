@@ -1,0 +1,4 @@
+Farid:
+	click 'text="Go to the other one!"' [300ms]
+	click 'text=Return to' [300ms]
+	click 'text="Go to the other one!"' [300ms]

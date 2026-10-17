@@ -1,0 +1,5 @@
+0.100 0.500 Farid: click 'input[name=Name]'
+0.500 1.250 Farid: type 'input[name=Name]' 'Farid' [150ms]
+1.250 1.750 Farid: select 'select[name=Ready]' 'Not ready'
+1.750 2.250 Farid: click 'input[type=submit]'
+2.150 2.250 Farid.1: POST /Crud2/create 200

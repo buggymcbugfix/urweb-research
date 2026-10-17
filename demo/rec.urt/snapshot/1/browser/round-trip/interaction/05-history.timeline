@@ -1,0 +1,8 @@
+4.300 4.400 Farid.1: GET /Rec/main 200
+4.300 4.400 Farid: back
+4.400 4.900 Farid: wait 500ms
+4.900 5.000 Farid.1: GET /Rec/other 200
+4.900 5.000 Farid: back
+5.000 5.500 Farid: wait 500ms
+5.500 5.600 Farid.1: GET /Rec/main 200
+5.500 5.600 Farid: forward

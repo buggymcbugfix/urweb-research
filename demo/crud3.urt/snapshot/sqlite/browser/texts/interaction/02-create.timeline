@@ -1,0 +1,6 @@
+0.100 0.500 Divya: click 'input[type=text] >> nth=0'
+0.500 0.950 Divya: type 'input[type=text] >> nth=0' 'tea'
+0.950 1.050 Divya: press Tab
+1.050 1.500 Divya: type 'input[type=text] >> nth=1' 'pot'
+1.500 2.000 Divya: click 'input[type=submit]'
+1.900 2.000 Divya.1: POST /Crud3/create 200

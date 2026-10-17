@@ -1,0 +1,3 @@
+GET /Crud2/main 200
+GET /Crud2/confirm/2 200
+POST /Crud2/delete/2 200

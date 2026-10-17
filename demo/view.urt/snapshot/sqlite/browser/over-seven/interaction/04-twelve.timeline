@@ -1,0 +1,4 @@
+1.000 1.300 Eun-ji: type 'input[name=A]' '12'
+1.300 1.600 Eun-ji: wait 300ms
+1.600 2.100 Eun-ji: click 'input[type=submit]'
+2.000 2.100 Eun-ji.1: POST /View/ins 200

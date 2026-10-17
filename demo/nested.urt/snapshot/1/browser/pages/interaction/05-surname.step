@@ -1,0 +1,7 @@
+Farid:
+	type 'input[name=Surname]' 'Hadad' [180ms]
+	wait 400ms
+	press Backspace
+	press Backspace
+	type 'input[name=Surname]' 'dad' [180ms]
+	press Enter

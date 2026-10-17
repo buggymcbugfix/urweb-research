@@ -1,0 +1,4 @@
+6.400 6.500 Carlos.1: GET /Link/main 200
+6.400 6.500 Carlos: back
+6.500 7.000 Carlos: click 'text="Go there"'
+6.900 7.000 Carlos.1: GET /Link/target 200

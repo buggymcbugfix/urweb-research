@@ -1,0 +1,4 @@
+Carlos:
+	wait 1500ms
+	click 'text=Delete >> nth=0'
+	click 'text=Update'

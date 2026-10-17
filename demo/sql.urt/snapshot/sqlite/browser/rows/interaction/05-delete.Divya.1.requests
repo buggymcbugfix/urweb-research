@@ -1,0 +1,2 @@
+GET /Sql/main 200
+POST /Sql/delete/1 200

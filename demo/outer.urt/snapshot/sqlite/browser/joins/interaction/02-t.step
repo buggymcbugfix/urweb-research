@@ -1,0 +1,6 @@
+Farid:
+	click 'input[name=Id] >> nth=0'
+	type 'input[name=Id] >> nth=0' '1'
+	press Tab
+	type 'input[name=B]' 'one'
+	press Enter

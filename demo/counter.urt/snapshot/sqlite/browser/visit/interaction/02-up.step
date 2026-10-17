@@ -1,0 +1,4 @@
+Farid:
+	click 'text=Increment'
+	click 'text=Increment' [250ms]
+	click 'text=Increment' [250ms]

@@ -1,0 +1,3 @@
+Bernd:
+	wait 1s
+	click 'text="Click me!"'

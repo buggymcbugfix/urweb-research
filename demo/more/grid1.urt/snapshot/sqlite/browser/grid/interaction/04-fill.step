@@ -1,0 +1,12 @@
+Bernd:
+	fill 'tr.Grid1_row >> nth=1 >> input[type=text] >> nth=0' ''
+	type 'tr.Grid1_row >> nth=1 >> input[type=text] >> nth=0' '5'
+	press Tab
+	type 'tr.Grid1_row >> nth=1 >> input[type=text] >> nth=1' 'five' [170ms]
+	press Tab
+	press Space
+	select 'tr.Grid1_row >> nth=1 >> select >> nth=0' 'kettle'
+	type 'tr.Grid1_row >> nth=1 >> input[type=text] >> nth=2' '7'
+	select 'tr.Grid1_row >> nth=1 >> select >> nth=1' 'cups'
+	wait 1s
+	click 'text="Save"'

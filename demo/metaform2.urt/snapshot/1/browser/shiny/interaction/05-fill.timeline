@@ -1,0 +1,7 @@
+4.200 4.600 Divya: click 'input[name=X]'
+4.600 4.850 Divya: type 'input[name=X]' '3' [250ms]
+4.850 4.950 Divya: press Tab
+4.950 5.200 Divya: type 'input[name=Y]' '4' [250ms]
+5.200 5.900 Divya: wait 700ms
+5.900 6.400 Divya: click 'input[type=submit]'
+6.300 6.400 Divya.1: POST /Metaform2/MM/handler 200

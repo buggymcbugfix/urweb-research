@@ -1,0 +1,4 @@
+7.000 7.000 Bernd: dialog accept [500ms]
+7.000 7.000 Bernd: dialog accept [700ms]
+7.000 7.900 Bernd: click 'text="Click me!"'
+7.900 9.000 Bernd: click 'text="Click me!"'

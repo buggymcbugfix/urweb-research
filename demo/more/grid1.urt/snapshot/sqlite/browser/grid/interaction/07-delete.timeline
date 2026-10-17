@@ -1,0 +1,6 @@
+12.980 13.480 Bernd: click 'text="Delete" >> nth=1'
+13.380 13.480 Bernd.1: POST /Grid1/delete/1 200
+13.480 14.480 Bernd: wait 1s
+14.480 15.080 Bernd: click 'text="Refresh"'
+14.880 14.980 Bernd.1: POST /Grid1/list 200
+14.980 15.080 Bernd.1: POST /Grid1/F/getChoice/0 200

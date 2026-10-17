@@ -1,0 +1,3 @@
+GET /Rec/main 200
+GET /Rec/other 200
+GET /Rec/main 200

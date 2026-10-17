@@ -1,0 +1,4 @@
+7.000 7.400 Eun-ji: click 'tr:has-text("Filters") >> input >> nth=1'
+7.400 7.700 Eun-ji: type 'tr:has-text("Filters") >> input >> nth=1' '42'
+7.700 9.200 Eun-ji: wait 1500ms
+9.200 9.400 Eun-ji: fill 'tr:has-text("Filters") >> input >> nth=1' ''

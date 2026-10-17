@@ -1,0 +1,5 @@
+Bernd:
+	open /RoundTrip/main
+	wait 1s
+	click 'text=Begin demo'
+	wait 3s

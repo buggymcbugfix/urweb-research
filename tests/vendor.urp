@@ -1,0 +1,6 @@
+ffi vendorFfi
+jsFile vendor.js
+jsFunc VendorFfi.vendor=vendor
+benignEffectful VendorFfi.vendor
+
+vendor

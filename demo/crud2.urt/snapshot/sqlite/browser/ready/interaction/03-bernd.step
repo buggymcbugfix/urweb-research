@@ -1,0 +1,3 @@
+Bernd:
+	type 'input[name=Name]' 'Bernd' [200ms]
+	click 'input[type=submit]'

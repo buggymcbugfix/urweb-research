@@ -1,0 +1,4 @@
+Bernd:
+	wait 2s
+	dialog dismiss [2s]
+	click 'text="Click me!"'

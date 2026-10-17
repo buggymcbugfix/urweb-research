@@ -1,0 +1,5 @@
+7.050 8.550 Carlos: wait 1500ms
+8.550 9.050 Carlos: click 'text=Delete >> nth=0'
+8.950 9.050 Carlos.1: POST /BatchG/del/2 200
+9.050 9.550 Carlos: click 'text=Update'
+9.450 9.550 Carlos.1: POST /BatchG/allRows/_ 200

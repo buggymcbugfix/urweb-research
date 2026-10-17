@@ -1,0 +1,9 @@
+8.600 8.700 Carlos.1: GET /Crud1/main 200
+8.600 8.700 Carlos: open /Crud1/main
+8.700 8.850 Carlos: type 'input[name=A]' 'x'
+8.850 8.950 Carlos: press Tab
+8.950 9.700 Carlos: type 'input[name=B]' 'wrong'
+9.700 9.800 Carlos: press Tab
+9.800 9.950 Carlos: type 'input[name=C]' '1'
+9.950 10.450 Carlos: click 'input[type=submit]'
+10.350 10.450 Carlos.1: POST /Crud1/create 500

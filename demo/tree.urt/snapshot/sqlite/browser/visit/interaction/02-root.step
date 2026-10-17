@@ -1,0 +1,4 @@
+Farid:
+	click 'input[name=Nam]'
+	type 'input[name=Nam]' 'kitchen' [140ms]
+	press Enter

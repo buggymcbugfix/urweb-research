@@ -1,0 +1,4 @@
+Eun-ji:
+	type 'input[name=A]' '12'
+	wait 300ms
+	click 'input[type=submit]'

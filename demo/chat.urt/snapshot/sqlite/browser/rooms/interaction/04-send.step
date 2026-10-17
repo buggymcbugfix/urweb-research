@@ -1,0 +1,2 @@
+Alice: fill 'input[type=text]' 'hello'
+Alice: click 'text=Send:'

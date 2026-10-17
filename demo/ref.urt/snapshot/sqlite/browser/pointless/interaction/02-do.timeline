@@ -1,0 +1,3 @@
+0.100 1.100 Alice: wait 1s
+1.100 1.600 Alice: click 'input[type=submit]'
+1.500 1.600 Alice.1: POST /Ref/mutate 200

@@ -1,0 +1,2 @@
+6.550 7.050 Carlos: click 'text=Update'
+6.950 7.050 Carlos.1: POST /BatchG/allRows/_ 200

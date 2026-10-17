@@ -1,0 +1,7 @@
+7.840 8.340 Carlos: click 'text=One fewer blank'
+8.240 8.340 Carlos.1: GET /Subforms/form/1 200
+8.340 8.840 Carlos: click 'text=One fewer blank'
+8.740 8.840 Carlos.1: GET /Subforms/form/0 200
+8.840 9.340 Carlos: wait 500ms
+9.340 9.840 Carlos: click 'input[type=submit]'
+9.740 9.840 Carlos.1: POST /Subforms/sub 200

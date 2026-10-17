@@ -1,0 +1,12 @@
+15.230 15.230 Divya: until 'text=I do, coming'
+15.230 16.230 Divya: wait 1s
+15.230 17.570 Carlos.1: POST /.msgs 200
+15.230 17.570 Divya.1: POST /.msgs 200
+15.230 17.570 Farid.1: POST /.msgs 200
+15.230 20.230 Carlos: wait 5s
+16.230 17.070 Divya: type 'input[type=text]' 'thanks!' [120ms]
+17.070 17.570 Divya: click 'text=Send:'
+17.470 17.570 Divya.1: POST /Chat/speak/1/thanks! 200
+17.570 ... Divya.1: POST /.msgs ...
+17.570 ... Farid.1: POST /.msgs ...
+20.230 20.230 Carlos: close

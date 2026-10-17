@@ -1,0 +1,7 @@
+0.200 0.600 Carlos: click 'input[type=text] >> nth=0'
+0.600 0.750 Carlos: type 'input[type=text] >> nth=0' '1'
+0.750 0.850 Carlos: press Tab
+0.850 1.750 Carlos: type 'input[type=text] >> nth=1' 'kettle'
+1.750 1.850 Carlos: press Tab
+1.850 2.450 Carlos: type 'input[type=text] >> nth=2' '24.5'
+2.450 2.850 Carlos: click 'text=Batch it'

@@ -1,0 +1,4 @@
+1.600 2.000 Alice: click 'input[name=User]'
+2.000 2.700 Alice: type 'input[name=User]' 'alice' [140ms]
+2.700 2.800 Alice.1: POST /CookieSec/set 200
+2.700 2.800 Alice: press Enter

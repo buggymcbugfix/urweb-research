@@ -1,0 +1,7 @@
+Divya:
+	type 'input[name=Id]' '5' [170ms]
+	press Tab
+	type 'input[name=Nam]' 'orphan' [170ms]
+	press Tab
+	type 'input[name=Parent]' '9' [170ms]
+	press Enter

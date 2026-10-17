@@ -1,0 +1,3 @@
+2.600 4.600 Bernd: wait 2s
+4.600 4.600 Bernd: dialog dismiss [2s]
+4.600 7.000 Bernd: click 'text="Click me!"'

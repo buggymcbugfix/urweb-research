@@ -1,0 +1,5 @@
+Eun-ji:
+	wait 1500ms
+	back
+	upload 'input[type=file]' page.html
+	click 'input[type=submit]'
