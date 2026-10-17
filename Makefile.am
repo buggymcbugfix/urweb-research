@@ -144,7 +144,7 @@ TEST_PRELUDE = set -e; \
 	cleanup() { \
 		kill $$pid 2>/dev/null || true; \
 		pid=""; \
-		rm -f $$dbfile $$dbfile-shm $$dbfile-wal; \
+		rm -f $$dbfile $$dbfile-shm $$dbfile-wal $$dbfile.log $$dbfile.err; \
 	}; \
 	setup() { \
 		sqlite3 $$dbfile < demo/demo.sql; \
@@ -180,6 +180,16 @@ check-local: bin/urweb
 	[ "$$status" = 'OK' ] || { echo "demo.exe failed to start" >&2; exit 1; }; \
 	curl -s "http://localhost:$$port/Demo/Hello/main" | diff tests/hello.html - || { echo "Test 'Hello' failed" >&2; exit 1; }; \
 	curl -s "http://localhost:$$port/Demo/Crud1/create?A=1&B=2&C=3&D=4" | diff tests/crud1.html - || { echo "Test 'Crud1' failed" >&2; exit 1; }; \
+	kill $$pid; pid=""; \
+	\
+	echo "Running UrWeb-Time test."; \
+	eval "$$(URWEB_REPRODUCIBLE_EPOCH=4102444800 URWEB_DML_LOG=$$dbfile.log demo/demo.exe -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>/dev/null 2>$$dbfile.err)"; \
+	[ "$$status" = 'OK' ] || { echo "demo.exe failed to start" >&2; exit 1; }; \
+	for t in 1000 -1000 +1000 253402300800000 abc; do \
+		curl -s -H "UrWeb-Time: $$t" "http://localhost:$$port/Demo/Crud1/create?A=1&B=2&C=3&D=4" >/dev/null; \
+	done; \
+	kill $$pid; pid=""; \
+	{ grep '^-- [0-9]' $$dbfile.log; cat $$dbfile.err; } | diff tests/urweb_time.txt - || { echo "Test 'UrWeb-Time' failed" >&2; exit 1; }; \
 	echo "Tests succeeded."
 
 .PHONY: check-ipv6
