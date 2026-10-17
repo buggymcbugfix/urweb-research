@@ -221,9 +221,12 @@ static int write_stdout(void *data, const char *buf, size_t len) {
 
 #include <errno.h>
 
-static void close_stream(FCGI_Output *o, unsigned char type) {
-  if (fastcgi_send(o, type, 0))
+static int close_stream(FCGI_Output *o, unsigned char type) {
+  if (fastcgi_send(o, type, 0)) {
     fprintf(stderr, "fastcgi_send() failed in close_stream().\n");
+    return -1;
+  }
+  return 0;
 }
 
 // The program logs as the HTTP server does: errors on stderr, and debug
@@ -356,12 +359,14 @@ static int read_nvp(unsigned char **buf, int len, nvp *nv) {
 }
 
 // The end of a response: its stdout and stderr streams closed, and
-// FCGI_END_REQUEST with the request's status.
-static void fastcgi_end_request(FCGI_Output *out, request_result rr) {
+// FCGI_END_REQUEST with the request's status.  0, or -1 when some of it
+// could not be sent.
+static int fastcgi_end_request(FCGI_Output *out, request_result rr) {
   FCGI_EndRequestBody *erb = (FCGI_EndRequestBody *)out->r.contentData;
+  int failed = 0;
 
-  close_stream(out, FCGI_STDOUT);
-  close_stream(out, FCGI_STDERR);
+  failed |= close_stream(out, FCGI_STDOUT);
+  failed |= close_stream(out, FCGI_STDERR);
 
   if (rr == SERVED)
     erb->appStatusB3 = erb->appStatusB2 = erb->appStatusB1 = erb->appStatusB0 = 0;
@@ -369,9 +374,12 @@ static void fastcgi_end_request(FCGI_Output *out, request_result rr) {
     erb->appStatusB3 = erb->appStatusB2 = erb->appStatusB1 = erb->appStatusB0 = 0xFF;
 
   erb->protocolStatus = FCGI_REQUEST_COMPLETE;
-  fastcgi_send(out, FCGI_END_REQUEST, sizeof(FCGI_EndRequestBody));
-  if (out->buf && fastcgi_flush(out))
+  failed |= fastcgi_send(out, FCGI_END_REQUEST, sizeof(FCGI_EndRequestBody));
+  if (out->buf && fastcgi_flush(out)) {
     fprintf(stderr, "fastcgi_flush() failed in fastcgi_end_request().\n");
+    failed = -1;
+  }
+  return failed ? -1 : 0;
 }
 
 static int fastcgi_close_with(FCGI_Output *out, request_result rr) {
@@ -394,47 +402,101 @@ static void idle_limit(int sock, int seconds) {
   setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
 }
 
-// The id of the request last begun on a connection, by socket.  A request
-// for messages (/.msgs) hands its connection to the runtime, which answers
-// on it from whichever thread sends the message, through
-// fastcgi_send_normal and fastcgi_close, which get the socket alone.  The
-// records they write must carry the id the web server gave the request.
-// A worker enters the id before every request, since the handing over
-// happens inside uw_request; the entry is read once the connection has
-// been handed over, which the runtime orders after the handing over
-// through the client's lock.
-static int *handed_ids;
-static size_t n_handed_ids;
-static pthread_mutex_t handed_ids_mutex = PTHREAD_MUTEX_INITIALIZER;
+// The request last begun on a connection, by socket.  A request for
+// messages (/.msgs) hands its connection to the runtime, which answers on
+// it from whichever thread sends the message, through fastcgi_send_normal
+// and fastcgi_close, which get the socket alone.  The records they write
+// must carry the id the web server gave the request, and the connection
+// stays open afterwards if the web server asked for that.  A worker enters
+// both before every request, since the handing over happens inside
+// uw_request; the entry is read once the connection has been handed over,
+// which the runtime orders after the handing over through the client's
+// lock.
+typedef struct {
+  int request_id;
+  // FCGI_KEEP_CONN: the web server asked for the connection to stay open
+  // after the request.
+  int keep;
+  // Set while the kept connection, its answer sent, waits in the queue for
+  // a worker, and taken off by the worker that dequeues it.
+  int given_back;
+} connection;
 
-static void set_handed_id(int sock, int request_id) {
-  pthread_mutex_lock(&handed_ids_mutex);
-  if ((size_t)sock >= n_handed_ids) {
-    size_t n = n_handed_ids ? n_handed_ids : 256;
+static connection *connections;
+static size_t n_connections;
+static pthread_mutex_t connections_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static void set_handed(int sock, int request_id, int keep) {
+  pthread_mutex_lock(&connections_mutex);
+  if ((size_t)sock >= n_connections) {
+    size_t n = n_connections ? n_connections : 256;
 
     while ((size_t)sock >= n)
       n *= 2;
-    handed_ids = realloc(handed_ids, n * sizeof(int));
-    n_handed_ids = n;
+    connections = realloc(connections, n * sizeof(connection));
+    memset(connections + n_connections, 0, (n - n_connections) * sizeof(connection));
+    n_connections = n;
   }
-  handed_ids[sock] = request_id;
-  pthread_mutex_unlock(&handed_ids_mutex);
+  connections[sock].request_id = request_id;
+  connections[sock].keep = keep;
+  pthread_mutex_unlock(&connections_mutex);
 }
 
 static int handed_id(int sock) {
   int request_id;
 
-  pthread_mutex_lock(&handed_ids_mutex);
-  request_id = handed_ids[sock];
-  pthread_mutex_unlock(&handed_ids_mutex);
+  pthread_mutex_lock(&connections_mutex);
+  request_id = connections[sock].request_id;
+  pthread_mutex_unlock(&connections_mutex);
   return request_id;
 }
 
+static int handed_keep(int sock) {
+  int keep;
+
+  pthread_mutex_lock(&connections_mutex);
+  keep = connections[sock].keep;
+  pthread_mutex_unlock(&connections_mutex);
+  return keep;
+}
+
+// A kept connection whose answer is sent, back to the workers: it waits in
+// the queue for one of them, and then for its next request.
+static void give_back(int sock) {
+  pthread_mutex_lock(&connections_mutex);
+  connections[sock].given_back = 1;
+  pthread_mutex_unlock(&connections_mutex);
+  uw_enqueue(sock);
+}
+
+// Whether sock, just dequeued, is a kept connection given back rather than
+// a new one.  The mark is taken off.
+static int given_back(int sock) {
+  int r = 0;
+
+  pthread_mutex_lock(&connections_mutex);
+  if ((size_t)sock < n_connections) {
+    r = connections[sock].given_back;
+    connections[sock].given_back = 0;
+  }
+  pthread_mutex_unlock(&connections_mutex);
+  return r;
+}
+
+// The end of the answer to a request for messages, from whichever thread
+// sent it.  The connection is then closed, or given back to the workers when
+// the web server asked to keep it, as the FastCGI spec requires: it is the
+// web server's to close.  One whose end could not be sent is closed.
 static int fastcgi_close(int sock) {
   FCGI_Output out;
 
   fastcgi_output_init(&out, sock, handed_id(sock));
-  return fastcgi_close_with(&out, SERVED);
+  if (fastcgi_end_request(&out, SERVED) || !handed_keep(sock))
+    return close(sock);
+  if (recv_timeout > 0)
+    idle_limit(sock, recv_timeout);
+  give_back(sock);
+  return 0;
 }
 
 int fastcgi_send_normal(int sock, const void *buf, ssize_t len) {
@@ -480,8 +542,12 @@ static void *worker(void *data) {
     int kept = keep;
 
     keep = 0;
-    if (!kept)
+    if (!kept) {
       in->sock = out->sock = uw_dequeue();
+      // It may be a kept connection that a request for messages gave back
+      // once its answer had gone, and then it is kept here too.
+      kept = given_back(in->sock);
+    }
 
     if (!(r = fastcgi_recv(in))) {
       // A kept connection that the web server closes, or that waits past
@@ -642,14 +708,15 @@ static void *worker(void *data) {
     {
       request_result rr;
 
-      set_handed_id(in->sock, out->request_id);
+      set_handed(in->sock, out->request_id, keep);
       rr = uw_request(rc, ctx, method, path, query_string, body, body_read,
                       on_success, on_failure,
                       out, log_error, log_debug,
                       in->sock, fastcgi_send_normal, fastcgi_close);
 
-      // A request for messages has handed its connection over; it is
-      // closed once the messages are sent, whatever the web server asked.
+      // A request for messages has handed its connection over.  Whoever
+      // sends the messages ends it with fastcgi_close, which gives a kept
+      // one back to the workers.
       if (rr == KEEP_OPEN) {
         keep = 0;
         goto done2;
