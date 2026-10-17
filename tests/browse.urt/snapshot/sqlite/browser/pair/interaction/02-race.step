@@ -1,0 +1,7 @@
+Alice:
+	type 'input[type=text]' 'from Alice'
+	label "typed"
+	click 'text=Note'
+Bernd:
+	after Alice."typed"
+	click 'text=Other'

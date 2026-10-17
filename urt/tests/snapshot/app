@@ -30,8 +30,9 @@
 #   /.clock    the logical clock, as the runtime has it when urt pins it
 #              (src/c/reproducible.c): ?advance=T does what is due before T
 #              (milliseconds since the Unix epoch), and the answer says when
-#              the next thing is due, `next T` or `next none`; a request is
-#              made at the time its UrWeb-Time header says
+#              the next thing is due, `next T` or `next none`, and then
+#              `released 0`, there being no polls; a request is made at the
+#              time its UrWeb-Time header says
 #
 # APP_PIDFILE names a file that the process that serves writes its pid
 # to, and removes when it is stopped, for a transcript to see whether it
@@ -43,6 +44,12 @@
 #   badstatus  a handshake with status='FAIL'
 #   partial    a handshake cut off after "port="
 #   hang       no handshake, ever, and no exit; SIGTERM is ignored
+#
+# APP_CLOCK makes its clock misbehave:
+#
+#   stuck      every answer is `next 1`, a clock that does not move
+#   exit       once an advance has done something, the server exits
+#              before it answers, as one that dies in a task would
 #
 # Modelled on the fake server of the review of this feature (session
 # 01CM2Am54aGdbWc48fTDkDUR).
@@ -181,14 +188,20 @@ while True:
             now = int(line.split(b":", 1)[1])
     if path.startswith("/.clock"):
         query = urllib.parse.parse_qs(path.partition("?")[2])
+        done = False
         if "advance" in query:
             until = int(query["advance"][0])
             due.sort()
             while due and due[0][0] < until:
                 _, _, what, args = due.pop(0)
                 what(*args)
+                done = True
+        if done and os.environ.get("APP_CLOCK") == "exit":
+            os._exit(0)
         due.sort()
-        answer = b"next %d\n" % due[0][0] if due else b"next none\n"
+        answer = (b"next %d\n" % due[0][0] if due else b"next none\n") + b"released 0\n"
+        if os.environ.get("APP_CLOCK") == "stuck":
+            answer = b"next 1\nreleased 0\n"
         c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
                   % len(answer) + answer)
         c.close()

@@ -1,0 +1,2 @@
+5.950 6.350 Alice: dblclick 'text=Twice'
+6.350 7.350 Alice: hover 'text=Hover' [1s]

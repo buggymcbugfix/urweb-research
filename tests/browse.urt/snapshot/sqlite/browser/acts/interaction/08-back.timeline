@@ -1,0 +1,3 @@
+7.850 8.150 Alice: tab 1
+8.150 8.350 Alice: fill 'input[type=text]' 'more'
+8.350 8.450 Alice: press Enter [on='input[type=text]']

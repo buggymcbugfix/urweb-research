@@ -1,0 +1,3 @@
+Alice:
+	select 'select' 'a'
+	check 'input[type=checkbox]'

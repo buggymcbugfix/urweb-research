@@ -690,32 +690,46 @@ int child_say(struct child *c, const char *line) {
     return 0;
 }
 
+/* The whole lines the child has said, each to fn, up to one that is
+ * until, which is not handed out; a partial one waits.  1 when until
+ * came. */
+static int take_lines(struct child *c, const char *until, void (*fn)(const char *line, void *data), void *data) {
+    char *nl;
+    while ((nl = memchr(c->buf, '\n', c->len))) {
+        int last;
+        *nl = 0;
+        last = !strcmp(c->buf, until);
+        if (!last) {
+            fn(c->buf, data);
+        }
+        c->len -= (size_t) (nl + 1 - c->buf);
+        memmove(c->buf, nl + 1, c->len + 1);
+        if (last) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+/* Room in the child's buffer for more than a byte. */
+static void make_room(struct child *c) {
+    if (c->len + 1 >= c->cap) {
+        char *bigger = xmalloc(c->cap *= 2);
+        memcpy(bigger, c->buf, c->len);
+        free(c->buf);
+        c->buf = bigger;
+    }
+}
+
 int child_lines(struct child *c, const char *until, void (*fn)(const char *line, void *data), void *data) {
     int told = 0;
-    char *nl;
     ssize_t n;
 
     for (;;) {
-        /* Whole lines go out as they come; a partial one waits. */
-        while ((nl = memchr(c->buf, '\n', c->len))) {
-            int last;
-            *nl = 0;
-            last = !strcmp(c->buf, until);
-            if (!last) {
-                fn(c->buf, data);
-            }
-            c->len -= (size_t) (nl + 1 - c->buf);
-            memmove(c->buf, nl + 1, c->len + 1);
-            if (last) {
-                return 1;
-            }
+        if (take_lines(c, until, fn, data)) {
+            return 1;
         }
-        if (c->len + 1 >= c->cap) {
-            char *bigger = xmalloc(c->cap *= 2);
-            memcpy(bigger, c->buf, c->len);
-            free(c->buf);
-            c->buf = bigger;
-        }
+        make_room(c);
         n = read(c->from, c->buf + c->len, c->cap - c->len - 1);
         if (n < 0 && errno == EINTR) {
             if (fs_interrupted && !told) {
@@ -737,35 +751,131 @@ int child_lines(struct child *c, const char *until, void (*fn)(const char *line,
     }
 }
 
-void child_stop(struct child *c) {
-    struct timespec nap = { 0, 10 * 1000 * 1000 };
-    int st, i, w = 0;
+/* One of several children, for take_lines. */
+struct one_of {
+    void (*fn)(int i, const char *line, void *data);
+    int i;
+    void *data;
+};
 
-    if (c->pid <= 0) {
-        return;
+static void line_of(const char *line, void *p) {
+    struct one_of *w = p;
+    w->fn(w->i, line, w->data);
+}
+
+void children_lines(struct child *const cs[], int n, const char *until,
+                    void (*fn)(int i, const char *line, void *data), void *data, int done[]) {
+    struct pollfd fds[CHILDREN_MAX];
+    int open[CHILDREN_MAX], at[CHILDREN_MAX], left = 0, told = 0, i, j, k;
+
+    if (n > CHILDREN_MAX) {
+        die(fmt("children_lines: %d children, %d at most", n, CHILDREN_MAX), NULL);
     }
-    /* Its stdin ending is its cue to leave; a second for that, then
-     * SIGTERM, then SIGKILL. */
-    close(c->to);
-    close(c->from);
-    for (i = 0; i < 200 && w == 0; i++) {
-        w = waitpid(c->pid, &st, WNOHANG);
-        if (w == 0) {
-            if (i == 100) {
-                kill(c->pid, SIGTERM);
+    for (i = 0; i < n; i++) {
+        struct one_of w = { fn, i, data };
+        done[i] = take_lines(cs[i], until, line_of, &w);
+        open[i] = !done[i];
+        left += open[i];
+    }
+    while (left > 0) {
+        if (fs_interrupted && !told) {
+            for (i = 0; i < n; i++) {
+                if (open[i]) {
+                    kill(cs[i]->pid, SIGTERM);
+                }
             }
+            told = 1;
+        }
+        for (i = k = 0; i < n; i++) {
+            if (open[i]) {
+                fds[k].fd = cs[i]->from;
+                fds[k].events = POLLIN;
+                fds[k].revents = 0;
+                at[k++] = i;
+            }
+        }
+        if (poll(fds, (nfds_t) k, -1) < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            die(fmt("cannot wait for the drivers: %s", strerror(errno)), NULL);
+        }
+        for (j = 0; j < k; j++) {
+            struct child *c = cs[at[j]];
+            struct one_of w = { fn, at[j], data };
+            ssize_t r;
+            if (!fds[j].revents) {
+                continue;
+            }
+            make_room(c);
+            r = read(c->from, c->buf + c->len, c->cap - c->len - 1);
+            if (r < 0 && errno == EINTR) {
+                continue;
+            }
+            if (r <= 0) {
+                /* Gone, or going: what it said last is a line too. */
+                if (c->len) {
+                    c->buf[c->len] = 0;
+                    line_of(c->buf, &w);
+                    c->len = 0;
+                }
+                open[at[j]] = 0;
+                left--;
+                continue;
+            }
+            c->len += (size_t) r;
+            c->buf[c->len] = 0;
+            if (take_lines(c, until, line_of, &w)) {
+                done[at[j]] = 1;
+                open[at[j]] = 0;
+                left--;
+            }
+        }
+    }
+}
+
+void children_stop(struct child *const cs[], int n) {
+    struct timespec nap = { 0, 10 * 1000 * 1000 };
+    int st, i, k, left = 0;
+
+    /* Their stdin ending is their cue to leave: five seconds for that,
+     * since a driver closes its browsers first, then SIGTERM, then a
+     * second later SIGKILL. */
+    for (k = 0; k < n; k++) {
+        if (cs[k]->pid > 0) {
+            close(cs[k]->to);
+            close(cs[k]->from);
+            left++;
+        }
+    }
+    for (i = 0; left > 0; i++) {
+        for (k = 0; k < n; k++) {
+            pid_t w;
+            if (cs[k]->pid <= 0) {
+                continue;
+            }
+            w = waitpid(cs[k]->pid, &st, WNOHANG);
+            if (w > 0 || (w < 0 && errno != EINTR)) {
+                free(cs[k]->buf);
+                cs[k]->buf = NULL;
+                cs[k]->pid = 0;
+                left--;
+            } else if (i == 500) {
+                kill(cs[k]->pid, SIGTERM);
+            } else if (i >= 600 && i % 100 == 0) {
+                kill(cs[k]->pid, SIGKILL);
+            }
+        }
+        if (left > 0) {
             nanosleep(&nap, NULL);
         }
     }
-    if (w == 0) {
-        kill(c->pid, SIGKILL);
-        while (waitpid(c->pid, &st, 0) < 0 && errno == EINTR) {
-            ;
-        }
-    }
-    free(c->buf);
-    c->buf = NULL;
-    c->pid = 0;
+}
+
+void child_stop(struct child *c) {
+    struct child *one[1];
+    one[0] = c;
+    children_stop(one, 1);
 }
 
 /* The path comes back canonical -- no doubled or trailing slashes, no

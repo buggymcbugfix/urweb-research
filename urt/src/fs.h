@@ -134,9 +134,20 @@ int child_say(struct child *c, const char *line);
  * read, and the caller finds fs_interrupted set. */
 int child_lines(struct child *c, const char *until, void (*fn)(const char *line, void *data), void *data);
 
-/* End the child: its stdin is closed, which is its cue to leave; a
- * second later SIGTERM, a second after that SIGKILL.  Reaped. */
+/* The same for several children at once, each line to fn with the index
+ * of the child that said it, in the order they come: done[i] is 1 for a
+ * child that said until, 0 for one whose stdout ended first.  At most
+ * CHILDREN_MAX of them. */
+#define CHILDREN_MAX 8
+void children_lines(struct child *const cs[], int n, const char *until,
+                    void (*fn)(int i, const char *line, void *data), void *data, int done[]);
+
+/* End the child: its stdin is closed, which is its cue to leave; five
+ * seconds later SIGTERM, a second after that SIGKILL.  Reaped. */
 void child_stop(struct child *c);
+
+/* The same for several children at once. */
+void children_stop(struct child *const cs[], int n);
 
 /* Whether the PATH has a program of that name. */
 int on_path(const char *name);

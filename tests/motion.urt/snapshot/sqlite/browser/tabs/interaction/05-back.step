@@ -1,0 +1,6 @@
+Carlos:
+	tab 1
+	click 'text=Frames'
+Farid:
+	tab 1
+	click 'text=Frames'

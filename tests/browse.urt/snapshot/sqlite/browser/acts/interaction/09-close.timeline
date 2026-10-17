@@ -1,0 +1,3 @@
+8.450 8.450 Alice: close
+8.450 8.550 Alice.2: GET /other 200
+8.450 8.550 Alice: reload

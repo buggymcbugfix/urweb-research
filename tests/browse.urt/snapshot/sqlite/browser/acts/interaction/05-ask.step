@@ -1,0 +1,4 @@
+Alice: dialog dismiss
+Alice: click 'text=Ask'
+Alice: dialog accept [2s]
+Alice: click 'text=Ask'

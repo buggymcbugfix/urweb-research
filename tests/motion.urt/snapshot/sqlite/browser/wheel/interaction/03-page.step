@@ -1,0 +1,4 @@
+Farid:
+	hover 'text=heart'
+	wheel 0 400
+	click 'text=Where'

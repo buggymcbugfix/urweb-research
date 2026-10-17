@@ -264,6 +264,25 @@ cd "$root"
 arun runs/serves-never.urt/snapshot/1/request-response/far
 printf 'GET /year\n' > runs/serves-never.urt/snapshot/1/request-response/far/interaction/01.request
 printf 'until a line from a task\n' > runs/serves-never.urt/snapshot/1/request-response/far/interaction/02-task.wait
+# A project whose server's clock misbehaves: one that exits in the task
+# a wait is for, after printing the line the wait is for; and one whose
+# clock does not move.
+proj runs serves-clock
+snap runs/serves-clock.urt/snapshot/1 exitcode
+arun runs/serves-clock.urt/snapshot/1/request-response/exits
+printf 'APP_CLOCK=exit\n' > runs/serves-clock.urt/snapshot/1/request-response/exits/env
+cd runs/serves-clock.urt/snapshot/1/request-response/exits/interaction
+printf 'GET /later\n' > 01.request
+printf 'until a line from a task\n' > 02-task.wait
+printf 'GET /after\n' > 03-after.request
+cd "$root"
+arun runs/serves-clock.urt/snapshot/1/request-response/stuck
+printf 'APP_CLOCK=stuck\n' > runs/serves-clock.urt/snapshot/1/request-response/stuck/env
+cd runs/serves-clock.urt/snapshot/1/request-response/stuck/interaction
+printf 'GET /later\n' > 01.request
+printf 'wait 2s\n' > 02-two.wait
+printf 'GET /after\n' > 03-after.request
+cd "$root"
 proj runs serves-gone
 snap runs/serves-gone.urt/snapshot/1 exitcode
 arun runs/serves-gone.urt/snapshot/1/request-response/gone
@@ -356,13 +375,14 @@ brun() {
     mkdir -p "$1/interaction"
     : > "$1/args"
     printf 'secret signature\n' > "$1/secret"
-    printf 'user.1: open /\n' > "$1/interaction/01.step"
+    printf 'user: open / [target=1]\n' > "$1/interaction/01.step"
 }
 proj runs web
 snap runs/web.urt/snapshot/1 exitcode
 brun runs/web.urt/snapshot/1/browser/first
-printf "user.1: fill 'input[name=name]' 'tea kettle'\nuser.1: click 'text=Add'\nbob.1: open /\nbob.1: wait 'text=1 item'\n" \
+printf "user: fill 'input[name=name]' 'tea kettle'\nuser: click 'text=Add'\nBernd:\n\topen / [target=1]\n\tuntil 'text=1 item'\n" \
     > runs/web.urt/snapshot/1/browser/first/interaction/02-add.step
+printf 'order user Bernd\nengines firefox\n' > runs/web.urt/snapshot/1/browser/first/context
 printf 'In a browser.\n' > runs/web.urt/snapshot/1/browser/first/README.md
 mkdir -p runs/web.urt/snapshot/1/browser/first/screenshots/old runs/web.urt/snapshot/1/browser/first/recordings
 : > runs/web.urt/snapshot/1/browser/first/recordings/user.1.chromium.webm
@@ -373,9 +393,11 @@ snap runs/webstray.urt/snapshot/1 exitcode
 brun runs/webstray.urt/snapshot/1/browser/a
 : > runs/webstray.urt/snapshot/1/browser/notes.txt
 : > runs/webstray.urt/snapshot/1/browser/a/shot.png
+printf 'firefox\n' > runs/webstray.urt/snapshot/1/browser/a/engines
 : > runs/webstray.urt/snapshot/1/browser/a/a.b.context
 : > runs/webstray.urt/snapshot/1/browser/a/screenshots
 : > runs/webstray.urt/snapshot/1/browser/a/recordings
+: > runs/webstray.urt/snapshot/1/browser/a/files
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.html
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.response
 : > runs/webstray.urt/snapshot/1/browser/a/interaction/01.png
@@ -418,24 +440,67 @@ brun runs/webunready.urt/snapshot/1/browser/a
 rm runs/webunready.urt/snapshot/1/browser/a/secret
 brun runs/webunready.urt/snapshot/1/browser/steps
 cd runs/webunready.urt/snapshot/1/browser/steps/interaction
-printf "user.1: click 'text=Add'\nclick 'text=Add'\nuser.1:\nfirefox.1: open /\nuser.1.2: open /\nbob: open /\n" > 01.step
-printf 'user.1: open main\nuser.1: frob x\nuser.1: fill a\nuser.1: press\nuser.1: dialog maybe\nuser.1: tick -1\nuser.1: wait a b\nuser.1: back now\n' > 02.step
+cat > 01.step <<'STEP'
+user.1: click 'text=Add'
+click 'text=Add'
+user: click 'text=Add'
+Bernd: open / [target=1]
+Bernd: tab 1
+	fill 'a' 'b'
+STEP
+cat > 02.step <<'STEP'
+user: open main [target=1]
+user: frob x
+user: fill 'a'
+user: press
+user: dialog maybe
+user: wait 1
+user: until 'a' gone [5]
+user: back now
+user: click 'x' [at=here]
+user: click 'x' [target=a.b]
+user: click "x"
+user: label "mine"
+user: after user."mine"
+user: after Bernd."nope"
+user: wait 1s [async]
+user: click 'x' (at=1,1)
+user: fill 'a' "b"
+user: upload 'input[type=file]'
+user: upload 'input[type=file]' ../secret
+user: upload 'input[type=file]' photo.png
+STEP
 printf '# nothing yet\n' > 03.step
-printf "user.1: open /main 'never closed\n" > 04.step
-printf "user.1: select 'select'\nuser.1: close\nuser.1: click x\nuser.2: close\n" > 05.step
+printf "user: open /main 'never closed\n" > 04.step
+printf "user:\n  click 'x'\n\tclose\n\tclose\nwait 1s\nuser: wait 1s\n" > 05.step
+# Times too long to read, and digits that are not ASCII (ARABIC-INDIC THREE).
+printf "user: wait %ss\nuser: wait \331\243s\n" "$(printf '9%.0s' $(seq 400))" > 06.step
 cd "$root"
-# The users' contexts are read with the steps.
-printf 'viewport big\ndevice_scale_factor 0\nfrob 1\nlocale\ncolor_scheme bright\nhas_touch yes\nhas_touch no\n' \
-    > runs/webunready.urt/snapshot/1/browser/steps/user.context
-printf 'color_scheme dark\n' > runs/webunready.urt/snapshot/1/browser/steps/bob.context
-: > runs/webunready.urt/snapshot/1/browser/steps/ann.context
+# The run's context is read with the steps.
+cat > runs/webunready.urt/snapshot/1/browser/steps/context <<'CONTEXT'
+viewport big
+device_scale_factor 0
+frob 1
+locale
+color_scheme bright
+has_touch yes
+has_touch no
+order user
+tasks sometimes
+rtt fast
+throttle 1s
+throttle 0s 1s
+throttle none
+engines
+[Bernd]
+order Bernd
+click 2
+engines chromium opera
+[Carlos]
+engines webkit webkit
+CONTEXT
 brun runs/webunready.urt/snapshot/1/browser/threads
 printf -- '-t 2\n' > runs/webunready.urt/snapshot/1/browser/threads/args
-brun runs/webunready.urt/snapshot/1/browser/engines-none
-: > runs/webunready.urt/snapshot/1/browser/engines-none/engines
-brun runs/webunready.urt/snapshot/1/browser/engines-odd
-printf 'chromium\nopera\n' > runs/webunready.urt/snapshot/1/browser/engines-odd/engines
-printf 'firefox\n' > runs/web.urt/snapshot/1/browser/first/engines
 # A case that cannot be named stops the run, so it comes last of all.
 proj zz badname
 snap zz/badname.urt/snapshot/c.d exitcode
