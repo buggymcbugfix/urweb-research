@@ -2197,6 +2197,7 @@ class Held:
         self.finished = False       # the page has it
         self.navigation = False     # a document for the tab
         self.tag = None             # (document, number) as the page's x-urt-sent gives them
+        self.followed = False       # a redirect the driver follows, for the tab, in a navigation of its own
 
 
 class Tab:
@@ -3114,11 +3115,15 @@ class Run:
             h.finished = True
             if h in self.held:
                 self.held.remove(h)
-            if h.navigation and failure is not None:
+            if h.navigation and failure is not None and not h.followed:
                 # A navigation that ends without a document.
                 h.tab.navigating = h.tab.loading = False
         status = failure
-        if status is None:
+        if h is not None and h.followed:
+            # Ended by the driver, which follows where the server sent it:
+            # the status is the server's.
+            status = h.response.status
+        elif status is None:
             try:
                 resp = await req.response()
                 status = resp.status if resp is not None else '?'
@@ -3428,6 +3433,24 @@ class Run:
         rtt = self.setup.rtt_of(h.tab.user.name)
         self.push(self.now + rtt - rtt // 2, PHASE_DELIVERY, h.tab.user.rank, functools.partial(self.deliver, h))
 
+    def redirect_target(self, h):
+        """Where a redirect sends the tab, as a URL of the pages' address;
+        a complaint for one the driver cannot follow."""
+        status, where = h.response.status, h.response.headers.get('location')
+        if not h.navigation:
+            raise Complaint('%s %s is answered %d, and only a navigation of a tab is followed to where it is sent'
+                            % (h.req.method, self.path_of(h.req.url), status))
+        if not where:
+            raise Complaint('%s %s is answered %d, with no Location' % (h.req.method, self.path_of(h.req.url), status))
+        if status in (307, 308) and h.req.method not in ('GET', 'HEAD'):
+            raise Complaint('%s %s is answered %d, which asks for the %s to be sent again; the driver sends a GET only'
+                            % (h.req.method, self.path_of(h.req.url), status, h.req.method))
+        url = urllib.parse.urljoin(self.server + self.path_of(h.req.url), where)
+        for origin in (self.server, self.base):
+            if url == origin or url.startswith(origin + '/'):
+                return self.base + url[len(origin):]
+        raise Complaint('%s %s is sent on to %s, which is not the application' % (h.req.method, self.path_of(h.req.url), where))
+
     async def deliver(self, h):
         tab = h.tab
         h.delivered = self.now
@@ -3440,8 +3463,23 @@ class Run:
         try:
             # Through call: WebKit answers the fulfilling only once the
             # page has handled the answer, a dialog it shows included.
+            followed = False
             if h.error is not None:
                 await self.call(tab, h.route.abort('failed'))
+            elif 300 <= h.response.status < 400 and h.response.status != 304:
+                # Playwright hands the route only the first request of a
+                # redirect: the engine would follow it by itself, to the
+                # pages' address, where nothing listens.  The driver follows
+                # it instead.  204 ends the navigation where it stands, with
+                # no entry in the history and no error page, and the tab
+                # then opens the place the answer names, as a GET, as an
+                # engine does after these.
+                target = self.redirect_target(h)
+                h.followed = True
+                await self.call(tab, h.route.fulfill(status=204, headers={}))
+                self.navigate(tab, tab.page.goto(target, referer=h.req.headers.get('referer'),
+                                                 wait_until='commit', timeout=0))
+                followed = True
             elif h.navigation and 'html' in h.response.headers.get('content-type', ''):
                 tab.shown = tab is tab.user.front
                 self.docs += 1
@@ -3450,9 +3488,10 @@ class Run:
                                                                      tab.hidden_since, self.docs)))
             else:
                 await self.call(tab, h.route.fulfill(response=h.response, headers=self.answer_headers(h)))
-            # The page's to read now, but for a redirect, which the engine
-            # follows with a request of the same number.
-            if h.tag is not None and (h.error is not None or not 300 <= h.response.status < 400):
+            # The page's to read now, but for a redirect the engine follows
+            # with a request of the same number; one the driver follows is
+            # over here.
+            if h.tag is not None and (followed or h.error is not None or not 300 <= h.response.status < 400):
                 tab.answered.setdefault(h.tag[0], set()).add(h.tag[1])
         except self.PlaywrightError:
             h.finished = True

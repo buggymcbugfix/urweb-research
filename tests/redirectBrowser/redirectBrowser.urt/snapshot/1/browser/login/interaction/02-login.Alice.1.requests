@@ -1,2 +1,2 @@
 POST /go 303
-GET /shown failed: net::ERR_CONNECTION_REFUSED
+GET /shown 200
