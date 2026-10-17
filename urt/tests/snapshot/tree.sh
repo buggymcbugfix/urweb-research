@@ -473,6 +473,8 @@ STEP
 printf '# nothing yet\n' > 03.step
 printf "user: open /main 'never closed\n" > 04.step
 printf "user:\n  click 'x'\n\tclose\n\tclose\nwait 1s\nuser: wait 1s\n" > 05.step
+# Times too long to read, and digits that are not ASCII (ARABIC-INDIC THREE).
+printf "user: wait %ss\nuser: wait \331\243s\n" "$(printf '9%.0s' $(seq 400))" > 06.step
 cd "$root"
 # The run's context is read with the steps.
 cat > runs/webunready.urt/snapshot/1/browser/steps/context <<'CONTEXT'

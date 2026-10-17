@@ -464,7 +464,7 @@ static int opt_jobs = 1, opt_jobs_given = 0;    /* -j: how many projects at once
  * a dead worker's seats go; children do not inherit them (O_CLOEXEC). */
 static char seats_dir[PATHLEN] = "";
 static int n_seats = 0, my_seat = -1;
-static const char *opt_frame = NULL;   /* --record=T: the time between a film's frames, as given */
+static const char *opt_frame = NULL;   /* --record=T: the time between a film's frames, in ms as urt reads it */
 static const char *me = "urt snapshot";   /* how to invoke us, for messages */
 static char urweb[PATHLEN];               /* the compiler, absolute */
 static struct strlist urweb_flags;        /* what it always gets */
@@ -4590,7 +4590,13 @@ int snapshot_main(int argc, char **argv) {
                         key(a + 9)), "as in --record=16ms (the default) or --record=33ms", NULL);
             }
             opt_record = 1;
-            opt_frame = a + 9;
+            /* The driver gets the time as urt has read it, so that the two
+             * cannot read it differently. */
+            {
+                static char frame[32];
+                snprintf(frame, sizeof frame, "%lldms", ms);
+                opt_frame = frame;
+            }
         } else if (!strcmp(a, "--create") || !strcmp(a, "-c")) {
             opt_create = 1;
             i++;

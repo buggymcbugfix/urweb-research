@@ -342,17 +342,22 @@ class Complaint(Exception):
 
 NAME_PART = re.compile(r'^[A-Za-z0-9_-]+$')
 POSITION = re.compile(r'^(-?\d+(?:\.\d+)?)(%?),(-?\d+(?:\.\d+)?)(%?)$')
-TIME = re.compile(r'^(\d+(?:\.\d+)?)(ms|s|min|h|d)$')
+INTEGER = re.compile(r'-?[0-9]+')
+TIME = re.compile(r'([0-9]+(?:\.[0-9]+)?)(ms|s|min|h|d)')
 UNITS = {'ms': 1, 's': 1000, 'min': 60000, 'h': 3600000, 'd': 86400000}
 
 
 def parse_time(word):
     """A time, a number and its unit with nothing between (500ms, 2s, 1.5s,
-    3min, 1h, 2d), in milliseconds; or None."""
-    m = TIME.match(word)
+    3min, 1h, 2d), in milliseconds; or None.  Read as urt reads it
+    (runs.c, parse_duration): at most 10^15 ms, rounded half up."""
+    m = TIME.fullmatch(word)
     if not m:
         return None
-    return int(round(float(m.group(1)) * UNITS[m.group(2)]))
+    ms = float(m.group(1)) * UNITS[m.group(2)]
+    if ms > 1e15:
+        return None
+    return int(ms + 0.5)
 
 
 def show_time(ms):
@@ -562,7 +567,7 @@ def parse_action(user, words, where, line):
                 if w.kind == 'opt' and name in flags:
                     flagset.add(name)
                     continue
-                if TIME.match(name.replace(' ', '')) or re.match(r'^\d', name):
+                if TIME.fullmatch(name.replace(' ', '')) or re.match(r'^\d', name):
                     raise Complaint("'[%s]' is not a time: a number and its unit, as in [500ms], [2s], [1min]" % inner)
                 raise Complaint("'%s' is neither a flag nor a parameter of %s: %s" % (inner, verb, usage(verb)))
             allowed = req if w.kind == 'req' else opt
@@ -3449,12 +3454,18 @@ class Run:
             reason = body.strip().splitlines()[0] if body.strip() else ''
             raise Complaint("the server's clock answers %s%s" % (head.splitlines()[0] if head else 'nothing',
                                                                  ': ' + reason if reason else ''))
+        told = False
         for line in body.splitlines():
             word, _, value = line.partition(' ')
-            if word == 'next':
+            if word == 'next' and (value == 'none' or INTEGER.fullmatch(value)):
                 self.server_next = None if value == 'none' else int(value)
-            elif word == 'released':
+                told = True
+            elif word == 'released' and INTEGER.fullmatch(value):
                 self.released = int(value)
+            elif word in ('next', 'released'):
+                raise Complaint("the server's clock answers %r, not a number" % line)
+        if not told:
+            raise Complaint("the server's clock does not say when the next thing is due: %r" % body[:200])
         trace('clock', q, self.server_next and self.stamp(self.server_next), self.released)
 
     def moved_past(self, t):
@@ -4013,13 +4024,18 @@ class Run:
         ends it.  Whether every step could be done."""
         os.makedirs(self.out, exist_ok=True)
         ok = True
-        await self.server_clock(None)
+        try:
+            await self.server_clock(None)
+        except Complaint as e:
+            # The first step's to report: it cannot be done.
+            self.error = str(e)
         for step in self.steps:
             self.step = StepRecord(step.name)
             self.step_start = self.now
             error = None
             try:
-                await self.run_step(step)
+                if self.error is None:
+                    await self.run_step(step)
             except Complaint as e:
                 error = str(e)
             except self.PlaywrightError as e:

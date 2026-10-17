@@ -139,6 +139,8 @@ ERROR runs/webunready.urt/snapshot/1/browser/steps has steps, or contexts, that 
     05.step:3: user has no tab in front to close; a tab is opened with [target=NAME], as in: user: open /Shop/main [target=1]
     05.step:4: user has no tab in front to close; a tab is opened with [target=NAME], as in: user: open /Shop/main [target=1]
     05.step:5: wait for everyone is a step's last line; a user's pause is USER: wait T
+    06.step:1: wait takes a time, a number and its unit: 500ms, 2s, 1min
+    06.step:2: wait takes a time, a number and its unit: 500ms, 2s, 1min
     context: [Carlos] is set up, and no step names Carlos
     context: order names every user of the steps once; it leaves out Bernd
     context:1: viewport takes WxH, the window in pixels, as in 1024x768, not 'big'
