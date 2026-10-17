@@ -157,7 +157,10 @@ top-left corner.
     press KEY [on=L] [T]    Enter, Tab, ArrowDown, Control+a, ...
     select L VALUE... [T]   choose in a select
     upload L FILE... [T]    choose files for a file field, each a name under
-                            the run's files/
+                            the run's files/; files of one name may go into
+                            fields of different names, or into different
+                            tabs, but not into two fields of one name in a
+                            tab, where a request cannot tell them apart
     back [T]                also forward, reload
     close [T]               close the tab in front; the tab after it in the
                             order of opening comes to the front, or the one
@@ -835,13 +838,14 @@ def parse_option(option, value):
 MIME_TYPES = mimetypes.MimeTypes()
 
 
-def refill(body, ctype, files):
+def refill(body, ctype, fields):
     """A multipart/form-data body with the files the users uploaded put
     back in: Chromium and WebKit hand a request to the driver with every
     file of it empty, and WebKit with its type application/octet-stream
-    where the host has no table of types; Firefox whole.  The parts of a
-    file of that name get its contents and its type, whatever the engine.
-    files: name -> (type, contents)."""
+    where the host has no table of types; Firefox whole.  The part of a
+    file field gets the contents and the type of the file of that name
+    which the tab's user put in a field of that name, whatever the engine.
+    fields: a field's name -> [(file name, type, contents)], the tab's."""
     m = re.search(r'boundary=("?)([^";]+)\1', ctype)
     if not m:
         return body
@@ -849,9 +853,15 @@ def refill(body, ctype, files):
     pieces = body.split(sep)
     for i in range(1, len(pieces) - 1):
         head, gap, content = pieces[i].partition(b'\r\n\r\n')
-        name = re.search(rb'filename="([^"]*)"', head)
-        if gap and name and name.group(1).decode('utf-8', 'replace') in files:
-            kind, data = files[name.group(1).decode('utf-8', 'replace')]
+        disposition = re.search(rb'(?im)^content-disposition:([^\r\n]*)', head)
+        name = disposition and re.search(rb';\s*name="([^"]*)"', disposition.group(1))
+        filename = disposition and re.search(rb';\s*filename="([^"]*)"', disposition.group(1))
+        if not (gap and name and filename):
+            continue
+        field = fields.get(name.group(1).decode('utf-8', 'replace'), [])
+        known = [(kind, data) for f, kind, data in field if f == filename.group(1).decode('utf-8', 'replace')]
+        if known:
+            kind, data = known[0]
             head = re.sub(rb'(?im)^content-type:[^\r\n]*', b'Content-Type: ' + kind.encode('latin-1'), head)
             pieces[i] = head + gap + data + b'\r\n'
     return sep.join(pieces)
@@ -2085,6 +2095,10 @@ MOVING_JS = "(e) => globalThis.__urt ? globalThis.__urt.moving(e) : false"
 # Whether a tab is shown, for MOTION_JS.
 SHOW_JS = "(s) => { if (globalThis.__urt) { globalThis.__urt.show(s); } return true; }"
 
+# A file field's name, and how many file fields of the page have it.
+UPLOAD_FIELD_JS = ("(e) => [e.name, Array.from(e.ownerDocument.querySelectorAll('input[type=file]'))"
+                   ".filter((f) => f.name === e.name).length]")
+
 
 # A page's clock moved to t, firing what is due by then (only if anything
 # is, or the clock is behind), its animations and scrolls set for t, and
@@ -2224,6 +2238,7 @@ class Tab:
         self.gone = {}              # document -> the numbers of those it took back in the task that sent them
         self.answered = {}          # document -> the numbers of its requests the driver has answered
         self.left_by = {}           # document -> navigations away the driver has seen begin
+        self.uploads = {}           # a file field's name -> [(file name, type, contents)] put in it here
 
 
 class TabRecord:
@@ -2537,6 +2552,25 @@ class User:
             tab.pointer = (x, y)
             tab.pointed = True
 
+    def note_upload(self, tab, name, peers, given, files):
+        """The files an upload step puts in the file field name of tab, for
+        refill: given as the step names them, files their paths.  A request
+        carries a file's name alone, so two different files of one name
+        for fields of one name in a tab cannot be told apart there."""
+        kept = [] if peers <= 1 else list(tab.uploads.get(name, []))
+        for g, f in zip(given, files):
+            with open(f, 'rb') as fp:
+                data = fp.read()
+            entry = (os.path.basename(f), MIME_TYPES.guess_type(f)[0] or 'application/octet-stream', data)
+            for other in kept:
+                if other[0] == entry[0] and other[2] != entry[2]:
+                    raise Complaint("%s and another file named %s go into fields named '%s' in the tab %s; "
+                                    "a request names a file only, so the two cannot be told apart: rename one"
+                                    % (g, entry[0], name, tab.label))
+            if entry not in kept:
+                kept.append(entry)
+        tab.uploads[name] = kept
+
     async def act(self, tab, a, D):
         if tab.page is None:
             # A tab the page opened, whose page the engine reports only
@@ -2599,10 +2633,8 @@ class User:
             # The time it takes to pick them; the field has them at its end.
             loc = await self.wait_ready(tab, a.args[0], 'enabled')
             files = [os.path.join(run.run_dir, 'files', f) for f in a.args[1:]]
-            for f in files:
-                with open(f, 'rb') as fp:
-                    run.uploaded[os.path.basename(f)] = (MIME_TYPES.guess_type(f)[0] or 'application/octet-stream',
-                                                         fp.read())
+            name, peers = await loc.evaluate(UPLOAD_FIELD_JS)
+            self.note_upload(tab, name, peers, a.args[1:], files)
             await self.input(tab, run.now + D, lambda: loc.set_input_files(files))
         elif verb == 'wheel':
             # The page's own: dispatched where the pointer is, and the
@@ -2714,7 +2746,6 @@ class Run:
         self.frames = set()         # frame stops to come
         self.waits = []             # the steps' waits for everyone, (start, end)
         self.docs = 0               # the documents delivered, which number them
-        self.uploaded = {}          # a file's name -> its type and contents, for every one the users upload
 
     @property
     def now(self):
@@ -3370,8 +3401,8 @@ class Run:
             return
         body = None
         ctype = next((v for k, v in headers.items() if k.lower() == 'content-type'), '')
-        if self.uploaded and ctype.lower().startswith('multipart/form-data'):
-            body = refill(h.req.post_data_buffer or b'', ctype, self.uploaded)
+        if h.tab.uploads and ctype.lower().startswith('multipart/form-data'):
+            body = refill(h.req.post_data_buffer or b'', ctype, h.tab.uploads)
             headers = {k: v for k, v in headers.items() if k.lower() != 'content-length'}
         try:
             h.response = await h.route.fetch(url=self.server + self.path_of(h.req.url), headers=headers, max_redirects=0,
