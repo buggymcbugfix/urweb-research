@@ -1,0 +1,9 @@
+PRAGMA foreign_keys=OFF;
+BEGIN TRANSACTION;
+CREATE TABLE IF NOT EXISTS "Quoted_names_t'" (
+    N integer NOT NULL
+);
+INSERT INTO "Quoted_names_t'" VALUES(1);
+INSERT INTO "Quoted_names_t'" VALUES(2);
+CREATE TABLE IF NOT EXISTS "Quoted_names_s'" (id INTEGER PRIMARY KEY AUTOINCREMENT);
+COMMIT;

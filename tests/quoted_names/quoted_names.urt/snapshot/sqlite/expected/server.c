@@ -115,8 +115,8 @@
        
       sqlite3_finalize(stmt);
       
-     if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t'' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
-      uw_set_error_message(ctx, "Query preparation failed: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t'' COLLATE NOCASE", sqlite3_errmsg(conn->conn));
+     if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t''' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
+      uw_set_error_message(ctx, "Query preparation failed: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t''' COLLATE NOCASE", sqlite3_errmsg(conn->conn));
        return 1;
        }
       
@@ -124,18 +124,18 @@
       
       if (res == SQLITE_BUSY) {
       sqlite3_finalize(stmt);
-       uw_error(ctx, busy, "Database is busy; can't validate: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t'' COLLATE NOCASE");
+       uw_error(ctx, busy, "Database is busy; can't validate: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t''' COLLATE NOCASE");
        }
       
       if (res != SQLITE_ROW) {
-      uw_set_error_message(ctx, "Error getting row: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t'' COLLATE NOCASE", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
+      uw_set_error_message(ctx, "Error getting row: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t''' COLLATE NOCASE", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
        sqlite3_finalize(stmt);
        return 1;
        }
       
       if (sqlite3_column_count(stmt) != 1) {
       sqlite3_finalize(stmt);
-       uw_set_error_message(ctx, "Bad column count: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t'' COLLATE NOCASE");
+       uw_set_error_message(ctx, "Bad column count: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_t''' COLLATE NOCASE");
        return 1;
        }
       
@@ -146,8 +146,8 @@
         }
        
       sqlite3_finalize(stmt);
-      if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s'' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
-       uw_set_error_message(ctx, "Query preparation failed: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s'' COLLATE NOCASE", sqlite3_errmsg(conn->conn));
+      if (sqlite3_prepare_v2(conn->conn, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s''' COLLATE NOCASE", -1, &stmt, NULL) != SQLITE_OK) {
+       uw_set_error_message(ctx, "Query preparation failed: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s''' COLLATE NOCASE", sqlite3_errmsg(conn->conn));
         return 1;
         }
        
@@ -155,18 +155,18 @@
        
        if (res == SQLITE_BUSY) {
        sqlite3_finalize(stmt);
-        uw_error(ctx, busy, "Database is busy; can't validate: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s'' COLLATE NOCASE");
+        uw_error(ctx, busy, "Database is busy; can't validate: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s''' COLLATE NOCASE");
         }
        
        if (res != SQLITE_ROW) {
-       uw_set_error_message(ctx, "Error getting row: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s'' COLLATE NOCASE", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
+       uw_set_error_message(ctx, "Error getting row: %s: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s''' COLLATE NOCASE", res == SQLITE_DONE ? "no row" : sqlite3_errmsg(conn->conn));
         sqlite3_finalize(stmt);
         return 1;
         }
        
        if (sqlite3_column_count(stmt) != 1) {
        sqlite3_finalize(stmt);
-        uw_set_error_message(ctx, "Bad column count: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s'' COLLATE NOCASE");
+        uw_set_error_message(ctx, "Bad column count: %s", "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'Quoted_names_s''' COLLATE NOCASE");
         return 1;
         }
        
@@ -453,8 +453,8 @@
                                                                                uw_Basis_int n;
                                                                                uw_ensure_transaction(ctx);
                                                                                uw_conn *conn = uw_get_db(ctx);
-                                                                               char *insert = "INSERT INTO "Quoted_names_s'" VALUES (NULL)";
-                                                                               char *delete = "DELETE FROM "Quoted_names_s'"";
+                                                                               char *insert = "INSERT INTO \"Quoted_names_s'\" VALUES (NULL)";
+                                                                               char *delete = "DELETE FROM \"Quoted_names_s'\"";
                                                                                int r;
                                                                                
                                                                                if ((r = sqlite3_exec(conn->conn, insert, NULL, NULL, NULL)) == SQLITE_BUSY) {

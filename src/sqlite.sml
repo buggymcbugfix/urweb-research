@@ -145,9 +145,12 @@ fun checkRel (table, checkNullable) (s, xts) =
     let
         (* The catalog stores the bare name, without the quotes an identifier
          * may carry in generated SQL (and quotes would not survive inside the
-         * C string literals below). *)
+         * C string literals below).  In the query the name is an SQL string
+         * literal, in which a prime the name holds is doubled. *)
         val s = Settings.unquoteSql s
-        val q = "SELECT COUNT(*) FROM sqlite_schema WHERE name = '" ^ s ^ "' COLLATE NOCASE"
+        val q = "SELECT COUNT(*) FROM sqlite_schema WHERE name = '"
+                ^ String.translate (fn #"'" => "''" | ch => str ch) s
+                ^ "' COLLATE NOCASE"
     in
         checkQuery q
                    (box [string "if (sqlite3_column_int(stmt, 0) != 1) {",
@@ -1065,12 +1068,14 @@ fun dmlPrepared {loc, id, dml, inputs, mode = mode} =
          string "uw_pop_cleanup(ctx);",
          newline]
 
+(* A sequence named in the program goes into the C as its SQL name, which
+ * may be quoted ("M_s'"): the double quotes are escaped in the C string. *)
 fun nextval {loc, seqE, seqName} =
     box [string "uw_conn *conn = uw_get_db(ctx);",
          newline,
          string "char *insert = ",
          case seqName of
-             SOME s => string ("\"INSERT INTO " ^ s ^ " VALUES (NULL)\"")
+             SOME s => string ("\"" ^ Prim.toCString ("INSERT INTO " ^ s ^ " VALUES (NULL)") ^ "\"")
            | NONE => box [string "uw_Basis_strcat(ctx, \"INSERT INTO \", uw_Basis_strcat(ctx, ",
                           seqE,
                           string ", \" VALUES (NULL)\"))"],
@@ -1078,7 +1083,7 @@ fun nextval {loc, seqE, seqName} =
          newline,
          string "char *delete = ",
          case seqName of
-             SOME s => string ("\"DELETE FROM " ^ s ^ "\"")
+             SOME s => string ("\"" ^ Prim.toCString ("DELETE FROM " ^ s) ^ "\"")
            | NONE => box [string "uw_Basis_strcat(ctx, \"DELETE FROM \", ",
                           seqE,
                           string ")"],
