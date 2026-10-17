@@ -265,15 +265,10 @@ int uw_reproducible_request(uw_context ctx, const char *time_header) {
 
   if (!epoch_pinned) { return 0; }
 
-  if (time_header) {
-    char *end;
-    errno = 0;
-    t = strtoll(time_header, &end, 10);
-    if (errno || end == time_header || *end) {
-      fprintf(stderr, "UrWeb-Time: '%s' is not a number of milliseconds; the request is served at the time of the requests counted\n",
-              time_header);
-      time_header = NULL;
-    }
+  if (time_header && !read_ms(time_header, time_header + strlen(time_header), &t)) {
+    fprintf(stderr, "UrWeb-Time: '%s' is not a number of milliseconds from 0 to %lld; the request is served at the time of the requests counted\n",
+            time_header, (long long)LATEST_MS);
+    time_header = NULL;
   }
   if (!time_header) {
     uw_reproducible_now(&t);
