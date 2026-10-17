@@ -40,7 +40,8 @@ runs/serves-banner.urt/snapshot/1
 runs/serves-corrupts.urt/snapshot/1
 runs/serves-cr.urt/snapshot/1
 runs/serves-dies.urt/snapshot/1
-runs/serves-dotwait.urt/snapshot/1
+ERROR runs/serves-dotwait.urt/snapshot/1/request-response/a/interaction/02.wait.request is not a name for a request
+the name of a request has no dot in it: its records are NAME.response and so on
 runs/serves-env-bad.urt/snapshot/1
 runs/serves-env-big.urt/snapshot/1
 runs/serves-env-blank.urt/snapshot/1
@@ -57,36 +58,142 @@ runs/serves-wait.urt/snapshot/1
 runs/serves.urt/snapshot/1
 runs/stopped.urt/snapshot/1
 ERROR runs/stray.urt/snapshot/1/request-response/a/cookies.txt does not belong in a run
-a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.sql,
-NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
-shutdown.stderr and db_final.sql under out/
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,
+NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout, startup.stderr,
+shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/01.page.html is not named as a record
+a page record is a step's
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/01.stdout.firefox is not named as a record
+an engine's own record is a browser run's; here a stdout record is NAME.stdout
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/01.user.1.page.html is not named as a record
+a page record is a step's
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/02.response answers no request
 there is no runs/stray.urt/snapshot/1/request-response/a/interaction/02.request; delete the one, or write the other
-ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql belongs to no request or wait
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/03.dml.sql belongs to no request or wait
 there is neither runs/stray.urt/snapshot/1/request-response/a/interaction/03.request nor runs/stray.urt/snapshot/1/request-response/a/interaction/03.wait; delete it, or write one of them
+ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/03.sql does not belong in a run
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,
+NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout, startup.stderr,
+shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/04.stderr belongs to no request or wait
 there is neither runs/stray.urt/snapshot/1/request-response/a/interaction/04.request nor runs/stray.urt/snapshot/1/request-response/a/interaction/04.wait; delete it, or write one of them
 ERROR runs/stray.urt/snapshot/1/request-response/a/interaction/notes does not belong in a run
-a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.sql,
-NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
-shutdown.stderr and db_final.sql under out/
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,
+NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout, startup.stderr,
+shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/log does not belong in a run
-a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.sql,
-NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
-shutdown.stderr and db_final.sql under out/
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,
+NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout, startup.stderr,
+shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/more does not belong in a run
-a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.sql,
-NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
-shutdown.stderr and db_final.sql under out/
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,
+NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout, startup.stderr,
+shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/a/out/stdout does not belong in a run
-a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.sql,
-NAME.stdout and NAME.stderr under interaction/; startup.sql, startup.stdout, startup.stderr, shutdown.stdout,
-shutdown.stderr and db_final.sql under out/
+a run holds args, env, secret, db.sql and README.md; NAME.request, NAME.wait, NAME.response, NAME.dml.sql,
+NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout, startup.stderr,
+shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/
 ERROR runs/stray.urt/snapshot/1/request-response/b.c is not a name for a run
 the name of a run is letters, digits, _ and -, and nothing else, not starting with -
 ERROR runs/stray.urt/snapshot/1/request-response/notes.txt does not belong among the runs
 beside the run directories there can be a README.md, nothing else
 runs/unready.urt/snapshot/1
+runs/web.urt/snapshot/1
+ERROR runs/webstray.urt/snapshot/1/browser/a/a.b.context is not a user's context
+a user's browser is set up by USER.context, USER the user's name as the steps give it, which has no dot in it
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.db.sql is not named as a record
+the database left behind is the one db record, shutdown.db.sql under out/
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.dml.sql is not named as a record
+a dml record is NAME.dml.sql, or NAME.dml.ENGINE.sql for one engine's own
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.page.html is not named as a record
+a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.ENGINE.html for one engine's own
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.firefox.stdout is not named as a record
+a stdout record is NAME.stdout, or NAME.stdout.ENGINE for one engine's own
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.html does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.page is not named as a record
+a page record ends in page.html, as in NAME.USER.TAB.page.html
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.page.html is not named as a record
+a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.ENGINE.html for one engine's own
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.png does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.response is not named as a record
+a response record is a request's
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.sql does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.dml.sql is not named as a record
+a dml record is NAME.dml.sql, or NAME.dml.ENGINE.sql for one engine's own
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.error is not named as a record
+an error record is NAME.error, or NAME.error.ENGINE for one engine's own
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.firefox.page.html is not named as a record
+a tab's record is NAME.USER.TAB.page.html, USER.TAB the tab's name as the steps give it, or NAME.USER.TAB.page.ENGINE.html for one engine's own
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page is not named as a record
+a page record ends in page.html, as in NAME.USER.TAB.page.html
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.page.opera.html does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/01.user.1.png does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/02.user.1.page.html records no step
+there is no runs/webstray.urt/snapshot/1/browser/a/interaction/02.step; delete the one, or write the other
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/02.user.1.page.webkit.html records no step
+there is no runs/webstray.urt/snapshot/1/browser/a/interaction/02.step; delete the one, or write the other
+ERROR runs/webstray.urt/snapshot/1/browser/a/interaction/a.b.step is not a name for a step
+the name of a step has no dot in it: its records are NAME.USER.TAB.page.html and so on
+ERROR runs/webstray.urt/snapshot/1/browser/a/out/db_final.sql does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/out/log does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/out/shutdown.db.opera.sql does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/out/startup.firefox.stdout does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/a/shot.png does not belong in a run
+a browser run holds args, env, secret, db.sql, engines, USER.context and README.md; NAME.step, and per tab
+NAME.USER.TAB.page.html, NAME.USER.TAB.requests, NAME.USER.TAB.dialogs and NAME.USER.TAB.console, and per step
+NAME.dml.sql, NAME.stdout, NAME.stderr and NAME.error under interaction/; startup.dml.sql, startup.stdout,
+startup.stderr, shutdown.stdout, shutdown.stderr and shutdown.db.sql under out/; any of them with the engine's
+name after the kind (NAME.USER.TAB.page.firefox.html, NAME.stdout.firefox), when that engine records it differently
+ERROR runs/webstray.urt/snapshot/1/browser/b.c is not a name for a run
+the name of a run is letters, digits, _ and -, and nothing else, not starting with -
+ERROR runs/webstray.urt/snapshot/1/browser/notes.txt does not belong among the runs
+beside the run directories there can be a README.md, nothing else
+runs/webunready.urt/snapshot/1
 shop.urt/snapshot/mysql
 shop.urt/snapshot/postgres
 shop.urt/snapshot/sqlite

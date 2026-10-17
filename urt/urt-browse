@@ -1,0 +1,969 @@
+#!/usr/bin/env python3
+"""Drive an Ur/Web application in a browser, step by step, and record what
+the pages show after each step; Chromium, Firefox or WebKit, through
+Playwright for Python.
+
+    urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS]
+               [--timeout SECONDS] URL RUN OUT
+    urt-browse --serve [the same options]
+    urt-browse --check RUN
+
+URL is where the application listens (http://127.0.0.1:8000); RUN a run's
+directory: the NAME.step files under RUN/interaction, run in the order
+of their names, and beside that directory a USER.context for every user
+whose browser is to be set up differently (below); OUT where the records
+go: after every step, one set per tab that is open, USER.TAB being the
+tab's name (below), and one for the step:
+
+    NAME.USER.TAB.page.html
+                    the page, as HTML: its path in a comment, then the DOM
+                    as the browser has it, one element per line, without
+                    scripts, styles and handlers, with the live value of
+                    every field; `hidden` on what is not shown, and
+                    `autofocus` on the field that has the focus when that
+                    is one typed into (an input of a text kind, a
+                    textarea, an editable element): the engines agree on
+                    those, where whether a button or a checkbox takes the
+                    focus on a click is the platform's convention
+    NAME.USER.TAB.requests
+                    what the page fetched, in the order it asked, with the
+                    status that came back, or 'aborted' when the page left
+                    it behind; a request still open when the step is over
+                    (the /.msgs poll) is marked '...', and is listed again,
+                    with its status, after the own requests of the step in
+                    which it came back
+    NAME.USER.TAB.dialogs
+                    the alerts, confirms and prompts, with the answer given
+    NAME.USER.TAB.console
+                    what the page logged, and the errors its script threw
+    NAME.error      why the step could not be done; the run stops there
+
+the dialogs, the console and the error only if there was anything.  After
+each step a line 'step NAME' is printed, once every page has settled: no
+request open but the /.msgs poll, and a turn of the pages' timers gone
+by with nothing new.  A step that cannot be done prints 'fail NAME' and
+ends the run; 'done' ends it otherwise.  With --serve, the browser is
+started once and a run is done for every line 'run URL RUN OUT' read
+from stdin, quoted as for a shell, reported the same way up to its
+'done'; the browser goes when stdin ends.  With --check, the step and
+context files are read and nothing is run: what is wrong with them is
+printed, a line each, and the exit status is 1 if anything was.
+
+A step file holds actions, one per line, split as for a shell; blank
+lines and lines starting with # are skipped.  Every action starts with
+the name of the tab it is for, USER.TAB: -- the user's name and the
+tab's, letters, digits, _ and -; user.1 is the usual one.  A user is a
+browser of their own, with their own cookies; a tab is a page in it, and
+a client to the application.  A tab comes into being with its first
+action, an open, and goes with close.  L is a locator in Playwright's
+syntax: 'text=Batch it', 'button >> nth=1', '#uw3',
+'role=button[name="Update"]'; it must match one element.  P is a
+position on the element, X,Y, each a percentage of its box or pixels
+from its top-left corner (50%,80%, 12,40); where none is given the
+pointer goes to the middle.
+
+    user.1: open PATH       go to the page at PATH, which starts with /
+    user.1: click L [P]     also dblclick, hover; and focus, check, uncheck,
+                            which take no position
+    user.1: drag L1 [P1] L2 [P2]
+                            press on L1, move to L2 in steps, release: a
+                            drag the page handles itself, or the browser's
+                            drag and drop; 'drag L P1 P2' within one element
+    user.1: wheel DX DY     the mouse wheel, DX right and DY down, in pixels
+    user.1: fill L TEXT     set a field to TEXT
+    user.1: type L TEXT     type TEXT into it, a key at a time
+    user.1: press [L] KEY   Enter, Tab, ArrowDown, Control+a, ...
+    user.1: select L VALUE...
+                            choose in a select
+    user.1: wait L          until L is visible; 'wait L gone' until it is not
+    user.1: dialog accept [TEXT]
+                            the answer to the tab's next dialog; 'dialog
+                            dismiss'; dialogs with no answer queued are
+                            accepted
+    user.1: tick SECONDS    let that much time pass, for every tab
+    user.1: back, forward, reload
+                            the browser's buttons
+    user.1: close           close the tab; the last tab closes the user's
+                            browser
+
+A USER.context file sets up that user's browser, an option a line,
+OPTION VALUE, split as for a shell, the options being Playwright's for a
+browser context and the values as it takes them:
+
+    viewport WxH            the window; 1024x768 unless given
+    device_scale_factor N   1
+    color_scheme light|dark|no-preference
+    reduced_motion reduce|no-preference
+    forced_colors active|none
+    locale TAG              en-US
+    timezone_id ZONE        UTC
+    has_touch yes|no
+    user_agent STRING       urt
+
+A user without a file has what is given above; what is not given there
+is the engine's own.  A file for a user no step names is a mistake.
+
+With --epoch, the pages' clock starts at that time, as the server's
+does, and stands still: Date does not move and no timer fires until a
+tick, which fires every timer due within it, in order (sleep, the client
+timeout, periodic work), one user's browser after another, each settled
+before the next, so that their requests reach the server in that order.
+Every request reaches the server: no engine caches, none fetches a
+favicon, so that the three engines send the same requests and the
+server's clock stands at the same time for each.  A request for any
+other server is refused, and recorded as such: a run drives this
+application, and the network is not its business.
+"""
+
+import argparse
+import datetime
+import os
+import re
+import shlex
+import sys
+import time
+
+
+# The page as HTML, from the DOM as the browser has it: one element per
+# line, indented; scripts, styles and handlers left out; the live value
+# of every field in; `hidden` on what is not shown (nothing in the head
+# is), `autofocus` on the field that has the focus, when that is a field
+# one types into.  Called with the page's path, which goes into a comment
+# after the doctype.
+DUMP_JS = r"""
+(path) => {
+    const out = ['<!DOCTYPE html>', '<!-- ' + path + ' -->'];
+    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escAttr = s => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const voids = new Set(['area','base','br','col','embed','hr','img','input','link','meta','source','track','wbr']);
+    const notTyped = new Set(['button','checkbox','radio','file','color','range','hidden','image','submit','reset']);
+    function text(n) { return n.data.replace(/\s+/g, ' ').trim(); }
+    function typedInto(e) {
+        const tag = e.tagName.toLowerCase();
+        if (tag === 'textarea') { return true; }
+        if (tag === 'input') { return !notTyped.has((e.getAttribute('type') || 'text').toLowerCase()); }
+        return e.isContentEditable;
+    }
+    function attrs(e, inHead) {
+        const live = {};
+        const tag = e.tagName.toLowerCase();
+        if (tag === 'input') {
+            const t = (e.getAttribute('type') || 'text').toLowerCase();
+            if (t === 'checkbox' || t === 'radio') { live.checked = e.checked ? '' : null; }
+            else if (t !== 'submit' && t !== 'button' && t !== 'reset' && t !== 'image') { live.value = e.value; }
+        } else if (tag === 'textarea') { live.value = e.value; }
+        else if (tag === 'select') { live.value = e.value; }
+        else if (tag === 'option') { live.selected = e.selected ? '' : null; }
+        let s = '';
+        const seen = new Set();
+        for (const a of e.attributes) {
+            const name = a.name;
+            if (/^on/i.test(name)) { continue; }
+            seen.add(name);
+            let v = a.value;
+            if (name in live) { v = live[name]; if (v === null) { continue; } }
+            s += v === '' && (name === 'checked' || name === 'selected' || name === 'disabled' || name === 'readonly')
+                ? ' ' + name : ' ' + name + '="' + escAttr(v) + '"';
+        }
+        for (const name in live) {
+            if (seen.has(name) || live[name] === null) { continue; }
+            s += live[name] === '' && name !== 'value' ? ' ' + name : ' ' + name + '="' + escAttr(live[name]) + '"';
+        }
+        if (e === document.activeElement && typedInto(e) && !seen.has('autofocus')) { s += ' autofocus'; }
+        if (!inHead && tag !== 'html' && e.parentNode && e.parentNode !== document && typeof e.checkVisibility === 'function'
+            && !e.checkVisibility({ visibilityProperty: true }) && !seen.has('hidden')) { s += ' hidden'; }
+        return s;
+    }
+    function dump(n, depth, inHead) {
+        const pad = '  '.repeat(depth);
+        if (n.nodeType === 3) { const t = text(n); if (t) { out.push(pad + esc(t)); } return; }
+        if (n.nodeType === 8) { out.push(pad + '<!-- ' + text(n) + ' -->'); return; }
+        if (n.nodeType !== 1) { return; }
+        const tag = n.tagName.toLowerCase();
+        if (tag === 'script' || tag === 'style' || tag === 'noscript') { return; }
+        inHead = inHead || tag === 'head';
+        const kids = Array.from(n.childNodes).filter(k => k.nodeType === 1 ? !['script','style','noscript'].includes(k.tagName.toLowerCase())
+                                                       : k.nodeType === 3 ? text(k) !== '' : k.nodeType === 8);
+        const open = '<' + tag + attrs(n, inHead) + '>';
+        if (voids.has(tag)) { out.push(pad + open); return; }
+        if (kids.length === 0) { out.push(pad + open + '</' + tag + '>'); return; }
+        if (kids.every(k => k.nodeType === 3)) { out.push(pad + open + kids.map(k => esc(text(k))).join(' ') + '</' + tag + '>'); return; }
+        out.push(pad + open);
+        for (const k of kids) { dump(k, depth + 1, inHead); }
+        out.push(pad + '</' + tag + '>');
+    }
+    dump(document.documentElement, 0, false);
+    return out.join('\n') + '\n';
+}
+"""
+
+
+class Complaint(Exception):
+    """A step that cannot be done, with the reason."""
+
+
+# ------------------------------------------------------------------ steps
+
+ONE_LOCATOR = ('click', 'dblclick', 'hover', 'focus', 'check', 'uncheck')
+AT_A_POSITION = ('click', 'dblclick', 'hover')
+
+NAME_PART = re.compile(r'^[A-Za-z0-9_-]+$')
+POSITION = re.compile(r'^(-?\d+(?:\.\d+)?)(%?),(-?\d+(?:\.\d+)?)(%?)$')
+
+
+def is_position(word):
+    """Whether a word is a position on an element, X,Y: each a percentage
+    of the element's box, or pixels from its top-left corner (50%,80%,
+    12,40); a shape no locator has."""
+    return POSITION.match(word) is not None
+
+
+def parse_label(word):
+    """The tab an action is for, USER.TAB: at the start of its line; raise
+    Complaint, or return 'USER.TAB'."""
+    if not word.endswith(':'):
+        raise Complaint("every action starts with the tab it is for, USER.TAB:, as in: user.1: %s" % word)
+    label = word[:-1]
+    parts = label.split('.')
+    if len(parts) != 2 or not all(NAME_PART.match(p) for p in parts):
+        raise Complaint("'%s' is not a tab's name: USER.TAB, each letters, digits, _ and -, as in user.1" % label)
+    return label
+
+
+def parse_action(words):
+    """Check one action's shape; raise Complaint, or return (verb, rest)."""
+    verb, rest = words[0], words[1:]
+
+    def need(n, usage):
+        if len(rest) != n:
+            raise Complaint('%s takes %s' % (verb, usage))
+
+    if verb == 'open':
+        need(1, 'a path')
+        if not rest[0].startswith('/'):
+            raise Complaint("open takes a path starting with /, not '%s'" % rest[0])
+    elif verb in AT_A_POSITION:
+        if not (len(rest) == 1 or (len(rest) == 2 and is_position(rest[1]))):
+            raise Complaint('%s takes a locator, and a position on it (50%%,80%% or 12,40) if not its middle' % verb)
+    elif verb in ONE_LOCATOR:
+        need(1, 'a locator')
+    elif verb == 'drag':
+        # L1 [P1] L2 [P2], or L1 P1 P2 within one element
+        shape = ''.join('P' if is_position(w) else 'L' for w in rest)
+        if shape not in ('LL', 'LPL', 'LLP', 'LPLP', 'LPP'):
+            raise Complaint('drag takes a locator to press on and one to release on, each with a position '
+                            '(50%,80% or 12,40) if not its middle; or one locator and two positions on it')
+    elif verb == 'wheel':
+        need(2, 'how far to scroll, right and down, in pixels')
+        try:
+            float(rest[0]), float(rest[1])
+        except ValueError:
+            raise Complaint("wheel takes two numbers of pixels, not '%s %s'" % (rest[0], rest[1]))
+    elif verb in ('fill', 'type'):
+        need(2, 'a locator and the text')
+    elif verb == 'press':
+        if len(rest) not in (1, 2):
+            raise Complaint('press takes a key, or a locator and a key')
+    elif verb == 'select':
+        if len(rest) < 2:
+            raise Complaint('select takes a locator and the values')
+    elif verb == 'wait':
+        if not (len(rest) == 1 or (len(rest) == 2 and rest[1] == 'gone')):
+            raise Complaint("wait takes a locator, or a locator and 'gone'")
+    elif verb == 'dialog':
+        if not ((len(rest) == 1 and rest[0] in ('accept', 'dismiss')) or (len(rest) == 2 and rest[0] == 'accept')):
+            raise Complaint("dialog takes 'accept', 'accept TEXT' or 'dismiss'")
+    elif verb == 'tick':
+        need(1, 'a number of seconds')
+        try:
+            if float(rest[0]) < 0:
+                raise ValueError
+        except ValueError:
+            raise Complaint("tick takes a number of seconds, not '%s'" % rest[0])
+    elif verb in ('back', 'forward', 'reload', 'close'):
+        need(0, 'nothing')
+    else:
+        raise Complaint("'%s' is not an action" % verb)
+    return verb, rest
+
+
+def read_steps(steps_dir, users=None):
+    """The step files under steps_dir, in order: a list of (name, actions),
+    an action being (line number, tab, verb, rest); and the complaints
+    about them, as 'NAME.step:LINE: ...' lines.  Every user named, in a
+    line right or wrong, goes into users when a set is given."""
+    steps, complaints = [], []
+    open_tabs = set()
+    try:
+        names = sorted(f[:-5] for f in os.listdir(steps_dir) if f.endswith('.step'))
+    except OSError as e:
+        return [], ['%s: %s' % (steps_dir, e.strerror)]
+    for name in names:
+        file = name + '.step'
+        actions = []
+        try:
+            with open(os.path.join(steps_dir, file), encoding='utf-8') as f:
+                lines = f.read().splitlines()
+        except (OSError, UnicodeDecodeError) as e:
+            complaints.append('%s: %s' % (file, getattr(e, 'strerror', None) or e))
+            continue
+        bad = 0
+        for n, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            try:
+                words = shlex.split(line)
+            except ValueError as e:
+                complaints.append('%s:%d: %s' % (file, n, e))
+                bad += 1
+                continue
+            try:
+                tab = parse_label(words[0])
+                if users is not None:
+                    users.add(tab.split('.')[0])
+                if len(words) == 1:
+                    raise Complaint('%s: takes an action, as in: %s: open /Shop/main' % (tab, tab))
+                verb, rest = parse_action(words[1:])
+                # A tab is there from its open to its close; every other
+                # action needs it to be there.
+                if verb == 'open':
+                    open_tabs.add(tab)
+                elif tab not in open_tabs:
+                    raise Complaint('%s is not open: a tab comes into being with an open, and there is none yet to %s'
+                                    % (tab, verb))
+                elif verb == 'close':
+                    open_tabs.discard(tab)
+            except Complaint as e:
+                complaints.append('%s:%d: %s' % (file, n, e))
+                bad += 1
+                continue
+            actions.append((n, tab, verb, rest))
+        if not actions and not bad:
+            complaints.append('%s: no action; a step does something, as in: user.1: open /Shop/main' % file)
+        steps.append((name, actions))
+    return steps, complaints
+
+
+# ---------------------------------------------------------------- contexts
+
+# What a user's browser is set up with unless their USER.context says
+# otherwise: Playwright's options for a context, by its names.  The user
+# agent so that the server sees the same one from every engine, the
+# locale and the time zone so that nothing of the host's shows in a
+# page, the window since the engines' defaults differ.
+CONTEXT_DEFAULTS = {'user_agent': 'urt', 'viewport': {'width': 1024, 'height': 768}, 'device_scale_factor': 1,
+                    'locale': 'en-US', 'timezone_id': 'UTC'}
+
+CONTEXT_CHOICES = {'color_scheme': ('light', 'dark', 'no-preference'),
+                   'reduced_motion': ('reduce', 'no-preference'),
+                   'forced_colors': ('active', 'none'),
+                   'has_touch': ('yes', 'no')}
+
+CONTEXT_OPTIONS = ('viewport', 'device_scale_factor', 'color_scheme', 'reduced_motion', 'forced_colors',
+                   'locale', 'timezone_id', 'has_touch', 'user_agent')
+
+
+def parse_option(words):
+    """One line of a USER.context file, split; raise Complaint, or return
+    (option, value) with the value as Playwright takes it."""
+    option, rest = words[0], words[1:]
+    if option not in CONTEXT_OPTIONS:
+        raise Complaint("'%s' is not an option; the options are %s" % (option, ', '.join(CONTEXT_OPTIONS)))
+    if len(rest) != 1:
+        raise Complaint('%s takes one value' % option)
+    value = rest[0]
+    if option == 'viewport':
+        m = re.match(r'^([1-9]\d*)x([1-9]\d*)$', value)
+        if not m:
+            raise Complaint("viewport takes WxH, the window in pixels, as in 1024x768, not '%s'" % value)
+        return option, {'width': int(m.group(1)), 'height': int(m.group(2))}
+    if option == 'device_scale_factor':
+        if not re.match(r'^\d+(\.\d+)?$', value) or float(value) <= 0:
+            raise Complaint("device_scale_factor takes a number above 0, not '%s'" % value)
+        return option, float(value)
+    if option in CONTEXT_CHOICES:
+        if value not in CONTEXT_CHOICES[option]:
+            choices = CONTEXT_CHOICES[option]
+            raise Complaint("%s takes %s, not '%s'" % (option, ' or '.join([', '.join(choices[:-1]), choices[-1]]), value))
+        return option, value == 'yes' if option == 'has_touch' else value
+    if not value:
+        raise Complaint('%s takes a value' % option)
+    return option, value
+
+
+def read_contexts(run_dir):
+    """The USER.context files in run_dir: a dict from the user's name to
+    their options, and the complaints, as 'USER.context:LINE: ...'
+    lines."""
+    contexts, complaints = {}, []
+    try:
+        files = sorted(f for f in os.listdir(run_dir) if f.endswith('.context'))
+    except OSError as e:
+        return {}, ['%s: %s' % (run_dir, e.strerror)]
+    for file in files:
+        user = file[:-8]
+        if not NAME_PART.match(user):
+            complaints.append("%s: not a user's context: USER.context, USER being letters, digits, _ and -, as in bob.context" % file)
+            continue
+        try:
+            with open(os.path.join(run_dir, file), encoding='utf-8') as f:
+                lines = f.read().splitlines()
+        except (OSError, UnicodeDecodeError) as e:
+            complaints.append('%s: %s' % (file, getattr(e, 'strerror', None) or e))
+            continue
+        options = {}
+        for n, line in enumerate(lines, 1):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            try:
+                words = shlex.split(line)
+                option, value = parse_option(words)
+                if option in options:
+                    raise Complaint('%s is given twice' % option)
+                options[option] = value
+            except ValueError as e:
+                complaints.append('%s:%d: %s' % (file, n, e))
+            except Complaint as e:
+                complaints.append('%s:%d: %s' % (file, n, e))
+        if not options:
+            complaints.append('%s: no option; delete it for the usual browser, or give one, as in: color_scheme dark' % file)
+        contexts[user] = options
+    return contexts, complaints
+
+
+def read_run(run_dir):
+    """A run's steps and contexts: (steps, contexts, complaints), the
+    steps from run_dir/interaction, the contexts from run_dir; a context
+    for a user no step names is a mistake."""
+    users = set()
+    steps, complaints = read_steps(os.path.join(run_dir, 'interaction'), users)
+    contexts, more = read_contexts(run_dir)
+    complaints += more
+    for user in sorted(contexts):
+        if user not in users:
+            complaints.append("%s.context: no step opens a tab of %s's, such as %s.1" % (user, user, user))
+    return steps, contexts, complaints
+
+
+# -------------------------------------------------------------- recording
+
+class TabRecord:
+    """What one tab did during one step."""
+
+    def __init__(self):
+        self.requests = []     # [method, path, status or None]: the step's own
+        self.late = []         # [method, path, status, step]: earlier steps' requests answered now
+        self.dialogs = []
+        self.console = []
+
+
+class Step:
+    """What is recorded while one step runs, per tab."""
+
+    def __init__(self, name):
+        self.name = name
+        self.tabs = {}         # label -> TabRecord
+
+    def tab(self, label):
+        if label not in self.tabs:
+            self.tabs[label] = TabRecord()
+        return self.tabs[label]
+
+
+class Tab:
+    """An open tab: its page, the user's context, and the dialog answers
+    queued for it."""
+
+    def __init__(self, label, context, page):
+        self.label = label
+        self.user = label.split('.')[0]
+        self.context = context
+        self.page = page
+        self.answers = []
+
+
+class Driver:
+    def __init__(self, args, playwright_error, setups=None):
+        self.args = args
+        self.PlaywrightError = playwright_error
+        self.epoch = args.epoch
+        self.browser = None
+        self.begin(args.url, args.run, args.out, setups or {})
+
+    def begin(self, url, run_dir, out, setups):
+        """The state of one run: where the application is, where the
+        records go, how the users' browsers are set up (their contexts,
+        by user), and nothing from a run before."""
+        self.base = url.rstrip('/')
+        self.origin = re.sub(r'^https?://', '', self.base)
+        self.run_dir = run_dir
+        self.out = out
+        self.setups = setups
+        self.step = None
+        self.open_requests = {}     # request -> (step, label, index)
+        self.refused = set()        # requests for other servers, not let out
+        self.elapsed = 0            # seconds the ticks have moved the clock
+        self.contexts = {}          # user -> context, in the order of opening
+        self.tabs = {}              # label -> Tab, in the order of opening
+
+    def path_of(self, url):
+        p = url
+        if p.startswith(self.base):
+            p = p[len(self.base):] or '/'
+        return p
+
+    def on_request(self, label, req):
+        if self.step is None:
+            return
+        requests = self.step.tab(label).requests
+        requests.append([req.method, self.path_of(req.url), None])
+        self.open_requests[req] = (self.step, label, len(requests) - 1)
+
+    def on_finished(self, req, status):
+        where = self.open_requests.pop(req, None)
+        if where is None:
+            return
+        step, label, i = where
+        if step is self.step:
+            step.tab(label).requests[i][2] = status
+        elif self.step is not None:
+            # Its place among the step's own requests is a matter of which
+            # event the engine reported first, so it goes after them.
+            self.step.tab(label).late.append([req.method, self.path_of(req.url), status, step.name])
+
+    def status_of(self, req):
+        """The status of a finished request."""
+        resp = req.response()
+        return resp.status if resp is not None else '?'
+
+    def failure_of(self, req):
+        """Why a request failed, in words that do not depend on the engine:
+        a page that goes away aborts the poll it had open, which Chromium
+        calls net::ERR_ABORTED, Firefox NS_BINDING_ABORTED and WebKit
+        'cancelled'; and one for another server was refused here."""
+        if req in self.refused:
+            return 'refused'
+        why = req.failure or '?'
+        if 'ABORT' in why.upper() or 'cancel' in why.lower():
+            return 'aborted'
+        return 'failed: %s' % why
+
+    def route(self, route):
+        """Every request of a page goes through here, which turns the
+        engine's cache off (Playwright's doing, documented), so every
+        engine fetches a page's scripts at every load and the server sees
+        the same requests from each.  A request for any other server is
+        refused: a run drives this application, and the network is not
+        its business."""
+        req = route.request
+        url = req.url
+        if url != self.base and not url.startswith(self.base + '/'):
+            self.refused.add(req)
+            route.abort()
+            return
+        route.continue_()
+
+    def is_poll(self, req):
+        return self.path_of(req.url).endswith('/.msgs')
+
+    def outstanding(self):
+        return [r for r in self.open_requests if not self.is_poll(r)]
+
+    def on_dialog(self, tab, dialog):
+        answer = tab.answers.pop(0) if tab.answers else ('accept', None)
+        line = '%s: %s' % (dialog.type, dialog.message)
+        if dialog.type == 'prompt' and dialog.default_value:
+            line += ' [%s]' % dialog.default_value
+        if answer[0] == 'dismiss':
+            line += ' -- dismissed'
+            dialog.dismiss()
+        else:
+            if dialog.type == 'prompt':
+                line += ' -- answered %r' % (answer[1] if answer[1] is not None else '')
+            else:
+                line += ' -- accepted'
+            dialog.accept(answer[1] if answer[1] is not None else '')
+        if self.step is not None:
+            self.step.tab(tab.label).dialogs.append(line)
+
+    def on_console(self, label, msg):
+        if self.step is not None:
+            self.step.tab(label).console.append('%s: %s' % (msg.type, msg.text))
+
+    def on_pageerror(self, label, err):
+        if self.step is not None:
+            self.step.tab(label).console.append('error: %s' % err.message.splitlines()[0])
+
+    # -------------------------------------------------------------- settling
+
+    def pages(self):
+        return [t.page for t in self.tabs.values()]
+
+    def pause(self):
+        """A moment, during which the engine's events come in: they do only
+        while a call is under way, so this is one."""
+        pages = self.pages()
+        if pages:
+            pages[0].wait_for_timeout(10)
+        else:
+            time.sleep(0.01)
+
+    def settle(self):
+        """No request open but the poll, then a turn of every page's timers
+        with nothing new, twice over.  The timers are the fake clock's when
+        it is installed, one clock per user, and run_for(0) fires those due;
+        without it a real turn of each page's event loop does the same."""
+        deadline = time.monotonic() + self.args.timeout
+        quiet = 0
+        while quiet < 2:
+            if time.monotonic() > deadline:
+                raise Complaint('the pages did not settle within %gs; still open: %s'
+                                % (self.args.timeout, ', '.join(self.path_of(r.url) for r in self.outstanding())))
+            if self.outstanding():
+                self.pause()
+                quiet = 0
+                continue
+            try:
+                for page in self.pages():
+                    page.wait_for_load_state('load')
+                before = len(self.open_requests)
+                for _ in range(2):
+                    if self.epoch is not None:
+                        for context in self.contexts.values():
+                            context.clock.run_for(0)
+                    else:
+                        for page in self.pages():
+                            page.evaluate('() => new Promise(r => setTimeout(r, 0))')
+            except self.PlaywrightError as e:
+                if 'navigat' in str(e).lower() or 'context was destroyed' in str(e).lower():
+                    quiet = 0   # a navigation is under way; look again
+                    self.pause()
+                    continue
+                raise
+            if self.outstanding() or len(self.open_requests) != before:
+                quiet = 0
+            else:
+                quiet += 1
+
+    # ----------------------------------------------------------------- acting
+
+    def open_tab(self, label):
+        """The tab, opened if need be: the user's context first, with a
+        clock at the run's time, then a page in it, watched."""
+        if label in self.tabs:
+            return self.tabs[label]
+        user = label.split('.')[0]
+        if user not in self.contexts:
+            options = dict(CONTEXT_DEFAULTS)
+            options.update(self.setups.get(user, {}))
+            context = self.browser.new_context(**options)
+            context.set_default_timeout(self.args.timeout * 1000)
+            if self.epoch is not None:
+                # Installed a second early: the clock runs between the two
+                # calls, and pausing it at a time already past is refused.
+                context.clock.install(time=self.clock_time(-1))
+                context.clock.pause_at(self.clock_time())
+            self.contexts[user] = context
+        page = self.contexts[user].new_page()
+        tab = Tab(label, self.contexts[user], page)
+        page.route('**/*', self.route)
+        page.on('request', lambda r: self.on_request(label, r))
+        page.on('requestfinished', lambda r: self.on_finished(r, self.status_of(r)))
+        page.on('requestfailed', lambda r: self.on_finished(r, self.failure_of(r)))
+        page.on('dialog', lambda d: self.on_dialog(tab, d))
+        page.on('console', lambda m: self.on_console(label, m))
+        page.on('pageerror', lambda e: self.on_pageerror(label, e))
+        self.tabs[label] = tab
+        return tab
+
+    def close_tab(self, label):
+        tab = self.tabs.pop(label)
+        tab.page.close()
+        if not any(t.user == tab.user for t in self.tabs.values()):
+            self.contexts.pop(tab.user).close()
+
+    def act(self, label, verb, rest):
+        """One action, its shape already checked by parse_action, on the
+        tab named; read_steps has seen that it is open, or being opened."""
+        if verb == 'open':
+            self.open_tab(label).page.goto(self.base + rest[0], wait_until='load')
+            return
+        tab = self.tabs[label]
+        page = tab.page
+        if verb == 'close':
+            self.close_tab(label)
+        elif verb in AT_A_POSITION and len(rest) == 2:
+            getattr(page.locator(rest[0]), verb)(position=self.position(page.locator(rest[0]), rest[1]))
+        elif verb in ONE_LOCATOR:
+            getattr(page.locator(rest[0]), verb)()
+        elif verb == 'drag':
+            # Playwright's drag_to presses, moves in steps and releases:
+            # the elements passed over see the pointer, and a page that
+            # drags its own way (the dragList demo, on mouseover) or
+            # through the browser's drag and drop both work, in every
+            # engine.
+            words = list(rest)
+            source = page.locator(words.pop(0))
+            at = self.position(source, words.pop(0)) if words and is_position(words[0]) else None
+            if words and is_position(words[0]):
+                target, to = source, self.position(source, words.pop(0))
+            else:
+                target = page.locator(words.pop(0))
+                to = self.position(target, words.pop(0)) if words else None
+            source.drag_to(target, source_position=at, target_position=to, steps=10)
+        elif verb == 'wheel':
+            page.mouse.wheel(float(rest[0]), float(rest[1]))
+        elif verb == 'fill':
+            page.locator(rest[0]).fill(rest[1])
+        elif verb == 'type':
+            page.locator(rest[0]).press_sequentially(rest[1])
+        elif verb == 'press':
+            if len(rest) == 1:
+                page.keyboard.press(rest[0])
+            else:
+                page.locator(rest[0]).press(rest[1])
+        elif verb == 'select':
+            page.locator(rest[0]).select_option(rest[1:])
+        elif verb == 'wait':
+            page.locator(rest[0]).wait_for(state='hidden' if len(rest) == 2 else 'visible')
+        elif verb == 'dialog':
+            tab.answers.append((rest[0], rest[1] if len(rest) == 2 else None))
+        elif verb == 'tick':
+            if self.epoch is None:
+                raise Complaint('tick needs --epoch, which gives the pages a clock to move')
+            # One user's browser at a time, settled before the next, so
+            # that what their timers send reaches the server in that order
+            # rather than in the order the engines happen to send it.
+            for context in list(self.contexts.values()):
+                context.clock.run_for(int(float(rest[0]) * 1000))
+                self.settle()
+            self.elapsed += float(rest[0])
+        elif verb in ('back', 'forward'):
+            # Firefox keeps no page that answered a POST, and says so
+            # (Chromium and WebKit send the POST again, as a run's
+            # NAME.requests shows); name the difference rather than
+            # the error code.
+            try:
+                (page.go_back if verb == 'back' else page.go_forward)(wait_until='load')
+            except self.PlaywrightError as e:
+                if 'NS_ERROR_DOCUMENT_NOT_CACHED' not in str(e):
+                    raise
+                raise Complaint('%s to the page that answered a POST, which Firefox does not keep; '
+                                'Chromium and WebKit send the POST again' % verb)
+        elif verb == 'reload':
+            page.reload(wait_until='load')
+
+    def position(self, locator, word):
+        """A position word, X,Y, as Playwright takes it: pixels from the
+        element's top-left corner; a percentage is of the element's box."""
+        m = POSITION.match(word)
+        x, xp, y, yp = float(m.group(1)), m.group(2), float(m.group(3)), m.group(4)
+        if xp or yp:
+            box = locator.bounding_box()
+            if box is None:
+                raise Complaint("'%s' has no box to place %s on" % (locator, word))
+            if xp:
+                x = box['width'] * x / 100
+            if yp:
+                y = box['height'] * y / 100
+        return {'x': x, 'y': y}
+
+    def clock_time(self, offset=0):
+        """The run's time now: the epoch plus what the ticks have moved,
+        for a clock installed later than the first."""
+        return datetime.datetime.fromtimestamp(self.epoch + self.elapsed + offset, datetime.timezone.utc)
+
+    # ------------------------------------------------------------- recording
+
+    def complaint(self, e):
+        """What Playwright said, less its call log, which narrates what the
+        driver did."""
+        lines = []
+        for line in str(e).splitlines():
+            if line.strip().startswith('Call log'):
+                break
+            lines.append(line.rstrip())
+        while lines and not lines[-1]:
+            lines.pop()
+        return '\n'.join(lines)
+
+    def normalise(self, s):
+        return s.replace(self.origin, 'localhost')
+
+    def write(self, name, suffix, text):
+        path = os.path.join(self.out, name + suffix)
+        if text:
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(self.normalise(text))
+        elif os.path.exists(path):
+            os.unlink(path)
+
+    def record(self, step):
+        """The records of every tab that is open, in the order the tabs
+        were opened."""
+        for label, tab in self.tabs.items():
+            page = tab.page
+            name = '%s.%s' % (step.name, label)
+            rec = step.tab(label)
+            lines = []
+            for method, path, status in rec.requests:
+                lines.append('%s %s %s' % (method, path, status if status is not None else '...'))
+            for method, path, status, origin in rec.late:
+                lines.append('%s %s %s (sent in %s)' % (method, path, status, origin))
+            self.write(name, '.requests', ''.join(l + '\n' for l in lines))
+            self.write(name, '.dialogs', ''.join(l + '\n' for l in rec.dialogs))
+            self.write(name, '.console', ''.join(l + '\n' for l in rec.console))
+            self.write(name, '.page.html', page.evaluate(DUMP_JS, self.path_of(page.url)))
+
+    # ------------------------------------------------------------------ run
+
+    def launch(self, p):
+        """The engine, started once; a failure is said plainly, since what
+        urt shows of this is the first lines, and a traceback's are the
+        least telling."""
+        try:
+            if self.args.engine == 'chromium':
+                # Chromium keeps renderer memory under /dev/shm unless told
+                # not to, and a build sandbox (nix's) has next to none
+                # there, which closes the page before the first step.
+                self.browser = p.chromium.launch(args=['--disable-dev-shm-usage'])
+            elif self.args.engine == 'firefox':
+                # Firefox fetches a page's favicon from outside the page,
+                # where Playwright does not see it; the server would, and
+                # its clock would tick once more than for the others.
+                self.browser = p.firefox.launch(firefox_user_prefs={'browser.chrome.site_icons': False})
+            else:
+                self.browser = p.webkit.launch()
+        except self.PlaywrightError as e:
+            print('%s does not start: %s' % (self.args.engine, self.complaint(e)), file=sys.stderr)
+            return False
+        return True
+
+    def run_steps(self, steps):
+        """One run through the browser: the steps, each reported as it is
+        done, then every context closed, so that nothing of the run is
+        left for the next; 'done' ends it.  Returns whether every step
+        could be done."""
+        os.makedirs(self.out, exist_ok=True)
+        ok = True
+        for name, actions in steps:
+            self.step = Step(name)
+            error = None
+            try:
+                for n, label, verb, rest in actions:
+                    self.act(label, verb, rest)
+                    self.settle()
+                self.settle()
+            except Complaint as e:
+                error = str(e)
+            except self.PlaywrightError as e:
+                error = self.complaint(e)
+            try:
+                self.record(self.step)
+            except self.PlaywrightError as e:
+                error = error or self.complaint(e)
+            self.write(name, '.error', error + '\n' if error else '')
+            self.step = None
+            print(('fail %s' if error else 'step %s') % name, flush=True)
+            if error:
+                ok = False
+                break
+        for context in list(self.contexts.values()):
+            try:
+                context.close()
+            except self.PlaywrightError:
+                pass
+        self.tabs = {}
+        self.contexts = {}
+        print('done', flush=True)
+        return ok
+
+    def run(self, steps, sync_playwright):
+        with sync_playwright() as p:
+            if not self.launch(p):
+                return 2
+            ok = self.run_steps(steps)
+            self.browser.close()
+        return 0 if ok else 1
+
+    def serve(self, sync_playwright):
+        """--serve: the engine started once, and a run for every line
+        'run URL RUN OUT' on stdin, reported as a run of its own would
+        be, up to its 'done'; the end of stdin ends it.  A run whose
+        steps cannot be read is 'done' at once, with the complaints on
+        stderr: urt has checked them before, so that is a driver's
+        mistake."""
+        with sync_playwright() as p:
+            if not self.launch(p):
+                return 2
+            for line in sys.stdin:
+                words = shlex.split(line)
+                if len(words) != 4 or words[0] != 'run':
+                    print('urt-browse: not a run: %s' % line.rstrip(), file=sys.stderr)
+                    print('done', flush=True)
+                    continue
+                steps, setups, complaints = read_run(words[2])
+                self.begin(words[1], words[2], words[3], setups)
+                if complaints:
+                    for c in complaints:
+                        print(c, file=sys.stderr)
+                    print('done', flush=True)
+                    continue
+                self.run_steps(steps)
+            self.browser.close()
+        return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(add_help=False)
+    ap.add_argument('--engine', choices=['chromium', 'firefox', 'webkit'], default='chromium')
+    ap.add_argument('--epoch', type=float, default=None)
+    ap.add_argument('--timeout', type=float, default=10)
+    ap.add_argument('--check', action='store_true')
+    ap.add_argument('--serve', action='store_true')
+    ap.add_argument('--help', action='store_true')
+    ap.add_argument('rest', nargs='*')
+    args = ap.parse_args()
+    if args.help:
+        print(__doc__.strip())
+        return 0
+    if args.check:
+        if len(args.rest) != 1:
+            print('usage: urt-browse --check RUN', file=sys.stderr)
+            return 2
+        _, _, complaints = read_run(args.rest[0])
+        for c in complaints:
+            print(c)
+        return 1 if complaints else 0
+    if args.serve:
+        if args.rest:
+            print('usage: urt-browse --serve [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS]',
+                  file=sys.stderr)
+            return 2
+        args.url, args.run, args.out = '', '', ''
+        from playwright.sync_api import Error as PlaywrightError, sync_playwright
+        return Driver(args, PlaywrightError).serve(sync_playwright)
+    if len(args.rest) != 3:
+        print('usage: urt-browse [--engine chromium|firefox|webkit] [--epoch SECONDS] [--timeout SECONDS] URL RUN OUT',
+              file=sys.stderr)
+        return 2
+    args.url, args.run, args.out = args.rest
+    steps, setups, complaints = read_run(args.run)
+    if complaints:
+        for c in complaints:
+            print(c, file=sys.stderr)
+        return 2
+    # Playwright is imported here so that --check needs only python3.
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
+    return Driver(args, PlaywrightError, setups).run(steps, sync_playwright)
+
+
+if __name__ == '__main__':
+    try:
+        sys.exit(main())
+    except Exception as e:
+        # The gist first, where urt shows it; the traceback after.
+        print('urt-browse: %s: %s' % (type(e).__name__, str(e).splitlines()[0] if str(e) else ''), file=sys.stderr)
+        raise

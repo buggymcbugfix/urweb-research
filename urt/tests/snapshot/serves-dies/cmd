@@ -1,2 +1,5 @@
 urt snapshot runs/serves-dies
-cd runs/serves-dies.urt/snapshot/1/request-response/dies && for f in interaction/*.response; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
+cd runs/serves-dies.urt/snapshot/1/request-response/dies && for f in interaction/*.response interaction/*.error; do [ -f "$f" ] || continue; echo "== $f"; tr -d '\r' < "$f"; echo; done
+urt snapshot runs/serves-dies
+urt snapshot -w runs/serves-dies
+printf 'GET /alive\n' > runs/serves-dies.urt/snapshot/1/request-response/dies/interaction/02-die.request && urt snapshot runs/serves-dies

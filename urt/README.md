@@ -19,12 +19,12 @@ environment (`env`), and the requests to send under `interaction/`,
 between which a run can wait for a line the server prints (`NAME.wait`),
 for what a task does on its own.  Kept are the responses as `curl -i`
 prints them, and beside each what the request changed in the database
-(`NAME.sql`, from the application's `URWEB_DML_LOG`) and what the server
+(`NAME.dml.sql`, from the application's `URWEB_DML_LOG`) and what the server
 printed meanwhile (`NAME.stdout`, `NAME.stderr`), each only if there was
 anything; under `out/`, what the application did before the first
-request (`startup.sql`, `startup.stdout`, `startup.stderr`: a `task
+request (`startup.dml.sql`, `startup.stdout`, `startup.stderr`: a `task
 initialize` shows here) and printed after the last (`shutdown.stdout`,
-`shutdown.stderr`), and the database it left behind (`db_final.sql`).
+`shutdown.stderr`), and the database it left behind (`shutdown.db.sql`).
 The application's clock and random numbers are
 pinned through its environment (`URWEB_REPRODUCIBLE_EPOCH`,
 `URWEB_REPRODUCIBLE_PRNG_SEED`; see `src/c/reproducible.c` in the
@@ -32,7 +32,12 @@ compiler's tree), and its heap starts at 256 MiB (`URWEB_MIN_HEAP`), so
 that no handler is run a second time for the heap to have grown and
 moved; a run repeats byte for byte.  (A project whose `limit heap` is
 below 256 MiB cannot have runs yet: the application refuses to start
-with a heap above its limit, and the run fails with its message.)  The
+with a heap above its limit, and the run fails with its message.)  A
+request that cannot be sent at all, because the server has died or
+hangs, stops the run: it is recorded as far as it got, `NAME.error`
+says why, the records of the requests after it go, and the run fails,
+with the complaint under its verdict, until it gets past the request
+again, when `NAME.error` goes.  The
 application is
 built where the project has it built and then moved into the case, as
 `app.exe` beside `expected/`, where it stays: git ignores it, and it is
@@ -78,6 +83,79 @@ Not there yet:
   a start, hashes kept in the case for more; `--whine` in CI should
   probably go on doing all of it.
 
+A case can also have runs in a browser, under `browser/`, laid out as
+the request-response runs are but with `NAME.step` files under
+`interaction/`: what to do, actions one per line, each in a tab named
+`USER.TAB:` (`user.1: open /Shop/main`, `user.1: fill 'input[name=name]'
+kettle`, `user.1: click 'text=Add'`, `user.1: drag 'text=Pooh'
+'text=Edward'`, `bob.1: open /Shop/main`, `bob.1: wait 'text=1 item'`;
+`urt-browse --help` has them all, the locators are Playwright's, and a
+locator can be followed by a position on the element, `50%,80%` of its
+box or `12,40` pixels from its corner).  A user is a browser of their
+own, cookies and all; a tab is a page in it, and a client to the
+application; `user.1` is the usual one, `user.2` a second tab of the
+same person, `bob.1` another person.  A tab comes into being with its
+first action, an open, and goes with `close`.  Every user's browser is
+1024x768, `en-US`, `UTC` and the user agent `urt`, unless a
+`USER.context` file beside `engines` says otherwise: an option a line,
+`OPTION VALUE`, in Playwright's names for a browser context
+(`viewport 800x600`, `device_scale_factor 2`, `color_scheme dark`,
+`reduced_motion reduce`, `forced_colors active`, `locale de-DE`,
+`timezone_id Europe/Berlin`, `has_touch yes`, `user_agent ...`); what no
+file gives is the engine's own.  Beside each step, for every tab open
+after it, what the page showed (`NAME.USER.TAB.page.html`: the DOM as
+HTML, its path in a comment, scripts, styles and handlers left out, the
+live value of every field in, `hidden` on what is not shown, and
+`autofocus` on the field that has the focus when that is one typed into,
+since whether a button or a checkbox takes the focus on a click is the
+platform's convention and not the engine's), what it fetched
+(`NAME.USER.TAB.requests`), its dialogs and console when there were any;
+and for the step the server's side as for a request (`NAME.dml.sql`,
+`NAME.stdout`, `NAME.stderr`).  Every run is driven through three
+engines, Chromium, Firefox and WebKit (an `engines` file in the run
+names fewer), by `urt-browse` beside `urt`, through Playwright for
+Python: `urt snapshot` starts the application as for a request-response
+run, once per engine, and the driver sends the engine through it,
+settling after every action (no request open but the `/.msgs` poll, and
+a turn of every page's timers with nothing new).  The browser itself is
+started once per engine for all the runs of a `urt snapshot`, since
+starting one takes seconds; what a run gets afresh is its contexts, one
+per user, which is where cookies, storage and the clock live.  A request
+for any other server is refused by the driver and recorded as such: a
+run drives this application, and the network is not its business; what
+its pages need, the application serves (the `file` directive of the
+.urp).  The engines agree on nearly everything, since the driver levels
+what they do on their own (no engine caches or fetches a favicon, the
+page's clock is Playwright's), and a record they agree on is one file;
+one that an engine records differently is that engine's own, named with
+the engine after the record's kind so that it sorts beside the shared
+one (`NAME.USER.TAB.page.firefox.html` beside `NAME.USER.TAB.page.html`,
+`NAME.stdout.firefox` beside `NAME.stdout`), and what that engine is
+compared against.  Recording goes by the majority, a tie to the engine
+first in the order above, and an own file whose engine has come to agree
+goes again.  The pages' clock stands still from the run's start and
+`tick N` moves it, one user's browser after another, each settled before
+the next, so `sleep`, the client timeout and periodic work happen when a
+step says and reach the server in one order, and a run repeats byte for
+byte.  A step that cannot be done (no such element, two of them, a wait
+that times out) stops the run, as a request that cannot be sent does:
+the step's `NAME.error` holds the engine's complaint, beside the records
+of the page as the engine found it, the records of the steps after it
+go, and the run fails, with the complaint under its verdict, until it
+gets past the step again.  An engine that stops where the others go on
+has its own `NAME.error.ENGINE` and, for what it did not record after
+that, own files that are empty; where it is the majority that stops, the
+`NAME.error` is the shared one and the engine that went on has the own
+files.  One such difference is the engines' own and stays: `back` to a
+page that answered a POST sends the POST again in Chromium and WebKit,
+and Firefox, which keeps no such page, refuses, so there the step cannot
+be done and its complaint says why; a run meant for every engine opens
+the page instead.  (The cure is in the application server: answer a
+form's POST with a redirect to a GET, so that no POST stays in the
+history.)  Browser runs need `urt-browse`, python3 with Playwright, and
+the engines where `PLAYWRIGHT_BROWSERS_PATH` says; the compiler's
+`nix-shell` and its package with urt have all of it.
+
 `urt format`, `urt fmt`
 -----------------------
 
@@ -110,7 +188,10 @@ the formatter, the compiler) an error.
     snapshot   `urt snapshot` held to the transcripts under tests/snapshot,
                on a fixture tree with a stand-in compiler and, for the
                runs, a stand-in server (tests/snapshot/app, python3) that
-               answers every request with the request it got
+               answers every request with the request it got; of the
+               browser runs, which have no stand-in, that covers what is
+               noticed before there has to be a browser (the layout, the
+               steps, --create-browser-run), python3 reading the steps
     pty        the same on a pseudo-terminal (tests/pty; python3 too)
     fmt        `urt format`: tests/format/NAME.in.ur must format to
                NAME.out.ur, and that to itself
@@ -127,7 +208,12 @@ tests/, with `urt snapshot`; neither is part of its `make check`, and
 its package with `withUrt` runs both.  Among those snapshots are the ones
 that hold the runs themselves to account, with a real compiler, server,
 curl and sqlite3: tests/reproducible (the clock, random numbers, a signed
-form, a table, a transaction that rolls back) and demo/css (no database).
+form, a table, a transaction that rolls back) and demo/css (no database);
+and the browser runs, with the real engines as well: demo/batch (RPCs
+from a page, a page opened again), demo/chat (a channel, a form),
+demo/roundTrip (the page's clock), demo/more/dragList (dragging),
+tests/alert (dialogs) and tests/vendor (a page that says which engine it
+is in, so the engines' own records).
 
 Style
 -----

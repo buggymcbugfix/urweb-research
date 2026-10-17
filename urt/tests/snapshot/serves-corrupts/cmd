@@ -1,4 +1,4 @@
 urt snapshot runs/serves-corrupts
-cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql
+cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/shutdown.db.sql
 urt snapshot runs/serves-corrupts
-cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql
+cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/shutdown.db.sql

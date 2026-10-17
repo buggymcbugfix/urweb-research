@@ -1,0 +1,10 @@
+urt snapshot -w runs/webstray
+urt snapshot runs/webunready
+urt snapshot runs/web
+urt snapshot -w runs/web
+urt snapshot --create-browser-run runs/web
+urt snapshot --create-browser-run runs/web.urt/snapshot/1 second a.b
+urt snapshot --create-browser-run shop.urt/snapshot/sqlite
+cat shop.urt/snapshot/sqlite/browser/1/interaction/01.step shop.urt/snapshot/sqlite/browser/1/secret
+urt snapshot --create-browser-run hello nodb
+urt snapshot -w --create-browser-run hello

@@ -11,7 +11,7 @@ let
 
     packages = with pkgs; [
       git # read by make for `urweb -version`
-      python3 # urt's pty cases and stand-in server
+      urweb.passthru.urt.python # urt's pty cases, stand-in server and browser runs
       rlwrap
       smlnj
       sqlite
@@ -28,6 +28,9 @@ let
 in
 pkgs.mkShell {
   inherit (shellInputs) inputsFrom packages;
+
+  # The browsers urt's browser runs drive (derivation.nix)
+  env = urweb.passthru.urt.env;
 
   shellHook = ''
     export DEVPREFIX="$PWD/out"

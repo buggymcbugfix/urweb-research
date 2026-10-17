@@ -4,8 +4,8 @@ ERROR cannot dump the database of runs/serves-corrupts.urt/snapshot/1/request-re
 sql error: file is not a database (26)
 1 case and 1 run: 1 updated, in T
 exit 1
-$ cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql
-cat: runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql: No such file or directory
+$ cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/shutdown.db.sql
+cat: runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/shutdown.db.sql: No such file or directory
 exit 1
 $ urt snapshot runs/serves-corrupts
 OK runs/serves-corrupts.urt/snapshot/1
@@ -13,8 +13,8 @@ ERROR cannot dump the database of runs/serves-corrupts.urt/snapshot/1/request-re
 sql error: file is not a database (26)
 1 case and 1 run: 1 ok, in T
 exit 1
-$ cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql
-cat: runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/db_final.sql: No such file or directory
+$ cat runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/shutdown.db.sql
+cat: runs/serves-corrupts.urt/snapshot/1/request-response/corrupts/out/shutdown.db.sql: No such file or directory
 exit 1
 $ changes
 added: ./runs/serves-corrupts.urt/snapshot/1/app.exe
