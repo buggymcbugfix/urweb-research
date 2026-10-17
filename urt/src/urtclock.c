@@ -18,8 +18,12 @@
  * its own, sem_timedwait, ...) has the deadline moved from the run's clock
  * to the real one, keeping what is left of it: else a wait until now + 5s,
  * with now in 2100, would never end.  Not covered: realtime timers armed
- * with an absolute time (timer_settime, timerfd_settime), and the clock read
- * by a system call made directly.
+ * with an absolute time (timer_settime, timerfd_settime), the other waits
+ * with a realtime deadline (cnd_timedwait, mtx_timedlock,
+ * pthread_timedjoin_np, mq_timedreceive, mq_timedsend), whose deadline taken
+ * from the run's clock is never reached, and the clock read by a system call
+ * made directly.  The run's clock is never before 1970 (urt-browse refuses
+ * such an epoch), so negative times are not handled either.
  *
  * Linux and glibc only: the clock of a condition is read from glibc's
  * pthread_cond_t, where it has been since glibc 2.25. */

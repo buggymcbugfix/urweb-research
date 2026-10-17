@@ -4333,6 +4333,12 @@ def main():
     if not args.frame:
         print('urt-browse: --frame takes a time above 0, a number and its unit: 16ms, 33ms', file=sys.stderr)
         return 2
+    # liburtclock takes 0 for the real clock and is not made for times
+    # before it, and the engines keep no cookie past 9999.
+    if not 0 < args.epoch <= COOKIE_EXPIRES_MAX:
+        print('urt-browse: --epoch takes seconds since 1970, above 0 and at most %d, the end of 9999'
+              % COOKIE_EXPIRES_MAX, file=sys.stderr)
+        return 2
     if args.check:
         if len(args.rest) != 1:
             print('usage: urt-browse --check RUN', file=sys.stderr)
