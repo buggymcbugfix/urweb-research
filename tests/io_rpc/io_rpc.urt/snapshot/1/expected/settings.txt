@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_rpc.db
-Exe: tests/io_rpc/io_rpc.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

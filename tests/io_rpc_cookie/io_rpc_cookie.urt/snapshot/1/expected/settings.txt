@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_rpc_cookie.db
-Exe: tests/io_rpc_cookie/io_rpc_cookie.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_sqlcache_rollback.db
-Exe: tests/io_sqlcache_rollback/io_sqlcache_rollback.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

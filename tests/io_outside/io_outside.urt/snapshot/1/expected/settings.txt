@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_outside.db
-Exe: tests/io_outside/io_outside.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

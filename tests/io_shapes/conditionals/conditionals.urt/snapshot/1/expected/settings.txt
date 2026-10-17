@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=conditionals.db
-Exe: tests/io_shapes/conditionals/conditionals.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=branches.db
-Exe: tests/io_shapes/branches/branches.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

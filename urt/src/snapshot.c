@@ -20,12 +20,20 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/file.h>
+#include <sys/resource.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+#endif
 
 #include "commands.h"
 #include "fs.h"
@@ -184,12 +192,13 @@ static const char usage_text[] =
     "\n"
     "A case with runs is compiled all the way, so its args cannot hold -stop or\n"
     "-tc, and it fails if that does not give an application.  The compiler builds\n"
-    "it where the project has it built, and from there it is moved into the case\n"
-    "as app.exe, where it stays, to be started by hand if need be.\n"
+    "it in urt's scratch directory, whatever the project says (-output), from C\n"
+    "it writes there too (-saveC), and from there it is moved into the case as\n"
+    "app.exe, where it stays, to be started by hand if need be.\n"
     "A run's args cannot hold -t: its requests are sent one after the other, and\n"
     "with more threads than one it is a matter of chance which of them answers.\n"
     "Nor --, after which the server would ignore the flags urt adds (the address,\n"
-    "the port range, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
+    "-p 0, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.\n"
     "\n"
     "A case can also have runs in a browser, under browser/: the application\n"
     "started afresh as above, once per pass, and every pass sent through it step\n"
@@ -337,6 +346,7 @@ static const char usage_text[] =
     "  urt snapshot --whine [PATH...]             fail on a diff (you want this in CI)\n"
     "  urt snapshot --screenshot [PATH...]        also shoot every page of the browser runs\n"
     "  urt snapshot --record[=T] [PATH...]        also film every user of the browser runs\n"
+    "  urt snapshot -j[N] [PATH...]               N projects at a time, or one per core\n"
     "  urt snapshot --list [PATH...]              list the cases matching the given path(s)\n"
     "  urt snapshot --create [PROJECT] [CASE...]  create cases for the given project\n"
     "  urt snapshot --create-run [PATH] [RUN...]  create runs for the one case at the given path\n"
@@ -346,6 +356,17 @@ static const char usage_text[] =
     "PATH is a project (demo/alert[.urp]), its urt directory (demo/alert.urt), its\n"
     "snapshots (demo/alert.urt/snapshot), one case (demo/alert.urt/snapshot/1) or a\n"
     "directory to search for snapshots.  It defaults to the current directory.\n"
+    "\n"
+    "With -j N (or -jN, --jobs=N), N projects go at once, each in a process of its\n"
+    "own that takes the project's cases one after the other; with -j alone, as\n"
+    "many as there are cores, on Apple silicon its performance cores.  What is\n"
+    "printed is what a plain run prints, in the same order: a project's lines come\n"
+    "when its turn comes.  A browser pass keeps about a core busy, so under -j N at\n"
+    "most N go at once: each process holds a seat, in which it compiles and drives\n"
+    "the first pass of a run, and a run's other passes go alongside only in seats\n"
+    "nobody holds, taken without waiting, else after the first; a pass's films are\n"
+    "then developed one after another.  Without -j a browser run drives its passes\n"
+    "at once.\n"
     "\n"
     "With '--create', cases are set up for a project, named as given or by the\n"
     "next number: an empty 'args' file and an 'expected' directory of empty\n"
@@ -430,6 +451,14 @@ static const char *artifact_names(void) {
 /* ------------------------------------------------------------- settings */
 
 static int opt_check = 0, opt_create = 0, opt_create_run = 0, opt_list = 0, opt_edit = 0, opt_screenshot = 0, opt_record = 0;
+static int opt_jobs = 1, opt_jobs_given = 0;    /* -j: how many projects at once */
+/* -j's seats, one for every job: files under the parent's scratch
+ * directory, held with flock by whoever has a pass go in one.  A worker
+ * holds its own for its whole life, and its runs' further passes take
+ * seats that nobody holds, without waiting, or go after.  The kernel lets
+ * a dead worker's seats go; children do not inherit them (O_CLOEXEC). */
+static char seats_dir[PATHLEN] = "";
+static int n_seats = 0, my_seat = -1;
 static const char *opt_frame = NULL;   /* --record=T: the time between a film's frames, in ms as urt reads it */
 static const char *me = "urt snapshot";   /* how to invoke us, for messages */
 static char urweb[PATHLEN];               /* the compiler, absolute */
@@ -1340,6 +1369,32 @@ static int diff_into(const char *want, const char *now, const char *out) {
  * apart by one blank line and no more. */
 static int at_blank = 0;
 
+/* With -j (run_parallel), what a worker prints is printed again in the
+ * main process, its stderr lines marked (report_merge), and these marks
+ * at the start of a line besides: a worker cannot know what was printed
+ * before its project, so whether a blank line is due is decided there. */
+#define MARK_DONE  '\003'      /* the project is done; the counts follow */
+#define MARK_BLANK '\004'      /* a blank line, unless the last line printed was one */
+#define MARK_AT    '\005'      /* at_blank is now 0 or 1 */
+
+static int in_worker = 0;       /* this process is one of -j's */
+
+/* A blank line before a block, unless there is one. */
+static void blank_before(void) {
+    if (in_worker) {
+        printf("%c\n", MARK_BLANK);
+    } else if (!at_blank) {
+        putchar('\n');
+    }
+}
+
+static void set_at_blank(int v) {
+    at_blank = v;
+    if (in_worker) {
+        printf("%c%d\n", MARK_AT, v);
+    }
+}
+
 /* A diff, indented under the verdict it explains: headers grey, what
  * went red, what came green. */
 static void show_diff(const char *file) {
@@ -2130,7 +2185,7 @@ static int run_ready(const char *run_dir) {
             if (!strcmp(words.v[i], "--")) {
                 /* After it the server takes no options, ours included. */
                 die_later(fmt("%s ends the options with %s", path(f), key("--")),
-                          "the flags urt adds after a run's args -- the address, the port range and -d3, for the",
+                          "the flags urt adds after a run's args -- the address, -p 0 and -d3, for the",
                           "handshake -- would be ignored, and the server would listen where it likes and never say so",
                           fmt("take %s out", key("--")), NULL);
             } else if (asks_for_threads(&words, &i)) {
@@ -2184,7 +2239,7 @@ static int run_ready(const char *run_dir) {
                 if (end) {
                     *end = 0;
                 }
-                fprintf(stderr, "    %s\n", info(line));
+                report_err("    %s\n", info(line));
             }
             free(text);
         }
@@ -2632,28 +2687,42 @@ static void on_pass_line(int i, const char *line, void *data) {
     on_browse_line(line, &b[i]);
 }
 
-/* A browser run: the application started once per pass, passes->v[i]
- * into rws[i], and every pass driven through at once, each by a driver of
- * its own, which leaves the records under rws[i] and goes on outputs[i];
- * then every application stopped, and its database dumped.  Returns 0,
- * or -1 with the problem reported, and nothing of the run is to be
- * recorded then.  A step that cannot be done is not that kind of problem:
- * that pass stops there, with NAME.error saying why, and is recorded as
- * far as it got; stopped[i] (PATHLEN) names the step it stopped at, or is
- * empty. */
-static int run_passes(const char *run_dir, const char *exe, const struct strlist *passes, char rws[][PATHLEN],
-                      struct strlist outputs[], char stopped[][PATHLEN]) {
+/* Seat k taken: its file's descriptor, or -1 if someone holds it and
+ * wait is not set (or it cannot be had). */
+static int seat_take(int k, int wait) {
+    int fd = open(fmt("%s/seat-%d", seats_dir, k), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
+    if (fd < 0) {
+        return -1;
+    }
+    if (flock(fd, LOCK_EX | (wait ? 0 : LOCK_NB)) < 0) {
+        close(fd);
+        return -1;
+    }
+    return fd;
+}
+
+/* Passes from..to-1 of a browser run: the application started once per
+ * pass, passes->v[i] into rws[i], and every pass driven through at once,
+ * each by a driver of its own, which leaves the records under rws[i] and
+ * goes on outputs[i]; then every application stopped, and its database
+ * dumped.  Returns 0, or -1 with the problem reported, and nothing of the
+ * run is to be recorded then.  A step that cannot be done is not that
+ * kind of problem: that pass stops there, with NAME.error saying why, and
+ * is recorded as far as it got; stopped[i] (PATHLEN) names the step it
+ * stopped at, or is empty. */
+static int run_some(const char *run_dir, const char *exe, const struct strlist *passes, int from, int to,
+                    char rws[][PATHLEN], struct strlist outputs[], char stopped[][PATHLEN]) {
     struct app apps[PASSES_MAX];
     struct browsing b[PASSES_MAX];
     struct child *ds[PASSES_MAX], *going[PASSES_MAX] = { NULL };
     char browse_err[PASSES_MAX][PATHLEN];
     int slot[PASSES_MAX], taken[PASSES_MAX] = { 0 }, done[PASSES_MAX] = { 0 }, said[PASSES_MAX] = { 0 };
-    int i, j, n = passes->n, before = report_problems, ok = 1;
+    int i, j, before = report_problems, ok = 1;
 
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         *stopped[i] = 0;
         if (app_start(run_dir, exe, 1, rws[i], &servers[i], &apps[i], &outputs[i]) < 0) {
-            while (--i >= 0) {
+            while (--i >= from) {
                 server_stop(&servers[i]);
             }
             return -1;
@@ -2661,7 +2730,7 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
     }
     /* A pass to the driver of its first user's engine, if no pass before
      * it took that one, or else to the first one free. */
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         int want = engine_at(passes->v[i]);
         slot[i] = want >= 0 && want < PASSES_MAX && !taken[want] ? want : -1;
         for (j = 0; slot[i] < 0 && j < PASSES_MAX; j++) {
@@ -2676,26 +2745,27 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
      * output is cut on those lines, as after a request.  The screenshots
      * and the recordings, when asked for, go straight into the run,
      * emptied of the last ones by run_run. */
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         struct browsing one = { run_dir, rws[i], apps[i].dml, apps[i].server_out, apps[i].server_err,
                                 &apps[i].out_at, &apps[i].err_at, &outputs[i], 0, "" };
         b[i] = one;
         join(browse_err[i], rws[i], "browse.stderr");
         ds[i] = driver_for(slot[i]);
         said[i] = ds[i] != NULL
-                  && child_say(ds[i], fmt("run %s %s %s pass=%s%s%s%s\n",
+                  && child_say(ds[i], fmt("run %s %s %s pass=%s%s%s%s%s\n",
                                           shell_quoted(fmt("http://127.0.0.1:%d", servers[i].port)),
                                           shell_quoted(run_dir), shell_quoted(fmt("%s/interaction", rws[i])),
                                           shell_quoted(passes->v[i]),
                                           opt_screenshot ? fmt(" screenshots=%s", shell_quoted(fmt("%s/screenshots", run_dir))) : "",
                                           opt_record ? fmt(" recordings=%s", shell_quoted(fmt("%s/recordings", run_dir))) : "",
-                                          opt_frame ? fmt(" frame=%s", shell_quoted(opt_frame)) : "")) == 0;
+                                          opt_frame ? fmt(" frame=%s", shell_quoted(opt_frame)) : "",
+                                          opt_record && my_seat >= 0 ? " films=one" : "")) == 0;
     }
     {
         /* Those that took their pass, heard together. */
         int at[PASSES_MAX], heard[PASSES_MAX];
         struct browsing bs[PASSES_MAX];
-        for (i = 0, j = 0; i < n; i++) {
+        for (i = from, j = 0; i < to; i++) {
             if (said[i]) {
                 going[j] = ds[i];
                 bs[j] = b[i];
@@ -2708,7 +2778,7 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
             done[at[j]] = heard[j];
         }
     }
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         /* What the driver said to stderr during this pass, beside its
          * records, where head_of finds it. */
         if (ds[i]) {
@@ -2729,17 +2799,45 @@ static int run_passes(const char *run_dir, const char *exe, const struct strlist
             driver_up[slot[i]] = 0;
         }
     }
-    for (i = 0; i < n; i++) {
+    for (i = from; i < to; i++) {
         server_stop(&servers[i]);
     }
     bail_if_interrupted();
     if (report_problems != before) {
         return -1;
     }
-    for (i = 0; i < n && ok; i++) {
+    for (i = from; i < to && ok; i++) {
         ok = app_end(run_dir, &apps[i], &outputs[i]) == 0;
     }
     return ok ? 0 : -1;
+}
+
+/* A browser run's passes, as run_some has them: all at once; under -j as
+ * many at once as there are seats for them, the worker's own and those
+ * nobody holds, the others after those, in seats taken again. */
+static int run_passes(const char *run_dir, const char *exe, const struct strlist *passes, char rws[][PATHLEN],
+                      struct strlist outputs[], char stopped[][PATHLEN]) {
+    int first = 0, n = passes->n;
+    while (first < n) {
+        int held[PASSES_MAX], nh = 0, k = n - first, s, r;
+        if (my_seat >= 0) {
+            for (k = 1, s = 0; s < n_seats && first + k < n; s++) {
+                if (s != my_seat && (held[nh] = seat_take(s, 0)) >= 0) {
+                    nh++;
+                    k++;
+                }
+            }
+        }
+        r = run_some(run_dir, exe, passes, first, first + k, rws, outputs, stopped);
+        while (nh > 0) {
+            close(held[--nh]);
+        }
+        if (r < 0) {
+            return -1;
+        }
+        first += k;
+    }
+    return 0;
 }
 
 /* Whether two of a pass's records are the same, a record that is not
@@ -3001,9 +3099,7 @@ static void run_run(const char *run_dir, const char *exe) {
         /* What differs, or, when recording, what was written: a run that
          * stopped fails either way, with the complaint under the verdict. */
         const char *list = opt_check ? bad : changed;
-        if (!at_blank) {
-            putchar('\n');
-        }
+        blank_before();
         say(ST_BAD, "FAIL", run_dir, fmt("%s%s", *list ? fmt(" (%s)", list) : "", note));
         for (i = 0; i < diffs.n; i++) {
             show_diff(diffs.v[i]);
@@ -3031,7 +3127,7 @@ static void run_run(const char *run_dir, const char *exe) {
             driver_notes(engs.n, rws);
         }
         putchar('\n');
-        at_blank = 1;
+        set_at_blank(1);
         n_bad++;
         report_failed = 1;
     } else {
@@ -3045,7 +3141,7 @@ static void run_run(const char *run_dir, const char *exe) {
         if (kind == RUN_BROWSER) {
             driver_notes(engs.n, rws);
         }
-        at_blank = 0;
+        set_at_blank(0);
     }
     sl_free(&engs);
     sl_free(&outputs);
@@ -3139,11 +3235,16 @@ static void run_case(const char *case_dir, const char *project) {
         }
     }
     /* With runs the compiler goes all the way, and builds the application
-     * where the project has it built.  From there it is moved into the
-     * case, beside expected/: out of the project's way, and still there
-     * afterwards, to be started by hand when a run needs looking into.
-     * The one from last time goes first, lest it stand in for one that
-     * does not build. */
+     * in the work directory, whatever the project says: an exe directive
+     * can name a file another project names too (/tmp/webapp, in tests/),
+     * and two cases built at once would swap applications.  From there it
+     * is moved into the case, beside expected/: out of the project's way,
+     * and still there afterwards, to be started by hand when a run needs
+     * looking into.  The one from last time goes first, lest it stand in
+     * for one that does not build.  The C is written in the work directory
+     * too (-saveC), and the application built from there: a debug build
+     * otherwise keeps its C in /tmp/webapp.c, as every debug build does,
+     * and two at once would build each other's. */
     join(exe, case_dir, "app.exe");
     join(settings, work, "settings.txt");
     if (runs.n) {
@@ -3154,6 +3255,12 @@ static void run_case(const char *case_dir, const char *project) {
             sl_push(&argv, "-saveSettings");
             sl_push(&argv, settings);
         }
+        if (!sl_has(&entries, "server.c")) {
+            sl_push(&argv, "-saveC");
+            sl_push(&argv, fmt("%s/server.c", work));
+        }
+        sl_push(&argv, "-output");
+        sl_push(&argv, fmt("%s/app.exe", work));
     } else if (!own_stop) {
         sl_push(&argv, "-stop");
         sl_push(&argv, stop);
@@ -3238,9 +3345,7 @@ static void run_case(const char *case_dir, const char *project) {
     no_exe = runs.n && (status != 0 || !can_exec(exe));
     if ((opt_check && *bad) || no_exe) {
         /* The verdict, then the diffs under it, set apart by blank lines. */
-        if (!at_blank) {
-            putchar('\n');
-        }
+        blank_before();
         say(ST_BAD, "FAIL", case_dir,
             fmt(" (%s%s%s)%s", opt_check ? bad : "", opt_check && *bad && no_exe ? "; " : "",
                 no_exe ? fmt("no application for its %d run%s", runs.n, runs.n == 1 ? "" : "s") : "", note));
@@ -3253,7 +3358,7 @@ static void run_case(const char *case_dir, const char *project) {
             printf("    %s\n", info(head_of(f, "(it said nothing)")));
         }
         putchar('\n');
-        at_blank = 1;
+        set_at_blank(1);
         n_bad++;
         report_failed = 1;
     } else {
@@ -3264,7 +3369,7 @@ static void run_case(const char *case_dir, const char *project) {
             say(ST_OK, "OK", case_dir, note);
             n_ok++;
         }
-        at_blank = 0;
+        set_at_blank(0);
     }
     for (i = 0; !no_exe && i < runs.n; i++) {
         run_run(runs.v[i], exe);
@@ -3434,6 +3539,333 @@ static const char *first_with_runs(const struct strlist *snaps) {
     return NULL;
 }
 
+/* -------------------------------------------------------------------- -j */
+
+/* With -j the projects go N at a time.  Once the list is known, N
+ * workers are forked, each with a scratch directory, servers and drivers
+ * of its own; each is handed a project, does it as a plain run would,
+ * says it is done and how the counts stand, and is handed the next.
+ * What it prints, its stderr lines marked among its stdout's, comes here
+ * on one pipe and is printed in the order of the list: the first project
+ * not printed yet as it comes, the others when their turn comes.  So the
+ * output is a plain run's, blank lines and all, and so is the summary,
+ * from the workers' counts.  A worker that dies in a project, as die()
+ * makes it, ends the run there, as die() ends a plain one: the projects
+ * before it are printed, those after it are not, and its exit status is
+ * ours. */
+
+enum { PO_TODO, PO_UNDERWAY, PO_DONE, PO_LOST };
+
+struct project_out {            /* what a worker printed for one project */
+    char *buf;
+    size_t len, cap, shown, scanned;
+    int state;                  /* PO_* */
+};
+
+struct worker_proc {
+    pid_t pid;
+    int out, cmd;               /* its output, read here; its next project, written here; -1 once closed */
+    int at;                     /* the project it is on, or -1 */
+    int counts[8];              /* as its last project left them */
+    int status;
+};
+
+/* A worker: a project at a time, by its number in the list, until the
+ * list is done; a project's counts after it, in a marked line. */
+static void worker(const struct strlist *snaps, int cmd, int out) {
+    char line[64];
+    FILE *in;
+    in_worker = 1;
+    /* Its seat, held until it is done: free for it, and nobody else's. */
+    if (seat_take(my_seat, 1) < 0) {
+        my_seat = -1;
+    }
+    /* The parent's scratch directory is the parent's to remove. */
+    *tmp = 0;
+    need_tmp();
+    if (dup2(out, STDOUT_FILENO) < 0 || dup2(out, STDERR_FILENO) < 0) {
+        _exit(2);
+    }
+    close(out);
+    report_merge();
+    in = fdopen(cmd, "r");
+    while (in && fgets(line, sizeof line, in)) {
+        handle(snaps->v[atoi(line)], do_case);
+        printf("%c%d %d %d %d %d %d %d %d\n", MARK_DONE, n_cases, n_runs, n_ok, n_bad, n_changed, n_skipped,
+               n_nonzero, report_failed);
+        fflush(stdout);
+        bail_if_interrupted();
+    }
+    bail_if_interrupted();
+    exit(0);
+}
+
+/* Whether worker w took project k: one that is gone does not, and says
+ * so by its output's end. */
+static int give(struct worker_proc *w, struct project_out *p, int k) {
+    char line[32];
+    int n = snprintf(line, sizeof line, "%d\n", k);
+    if (w->cmd < 0 || write(w->cmd, line, (size_t) n) != n) {
+        return 0;
+    }
+    w->at = k;
+    p[k].state = PO_UNDERWAY;
+    return 1;
+}
+
+static void no_more(struct worker_proc *w) {
+    if (w->cmd >= 0) {
+        close(w->cmd);
+        w->cmd = -1;
+    }
+}
+
+/* One line of a worker's, put where it belongs; a line it did not end
+ * is ended. */
+static void put_line(const char *line, size_t n) {
+    int ended = n > 0 && line[n - 1] == '\n';
+    switch (n ? line[0] : 0) {
+    case REPORT_STDERR_MARK:
+        fflush(stdout);
+        fwrite(line + 1, 1, n - 1, stderr);
+        if (!ended) {
+            fputc('\n', stderr);
+        }
+        break;
+    case MARK_DONE:
+        break;
+    case MARK_BLANK:
+        if (!at_blank) {
+            putchar('\n');
+        }
+        break;
+    case MARK_AT:
+        at_blank = n > 1 && line[1] == '1';
+        break;
+    default:
+        fwrite(line, 1, n, stdout);
+        if (!ended) {
+            putchar('\n');
+        }
+    }
+}
+
+/* What can be printed now, in order, from project k on: the lines of
+ * the first project not done yet, and every project done before it.  The
+ * first project not printed in full, or the lost one, after which
+ * nothing is. */
+static int put_ready(struct project_out *p, int n, int k) {
+    for (; k < n; k++) {
+        struct project_out *o = &p[k];
+        char *nl;
+        while (o->shown < o->len && (nl = memchr(o->buf + o->shown, '\n', o->len - o->shown))) {
+            size_t len = (size_t) (nl - (o->buf + o->shown)) + 1;
+            put_line(o->buf + o->shown, len);
+            o->shown += len;
+        }
+        if (o->state == PO_LOST && o->shown < o->len) {
+            put_line(o->buf + o->shown, o->len - o->shown);
+            o->shown = o->len;
+        }
+        if (o->state != PO_DONE) {
+            break;
+        }
+        free(o->buf);
+        o->buf = NULL;
+    }
+    return k;
+}
+
+static void take(struct project_out *o, const char *data, size_t n) {
+    if (o->len + n > o->cap) {
+        o->cap = (o->len + n) * 2;
+        o->buf = realloc(o->buf, o->cap);
+        if (!o->buf) {
+            die("out of memory", NULL);
+        }
+    }
+    memcpy(o->buf + o->len, data, n);
+    o->len += n;
+}
+
+static void run_parallel(const struct strlist *snaps) {
+    int n = snaps->n, nw = opt_jobs < n ? opt_jobs : n, i, j, next = 0, printed = 0, live = 0, lost = -1, lost_by = -1;
+    int told = 0;
+    struct project_out *p = calloc((size_t) n, sizeof *p);
+    struct worker_proc *ws = calloc((size_t) nw, sizeof *ws);
+    struct pollfd *fds = calloc((size_t) nw, sizeof *fds);
+    char chunk[65536];
+    struct sigaction ign, old_pipe;
+
+    if (!p || !ws || !fds) {
+        die("out of memory", NULL);
+    }
+    /* The seats, in our scratch directory, one for every job: the
+     * workers' own and those for passes alongside them. */
+    pathf(seats_dir, "%s", tmp);
+    n_seats = opt_jobs;
+    fflush(stdout);
+    fflush(stderr);
+    for (i = 0; i < nw; i++) {
+        int out[2], cmd[2];
+        if (pipe(out) < 0 || pipe(cmd) < 0) {
+            die(fmt("cannot make a pipe: %s", strerror(errno)), NULL);
+        }
+        ws[i].pid = fork();
+        if (ws[i].pid < 0) {
+            die(fmt("cannot fork: %s", strerror(errno)), NULL);
+        }
+        if (ws[i].pid == 0) {
+            for (j = 0; j < i; j++) {
+                close(ws[j].out);
+                close(ws[j].cmd);
+            }
+            close(out[0]);
+            close(cmd[1]);
+            my_seat = i;
+            worker(snaps, cmd[0], out[1]);
+        }
+        close(out[1]);
+        close(cmd[0]);
+        ws[i].out = out[0];
+        ws[i].cmd = cmd[1];
+        ws[i].at = -1;
+        live++;
+    }
+    /* A worker gone, its pipe with it, is noticed by its output's end,
+     * not by a SIGPIPE. */
+    memset(&ign, 0, sizeof ign);
+    ign.sa_handler = SIG_IGN;
+    sigemptyset(&ign.sa_mask);
+    sigaction(SIGPIPE, &ign, &old_pipe);
+    for (i = 0; i < nw && next < n; i++) {
+        next += give(&ws[i], p, next);
+    }
+
+    while (live > 0) {
+        if (fs_interrupted && !told) {
+            /* Every worker is told, of a signal from elsewhere than the
+             * terminal too, and their output read to its end. */
+            told = 1;
+            next = n;
+            for (i = 0; i < nw; i++) {
+                no_more(&ws[i]);
+                kill(ws[i].pid, fs_interrupted);
+            }
+        }
+        for (i = 0; i < nw; i++) {
+            fds[i].fd = ws[i].out;
+            fds[i].events = POLLIN;
+            fds[i].revents = 0;
+        }
+        if (poll(fds, (nfds_t) nw, -1) < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            die(fmt("cannot wait for the workers: %s", strerror(errno)), NULL);
+        }
+        for (i = 0; i < nw; i++) {
+            struct worker_proc *w = &ws[i];
+            struct project_out *o;
+            ssize_t got;
+            if (w->out < 0 || !fds[i].revents) {
+                continue;
+            }
+            got = read(w->out, chunk, sizeof chunk);
+            if (got < 0 && errno == EINTR) {
+                continue;
+            }
+            if (got <= 0) {
+                close(w->out);
+                w->out = -1;
+                live--;
+                no_more(w);
+                if (w->at >= 0) {
+                    /* Died in a project: nothing more is begun. */
+                    p[w->at].state = PO_LOST;
+                    if (lost < 0 || w->at < lost) {
+                        lost = w->at;
+                        lost_by = i;
+                    }
+                    w->at = -1;
+                    next = n;
+                    for (j = 0; j < nw; j++) {
+                        if (ws[j].at < 0) {
+                            no_more(&ws[j]);
+                        }
+                    }
+                }
+                continue;
+            }
+            if (w->at < 0) {
+                /* Said between projects, which nothing does: as it comes. */
+                struct project_out stray = { 0, 0, 0, 0, 0, PO_LOST };
+                take(&stray, chunk, (size_t) got);
+                put_ready(&stray, 1, 0);
+                free(stray.buf);
+                continue;
+            }
+            o = &p[w->at];
+            take(o, chunk, (size_t) got);
+            while (o->scanned < o->len) {
+                char *line = o->buf + o->scanned, *nl = memchr(line, '\n', o->len - o->scanned);
+                if (!nl) {
+                    break;
+                }
+                o->scanned += (size_t) (nl - line) + 1;
+                if (*line == MARK_DONE) {
+                    int *c = w->counts;
+                    sscanf(line + 1, "%d %d %d %d %d %d %d %d", &c[0], &c[1], &c[2], &c[3], &c[4], &c[5], &c[6], &c[7]);
+                    o->state = PO_DONE;
+                    w->at = -1;
+                    if (next < n && give(w, p, next)) {
+                        next++;
+                    } else {
+                        no_more(w);
+                    }
+                    break;
+                }
+            }
+        }
+        printed = put_ready(p, n, printed);
+    }
+    for (i = 0; i < nw; i++) {
+        while (waitpid(ws[i].pid, &ws[i].status, 0) < 0 && errno == EINTR) {
+            ;
+        }
+    }
+    sigaction(SIGPIPE, &old_pipe, NULL);
+    put_ready(p, n, printed);
+    fflush(stdout);
+    bail_if_interrupted();
+    for (i = j = 0; lost < 0 && i < n; i++) {
+        j += p[i].state != PO_DONE;
+    }
+    if (j) {
+        die(fmt("%d of the projects were not done: the workers were gone", j), NULL);
+    }
+    if (lost >= 0) {
+        int st = ws[lost_by].status;
+        exit(WIFEXITED(st) && WEXITSTATUS(st) != 0 ? WEXITSTATUS(st) : 2);
+    }
+    for (i = 0; i < nw; i++) {
+        n_cases += ws[i].counts[0];
+        n_runs += ws[i].counts[1];
+        n_ok += ws[i].counts[2];
+        n_bad += ws[i].counts[3];
+        n_changed += ws[i].counts[4];
+        n_skipped += ws[i].counts[5];
+        n_nonzero += ws[i].counts[6];
+        report_failed |= ws[i].counts[7];
+    }
+    for (i = 0; i < n; i++) {
+        free(p[i].buf);
+    }
+    free(p);
+    free(ws);
+    free(fds);
+}
+
 /* A plain run, --whine or --list over the PATHs, or over "." with none:
  * what the main modes do, and what --create and --edit offer at the end.
  * Returns the exit status. */
@@ -3469,9 +3901,13 @@ static int run_all(int argc, char **argv) {
         need_tmp();
     }
     started = tenths_now();
-    for (i = 0; i < snaps.n; i++) {
-        handle(snaps.v[i], do_case);
-        bail_if_interrupted();
+    if (opt_jobs > 1 && !opt_list && snaps.n > 1) {
+        run_parallel(&snaps);
+    } else {
+        for (i = 0; i < snaps.n; i++) {
+            handle(snaps.v[i], do_case);
+            bail_if_interrupted();
+        }
     }
     if (!opt_list) {
         summary();
@@ -4081,6 +4517,52 @@ static int create_run(int argc, char **argv, enum run_kind kind) {
 
 /* ------------------------------------------------------------------ main */
 
+/* Whether s is a count: digits, at least one. */
+static int is_count(const char *s) {
+    if (!*s) {
+        return 0;
+    }
+    for (; *s; s++) {
+        if (!isdigit((unsigned char) *s)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+/* -j's count: how many projects at once. */
+static int jobs_of(const char *s) {
+    long n = 0;
+    if (is_count(s)) {
+        errno = 0;
+        n = strtol(s, NULL, 10);
+        if (errno || n > INT_MAX) {
+            n = 0;
+        }
+    }
+    if (n < 1) {
+        die(fmt("%s takes how many projects to go at once, a number above 0, not %s", key("-j"), key(s)),
+            fmt("%s alone takes as many as there are cores", key("-j")), NULL);
+    }
+    return (int) n;
+}
+
+/* The cores we may run on: -j alone.  On Apple silicon the performance
+ * cores, where a browser pass keeps up; the efficiency cores take two or
+ * three times as long, against the same limits. */
+static int cores(void) {
+    long n;
+#ifdef __APPLE__
+    int perf = 0;
+    size_t len = sizeof perf;
+    if (sysctlbyname("hw.perflevel0.logicalcpu", &perf, &len, NULL, 0) == 0 && perf > 0) {
+        return perf;
+    }
+#endif
+    n = sysconf(_SC_NPROCESSORS_ONLN);
+    return n > 0 && n < INT_MAX ? (int) n : 1;
+}
+
 int snapshot_main(int argc, char **argv) {
     const char *env;
     int i;
@@ -4126,6 +4608,13 @@ int snapshot_main(int argc, char **argv) {
             opt_edit = 1;
             i++;
             break;
+        } else if (!strcmp(a, "-j") || !strcmp(a, "--jobs")) {
+            /* Alone, a project per core; a count may follow. */
+            opt_jobs_given = 1;
+            opt_jobs = i + 1 < argc && is_count(argv[i + 1]) ? jobs_of(argv[++i]) : cores();
+        } else if ((!strncmp(a, "-j", 2) && a[2] != 0) || !strncmp(a, "--jobs=", 7)) {
+            opt_jobs_given = 1;
+            opt_jobs = jobs_of(a + (a[1] == 'j' ? 2 : 7));
         } else if (!strcmp(a, "--list") || !strcmp(a, "-l")) {
             opt_list = 1;
         } else if (!strcmp(a, "--help") || !strcmp(a, "-h")) {
@@ -4136,7 +4625,7 @@ int snapshot_main(int argc, char **argv) {
             break;
         } else if (a[0] == '-') {
             die(fmt("unrecognised option %s", key(a)),
-                fmt("usage: %s", cmd(fmt("%s [--whine|-w | --list|-l] [--screenshot] [--record[=T]] [PATH...]", me))),
+                fmt("usage: %s", cmd(fmt("%s [--whine|-w | --list|-l] [--screenshot] [--record[=T]] [-j[N]] [PATH...]", me))),
                 fmt("       %s", cmd(fmt("%s (--create|-c) [PROJECT] [CASE...]", me))),
                 fmt("       %s", cmd(fmt("%s --create-run [PATH] [RUN...]", me))),
                 fmt("       %s", cmd(fmt("%s --create-browser-run [PATH] [RUN...]", me))),
@@ -4147,11 +4636,11 @@ int snapshot_main(int argc, char **argv) {
     }
     argc -= i;
     argv += i;
-    if ((opt_create || opt_create_run || opt_edit) && (opt_check || opt_list || opt_screenshot || opt_record)) {
-        die(fmt("%s goes with neither %s, %s, %s nor %s",
+    if ((opt_create || opt_create_run || opt_edit) && (opt_check || opt_list || opt_screenshot || opt_record || opt_jobs_given)) {
+        die(fmt("%s goes with neither %s, %s, %s, %s nor %s",
                 key(opt_create ? "--create" : opt_edit ? "--edit"
                     : opt_create_run == 1 + RUN_BROWSER ? "--create-browser-run" : "--create-run"),
-                key("--whine"), key("--list"), key("--screenshot"), key("--record")), NULL);
+                key("--whine"), key("--list"), key("--screenshot"), key("--record"), key("-j")), NULL);
     }
 
     env = getenv("URWEB");

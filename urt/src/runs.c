@@ -268,9 +268,11 @@ static const char *handshake_value(const char *text, const char *name) {
 
 int server_start(const char *exe, const struct strlist *args, const char *out_path, const char *err_path,
                  struct server *s, char *why, size_t why_size) {
-    /* -P: the first free port from -p on, so that runs never collide;
-     * -d3: go to the background once listening, and say so on fd 3. */
-    static const char *const ours[] = { "-a", "127.0.0.1", "-p", "8000", "-P", "9999", "-d3" };
+    /* -p 0: a port of the kernel's choosing, which it gives no other
+     * server while this one has it, so that runs never collide, however
+     * many start at once; -d3: go to the background once listening, and
+     * say so, and on which port, on fd 3. */
+    static const char *const ours[] = { "-a", "127.0.0.1", "-p", "0", "-d3" };
     struct strlist argv = { 0, 0, 0 };
     char **command, *said;
     const char *v;

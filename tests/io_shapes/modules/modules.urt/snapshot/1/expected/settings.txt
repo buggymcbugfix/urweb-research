@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=modules.db
-Exe: tests/io_shapes/modules/modules.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

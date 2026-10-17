@@ -1,6 +1,6 @@
 $ urt snapshot --bogus
 ERROR unrecognised option --bogus
-usage: urt snapshot [--whine|-w | --list|-l] [--screenshot] [--record[=T]] [PATH...]
+usage: urt snapshot [--whine|-w | --list|-l] [--screenshot] [--record[=T]] [-j[N]] [PATH...]
        urt snapshot (--create|-c) [PROJECT] [CASE...]
        urt snapshot --create-run [PATH] [RUN...]
        urt snapshot --create-browser-run [PATH] [RUN...]
@@ -11,7 +11,7 @@ ERROR no project called -w
 expected -w.urp or -w.ur to be there
 exit 2
 $ urt snapshot -w -c x
-ERROR --create goes with neither --whine, --list, --screenshot nor --record
+ERROR --create goes with neither --whine, --list, --screenshot, --record nor -j
 exit 2
 $ urt snapshot nope
 ERROR nothing to test at nope
@@ -172,12 +172,13 @@ URWEB_REPRODUCIBLE_PRNG_SEED, URWEB_MIN_HEAP and TZ.
 
 A case with runs is compiled all the way, so its args cannot hold -stop or
 -tc, and it fails if that does not give an application.  The compiler builds
-it where the project has it built, and from there it is moved into the case
-as app.exe, where it stays, to be started by hand if need be.
+it in urt's scratch directory, whatever the project says (-output), from C
+it writes there too (-saveC), and from there it is moved into the case as
+app.exe, where it stays, to be started by hand if need be.
 A run's args cannot hold -t: its requests are sent one after the other, and
 with more threads than one it is a matter of chance which of them answers.
 Nor --, after which the server would ignore the flags urt adds (the address,
-the port range, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.
+-p 0, -d3).  Runs need curl and sqlite3 (3.37 or later) on the PATH.
 
 A case can also have runs in a browser, under browser/: the application
 started afresh as above, once per pass, and every pass sent through it step
@@ -325,6 +326,7 @@ USAGE
   urt snapshot --whine [PATH...]             fail on a diff (you want this in CI)
   urt snapshot --screenshot [PATH...]        also shoot every page of the browser runs
   urt snapshot --record[=T] [PATH...]        also film every user of the browser runs
+  urt snapshot -j[N] [PATH...]               N projects at a time, or one per core
   urt snapshot --list [PATH...]              list the cases matching the given path(s)
   urt snapshot --create [PROJECT] [CASE...]  create cases for the given project
   urt snapshot --create-run [PATH] [RUN...]  create runs for the one case at the given path
@@ -334,6 +336,17 @@ USAGE
 PATH is a project (demo/alert[.urp]), its urt directory (demo/alert.urt), its
 snapshots (demo/alert.urt/snapshot), one case (demo/alert.urt/snapshot/1) or a
 directory to search for snapshots.  It defaults to the current directory.
+
+With -j N (or -jN, --jobs=N), N projects go at once, each in a process of its
+own that takes the project's cases one after the other; with -j alone, as
+many as there are cores, on Apple silicon its performance cores.  What is
+printed is what a plain run prints, in the same order: a project's lines come
+when its turn comes.  A browser pass keeps about a core busy, so under -j N at
+most N go at once: each process holds a seat, in which it compiles and drives
+the first pass of a run, and a run's other passes go alongside only in seats
+nobody holds, taken without waiting, else after the first; a pass's films are
+then developed one after another.  Without -j a browser run drives its passes
+at once.
 
 With '--create', cases are set up for a project, named as given or by the
 next number: an empty 'args' file and an 'expected' directory of empty

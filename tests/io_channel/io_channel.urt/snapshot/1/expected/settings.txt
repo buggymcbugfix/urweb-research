@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_channel.db
-Exe: tests/io_channel/io_channel.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

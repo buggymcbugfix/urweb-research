@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=request_retries.db
-Exe: tests/request_retries/request_retries.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

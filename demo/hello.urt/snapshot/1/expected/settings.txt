@@ -1,6 +1,6 @@
 Prefix: /
 Database: (none)
-Exe: demo/hello.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

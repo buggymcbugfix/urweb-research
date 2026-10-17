@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_heap_limit.db
-Exe: tests/io_heap_limit/io_heap_limit.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

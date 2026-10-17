@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_retry.db
-Exe: tests/io_retry/io_retry.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

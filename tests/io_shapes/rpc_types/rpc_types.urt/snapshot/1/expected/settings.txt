@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=rpc_types.db
-Exe: tests/io_shapes/rpc_types/rpc_types.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

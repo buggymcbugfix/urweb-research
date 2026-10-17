@@ -88,19 +88,26 @@ for o, v in opts:
     elif o == "-d":
         fd = int(v)
 
-s = socket.socket()
-s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+if upper and not port:
+    sys.stderr.write("-P does not go with -p 0, which takes any free port\n")
+    sys.exit(1)
+# A port is the server's once it listens on it: with -P the next one is
+# tried after a bind or a listen that failed; -p 0 takes the kernel's.
 p = port
 while True:
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
         s.bind((addr, p))
+        s.listen(5)
         break
     except OSError:
+        s.close()
         p += 1
         if not upper or p > upper:
             sys.stderr.write("No free port found\n")
             sys.exit(1)
-s.listen(5)
+p = s.getsockname()[1]
 sys.stdout.write("Starting the Ur/Web native HTTP server, which is intended for use\n"
                  "ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,\n"
                  "behind a production-quality HTTP server, for a real deployment.\n\n")

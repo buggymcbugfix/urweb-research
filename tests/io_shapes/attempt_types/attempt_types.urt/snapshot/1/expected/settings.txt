@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=attempt_types.db
-Exe: tests/io_shapes/attempt_types/attempt_types.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

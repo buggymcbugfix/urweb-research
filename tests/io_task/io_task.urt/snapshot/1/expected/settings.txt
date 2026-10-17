@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=io_task.db
-Exe: tests/io_task/io_task.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

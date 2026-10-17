@@ -1,0 +1,12 @@
+urt snapshot -w hello shop sub/deep sub/demo/merging.urt broken/stopper
+urt snapshot -w -j 3 hello shop sub/deep sub/demo/merging.urt broken/stopper
+urt snapshot -w broken runs/stray hello sub
+urt snapshot -w -j 4 broken runs/stray hello sub
+urt snapshot runs/serves runs/serves-together runs/good hello
+urt snapshot -w runs/serves runs/serves-together runs/good hello
+urt snapshot -w -j runs/serves runs/serves-together runs/good hello
+urt snapshot -j2 -w hello sub/deep
+urt snapshot --jobs=2 -l hello shop
+urt snapshot -j 0 hello
+urt snapshot --jobs=many hello
+urt snapshot -j 2 --create hello

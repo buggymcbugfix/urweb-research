@@ -1,6 +1,6 @@
 Prefix: /
 Database: dbname=closures.db
-Exe: tests/io_shapes/closures/closures.exe
+Exe: app.exe
 SQL file: schema.sql
 Endpoints file: endpoints.json
 Debug: false

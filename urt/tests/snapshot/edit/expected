@@ -483,7 +483,7 @@ ERROR --edit needs a terminal
 or the artifacts named outright: urt snapshot --edit TEST ARTIFACT...
 exit 2
 $ urt snapshot -w -e hello
-ERROR --edit goes with neither --whine, --list, --screenshot nor --record
+ERROR --edit goes with neither --whine, --list, --screenshot, --record nor -j
 exit 2
 $ urt snapshot -e
 ERROR broken/empty.urt/snapshot holds no cases

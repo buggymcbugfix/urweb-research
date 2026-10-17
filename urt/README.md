@@ -10,7 +10,16 @@ NB: Urt is a tool I slopped together as a prototype. If this evolves into someth
 Create, validate and manage snapshots of the compilation pipeline for an
 Ur/Web project: `urt snapshot --help` describes the layout and the usage.
 The compiler is the one `URWEB` names, or else the in-tree build,
-`bin/urweb`; never one found on the PATH.
+`bin/urweb`; never one found on the PATH.  With `-j` the projects go
+several at once, N with `-j N`, or one per core (on Apple silicon, per
+performance core), each in a process of its own; what is printed is
+what a plain run prints, in the same order.  A browser pass keeps about
+a core busy, so under `-j N` at most N go at once: each process holds a
+seat, in which it compiles and drives a run's first pass, and the run's
+other passes go alongside only in seats nobody holds, taken without
+waiting, or else after the first; a pass's films are then developed one
+after another, and ffmpeg always runs at the lowest priority.  Without
+`-j` a browser run drives its passes at once.
 
 A case can go on to run the application it compiles and snapshot what it
 answers: the runs under `request-response/`, each with its own database
@@ -48,10 +57,13 @@ do or the line not coming within 365 days on its clock, stops the run:
 it is recorded as far as it got, `NAME.error` says why, the records of
 the steps after it go, and the run fails, with the complaint under its
 verdict, until it gets past the step again, when `NAME.error` goes.  The
-application is
-built where the project has it built and then moved into the case, as
-`app.exe` beside `expected/`, where it stays: git ignores it, and it is
-there to start by hand when a run needs looking into.  Runs need `curl`
+application is built in urt's scratch directory, whatever the project
+says (`-output`: an `exe` directive may name a file that another
+project's names too), from C written there as well (`-saveC`: a debug
+build would otherwise compile from `/tmp/webapp.c`, which every debug
+build writes), and then moved into the case, as `app.exe` beside
+`expected/`, where it stays: git ignores it, and it is there to start by
+hand when a run needs looking into.  Runs need `curl`
 and `sqlite3` (3.37 or later: db.sql is loaded, and the database
 dumped, in its safe mode, where no dot-command reaches outside the
 database) on the PATH; the compiler's `nix-shell` and package have
