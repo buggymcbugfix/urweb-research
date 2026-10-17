@@ -2347,9 +2347,25 @@ static struct child *driver_for(int slot) {
     argv[n++] = "--epoch";
     argv[n++] = RUN_TIME;
     argv[n] = NULL;
-    if (child_start(argv, driver_err_path(slot), &drivers[slot]) < 0) {
-        die_later(fmt("cannot start %s: %s", path("urt-browse"), strerror(errno)), NULL);
-        return NULL;
+    {
+        /* Its temporary directory is our scratch directory: what it and
+         * the engines leave there (the clock's file, the frames of films,
+         * the engines' profiles) goes with it once the drivers are
+         * stopped, however urt leaves. */
+        char *was = getenv("TMPDIR") ? xstrdup(getenv("TMPDIR")) : NULL;
+        int r;
+        setenv("TMPDIR", tmp, 1);
+        r = child_start(argv, driver_err_path(slot), &drivers[slot]);
+        if (was) {
+            setenv("TMPDIR", was, 1);
+            free(was);
+        } else {
+            unsetenv("TMPDIR");
+        }
+        if (r < 0) {
+            die_later(fmt("cannot start %s: %s", path("urt-browse"), strerror(errno)), NULL);
+            return NULL;
+        }
     }
     driver_up[slot] = 1;
     /* Its stderr goes on where the one before it, if any, left off. */
