@@ -2717,10 +2717,24 @@ uw_Basis_float uw_Basis_unurlifyFloat(uw_context ctx, char **s) {
   return r;
 }
 
-uw_Basis_time uw_Basis_unurlifyTime(uw_context ctx, char **s) {
-  uw_Basis_int n = uw_Basis_unurlifyInt(ctx, s);
-  uw_Basis_time r = {n / 1000000, n % 1000000};
+// The time n / per_second seconds after the epoch: whole seconds rounded
+// down, and the microseconds after them, 0 to 999999 whatever the sign.  C's
+// / and % round towards zero, which for -1500 ms would give -1 s and -500000
+// microseconds, in a field that is unsigned.  per_second divides 1000000.
+static uw_Basis_time time_of_count(uw_Basis_int n, uw_Basis_int per_second) {
+  uw_Basis_int seconds = n / per_second, rest = n % per_second;
+
+  if (rest < 0) {
+    --seconds;
+    rest += per_second;
+  }
+
+  uw_Basis_time r = {seconds, rest * (1000000 / per_second)};
   return r;
+}
+
+uw_Basis_time uw_Basis_unurlifyTime(uw_context ctx, char **s) {
+  return time_of_count(uw_Basis_unurlifyInt(ctx, s), 1000000);
 }
 
 static uw_Basis_string uw_unurlifyString_to(int fromClient, uw_context ctx, char *r, char *s) {
@@ -5252,8 +5266,7 @@ uw_Basis_int uw_Basis_toMilliseconds(uw_context ctx, uw_Basis_time tm) {
 
 uw_Basis_time uw_Basis_fromMilliseconds(uw_context ctx, uw_Basis_int n) {
   (void)ctx;
-  uw_Basis_time tm = {n / 1000, n % 1000 * 1000};
-  return tm;
+  return time_of_count(n, 1000);
 }
 
 uw_Basis_int uw_Basis_diffInMilliseconds(uw_context ctx, uw_Basis_time tm1, uw_Basis_time tm2) {
