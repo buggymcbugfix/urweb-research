@@ -224,7 +224,11 @@ with `--record=T`, at which anything shown may have changed; the clock
 stops on the grid while anything in the page moves that will stop (an
 endless animation, a spinner, is filmed with whatever else changes), and
 between frames the picture stands, so that a still minute costs a frame
-a second (the strip's clock) and nothing else.  The frames are composed
+a second (the strip's clock) and nothing else.  A step's last line
+`wait T` is filmed without its idle time: after each change in any film
+of the pass, and after the wait's start, a second is kept, and the
+strip's clock jumps over the rest, so that waiting an hour between two
+steps costs a second of film.  The frames are composed
 on a canvas in Chromium, whatever the engine, every user's film at once,
 and encoded by the ffmpeg Playwright brings along, from JPEG at quality
 100 (all it reads, and as good as PNG once encoded) to VP8 at a quality
