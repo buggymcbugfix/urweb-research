@@ -1,0 +1,9 @@
+database dbname=quoted_names.db
+sql quoted_names.sql
+noMangleSql
+safeGet Quoted_names/add
+safeGet Quoted_names/count
+safeGet Quoted_names/next
+safeGet Quoted_names/set
+
+quoted_names
