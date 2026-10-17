@@ -2050,10 +2050,20 @@ static int recorded_line_with(const char *stream, struct scan *sc, int is_stdout
  * with why the wait cannot be done in why (why_size). */
 static int wait_on_clock(const struct server *s, long long *clock, long long ms, const char *what,
                          const char *out, long out_at, const char *err, long err_at, char *why, size_t why_size) {
-    long long next, tag, end = ms >= 0 ? *clock + ms : *clock + UNTIL_DAYS * 86400000LL;
+    long long next, tag = 0, end = ms >= 0 ? *clock + ms : *clock + UNTIL_DAYS * 86400000LL;
     struct scan out_scan = { out_at, 0 }, err_scan = { err_at, 0 };
-    int r = server_clock(s, -1, &next, why, why_size);
+    int r = server_clock(s, -1, &next, why, why_size), tagged = 0;
     for (;;) {
+        /* Looked at before what the clock said: a server that printed the
+         * line and then went has done what the wait is for, and its loss
+         * is the next step's to report. */
+        if (ms < 0 && (recorded_line_with(out, &out_scan, 1, what) || recorded_line_with(err, &err_scan, 0, what))) {
+            *why = 0;
+            if (tagged && *clock < tag + 1000) {
+                *clock = tag + 1000;
+            }
+            return 0;
+        }
         if (r < 0) {
             return -1;
         }
@@ -2075,14 +2085,8 @@ static int wait_on_clock(const struct server *s, long long *clock, long long ms,
         }
         /* Everything due at that tag, and nothing after it. */
         tag = next;
+        tagged = 1;
         r = server_clock(s, tag + 1, &next, why, why_size);
-        if (r >= 0 && ms < 0
-            && (recorded_line_with(out, &out_scan, 1, what) || recorded_line_with(err, &err_scan, 0, what))) {
-            if (*clock < tag + 1000) {
-                *clock = tag + 1000;
-            }
-            return 0;
-        }
     }
 }
 
