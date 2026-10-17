@@ -673,9 +673,18 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              newline,
 
+             (* SQLite may have ended the transaction itself: after
+              * SQLITE_FULL, SQLITE_IOERR, SQLITE_BUSY or SQLITE_NOMEM it
+              * can roll the whole transaction back.  A ROLLBACK then fails
+              * ("cannot rollback - no transaction is active"), and the
+              * runtime would take that failure for the error that matters.
+              * sqlite3_get_autocommit says whether a transaction is still
+              * open. *)
              string "static int uw_db_rollback(uw_context ctx) {",
              newline,
              string "uw_conn *conn = uw_get_db(ctx);",
+             newline,
+             string "if (sqlite3_get_autocommit(conn->conn)) return 0;",
              newline,
              string "if (sqlite3_exec(conn->conn, \"ROLLBACK\", NULL, NULL, NULL) == SQLITE_OK)",
              newline,

@@ -377,6 +377,7 @@
     
     static int uw_db_rollback(uw_context ctx) {
     uw_conn *conn = uw_get_db(ctx);
+    if (sqlite3_get_autocommit(conn->conn)) return 0;
     if (sqlite3_exec(conn->conn, "ROLLBACK", NULL, NULL, NULL) == SQLITE_OK)
     return 0;
      else {

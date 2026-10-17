@@ -14,7 +14,7 @@ val failInCommit : string -> transaction unit
 val boundedRetry : string -> transaction unit
 
 (* Commit the database transaction behind the runtime's back, then fail:
-   the runtime's ROLLBACK then fails, since no transaction is active. *)
+   no transaction is left for the runtime to roll back. *)
 val fatalWithoutTransaction : string -> transaction unit
 
 (* Leave a write statement in progress on the connection (an INSERT ...

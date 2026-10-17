@@ -1,7 +1,7 @@
 HTTP/1.1 500 Internal Server Error
 Content-type: text/html
 Connection: close
-Content-length: 133
+Content-length: 226
 
-<html><head><title>Fatal Error</title></head><body>Fatal error: Database error; you are probably out of storage space.
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/limit_database/limit_database.ur:16:4-17:50: DML step failed: INSERT INTO uw_Limit_database_t (uw_S) VALUES (?)<br />database or disk is full
 </body></html>
