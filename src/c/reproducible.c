@@ -121,21 +121,30 @@ static pthread_cond_t sched_cond = PTHREAD_COND_INITIALIZER;
 
 // A periodic task, every period seconds, to be run on the logical clock: its
 // number, for the calls below, or -1 when the clock is not pinned and the task
-// keeps to the wall clock.  Called before the tasks' threads start.
+// keeps to the wall clock.  Called for each task right before its thread
+// starts, so the threads of the tasks before it may be reading the table
+// already: it grows under the lock, as every other access to it is made.
 int uw_reproducible_periodic(int period) {
+  scheduled *grown;
+  int i;
+
   if (!epoch_pinned) { return -1; }
 
-  tasks = realloc(tasks, (n_tasks + 1) * sizeof *tasks);
-  if (!tasks) {
+  pthread_mutex_lock(&sched_mutex);
+  grown = realloc(tasks, (n_tasks + 1) * sizeof *tasks);
+  if (!grown) {
     fprintf(stderr, "Out of memory scheduling a periodic task\n");
     exit(1);
   }
+  tasks = grown;
+  i = n_tasks++;
   // A period of 0 runs the task back to back on the wall clock; on a logical
   // clock that would never let the time move, so such a task runs once.
-  tasks[n_tasks].period = period > 0 ? (int64_t)period * 1000 : INT64_MAX;
-  tasks[n_tasks].due = start_time * 1000;
-  tasks[n_tasks].granted = 0;
-  return n_tasks++;
+  tasks[i].period = period > 0 ? (int64_t)period * 1000 : INT64_MAX;
+  tasks[i].due = start_time * 1000;
+  tasks[i].granted = 0;
+  pthread_mutex_unlock(&sched_mutex);
+  return i;
 }
 
 // In task i's thread: until it is its turn, whose time its clock then reads.
