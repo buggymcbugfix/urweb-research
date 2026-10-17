@@ -1,0 +1,4 @@
+0.000 0.100 Alice.1: GET /main 200
+0.000 0.100 Alice: open /main [target=1]
+0.000 0.100 Bernd.1: GET /main 200
+0.000 0.100 Bernd: open /main [target=1]
