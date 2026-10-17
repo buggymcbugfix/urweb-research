@@ -1,7 +1,6 @@
-HTTP/1.1 200 OK
+HTTP/1.1 400 Bad Request
 Content-type: text/plain
 Connection: close
-Content-Length: 30
+Content-Length: 86
 
-next 4102444807000
-released 0
+the query is not advance=T, with T a number of milliseconds from 0 to 253402300799999

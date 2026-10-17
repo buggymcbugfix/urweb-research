@@ -433,7 +433,14 @@ int server_clock(const struct server *s, long long advance, long long *next, cha
     answer[got] = 0;
     body = strstr(answer, "\r\n\r\n");
     if (strncmp(answer, "HTTP/1.1 200 ", 13) != 0 || !body) {
-        snprintf(why, why_size, "the server's answer to the clock is not 200 OK%s", got ? "" : ": it said nothing");
+        /* The status line, and the server's reason when it gives one. */
+        int status = (int) strcspn(answer, "\r\n"), reason = body ? (int) strcspn(body + 4, "\r\n") : 0;
+        if (!got) {
+            snprintf(why, why_size, "the server's answer to the clock is not 200 OK: it said nothing");
+        } else {
+            snprintf(why, why_size, "the server's answer to the clock is not 200 OK: %.*s%s%.*s",
+                     status, answer, reason ? ": " : "", reason, body ? body + 4 : "");
+        }
         return -1;
     }
     body += 4;

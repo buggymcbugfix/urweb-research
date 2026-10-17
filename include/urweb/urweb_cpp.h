@@ -456,7 +456,7 @@ void uw_transaction_departs();
 // attempt while the numbers are pinned.
 void uw_reproducible_init(void);
 int uw_reproducible_request(struct uw_context *, const char *time_header);
-void uw_reproducible_clock(struct uw_context *, const char *query, char *buf, size_t size);
+int uw_reproducible_clock(struct uw_context *, const char *query, char *buf, size_t size);
 int uw_reproducible_clock_pinned(void);
 int uw_reproducible_periodic(int period);
 void uw_reproducible_periodic_wait(int);

@@ -21,14 +21,15 @@
 // when the clock is moved past them, by a request -- those due before it are
 // handled first, and those due at the same time first or last as
 // URWEB_REPRODUCIBLE_TASKS says -- or by a request for /.clock (whatever
-// the application's prefix), ?advance=T, which handles everything due before
-// T, in order.  That request answers with when the next such event is due,
-// `next T` or `next none`, so that whoever drives the clock knows where to
-// stop next: a task's message on a channel is then sent at the time it was
-// due, and advance=T+1 handles what is due at T and nothing later.  A second
-// line, `released N`, says how many polls for messages (/.msgs) the server
-// has answered or closed so far, so that a driver holding their answers
-// knows which of them the server let go, and when.
+// the application's prefix) with the query advance=T, which handles everything
+// due before T, in order.  Without a query it moves nothing, and any other
+// query is refused with 400.  That request answers with when the next such
+// event is due, `next T` or `next none`, so that whoever drives the clock
+// knows where to stop next: a task's message on a channel is then sent at
+// the time it was due, and advance=T+1 handles what is due at T and nothing
+// later.  A second line, `released N`, says how many polls for messages
+// (/.msgs) the server has answered or closed so far, so that a driver holding
+// their answers knows which of them the server let go, and when.
 
 #include "config.h"
 
@@ -64,6 +65,26 @@ static int env_integer(const char *name, uint64_t *out) {
     exit(1);
   }
 
+  return 1;
+}
+
+// The latest time the clock can be told, in milliseconds: the last one of
+// 9999.  Below it, the clock's arithmetic (a second for every request, a
+// task's period, a client's timeout) stays far from the limits of int64_t.
+#define LATEST_MS 253402300799999LL
+
+// The number of milliseconds spelled by s up to end into *out: ASCII digits
+// only, no sign and no blanks, at most LATEST_MS.  0 if s is not that.
+static int read_ms(const char *s, const char *end, int64_t *out) {
+  int64_t n = 0;
+
+  if (s == end) { return 0; }
+  for (; s < end; ++s) {
+    if (*s < '0' || *s > '9') { return 0; }
+    n = n * 10 + (*s - '0');
+    if (n > LATEST_MS) { return 0; }
+  }
+  *out = n;
   return 1;
 }
 
@@ -262,24 +283,23 @@ int uw_reproducible_request(uw_context ctx, const char *time_header) {
   return used;
 }
 
-// A request for .clock: with ?advance=T in its query string, everything due
-// before T is handled first, with ctx; then when the next event is due goes into
-// buf (size), the answer.  Not a request of the application's: it takes no
-// number, so the numbers of the others stay as they were.
-void uw_reproducible_clock(uw_context ctx, const char *query, char *buf, size_t size) {
-  int64_t at;
+// A request for /.clock, whose query is empty or advance=T: everything due
+// before T is handled first, with ctx; then when the next event is due goes
+// into buf (size), the answer.  Any other query is refused: 0, with the reason
+// in buf.  Not a request of the application's: it takes no number, so the
+// numbers of the others stay as they were.
+int uw_reproducible_clock(uw_context ctx, const char *query, char *buf, size_t size) {
+  static const char advance[] = "advance=";
+  int64_t at, t;
   int task;
-  const char *a = query ? strstr(query, "advance=") : NULL;
 
   my_time = -1;
-  if (a && (a == query || a[-1] == '&')) {
-    char *end;
-    long long t;
-    errno = 0;
-    t = strtoll(a + 8, &end, 10);
-    if (errno || end == a + 8 || (*end && *end != '&')) {
-      snprintf(buf, size, "error: advance takes a number of milliseconds\n");
-      return;
+  if (query && *query) {
+    if (strncmp(query, advance, sizeof advance - 1)
+        || !read_ms(query + sizeof advance - 1, query + strlen(query), &t)) {
+      snprintf(buf, size, "the query is not advance=T, with T a number of milliseconds from 0 to %lld\n",
+               (long long)LATEST_MS);
+      return 0;
     }
     catch_up(ctx, t, 0);
   }
@@ -288,6 +308,7 @@ void uw_reproducible_clock(uw_context ctx, const char *query, char *buf, size_t 
   } else {
     snprintf(buf, size, "next none\nreleased %lu\n", uw_polls_released());
   }
+  return 1;
 }
 
 // What a database backend has to do at the start of every attempt while the

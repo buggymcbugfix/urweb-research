@@ -1,6 +1,6 @@
-HTTP/1.1 200 OK
+HTTP/1.1 400 Bad Request
 Content-type: text/plain
 Connection: close
-Content-Length: 46
+Content-Length: 86
 
-error: advance takes a number of milliseconds
+the query is not advance=T, with T a number of milliseconds from 0 to 253402300799999

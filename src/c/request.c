@@ -322,10 +322,13 @@ request_result uw_request(uw_request_context rc, uw_context ctx,
   // a fixed path rather than under the prefix, so that whoever drives the
   // clock need not know the application's.
   if (uw_reproducible_clock_pinned() && !strcmp(path, "/.clock")) {
-    char answer[64];
-    uw_reproducible_clock(ctx, query_string, answer, sizeof answer);
+    char answer[128];
+    int ok = uw_reproducible_clock(ctx, query_string, answer, sizeof answer);
     uw_reset(ctx);
-    on_success(ctx);
+    if (ok)
+      on_success(ctx);
+    else
+      uw_write_header(ctx, uw_supports_direct_status ? "HTTP/1.1 400 Bad Request\r\n" : "Status: 400 Bad Request\r\n");
     uw_write_header(ctx, "Content-type: text/plain\r\n");
     uw_write(ctx, answer);
     return SERVED;

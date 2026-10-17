@@ -3446,7 +3446,9 @@ class Run:
             raise Complaint('the server does not answer its clock: %s' % (e or type(e).__name__))
         head, _, body = data.decode('latin-1').partition('\r\n\r\n')
         if not head.startswith('HTTP/1.1 200'):
-            raise Complaint("the server's clock answers %s" % (head.splitlines()[0] if head else 'nothing'))
+            reason = body.strip().splitlines()[0] if body.strip() else ''
+            raise Complaint("the server's clock answers %s%s" % (head.splitlines()[0] if head else 'nothing',
+                                                                 ': ' + reason if reason else ''))
         for line in body.splitlines():
             word, _, value = line.partition(' ')
             if word == 'next':

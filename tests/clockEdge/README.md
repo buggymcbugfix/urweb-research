@@ -11,8 +11,8 @@ logged and the others go on.
 there at second 29 and gone at second 31, taken out by the first request
 at that second, since what is due at a request's time runs before it.
 
-`clock-query`: requests for /.clock itself.  A query for it that has
-`advance=T` as its second parameter and `xadvance=1` as its first does not
-move the clock today: only the first `advance=` in the query string is
-looked at, and the one in `xadvance=` is not a parameter.  When the
-runtime reads the parameter properly, `03-xadvance` is the record to update.
+`clock-query`: requests for /.clock itself.  Its query is empty or
+`advance=T`, with T a number of milliseconds.  Anything else is refused with
+400 and the reason, and moves nothing: a number that is not one (`02-bad`),
+`xadvance=1` in front of `advance=T` (`03-xadvance`), and another parameter
+in front of it (`04-advance`).
