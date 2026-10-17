@@ -2071,6 +2071,13 @@ static int wait_on_clock(const struct server *s, long long *clock, long long ms,
             snprintf(why, why_size, "interrupted");
             return -1;
         }
+        /* Moved past tag, the server has nothing due at it or before it any
+         * more; else the wait would go on for ever. */
+        if (tagged && r > 0 && next <= tag) {
+            snprintf(why, why_size, "the server's clock does not move: moved past %lld, it says the next thing is due at %lld",
+                     tag, next);
+            return -1;
+        }
         if (r == 0 || next >= end) {
             if (ms >= 0) {
                 *clock = end;

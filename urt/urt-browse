@@ -3457,15 +3457,25 @@ class Run:
                 self.released = int(value)
         trace('clock', q, self.server_next and self.stamp(self.server_next), self.released)
 
+    def moved_past(self, t):
+        """After the clock was moved past t, the server has nothing due at t
+        or before it any more; else the run would go round t for ever."""
+        if self.server_next is not None and self.server_next <= t:
+            raise Complaint("the server's clock does not move: moved past %s, it says the next thing is due at %s"
+                            % (self.stamp(t), self.stamp(self.server_next)))
+
     async def server_tag(self, t, arrivals):
         """The server's part of a tag: its tasks due then and the requests
         arriving, in the order the context says, then the polls it let go
         given this tag."""
         if self.setup.tasks == 'first':
             await self.server_clock(t + 1)
+            self.moved_past(t)
         for fn in arrivals:
             await fn()
         await self.server_clock(t + 1 if self.setup.tasks == 'last' else None)
+        if self.setup.tasks == 'last':
+            self.moved_past(t)
         # A poll the server let go has its answer under way: wait for it.
         deadline = time.monotonic() + self.args.timeout
         while self.attributed + len([p for p in self.polls if not p.released]) < self.released:

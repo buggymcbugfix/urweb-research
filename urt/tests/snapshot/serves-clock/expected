@@ -5,7 +5,10 @@ FAIL runs/serves-clock.urt/snapshot/1/request-response/exits (interaction/01.res
     request 03-after could not be sent: curl could not connect (exit 7)
         the server may have died, or be hung
 
-1 case and 1 run: 1 failed, 1 updated, in T
+FAIL runs/serves-clock.urt/snapshot/1/request-response/stuck (interaction/01.response, interaction/02-two.error)
+    wait 02-two cannot be done: the server's clock does not move: moved past 1, it says the next thing is due at 1
+
+1 case and 2 runs: 2 failed, 1 updated, in T
 exit 1
 $ cd runs/serves-clock.urt/snapshot/1/request-response/exits/interaction && for f in *; do echo "== $f"; tr -d '\r' < "$f"; echo; done
 == 01.request
@@ -43,6 +46,33 @@ curl could not connect (exit 7)
 GET /after
 
 exit 0
+$ cd runs/serves-clock.urt/snapshot/1/request-response/stuck/interaction && for f in *; do echo "== $f"; tr -d '\r' < "$f"; echo; done
+== 01.request
+GET /later
+
+== 01.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 94
+Connection: close
+
+1: GET /later HTTP/1.1
+Accept: */*
+Host: localhost
+UrWeb-Time: 4102444800000
+User-Agent: urt
+
+
+== 02-two.error
+the server's clock does not move: moved past 1, it says the next thing is due at 1
+
+== 02-two.wait
+wait 2s
+
+== 03-after.request
+GET /after
+
+exit 0
 $ changes
 added: ./runs/serves-clock.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-clock.urt/snapshot/1/expected/exitcode
@@ -51,3 +81,5 @@ added (26 bytes): ./runs/serves-clock.urt/snapshot/1/request-response/exits/inte
 added (24 bytes): ./runs/serves-clock.urt/snapshot/1/request-response/exits/interaction/02-task.stderr
 added (25 bytes): ./runs/serves-clock.urt/snapshot/1/request-response/exits/interaction/02-task.stdout
 added (32 bytes): ./runs/serves-clock.urt/snapshot/1/request-response/exits/interaction/03-after.error
+added (178 bytes): ./runs/serves-clock.urt/snapshot/1/request-response/stuck/interaction/01.response
+added (83 bytes): ./runs/serves-clock.urt/snapshot/1/request-response/stuck/interaction/02-two.error
