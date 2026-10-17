@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-Length: 233
+
+<!DOCTYPE html><html><head></head><body><p>now Sat Jan  1 00:00:04 2000</p><ul><li>1 ten at Sat Jan  1 00:00:00 2000</li><li>2 twenty-five at Sat Jan  1 00:00:00 2000</li><li>3 once at Sat Jan  1 00:00:00 2000</li></ul></body></html>

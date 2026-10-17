@@ -26,8 +26,8 @@
     static int uw_pinned_clock_int64(sqlite3_vfs *vfs, sqlite3_int64 *out) {
     int64_t t = 0;
      (void)vfs;
-     uw_reproducible_epoch(&t);
-     *out = t * 1000 + 210866760000000LL;
+     uw_reproducible_now(&t);
+     *out = t + 210866760000000LL;
      return SQLITE_OK;
      }
     

@@ -16,8 +16,9 @@ A case can go on to run the application it compiles and snapshot what it
 answers: the runs under `request-response/`, each with its own database
 (SQLite, from `db.sql`), signing key (`secret`), flags (`args`) and
 environment (`env`), and the requests to send under `interaction/`,
-between which a run can wait for a line the server prints (`NAME.wait`),
-for what a task does on its own.  Kept are the responses as `curl -i`
+between which a run can wait (`NAME.wait`) for what the application does
+by itself: `wait 1min` lets a minute pass, `until TEXT` lets time pass
+until the server prints a line holding TEXT.  Kept are the responses as `curl -i`
 prints them, and beside each what the request changed in the database
 (`NAME.dml.sql`, from the application's `URWEB_DML_LOG`) and what the server
 printed meanwhile (`NAME.stdout`, `NAME.stderr`), each only if there was
@@ -25,19 +26,28 @@ anything; under `out/`, what the application did before the first
 request (`startup.dml.sql`, `startup.stdout`, `startup.stderr`: a `task
 initialize` shows here) and printed after the last (`shutdown.stdout`,
 `shutdown.stderr`), and the database it left behind (`shutdown.db.sql`).
-The application's clock and random numbers are
-pinned through its environment (`URWEB_REPRODUCIBLE_EPOCH`,
-`URWEB_REPRODUCIBLE_PRNG_SEED`; see `src/c/reproducible.c` in the
-compiler's tree), and its heap starts at 256 MiB (`URWEB_MIN_HEAP`), so
+The application's random numbers are pinned through its environment
+(`URWEB_REPRODUCIBLE_PRNG_SEED`; see `src/c/reproducible.c` in the
+compiler's tree), and so is its clock (`URWEB_REPRODUCIBLE_EPOCH`),
+which then is logical: urt says what time it is, every request in an
+`UrWeb-Time` header, a second after the one before, and the server does
+what is due by itself -- periodic tasks, clients' expiries -- only when
+urt moves the clock past it (`GET /.clock?advance=T`), at its time, so
+that nothing happens on the wall clock, a wait of a month takes as long
+as the month's tasks do, and which step a task's work is recorded with
+does not depend on the machine.  Tasks due when a request arrives run
+before it, or after it with `URWEB_REPRODUCIBLE_TASKS=last` in the run's
+`env`.  The heap starts at 256 MiB (`URWEB_MIN_HEAP`), so
 that no handler is run a second time for the heap to have grown and
 moved; a run repeats byte for byte.  (A project whose `limit heap` is
 below 256 MiB cannot have runs yet: the application refuses to start
 with a heap above its limit, and the run fails with its message.)  A
 request that cannot be sent at all, because the server has died or
-hangs, stops the run: it is recorded as far as it got, `NAME.error`
-says why, the records of the requests after it go, and the run fails,
-with the complaint under its verdict, until it gets past the request
-again, when `NAME.error` goes.  The
+hangs, or a wait that cannot be done, the server having nothing more to
+do or the line not coming within 365 days on its clock, stops the run:
+it is recorded as far as it got, `NAME.error` says why, the records of
+the steps after it go, and the run fails, with the complaint under its
+verdict, until it gets past the step again, when `NAME.error` goes.  The
 application is
 built where the project has it built and then moved into the case, as
 `app.exe` beside `expected/`, where it stays: git ignores it, and it is

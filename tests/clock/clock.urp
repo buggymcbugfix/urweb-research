@@ -1,0 +1,4 @@
+database dbname=clock.db
+rewrite all Clock/*
+
+clock

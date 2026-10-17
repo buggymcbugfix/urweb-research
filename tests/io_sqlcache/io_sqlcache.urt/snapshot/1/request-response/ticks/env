@@ -1,0 +1,3 @@
+# Tasks due when a request arrives run after it, so that the page is read
+# between the first two ticks.
+URWEB_REPRODUCIBLE_TASKS=last

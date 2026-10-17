@@ -4,17 +4,58 @@
 
 #define _XOPEN_SOURCE 700
 #define _DARWIN_C_SOURCE
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
+#include <sys/socket.h>
+#include <sys/time.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "runs.h"
 
 /* ------------------------------------------------------------- requests */
+
+int parse_duration(const char *s, long long *ms) {
+    static const struct { const char *unit; double ms; } units[] = {
+        { "ms", 1 }, { "s", 1000 }, { "min", 60000 }, { "h", 3600000 }, { "d", 86400000 },
+    };
+    const char *p = s;
+    double n;
+    size_t i;
+
+    if (!(*p >= '0' && *p <= '9')) {
+        return -1;
+    }
+    while (*p >= '0' && *p <= '9') {
+        p++;
+    }
+    if (*p == '.') {
+        p++;
+        if (!(*p >= '0' && *p <= '9')) {
+            return -1;
+        }
+        while (*p >= '0' && *p <= '9') {
+            p++;
+        }
+    }
+    n = strtod(s, NULL);
+    for (i = 0; i < sizeof units / sizeof units[0]; i++) {
+        if (!strcmp(p, units[i].unit)) {
+            if (n * units[i].ms > 1e15) {
+                return -1;
+            }
+            *ms = (long long) (n * units[i].ms + 0.5);
+            return 0;
+        }
+    }
+    return -1;
+}
 
 /* The words of s, split as runs.h says.  0, or -1 with the complaint. */
 static int shell_words(const char *s, struct strlist *out, char *err, size_t err_size) {
@@ -76,7 +117,7 @@ static int shell_words(const char *s, struct strlist *out, char *err, size_t err
 /* 0 if the header named by the first n characters of v is one urt sets
  * itself for every request, else 1.  Header names are case-insensitive. */
 static int fixed_header(const char *v, size_t n) {
-    const char *fixed[] = { "Host", "User-Agent" };
+    const char *fixed[] = { "Host", "User-Agent", "UrWeb-Time" };
     size_t i;
 
     for (i = 0; i < sizeof fixed / sizeof *fixed; i++) {
@@ -329,4 +370,84 @@ void server_stop(struct server *s) {
         kill((pid_t) s->pid, SIGKILL);
     }
     s->pid = 0;
+}
+
+int server_clock(const struct server *s, long long advance, long long *next, char *why, size_t why_size) {
+    struct sockaddr_in addr;
+    struct timeval limit = { CLOCK_SECONDS, 0 };
+    char request[128], answer[1024], *body;
+    size_t got = 0;
+    ssize_t n = 0;
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (fd < 0) {
+        snprintf(why, why_size, "cannot make a socket: %s", strerror(errno));
+        return -1;
+    }
+    memset(&addr, 0, sizeof addr);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons((unsigned short) s->port);
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &limit, sizeof limit);
+    setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &limit, sizeof limit);
+    if (connect(fd, (struct sockaddr *) &addr, sizeof addr) < 0) {
+        snprintf(why, why_size, "cannot connect to the server: %s", strerror(errno));
+        close(fd);
+        return -1;
+    }
+    if (advance >= 0) {
+        snprintf(request, sizeof request, "GET /.clock?advance=%lld HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+                 advance);
+    } else {
+        snprintf(request, sizeof request, "GET /.clock HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+    }
+    {
+        /* A server gone meanwhile is an error here, not a signal; and only
+         * here, since what urt runs inherits what it ignores. */
+        void (*was)(int) = signal(SIGPIPE, SIG_IGN);
+        int sent = write(fd, request, strlen(request)) == (ssize_t) strlen(request), e = errno;
+        signal(SIGPIPE, was);
+        if (!sent) {
+            snprintf(why, why_size, "cannot send to the server: %s", strerror(e));
+            close(fd);
+            return -1;
+        }
+    }
+    /* The server closes the connection after its answer. */
+    while (got < sizeof answer - 1 && (n = read(fd, answer + got, sizeof answer - 1 - got)) > 0) {
+        got += (size_t) n;
+    }
+    if (n < 0 && got < sizeof answer - 1) {
+        int e = errno;
+        if (e == EAGAIN || e == EWOULDBLOCK) {
+            snprintf(why, why_size, "the server did not answer the clock within %d seconds", CLOCK_SECONDS);
+        } else {
+            snprintf(why, why_size, "cannot read the server's answer to the clock: %s", strerror(e));
+        }
+        close(fd);
+        return -1;
+    }
+    close(fd);
+    answer[got] = 0;
+    body = strstr(answer, "\r\n\r\n");
+    if (strncmp(answer, "HTTP/1.1 200 ", 13) != 0 || !body) {
+        /* The status line, and the server's reason when it gives one. */
+        int status = (int) strcspn(answer, "\r\n"), reason = body ? (int) strcspn(body + 4, "\r\n") : 0;
+        if (!got) {
+            snprintf(why, why_size, "the server's answer to the clock is not 200 OK: it said nothing");
+        } else {
+            snprintf(why, why_size, "the server's answer to the clock is not 200 OK: %.*s%s%.*s",
+                     status, answer, reason ? ": " : "", reason, body ? body + 4 : "");
+        }
+        return -1;
+    }
+    body += 4;
+    if (!strcmp(body, "next none\n")) {
+        return 0;
+    }
+    if (sscanf(body, "next %lld", next) == 1) {
+        return 1;
+    }
+    snprintf(why, why_size, "the server's answer to the clock is not 'next T' nor 'next none'");
+    return -1;
 }

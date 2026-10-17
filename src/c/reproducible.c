@@ -5,28 +5,47 @@
 //
 //   URWEB_REPRODUCIBLE_EPOCH         seconds since the epoch (an unsigned int)
 //   URWEB_REPRODUCIBLE_PRNG_SEED     pseudo-random number generator seed (an unsigned int)
+//   URWEB_REPRODUCIBLE_TASKS         first or last (default first); see below
 //
-// Each is independent of the other, and without them nothing changes.
+// Each is independent of the others, and without them nothing changes.
 // Reproducibility is somewhat at odds with threaded execution, but we leave it
 // up to you to not run this with -t / URWEB_NUM_THREADS set to a value > 1.
-// Recall that other parts of the runtime run in their own threads, such as
-// periodic tasks and the reaper, giving another source of nondeterminism to be
-// mindful of.
+//
+// With the epoch pinned, the time is logical, and comes from outside.  A
+// request can say when it is made, in milliseconds since the Unix epoch, in a
+// header, UrWeb-Time; its handler's clock then reads that time.  A request
+// without one is served at the epoch plus a second for every request before
+// it.  Nothing happens on the wall clock: the periodic tasks and the expiry of
+// clients are events on the logical clock, due at the epoch plus a multiple of
+// a task's period, and a second after a client's timeout ran out.  They happen
+// when the clock is moved past them, by a request -- those due before it are
+// handled first, and those due at the same time first or last as
+// URWEB_REPRODUCIBLE_TASKS says -- or by a request for /.clock (whatever
+// the application's prefix) with the query advance=T, which handles everything
+// due before T, in order.  Without a query it moves nothing, and any other
+// query is refused with 400.  That request answers with when the next such
+// event is due, `next T` or `next none`, so that whoever drives the clock
+// knows where to stop next: a task's message on a channel is then sent at
+// the time it was due, and advance=T+1 handles what is due at T and nothing
+// later.
 
 #include "config.h"
 
 #include <errno.h>
+#include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "urweb.h"
 
-static int epoch_pinned = 0, rand_pinned = 0;
+static int epoch_pinned = 0, rand_pinned = 0, tasks_last = 0;
 static int64_t start_time;
 static uint64_t seed, requests = 0;
 
 static _Thread_local uint64_t my_request = 0;
+static _Thread_local int64_t my_time = -1;    // ms, when this thread was told it
 static _Thread_local uint64_t my_rand_state;
 static _Thread_local int my_rand_started = 0;
 
@@ -47,6 +66,26 @@ static int env_integer(const char *name, uint64_t *out) {
   return 1;
 }
 
+// The latest time the clock can be told, in milliseconds: the last one of
+// 9999.  Below it, the clock's arithmetic (a second for every request, a
+// task's period, a client's timeout) stays far from the limits of int64_t.
+#define LATEST_MS 253402300799999LL
+
+// The number of milliseconds spelled by s up to end into *out: ASCII digits
+// only, no sign and no blanks, at most LATEST_MS.  0 if s is not that.
+static int read_ms(const char *s, const char *end, int64_t *out) {
+  int64_t n = 0;
+
+  if (s == end) { return 0; }
+  for (; s < end; ++s) {
+    if (*s < '0' || *s > '9') { return 0; }
+    n = n * 10 + (*s - '0');
+    if (n > LATEST_MS) { return 0; }
+  }
+  *out = n;
+  return 1;
+}
+
 void uw_reproducible_init(void) {
   uint64_t n;
 
@@ -59,6 +98,20 @@ void uw_reproducible_init(void) {
     rand_pinned = 1;
     seed = n;
   }
+
+  {
+    char *s = getenv("URWEB_REPRODUCIBLE_TASKS");
+    if (s && !strcmp(s, "last")) {
+      tasks_last = 1;
+    } else if (s && strcmp(s, "first")) {
+      fprintf(stderr, "URWEB_REPRODUCIBLE_TASKS: '%s' is neither first nor last\n", s);
+      exit(1);
+    }
+  }
+}
+
+int uw_reproducible_clock_pinned(void) {
+  return epoch_pinned;
 }
 
 // The next pseudo-random number into *out, or 0 if there is no seed.
@@ -72,9 +125,183 @@ static uint64_t splitmix64(uint64_t *state) {
   return z ^ (z >> 31);
 }
 
-// Called once for every request upon its arrival.
-void uw_reproducible_request(void) {
+// The periodic tasks, while the clock is pinned: when each is due next, and
+// whether it has been told to run.  A task's thread waits until it is; the
+// thread that moves the clock tells it, and waits until it has run.
+typedef struct {
+  int64_t period, due;    // ms; due is INT64_MAX for a task that is due never again
+  int granted;
+} scheduled;
+
+static scheduled *tasks = NULL;
+static int n_tasks = 0;
+static pthread_mutex_t sched_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t sched_cond = PTHREAD_COND_INITIALIZER;
+
+// A periodic task, every period seconds, to be run on the logical clock: its
+// number, for the calls below, or -1 when the clock is not pinned and the task
+// keeps to the wall clock.  Called for each task right before its thread
+// starts, so the threads of the tasks before it may be reading the table
+// already: it grows under the lock, as every other access to it is made.
+int uw_reproducible_periodic(int period) {
+  scheduled *grown;
+  int i;
+
+  if (!epoch_pinned) { return -1; }
+
+  pthread_mutex_lock(&sched_mutex);
+  grown = realloc(tasks, (n_tasks + 1) * sizeof *tasks);
+  if (!grown) {
+    fprintf(stderr, "Out of memory scheduling a periodic task\n");
+    exit(1);
+  }
+  tasks = grown;
+  i = n_tasks++;
+  // A period of 0 runs the task back to back on the wall clock; on a logical
+  // clock that would never let the time move, so such a task runs once.
+  tasks[i].period = period > 0 ? (int64_t)period * 1000 : INT64_MAX;
+  tasks[i].due = start_time * 1000;
+  tasks[i].granted = 0;
+  pthread_mutex_unlock(&sched_mutex);
+  return i;
+}
+
+// In task i's thread: until it is its turn, whose time its clock then reads.
+void uw_reproducible_periodic_wait(int i) {
+  pthread_mutex_lock(&sched_mutex);
+  while (!tasks[i].granted) {
+    pthread_cond_wait(&sched_cond, &sched_mutex);
+  }
+  my_time = tasks[i].due;
+  pthread_mutex_unlock(&sched_mutex);
+}
+
+// In task i's thread: it has run, and is due again a period later.
+void uw_reproducible_periodic_done(int i) {
+  pthread_mutex_lock(&sched_mutex);
+  if (tasks[i].period == INT64_MAX || tasks[i].due > INT64_MAX - tasks[i].period) {
+    tasks[i].due = INT64_MAX;
+  } else {
+    tasks[i].due += tasks[i].period;
+  }
+  tasks[i].granted = 0;
+  pthread_cond_broadcast(&sched_cond);
+  pthread_mutex_unlock(&sched_mutex);
+}
+
+static void run_task(int i) {
+  pthread_mutex_lock(&sched_mutex);
+  tasks[i].granted = 1;
+  pthread_cond_broadcast(&sched_cond);
+  while (tasks[i].granted) {
+    pthread_cond_wait(&sched_cond, &sched_mutex);
+  }
+  pthread_mutex_unlock(&sched_mutex);
+}
+
+// The next event the server is due to handle by itself into *at, and which:
+// task *task, or a client's expiry (-1).  At the same time a task comes first,
+// and the tasks in the order they were declared.  0 if there is none.
+static int next_event(uw_context ctx, int64_t *at, int *task) {
+  int i, found = 0;
+  int64_t e;
+
+  pthread_mutex_lock(&sched_mutex);
+  for (i = 0; i < n_tasks; i++) {
+    if (tasks[i].due != INT64_MAX && (!found || tasks[i].due < *at)) {
+      *at = tasks[i].due;
+      *task = i;
+      found = 1;
+    }
+  }
+  pthread_mutex_unlock(&sched_mutex);
+
+  if (uw_next_client_expiry(ctx, &e) && (!found || e < *at)) {
+    *at = e;
+    *task = -1;
+    found = 1;
+  }
+  return found;
+}
+
+// Everything due before until, or at it too when inclusive, handled in order;
+// ctx serves for the expunges and is left reset.  Returns whether it did
+// anything.
+static int catch_up(uw_context ctx, int64_t until, int inclusive) {
+  int64_t at, saved = my_time, last = -1;
+  int task, did = 0;
+
+  while (next_event(ctx, &at, &task) && (at < until || (inclusive && at == until))) {
+    did = 1;
+    if (task >= 0) {
+      run_task(task);
+    } else {
+      if (at == last) {
+        break;      // nothing could be expunged; it will not change by trying again
+      }
+      last = at;
+      my_time = at;
+      uw_prune_clients(ctx);
+      uw_reset(ctx);
+    }
+  }
+  my_time = saved;
+  return did;
+}
+
+// Called once for every request upon its arrival, with what its UrWeb-Time
+// header says, if anything.  While the clock is pinned, the request is served
+// at that time, or else at the epoch plus a second for every request before
+// it, and everything due before then is handled first, with ctx.  Returns
+// whether ctx was used.
+int uw_reproducible_request(uw_context ctx, const char *time_header) {
+  int64_t t;
+  int used;
+
   my_request = __atomic_add_fetch(&requests, 1, __ATOMIC_SEQ_CST);
+  my_time = -1;
+
+  if (!epoch_pinned) { return 0; }
+
+  if (time_header && !read_ms(time_header, time_header + strlen(time_header), &t)) {
+    fprintf(stderr, "UrWeb-Time: '%s' is not a number of milliseconds from 0 to %lld; the request is served at the time of the requests counted\n",
+            time_header, (long long)LATEST_MS);
+    time_header = NULL;
+  }
+  if (!time_header) {
+    uw_reproducible_now(&t);
+  }
+  used = catch_up(ctx, t, !tasks_last);
+  my_time = t;
+  return used;
+}
+
+// A request for /.clock, whose query is empty or advance=T: everything due
+// before T is handled first, with ctx; then when the next event is due goes
+// into buf (size), the answer.  Any other query is refused: 0, with the reason
+// in buf.  Not a request of the application's: it takes no number, so the
+// numbers of the others stay as they were.
+int uw_reproducible_clock(uw_context ctx, const char *query, char *buf, size_t size) {
+  static const char advance[] = "advance=";
+  int64_t at, t;
+  int task;
+
+  my_time = -1;
+  if (query && *query) {
+    if (strncmp(query, advance, sizeof advance - 1)
+        || !read_ms(query + sizeof advance - 1, query + strlen(query), &t)) {
+      snprintf(buf, size, "the query is not advance=T, with T a number of milliseconds from 0 to %lld\n",
+               (long long)LATEST_MS);
+      return 0;
+    }
+    catch_up(ctx, t, 0);
+  }
+  if (next_event(ctx, &at, &task)) {
+    snprintf(buf, size, "next %lld\n", (long long)at);
+  } else {
+    snprintf(buf, size, "next none\n");
+  }
+  return 1;
 }
 
 // What a database backend has to do at the start of every attempt while the
@@ -97,14 +324,29 @@ void uw_reproducible_attempt(void) {
   if (rand_pinned && attempt_hook) { attempt_hook(); }
 }
 
-// The pinned time into *out, or 0 if the time is not pinned.
-int uw_reproducible_epoch(int64_t *out) {
+// The pinned time in milliseconds into *out, or 0 if the time is not pinned:
+// what this thread was told, or else the time of the requests counted.
+int uw_reproducible_now(int64_t *out) {
   uint64_t n;
 
   if (!epoch_pinned) { return 0; }
 
+  if (my_time >= 0) {
+    *out = my_time;
+    return 1;
+  }
   n = my_request ? my_request : __atomic_load_n(&requests, __ATOMIC_SEQ_CST);
-  *out = start_time + (int64_t)(n ? n - 1 : 0);
+  *out = (start_time + (int64_t)(n ? n - 1 : 0)) * 1000;
+  return 1;
+}
+
+// The same in whole seconds.
+int uw_reproducible_epoch(int64_t *out) {
+  int64_t ms;
+
+  if (!uw_reproducible_now(&ms)) { return 0; }
+
+  *out = ms >= 0 ? ms / 1000 : -((-ms + 999) / 1000);
   return 1;
 }
 

@@ -180,8 +180,16 @@ void uw_copy_client_data(void *dst, void *src);
 
 // reproducible.c
 extern void uw_reproducible_init(void);
+extern int uw_reproducible_now(int64_t *);
 extern int uw_reproducible_epoch(int64_t *);
 extern int uw_reproducible_rand(uint64_t *);
+
+// The time in seconds, the logical clock's when it is pinned: what a client's
+// last contact and its expiry are measured in.
+static time_t now_seconds(void) {
+  int64_t pinned;
+  return uw_reproducible_epoch(&pinned) ? (time_t)pinned : time(NULL);
+}
 
 // dmllog.c
 extern void uw_dml_log_init(void);
@@ -226,7 +234,7 @@ static client *new_client(uw_context ctx) {
   c->mode = USED;
   c->pass = pass;
   c->sock = -1;
-  c->last_contact = time(NULL);
+  c->last_contact = now_seconds();
   uw_buffer_reset(&c->msgs);
   c->n_channels = 0;
   c->refcount = 0;
@@ -325,7 +333,7 @@ void uw_client_connect(unsigned id, int pass, int sock,
     c->sock = -1;
   }
 
-  c->last_contact = time(NULL);
+  c->last_contact = now_seconds();
 
   if (uw_buffer_used(&c->msgs) > 0) {
     send(sock, on_success, strlen(on_success));
@@ -4195,7 +4203,7 @@ void uw_prune_clients(uw_context ctx) {
   time_t cutoff;
   int stop = 0;
 
-  cutoff = time(NULL) - ctx->app->timeout;
+  cutoff = now_seconds() - ctx->app->timeout;
 
   uw_expunger_arrives();
   
@@ -4242,6 +4250,25 @@ void uw_prune_clients(uw_context ctx) {
   pthread_mutex_unlock(&clients_mutex);
 
   uw_expunger_departs();
+}
+
+// When the next client is due to expire, in milliseconds on the logical
+// clock, into *out: a second after its timeout has run out, when
+// uw_prune_clients would take it.  0 if no client is.
+int uw_next_client_expiry(uw_context ctx, int64_t *out) {
+  client *c;
+  int found = 0;
+
+  pthread_mutex_lock(&clients_mutex);
+  for (c = clients_used; c; c = c->next) {
+    int64_t e = ((int64_t)c->last_contact + ctx->app->timeout + 1) * 1000;
+    if (c->refcount == 0 && (!found || e < *out)) {
+      *out = e;
+      found = 1;
+    }
+  }
+  pthread_mutex_unlock(&clients_mutex);
+  return found;
 }
 
 failure_kind uw_initialize(uw_context ctx) {
@@ -4781,7 +4808,12 @@ const uw_Basis_time uw_Basis_minTime = {};
 uw_Basis_time uw_Basis_now(uw_context ctx) {
   (void)ctx;
   int64_t pinned;
-  uw_Basis_time r = { uw_reproducible_epoch(&pinned) ? pinned : time(NULL) };
+  uw_Basis_time r = { time(NULL) };
+  if (uw_reproducible_now(&pinned)) {
+    int64_t ms = pinned % 1000 < 0 ? pinned % 1000 + 1000 : pinned % 1000;
+    r.seconds = (pinned - ms) / 1000;
+    r.microseconds = ms * 1000;
+  }
   return r;
 }
 

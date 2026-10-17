@@ -94,8 +94,8 @@ requests, one after the other in the order of their names:
                   |   |-- 01-add.stderr
                   |   |-- 02-pay.request
                   |   |-- 02-pay.response
-                  |   |-- 03-mail.wait    a line to wait for the server to print
-                  |   |-- 03-mail.stdout  what it printed meanwhile, as for a request
+                  |   |-- 03-mail.wait    time to let pass, or a line to wait for
+                  |   |-- 03-mail.stdout  what the server printed meanwhile, as for a request
                   |   |-- 04-ship.request
                   |   `-- 04-ship.error   why the request could not be sent, while it cannot
                   `-- out/
@@ -122,40 +122,46 @@ no line break, and nothing is read from a file (-d @file, -b file, -H @file).
 What the server prints for a request goes beside its response, and only if
 there is any: its own lines about connections and requests are dropped, the
 program's debug output and the runtime's errors are kept.  A request that
-cannot be sent at all (the server died, or hangs) stops the run: NAME.error
-says why, the records of the requests after it go, and the run fails until
-it gets past the request again.
-
-A step can wait instead of send, for what the application does on its own
-(a task periodic): NAME.wait holds one line,
-
-  until still running
-
-and the run goes on once the server has printed a line holding the text after
-'until', the blanks around it aside, on stdout or stderr, since what the step
-before took.  A line counts as the recording has it: one of the server's own
-lines, which are dropped, does not.  What the server printed on that stream up
-to the end of the line, what it printed on the other, and what the database saw
-meanwhile go under NAME, as for a request (NAME.stdout, NAME.stderr, NAME.dml.sql);
-there is no response.  What comes after the line on its stream is left to the
-next step; on the other stream and in the database it may land in either, so the
-line waited for is best printed last.  A wait lasts as long as it takes, not a
-set time, so that what is recorded does not depend on the machine; if the line
-has not come within 30 seconds, or the server is gone, the run fails.
-A wait that comes first takes what the server printed while starting as well,
-which then is not under out/: a task starts with the server, and whether its
-first lines come before the server says it is listening or after is a matter
-of chance.
+cannot be sent at all (the server died, or hangs), or a wait that cannot be
+done (below), stops the run: NAME.error says why, the records of the steps
+after it go, and the run fails until it gets past the step again.
 
 Runs share nothing.  Each has its own database -- SQLite, so the case's args
 need -dbms sqlite -- loaded from db.sql, which holds the schema and any rows
 to start with; within a run, the requests build on each other.  So that the
-same requests get the same answers, the application's clock is pinned (the
-first request is served at 2000-01-01 00:00:00 UTC, each further one a second
-later, and the database agrees), as are its random numbers and its time zone,
-UTC; its heap starts at 256 MiB, so that no handler is run a second time
-for the heap to grow; every request is for the host 'localhost', from the
-user agent 'urt'.
+same requests get the same answers, the application's random numbers and its
+time zone, UTC, are pinned, and so is its clock: the server's time is what urt
+says it is, and nothing happens on the wall clock.  The first request is
+served at 2000-01-01 00:00:00 UTC, each further one a second after the one
+before, and the database agrees; what the application does by itself -- a
+task periodic, a client's expiry -- happens when the clock gets to it, at its
+time, and goes with the step during which it does: tasks due when a request
+arrives run before it, or after it with URWEB_REPRODUCIBLE_TASKS=last in the
+run's env.  The heap starts at 256 MiB, so that no handler is run a second
+time for the heap to grow; every request is for the host 'localhost', from the
+user agent 'urt', and says its time in an UrWeb-Time header.
+
+A step can wait instead of send, for what the application does by itself:
+NAME.wait holds one line, either
+
+  wait 1min
+
+which lets that much time pass (ms, s, min, h and d, the unit never left
+out; a task periodic 10 runs six times), or
+
+  until still running
+
+which lets time pass until the server has printed a line holding the text
+after 'until', the blanks around it aside, on stdout or stderr.  A line counts
+as the recording has it: one of the server's own lines, which are dropped,
+does not.  What the server did meanwhile goes under NAME, as for a request
+(NAME.dml.sql, NAME.stdout, NAME.stderr); there is no response.  The clock is
+moved from one thing the server is due to do to the next, so an until ends
+with everything due at the time of the line and nothing after it, and the
+next step comes a second later; it cannot be done if the server has nothing
+more to do, or the line has not come within 365 days on the clock.  Time
+passes as fast as the server does what falls due: a month of a task every
+minute is some 43,000 runs of it, which take as long as they take.
 
 A run's env adds to the application's environment, NAME=value a line, the
 value taken as written, though it holds no control character but a tab;

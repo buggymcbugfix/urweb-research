@@ -1,0 +1,6 @@
+HTTP/1.1 400 Bad Request
+Content-type: text/plain
+Connection: close
+Content-Length: 86
+
+the query is not advance=T, with T a number of milliseconds from 0 to 253402300799999

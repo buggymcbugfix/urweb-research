@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-Length: 587
+
+<!DOCTYPE html><html><head></head><body><p>now Sat Jan  1 00:01:01 2000</p><ul><li>1 ten at Sat Jan  1 00:00:00 2000</li><li>2 twenty-five at Sat Jan  1 00:00:00 2000</li><li>3 once at Sat Jan  1 00:00:00 2000</li><li>4 ten at Sat Jan  1 00:00:10 2000</li><li>5 ten at Sat Jan  1 00:00:20 2000</li><li>6 twenty-five at Sat Jan  1 00:00:25 2000</li><li>7 ten at Sat Jan  1 00:00:30 2000</li><li>8 ten at Sat Jan  1 00:00:40 2000</li><li>9 ten at Sat Jan  1 00:00:50 2000</li><li>10 twenty-five at Sat Jan  1 00:00:50 2000</li><li>11 ten at Sat Jan  1 00:01:00 2000</li></ul></body></html>

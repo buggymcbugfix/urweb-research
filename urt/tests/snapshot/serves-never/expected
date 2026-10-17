@@ -1,0 +1,60 @@
+$ urt snapshot runs/serves-never
+UPDATED runs/serves-never.urt/snapshot/1 (exitcode)
+
+FAIL runs/serves-never.urt/snapshot/1/request-response/after (interaction/01.response, interaction/02-task.dml.sql, interaction/02-task.stderr, interaction/02-task.stdout, interaction/03-more.error)
+    wait 03-more cannot be done: the server has nothing more to do by itself, and printed no line holding 'another line'
+
+FAIL runs/serves-never.urt/snapshot/1/request-response/far (interaction/01.response, interaction/02-task.error)
+    wait 02-task cannot be done: the server printed no line holding 'a line from a task' within 365 days on its clock
+
+1 case and 2 runs: 2 failed, 1 updated, in T
+exit 1
+$ cd runs/serves-never.urt/snapshot/1/request-response/after/interaction && for f in *; do echo "== $f"; cat "$f"; echo; done
+== 01.request
+GET /later
+
+== 01.response
+HTTP/1.1 200 OK
+Content-Type: text/plain
+Content-Length: 93
+Connection: close
+
+1: GET /later HTTP/1.1
+Accept: */*
+Host: localhost
+UrWeb-Time: 946684800000
+User-Agent: urt
+
+
+== 02-task.dml.sql
+INSERT INTO t VALUES (2);
+
+== 02-task.stderr
+task: and one on stderr
+
+== 02-task.stdout
+task: a line from a task
+
+== 02-task.wait
+until a line from a task
+
+== 03-more.error
+the server has nothing more to do by itself, and printed no line holding 'another line'
+
+== 03-more.wait
+until another line
+
+== 04-after.request
+GET /after
+
+exit 0
+$ changes
+added: ./runs/serves-never.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-never.urt/snapshot/1/expected/exitcode
+added (177 bytes): ./runs/serves-never.urt/snapshot/1/request-response/after/interaction/01.response
+added (26 bytes): ./runs/serves-never.urt/snapshot/1/request-response/after/interaction/02-task.dml.sql
+added (24 bytes): ./runs/serves-never.urt/snapshot/1/request-response/after/interaction/02-task.stderr
+added (25 bytes): ./runs/serves-never.urt/snapshot/1/request-response/after/interaction/02-task.stdout
+added (88 bytes): ./runs/serves-never.urt/snapshot/1/request-response/after/interaction/03-more.error
+added (176 bytes): ./runs/serves-never.urt/snapshot/1/request-response/far/interaction/01.response
+added (85 bytes): ./runs/serves-never.urt/snapshot/1/request-response/far/interaction/02-task.error

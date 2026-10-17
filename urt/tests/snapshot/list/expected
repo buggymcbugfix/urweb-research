@@ -50,6 +50,7 @@ runs/serves-env.urt/snapshot/1
 runs/serves-gone.urt/snapshot/1
 runs/serves-later-bad.urt/snapshot/1
 runs/serves-later.urt/snapshot/1
+runs/serves-never.urt/snapshot/1
 runs/serves-nul.urt/snapshot/1
 runs/serves-odd.urt/snapshot/1
 runs/serves-start.urt/snapshot/1

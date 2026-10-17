@@ -26,8 +26,8 @@
  * takes the next character as it is.  Nothing is expanded, and curl's
  * own escapes from the command line (-d @file, -b file, -H @file) are
  * refused: a request says what is sent, all of it.  So are the headers
- * urt sets for every request, Host and User-Agent, under any spelling
- * of the name; a header or cookie with a control character in it, which
+ * urt sets for every request, Host, User-Agent and UrWeb-Time, under any
+ * spelling of the name; a header or cookie with a control character in it, which
  * could not go in one header line; and a path with a blank, a control
  * character or a # in it, since curl would send something else.
  *
@@ -35,6 +35,11 @@
  * ("-d", "name=kettle", ...); or -1 with the complaint in err. */
 int parse_request(const char *text, char *method, size_t method_size, char *url_path, size_t path_size,
                   struct strlist *options, char *err, size_t err_size);
+
+/* A duration, a number and its unit with nothing between them: 500ms,
+ * 2s, 1.5s, 3min, 1h, 2d.  The unit is never left out.  0 with the
+ * milliseconds in *ms, rounded to the nearest, or -1. */
+int parse_duration(const char *s, long long *ms);
 
 /* --------------------------------------------------------------- servers */
 
@@ -55,5 +60,15 @@ void server_stop(struct server *s);
 
 /* Whether it is still there: running, and not dead and unreaped. */
 int server_alive(const struct server *s);
+
+/* The server's logical clock, which urt pins (URWEB_REPRODUCIBLE_EPOCH):
+ * GET /.clock?advance=T, which has the server handle everything it is due
+ * to do by itself before T (milliseconds since the Unix epoch) -- its
+ * periodic tasks, its clients' expiries -- or, with advance -1, just
+ * GET /.clock.  1 with when the next of those is due in *next, 0 if none
+ * is, or -1 with what went wrong in why: no connection, no answer within
+ * CLOCK_SECONDS, or an answer that is not the clock's. */
+#define CLOCK_SECONDS 30    /* as long as curl gives a request */
+int server_clock(const struct server *s, long long advance, long long *next, char *why, size_t why_size);
 
 #endif

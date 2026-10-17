@@ -16,87 +16,94 @@ $ cd runs/serves.urt/snapshot/1/request-response/talk && for f in interaction/*.
 == interaction/01.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 63
+Content-Length: 88
 Connection: close
 
 1: GET / HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684800000
 User-Agent: urt
 
 
 == interaction/02-fields.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 185
+Content-Length: 210
 Connection: close
 
-2: POST /add HTTP/1.1
+3: POST /add HTTP/1.1
 Accept: text/html
 Content-Length: 20
 Content-Type: application/x-www-form-urlencoded
 Cookie: visitor=somebody
 Host: localhost
+UrWeb-Time: 946684801000
 User-Agent: urt
 
 name=kettle&price=12
 == interaction/03-debug.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 68
+Content-Length: 93
 Connection: close
 
-3: GET /debug HTTP/1.1
+5: GET /debug HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684802000
 User-Agent: urt
 
 
 == interaction/04-err.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 66
+Content-Length: 91
 Connection: close
 
-4: GET /err HTTP/1.1
+7: GET /err HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684803000
 User-Agent: urt
 
 
 == interaction/05-dml.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 66
+Content-Length: 91
 Connection: close
 
-5: GET /dml HTTP/1.1
+9: GET /dml HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684804000
 User-Agent: urt
 
 
 == interaction/06-a.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 64
+Content-Length: 90
 Connection: close
 
-7: GET /a HTTP/1.1
+13: GET /a HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684806000
 User-Agent: urt
 
 
 == interaction/06.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 66
+Content-Length: 92
 Connection: close
 
-6: GET /a-b HTTP/1.1
+11: GET /a-b HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684805000
 User-Agent: urt
 
 
@@ -106,26 +113,28 @@ curl: (52) Empty reply from server
 == interaction/08-dotdot.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 69
+Content-Length: 95
 Connection: close
 
-9: GET /a/../b HTTP/1.1
+17: GET /a/../b HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684808000
 User-Agent: urt
 
 
 == interaction/09-backslash.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 142
+Content-Length: 167
 Connection: close
 
-10: POST /backslash HTTP/1.1
+19: POST /backslash HTTP/1.1
 Accept: */*
 Content-Length: 2
 Content-Type: application/x-www-form-urlencoded
 Host: localhost
+UrWeb-Time: 946684809000
 User-Agent: urt
 
 x\
@@ -148,12 +157,13 @@ exit 0
 $ tr -d '\r' < runs/serves.urt/snapshot/1/request-response/second/interaction/01.response
 HTTP/1.1 200 OK
 Content-Type: text/plain
-Content-Length: 63
+Content-Length: 88
 Connection: close
 
 1: GET / HTTP/1.1
 Accept: */*
 Host: localhost
+UrWeb-Time: 946684800000
 User-Agent: urt
 
 exit 0
@@ -170,15 +180,15 @@ FAIL runs/serves.urt/snapshot/1/request-response/talk (interaction/01.response) 
     @@ -1,9 +1,9 @@
      HTTP/1.1 200 OK
      Content-Type: text/plain
-    -Content-Length: 63
-    +Content-Length: 68
+    -Content-Length: 88
+    +Content-Length: 93
      Connection: close
 
     -1: GET / HTTP/1.1
     +1: GET /other HTTP/1.1
      Accept: */*
      Host: localhost
-     User-Agent: urt
+     UrWeb-Time: 946684800000
 
 1 case and 3 runs: 3 ok, 1 failed, in T
 exit 1
@@ -224,21 +234,21 @@ exit 1
 $ changes
 added: ./runs/serves.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves.urt/snapshot/1/expected/exitcode
-added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/crlf-args/interaction/01.response
-added (147 bytes): ./runs/serves.urt/snapshot/1/request-response/second/interaction/01.response
+added (172 bytes): ./runs/serves.urt/snapshot/1/request-response/crlf-args/interaction/01.response
+added (172 bytes): ./runs/serves.urt/snapshot/1/request-response/second/interaction/01.response
 changed (11 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.request
-added (152 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response
-added (270 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/02-fields.response
-added (152 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/03-debug.response
+added (177 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/01.response
+added (295 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/02-fields.response
+added (177 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/03-debug.response
 added (31 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/03-debug.stdout
 removed: ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.request
-added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.response
+added (175 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.response
 added (32 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/04-err.stderr
 changed (10 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.request
-added (151 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.response
-added (148 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06-a.response
-added (150 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06.response
+added (176 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/05-dml.response
+added (174 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06-a.response
+added (176 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/06.response
 added (35 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/07-quiet.response
-added (153 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/08-dotdot.response
-added (227 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/09-backslash.response
+added (179 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/08-dotdot.response
+added (252 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/interaction/09-backslash.response
 added (81 bytes): ./runs/serves.urt/snapshot/1/request-response/talk/out/shutdown.db.sql

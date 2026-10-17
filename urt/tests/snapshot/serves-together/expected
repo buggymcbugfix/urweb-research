@@ -1,18 +1,16 @@
 $ urt snapshot runs/serves-together
 UPDATED runs/serves-together.urt/snapshot/1 (exitcode)
-UPDATED runs/serves-together.urt/snapshot/1/request-response/a (interaction/01.response, interaction/02-one.stdout, interaction/03-after.response, interaction/03-after.stdout)
+UPDATED runs/serves-together.urt/snapshot/1/request-response/a (interaction/01.response, interaction/02-one.stdout, interaction/03-after.response)
 1 case and 1 run: 2 updated, in T
 exit 0
 $ cd runs/serves-together.urt/snapshot/1/request-response/a && for f in interaction/* out/*; do case $f in *.stdout|*.stderr) echo "== $f"; cat "$f";; esac; done
 == interaction/02-one.stdout
 task: tick 1
-== interaction/03-after.stdout
 task: tick 2
 exit 0
 $ changes
 added: ./runs/serves-together.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-together.urt/snapshot/1/expected/exitcode
-added (196 bytes): ./runs/serves-together.urt/snapshot/1/request-response/a/interaction/01.response
-added (13 bytes): ./runs/serves-together.urt/snapshot/1/request-response/a/interaction/02-one.stdout
-added (152 bytes): ./runs/serves-together.urt/snapshot/1/request-response/a/interaction/03-after.response
-added (13 bytes): ./runs/serves-together.urt/snapshot/1/request-response/a/interaction/03-after.stdout
+added (221 bytes): ./runs/serves-together.urt/snapshot/1/request-response/a/interaction/01.response
+added (26 bytes): ./runs/serves-together.urt/snapshot/1/request-response/a/interaction/02-one.stdout
+added (177 bytes): ./runs/serves-together.urt/snapshot/1/request-response/a/interaction/03-after.response

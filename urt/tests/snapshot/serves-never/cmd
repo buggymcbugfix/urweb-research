@@ -1,0 +1,2 @@
+urt snapshot runs/serves-never
+cd runs/serves-never.urt/snapshot/1/request-response/after/interaction && for f in *; do echo "== $f"; cat "$f"; echo; done

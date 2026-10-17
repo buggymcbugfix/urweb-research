@@ -20,17 +20,24 @@
 #              been overwritten with garbage
 #   /env/NAME  an answer that ends in NAME=value, as the environment has it,
 #              or in "NAME is not set"
-#   /later     an answer at once, and a third of a second later a statement
-#              in $URWEB_DML_LOG, a line on stderr and one on stdout, as a
+#   /later     an answer, and a second later on the clock a statement in
+#              $URWEB_DML_LOG, a line on stderr and one on stdout, as a
 #              periodic task would leave them
-#   /print/TEXT  an answer at once, and a third of a second later TEXT,
+#   /year      the same as /later, but 400 days later on the clock
+#   /print/TEXT  an answer, and a second later on the clock TEXT,
 #              percent-decoded, on stdout in one write, as a task that
 #              prints several lines at once would
+#   /.clock    the logical clock, as the runtime has it when urt pins it
+#              (src/c/reproducible.c): ?advance=T does what is due before T
+#              (milliseconds since the Unix epoch), and the answer says when
+#              the next thing is due, `next T` or `next none`; a request is
+#              made at the time its UrWeb-Time header says
 #
 # APP_PIDFILE names a file that the process that serves writes its pid
 # to, and removes when it is stopped, for a transcript to see whether it
-# was; APP_LATER set does at the start what /later does; and APP_MODE
-# makes it misbehave at the start:
+# was; APP_LATER set does what /later does a second after the clock's
+# start (URWEB_REPRODUCIBLE_EPOCH); and APP_MODE makes it misbehave at
+# the start:
 #
 #   exit1      exit 1 before anything, with a line on stderr
 #   badstatus  a handshake with status='FAIL'
@@ -45,7 +52,6 @@ import os
 import signal
 import socket
 import sys
-import threading
 import time
 import urllib.parse
 
@@ -124,8 +130,7 @@ if pidfile:
 sys.stdout.write("Listening on port %d....\n" % p)
 sys.stdout.flush()
 
-# What a periodic task would leave, a while after it was started; the line
-# on stdout last, for a wait to know that the rest is there.
+# What a periodic task would leave; the line on stdout last.
 def task():
     if os.environ.get("URWEB_DML_LOG"):
         with open(os.environ["URWEB_DML_LOG"], "a") as log:
@@ -135,8 +140,15 @@ def task():
     sys.stdout.write("task: a line from a task\n")
     sys.stdout.flush()
 
+# The clock: what is due when, done when the clock is moved past it, in
+# the order due and then the order scheduled.
+due = []
+def schedule(at, what, *args):
+    due.append((at, len(due), what, args))
+
+epoch = int(os.environ.get("URWEB_REPRODUCIBLE_EPOCH", "0")) * 1000
 if os.environ.get("APP_LATER"):
-    threading.Timer(0.3, task).start()
+    schedule(epoch + 1000, task)
 
 served = 0
 while True:
@@ -163,6 +175,24 @@ while True:
     sys.stdout.write("Accepted connection.\nServing URI %s\n" % request)
     sys.stdout.flush()
     path = request.split(" ")[1] if " " in request else ""
+    now = epoch
+    for line in lines[1:]:
+        if line.lower().startswith(b"urweb-time:"):
+            now = int(line.split(b":", 1)[1])
+    if path.startswith("/.clock"):
+        query = urllib.parse.parse_qs(path.partition("?")[2])
+        if "advance" in query:
+            until = int(query["advance"][0])
+            due.sort()
+            while due and due[0][0] < until:
+                _, _, what, args = due.pop(0)
+                what(*args)
+        due.sort()
+        answer = b"next %d\n" % due[0][0] if due else b"next none\n"
+        c.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+                  % len(answer) + answer)
+        c.close()
+        continue
     if path == "/debug":
         sys.stdout.write("debug: a line from the handler\n")
         sys.stdout.flush()
@@ -173,10 +203,12 @@ while True:
         with open(os.environ["URWEB_DML_LOG"], "a") as log:
             log.write("INSERT INTO t VALUES (1);\n")
     if path == "/later":
-        threading.Timer(0.3, task).start()
+        schedule(now + 1000, task)
+    if path == "/year":
+        schedule(now + 400 * 86400000, task)
     if path.startswith("/print/"):
         text = urllib.parse.unquote_to_bytes(path[len("/print/"):])
-        threading.Timer(0.3, os.write, (1, text)).start()
+        schedule(now + 1000, os.write, 1, text)
     if path == "/wait":
         time.sleep(4)
     if path == "/slow":
