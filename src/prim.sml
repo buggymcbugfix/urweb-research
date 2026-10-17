@@ -84,12 +84,18 @@ fun toCChar ch =
 
 val toCString = String.translate quoteDouble
 
+(* A char is a code point in C (uw_Basis_char).  One beyond ASCII goes in as
+ * its number: as a C char constant, '\351' say, it is negative where char is
+ * signed, as with gcc on x86. *)
 fun p_t_GCC t =
     case t of
         Int n => string (int2s n)
       | Float n => string (float2s n)
       | String (_, s) => box [string "\"", string (toCString s), string "\""]
-      | Char ch => box [string "'", string (toCChar ch), string "'"]
+      | Char ch => if Char.isAscii ch then
+                       box [string "'", string (toCChar ch), string "'"]
+                   else
+                       string (Int.toString (ord ch))
 
 fun equal x =
     case x of
