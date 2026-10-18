@@ -128,7 +128,7 @@ stdenv.mkDerivation (finalAttrs: {
   nativeCheckInputs = [
     curl # the demo test's requests, and libcurl for tests/io_curl
     spawnFcgi # which starts that program on its socket
-    python3 # tests/io_curl's stub server; urt's pty cases and stand-in server
+    python3 # tests/io_curl's stub server and tests/fastcgi_idle's client; urt's pty cases and stand-in server
   ];
 
   # What the build writes into src/version.sml (see Makefile.am): the

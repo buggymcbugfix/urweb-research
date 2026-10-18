@@ -193,7 +193,14 @@ check-io-concurrent: bin/urweb
 check-shell-id:
 	bash tests/shell_id/run.sh
 
-check-local: bin/urweb check-io-curl check-io-concurrent
+# A kept FastCGI connection and a second one while it idles: see
+# tests/fastcgi_idle/README.md.  Needs python3 and spawn-fcgi.  Through
+# bash, as check-io-curl.
+.PHONY: check-fastcgi-idle
+check-fastcgi-idle: bin/urweb
+	bash tests/fastcgi_idle/run.sh
+
+check-local: bin/urweb check-io-curl check-io-concurrent check-fastcgi-idle
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \
