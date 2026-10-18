@@ -1,0 +1,7 @@
+printf '255\n' > runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.exitcode
+printf 'left from last time\n' > runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.fcgi-stderr
+printf 'left from last time\n' > runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.stdout
+printf 'left from last time\n' > runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.fcgi-stderr
+urt snapshot runs/serves-env runs/serves-cgi
+urt snapshot -w runs/serves-env runs/serves-cgi
+ls runs/serves-env.urt/snapshot/1/request-response/plain/interaction runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction

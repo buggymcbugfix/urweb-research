@@ -8,3 +8,5 @@ min_above.urp starts the heap above its own limit, with minHeap.
 The runs `zero`, `page` and `max` set URWEB_LIMIT_HEAP to 0, to 1 and to
 the largest number a size can hold, over a page that needs a few bytes of
 heap and the two above.
+The run `beyond-2g` raises the limit to 3 GB, past what the compiler
+takes in the .urp.
