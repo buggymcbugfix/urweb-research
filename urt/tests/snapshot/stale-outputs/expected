@@ -1,0 +1,74 @@
+$ printf '255\n' > runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.exitcode
+exit 0
+$ printf 'left from last time\n' > runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.fcgi-stderr
+exit 0
+$ printf 'left from last time\n' > runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.stdout
+exit 0
+$ printf 'left from last time\n' > runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.fcgi-stderr
+exit 0
+$ urt snapshot runs/serves-env runs/serves-cgi
+UPDATED runs/serves-env.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-env.urt/snapshot/1/request-response/env (interaction/01.response, interaction/02.response, interaction/03.response, interaction/04.response)
+UPDATED runs/serves-env.urt/snapshot/1/request-response/plain (interaction/01.response, interaction/02.response, interaction/03.response)
+UPDATED runs/serves-cgi.urt/snapshot/1 (exitcode)
+UPDATED runs/serves-cgi.urt/snapshot/1/request-response/cgi (interaction/01.response, interaction/02-form.response, interaction/03-raw.response, interaction/04-err.response, interaction/04-err.stderr, interaction/05-dml.response, interaction/05-dml.sql, interaction/06-fail.exitcode, interaction/06-fail.response, interaction/07-dup.response, interaction/08-long.response, out/db_final.sql)
+UPDATED runs/serves-cgi.urt/snapshot/1/request-response/exit142 (interaction/01-exit142.exitcode, interaction/01-exit142.response)
+2 cases and 4 runs: 6 updated, in T
+exit 0
+$ urt snapshot -w runs/serves-env runs/serves-cgi
+OK runs/serves-env.urt/snapshot/1
+OK runs/serves-env.urt/snapshot/1/request-response/env
+OK runs/serves-env.urt/snapshot/1/request-response/plain
+OK runs/serves-cgi.urt/snapshot/1
+OK runs/serves-cgi.urt/snapshot/1/request-response/cgi
+OK runs/serves-cgi.urt/snapshot/1/request-response/exit142
+2 cases and 4 runs: 6 ok, in T
+exit 0
+$ ls runs/serves-env.urt/snapshot/1/request-response/plain/interaction runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction
+runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction:
+01-exit142.exitcode
+01-exit142.fcgi-stderr
+01-exit142.request
+01-exit142.response
+01-exit142.stdout
+
+runs/serves-env.urt/snapshot/1/request-response/plain/interaction:
+01.exitcode
+01.fcgi-stderr
+01.request
+01.response
+02.request
+02.response
+03.request
+03.response
+exit 0
+$ changes
+added: ./runs/serves-cgi.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-cgi.urt/snapshot/1/expected/exitcode
+added (377 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/01.response
+added (552 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/02-form.response
+added (440 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/03-raw.response
+added (381 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/04-err.response
+added (22 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/04-err.stderr
+added (380 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/05-dml.response
+added (26 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/05-dml.sql
+added (2 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/06-fail.exitcode
+added (85 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/06-fail.response
+added (397 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/07-dup.response
+added (8594 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/interaction/08-long.response
+added (106 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/cgi/out/db_final.sql
+added (4 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.exitcode
+added (20 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.fcgi-stderr
+added (0 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.response
+added (20 bytes): ./runs/serves-cgi.urt/snapshot/1/request-response/exit142/interaction/01-exit142.stdout
+added: ./runs/serves-env.urt/snapshot/1/app.exe
+changed (2 bytes): ./runs/serves-env.urt/snapshot/1/expected/exitcode
+added (188 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/01.response
+added (171 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/02.response
+added (186 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/03.response
+added (186 bytes): ./runs/serves-env.urt/snapshot/1/request-response/env/interaction/04.response
+added (4 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.exitcode
+added (20 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.fcgi-stderr
+added (188 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/01.response
+added (181 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/02.response
+added (192 bytes): ./runs/serves-env.urt/snapshot/1/request-response/plain/interaction/03.response
