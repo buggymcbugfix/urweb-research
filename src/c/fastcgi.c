@@ -14,6 +14,9 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <poll.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #include <pthread.h>
 
@@ -219,8 +222,6 @@ static int write_stdout(void *data, const char *buf, size_t len) {
   return 0;
 }
 
-#include <errno.h>
-
 static int close_stream(FCGI_Output *o, unsigned char type) {
   if (fastcgi_send(o, type, 0)) {
     fprintf(stderr, "fastcgi_send() failed in close_stream().\n");
@@ -402,9 +403,10 @@ typedef struct {
   // FCGI_KEEP_CONN: the web server asked for the connection to stay open
   // after the request.
   int keep;
-  // Set while the kept connection, its answer sent, waits in the queue for
-  // a worker, and taken off by the worker that dequeues it.
-  int given_back;
+  // Set while the kept connection, with its next request begun or the web
+  // server done with it, waits in the queue for a worker, and taken off by
+  // the worker that dequeues it.
+  int kept;
 } connection;
 
 static connection *connections;
@@ -445,31 +447,138 @@ static int handed_keep(int sock) {
   return keep;
 }
 
-// A kept connection whose answer is sent, back to the workers: it waits in
-// the queue for one of them, and then for its next request.
-static void give_back(int sock) {
+// A kept connection, from the poller, to the workers: it waits in the
+// queue for one of them, marked as kept.
+static void enqueue_kept(int sock) {
   pthread_mutex_lock(&connections_mutex);
-  connections[sock].given_back = 1;
+  connections[sock].kept = 1;
   pthread_mutex_unlock(&connections_mutex);
   uw_enqueue(sock);
 }
 
-// Whether sock, just dequeued, is a kept connection given back rather than
-// a new one.  The mark is taken off.
-static int given_back(int sock) {
+// Whether sock, just dequeued, is a kept connection from the poller rather
+// than a new one.  The mark is taken off.
+static int dequeued_kept(int sock) {
   int r = 0;
 
   pthread_mutex_lock(&connections_mutex);
   if ((size_t)sock < n_connections) {
-    r = connections[sock].given_back;
-    connections[sock].given_back = 0;
+    r = connections[sock].kept;
+    connections[sock].kept = 0;
   }
   pthread_mutex_unlock(&connections_mutex);
   return r;
 }
 
+// The poller.  A kept connection whose response has gone sits idle until
+// the web server sends its next request on it or closes it, which may be
+// a long time: nginx keeps a connection for 60 seconds by default.  Such
+// a connection waits with the poller, one thread for all of them, and
+// holds no worker meanwhile; so the web server may keep as many as the
+// limit on open files allows, whatever the number of workers.  Whoever is
+// done with a kept connection parks it (park): a worker after its
+// response, and the thread that answered a request for messages
+// (fastcgi_close).  The poller waits on all of them at once with poll(),
+// and a connection that has something to read -- the beginning of a
+// request, or the web server's end of it -- goes into the workers' queue,
+// marked as kept.  A byte down a pipe wakes the poller for a connection
+// parked while it waits.  A connection is in one place at a time: with a
+// worker, in the queue, or with the poller.
+//
+// What the poller costs.  poll() looks at every descriptor it is given, and
+// each park and each wake-up rebuilds the array and polls again, so every
+// request on a kept connection costs about 0.3 to 0.5 microseconds of the
+// poller's time for each connection parked.  Measured on two CPUs with two
+// workers, one busy kept connection and N idle ones parked: the poller used
+// 17 microseconds a request at N = 0, 102 at 300, 459 at 1000 and 1457 at
+// 3000, and the busy connection got 9965 requests a second at 0, 9019 at
+// 300, 1947 at 1000 and 663 at 3000.  The poller is one thread, so from a
+// few hundred parked connections on it limits the program's throughput on
+// kept connections, whatever the number of workers.  A set kept by the
+// kernel, epoll on Linux and kqueue on the BSDs and macOS, would not depend
+// on N: a park would arm the descriptor for one event (epoll_ctl, kevent)
+// and the poller would wait for events instead of rebuilding the array.
+// That is a backend for each, with this one as the fallback, and is left
+// until a deployment keeps hundreds of connections.
+static int *parked;
+static size_t n_parked, parked_cap;
+static pthread_mutex_t parked_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int poller_pipe[2];
+
+// The room for parked connections to start with; it doubles from there.
+#define PARKED_FIRST 64
+
+static void park(int sock) {
+  unsigned char byte = 0;
+
+  pthread_mutex_lock(&parked_mutex);
+  if (n_parked == parked_cap) {
+    parked_cap = parked_cap ? 2 * parked_cap : PARKED_FIRST;
+    parked = realloc(parked, parked_cap * sizeof(int));
+  }
+  parked[n_parked++] = sock;
+  pthread_mutex_unlock(&parked_mutex);
+  // A pipe that is full holds wake-ups enough.
+  while (write(poller_pipe[1], &byte, 1) < 0 && errno == EINTR);
+}
+
+static void *poller(void *data) {
+  struct pollfd *fds = NULL;
+  size_t fds_cap = 0;
+  (void)data;
+
+  while (1) {
+    size_t n, i, kept;
+
+    // The pipe first, then the parked connections as they stand.  Only
+    // the poller takes connections out, and park adds at the end, so the
+    // first n entries are these until they are taken out below.
+    pthread_mutex_lock(&parked_mutex);
+    if (n_parked + 1 > fds_cap) {
+      fds_cap = parked_cap + 1;
+      fds = realloc(fds, fds_cap * sizeof(struct pollfd));
+    }
+    fds[0].fd = poller_pipe[0];
+    fds[0].events = POLLIN;
+    for (i = 0; i < n_parked; ++i) {
+      fds[i + 1].fd = parked[i];
+      fds[i + 1].events = POLLIN;
+    }
+    n = n_parked;
+    pthread_mutex_unlock(&parked_mutex);
+
+    if (poll(fds, n + 1, -1) < 0) {
+      if (errno == EINTR)
+        continue;
+      fprintf(stderr, "poll failed in the poller: %s\n", strerror(errno));
+      exit(1);
+    }
+
+    if (fds[0].revents) {
+      // The wake-ups so far; what does not fit leaves the pipe readable.
+      unsigned char bytes[PARKED_FIRST];
+      while (read(poller_pipe[0], bytes, sizeof bytes) > 0);
+    }
+
+    // The connections with something to read go to the workers; the rest
+    // stay, moved up over them, and so does whatever was parked meanwhile.
+    pthread_mutex_lock(&parked_mutex);
+    for (i = 0, kept = 0; i < n; ++i)
+      if (!fds[i + 1].revents)
+        parked[kept++] = parked[i];
+    memmove(parked + kept, parked + n, (n_parked - n) * sizeof(int));
+    n_parked -= n - kept;
+    pthread_mutex_unlock(&parked_mutex);
+    for (i = 0; i < n; ++i)
+      if (fds[i + 1].revents)
+        enqueue_kept(fds[i + 1].fd);
+  }
+
+  return NULL;
+}
+
 // The end of the answer to a request for messages, from whichever thread
-// sent it.  The connection is then closed, or given back to the workers when
+// sent it.  The connection is then closed, or parked with the poller when
 // the web server asked to keep it, as the FastCGI spec requires: it is the
 // web server's to close.  One whose end could not be sent is closed.
 static int fastcgi_close(int sock) {
@@ -478,7 +587,7 @@ static int fastcgi_close(int sock) {
   fastcgi_output_init(&out, sock, handed_id(sock));
   if (fastcgi_end_request(&out, SERVED) || !handed_keep(sock))
     return close(sock);
-  give_back(sock);
+  park(sock);
   return 0;
 }
 
@@ -512,8 +621,10 @@ static void *worker(void *data) {
   hs.nvps[0].value_len = 0;
 
   // keep: the web server asked for the connection to stay open after the
-  // request (FCGI_KEEP_CONN), and the next request comes on it.  The
-  // connection then holds this thread until the web server closes it.
+  // request (FCGI_KEEP_CONN).  Once the response has gone, the connection
+  // waits with the poller for its next request, and this thread takes the
+  // next connection from the queue; unless bytes of that request have
+  // come already, when this thread reads on.
   int keep = 0;
 
   while (1) {
@@ -527,9 +638,9 @@ static void *worker(void *data) {
     keep = 0;
     if (!kept) {
       in->sock = out->sock = uw_dequeue();
-      // It may be a kept connection that a request for messages gave back
-      // once its answer had gone, and then it is kept here too.
-      kept = given_back(in->sock);
+      // A kept connection from the poller, with its next request begun or
+      // the web server done with it.
+      kept = dequeued_kept(in->sock);
     }
 
     if (!(r = fastcgi_recv(in))) {
@@ -706,9 +817,16 @@ static void *worker(void *data) {
       out->buf = response;
       out->used = 0;
       uw_output(ctx, write_stdout, out);
-      if (keep)
+      if (keep) {
         fastcgi_end_request(out, rr);
-      else
+        // Parked, unless the web server has sent on already: what has
+        // come of the next request is in this thread's buffer, so this
+        // thread reads on.
+        if (in->available == in->used) {
+          park(in->sock);
+          keep = 0;
+        }
+      } else
         fastcgi_close_with(out, rr);
       out->buf = NULL;
       goto done2;
@@ -718,7 +836,8 @@ static void *worker(void *data) {
     keep = 0;
     close(in->sock);
   done2:
-    // What has come of the next request on a kept connection stays.
+    // What has come of the next request on a kept connection this thread
+    // reads on stays.
     if (!keep)
       fastcgi_input_reset(in);
     uw_reset(ctx);
@@ -802,6 +921,19 @@ int main(int argc, char *argv[]) {
 
     if (pthread_create_big(&thread, NULL, client_pruner, pd)) {
       fprintf(stderr, "Error creating pruner thread\n");
+      return 1;
+    }
+  }
+
+  {
+    pthread_t thread;
+
+    if (pipe(poller_pipe) || fcntl(poller_pipe[0], F_SETFL, O_NONBLOCK) || fcntl(poller_pipe[1], F_SETFL, O_NONBLOCK)) {
+      fprintf(stderr, "Error creating the poller's pipe\n");
+      return 1;
+    }
+    if (pthread_create(&thread, NULL, poller, NULL)) {
+      fprintf(stderr, "Error creating poller thread\n");
       return 1;
     }
   }
