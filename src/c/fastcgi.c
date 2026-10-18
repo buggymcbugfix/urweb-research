@@ -387,21 +387,6 @@ static int fastcgi_close_with(FCGI_Output *out, request_result rr) {
   return close(out->sock);
 }
 
-// -T: how long, in seconds, a connection kept open for further requests
-// may sit idle, waiting for the next request to begin, before the program
-// closes it.  0, the default, is no limit: a kept connection is the web
-// server's to close.
-static int recv_timeout = 0;
-
-// The wait for the next bytes on sock limited to seconds, 0 for not at
-// all (SO_RCVTIMEO).  Set while a kept connection waits for its next
-// request, and taken off once that request has begun, so that a request's
-// own bytes may come as slowly as the web server sends them.
-static void idle_limit(int sock, int seconds) {
-  struct timeval tv = {seconds, 0};
-  setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
-}
-
 // The request last begun on a connection, by socket.  A request for
 // messages (/.msgs) hands its connection to the runtime, which answers on
 // it from whichever thread sends the message, through fastcgi_send_normal
@@ -493,8 +478,6 @@ static int fastcgi_close(int sock) {
   fastcgi_output_init(&out, sock, handed_id(sock));
   if (fastcgi_end_request(&out, SERVED) || !handed_keep(sock))
     return close(sock);
-  if (recv_timeout > 0)
-    idle_limit(sock, recv_timeout);
   give_back(sock);
   return 0;
 }
@@ -530,7 +513,7 @@ static void *worker(void *data) {
 
   // keep: the web server asked for the connection to stay open after the
   // request (FCGI_KEEP_CONN), and the next request comes on it.  The
-  // connection then holds this thread until it closes or waits past -T.
+  // connection then holds this thread until the web server closes it.
   int keep = 0;
 
   while (1) {
@@ -550,14 +533,11 @@ static void *worker(void *data) {
     }
 
     if (!(r = fastcgi_recv(in))) {
-      // A kept connection that the web server closes, or that waits past
-      // -T, is simply done with.
+      // A kept connection that the web server closes is simply done with.
       if (!kept)
         fprintf(stderr, "Error receiving initial message\n");
       goto done;
     }
-    if (kept && recv_timeout > 0)
-      idle_limit(in->sock, 0);   // the request has begun: no limit on its bytes
 
     out->request_id = fastcgi_request_id(r);
 
@@ -726,11 +706,9 @@ static void *worker(void *data) {
       out->buf = response;
       out->used = 0;
       uw_output(ctx, write_stdout, out);
-      if (keep) {
+      if (keep)
         fastcgi_end_request(out, rr);
-        if (recv_timeout > 0)
-          idle_limit(in->sock, recv_timeout);
-      } else
+      else
         fastcgi_close_with(out, rr);
       out->buf = NULL;
       goto done2;
@@ -751,10 +729,8 @@ static void *worker(void *data) {
 }
 
 static void help(char *cmd) {
-  printf("Usage: %s [-t <thread-count>] [-q] [-T <seconds>]\n"
-         "The '-q' option turns off the debug output on stdout.\n"
-         "The '-T' option sets how many seconds a connection kept open for further\n"
-         "requests may sit idle before it is closed (default: no limit).\n", cmd);
+  printf("Usage: %s [-t <thread-count>] [-q]\n"
+         "The '-q' option turns off the debug output on stdout.\n", cmd);
 }
 
 static uw_loggers ls = {NULL, log_error, log_debug};
@@ -778,7 +754,7 @@ int main(int argc, char *argv[]) {
   // A line at a time, whatever stdout is, as for the HTTP server.
   setvbuf(stdout, NULL, _IOLBF, 0);
 
-  while ((opt = getopt(argc, argv, "hqt:T:")) != -1) {
+  while ((opt = getopt(argc, argv, "hqt:")) != -1) {
     switch (opt) {
     case '?':
       fprintf(stderr, "Unknown command-line option");
@@ -791,15 +767,6 @@ int main(int argc, char *argv[]) {
 
     case 'q':
       quiet = 1;
-      break;
-
-    case 'T':
-      recv_timeout = atoi(optarg);
-      if (recv_timeout < 0) {
-        fprintf(stderr, "Invalid receive timeout\n");
-        help(argv[0]);
-        return 1;
-      }
       break;
 
     case 't':
