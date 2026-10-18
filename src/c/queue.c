@@ -55,9 +55,11 @@ int uw_dequeue() {
   return sock;
 }
 
+// One connection wakes one worker: each waiter takes one connection, so
+// waking them all would send every other one back to sleep.
 void uw_enqueue(int new_fd) {
   pthread_mutex_lock(&queue_mutex);
   enqueue(new_fd);
-  pthread_cond_broadcast(&queue_cond);
+  pthread_cond_signal(&queue_cond);
   pthread_mutex_unlock(&queue_mutex);
 }
