@@ -68,7 +68,7 @@ let
         'else if (x < v) then concat3(split_gt(l,x),v,r)'
   '';
 
-  # spawn-fcgi starts the FastCGI programs of the tests
+  # spawn-fcgi starts the FastCGI programs of the tests and of tests/bench
   # on their Unix sockets. nixpkgs' 1.6.6 binds the socket under a name one
   # byte short on the BSDs and macOS, where a feature macro it defines
   # hides SUN_LEN (see the patch), and the program never comes up. The
