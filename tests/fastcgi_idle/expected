@@ -1,4 +1,3 @@
 A, kept: answered
-B, while A sits idle: no answer within 3 s
+B, while A sits idle: answered
 A closed
-B, then: answered
