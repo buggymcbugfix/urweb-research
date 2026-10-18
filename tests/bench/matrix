@@ -1,0 +1,41 @@
+# The rows bench.py runs by default: one per line, as bench.py's row flags,
+# so that a line pasted after `tests/bench/bench.py` runs that row alone.
+# Every row has 8 program threads; the mix is the default one, 50% of a
+# page of a few bytes, 5% of a 64 KiB page built and escaped, 15% of a
+# 64 KiB file served from the binary, 25% reads and 5% writes.
+
+# No keep-alive between nginx and the program: a connection per request.
+--name nokeep        --protocol fastcgi --nginx workers=1,keepalive=0
+
+# nginx keeps idle connections to the program: 1 per worker process, 2
+# per each of 2, 8, and its default since 1.29.7, 32 per each of 2.
+--name w1k1          --protocol fastcgi --nginx workers=1,keepalive=1
+--name w2k2          --protocol fastcgi --nginx workers=2,keepalive=2
+--name w1k8          --protocol fastcgi --nginx workers=1,keepalive=8
+--name w2k32         --protocol fastcgi --nginx workers=2,keepalive=32
+
+# The HTTP server behind proxy_pass, for comparison, without and with
+# keep-alive (the server with -k, nginx closing idle connections first).
+--name http-nokeep   --protocol http --nginx workers=1,keepalive=0
+--name http-keep     --protocol http --keep-alive --nginx workers=1,keepalive=8
+
+# The HTTP server on its own, as a browser reaches it, closing after each
+# response and keeping connections open, as wrk does on its side.
+--name direct-nokeep --protocol http
+--name direct-keep   --protocol http --keep-alive
+
+# The page of a few bytes alone, where a connection's cost is the largest
+# part of a request's: what keep-alive can save at most, with fewer kept
+# connections than requests in flight (w1k8) and with more (w2k32), and
+# for the HTTP server on its own.
+--name nokeep-tiny   --protocol fastcgi --nginx workers=1,keepalive=0 --mix tiny=100
+--name w1k8-tiny     --protocol fastcgi --nginx workers=1,keepalive=8 --mix tiny=100
+--name w2k32-tiny    --protocol fastcgi --nginx workers=2,keepalive=32 --mix tiny=100
+--name direct-nokeep-tiny --protocol http --mix tiny=100
+--name direct-keep-tiny   --protocol http --keep-alive --mix tiny=100
+
+# The 64 KiB file alone: what carrying a large response costs in each
+# arrangement, with nothing built or escaped behind it.
+--name w1k8-file        --protocol fastcgi --nginx workers=1,keepalive=8 --mix file=100
+--name http-keep-file   --protocol http --keep-alive --nginx workers=1,keepalive=8 --mix file=100
+--name direct-keep-file --protocol http --keep-alive --mix file=100

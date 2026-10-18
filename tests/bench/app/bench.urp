@@ -1,0 +1,6 @@
+database dbname=bench.db
+rewrite all Bench/*
+safeGet write
+file /file page.txt text/plain
+
+bench
