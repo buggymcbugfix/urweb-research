@@ -5,11 +5,10 @@ UPDATED runs/serves-closed.urt/snapshot/1/request-response/a (interaction/01.res
 exit 0
 $ cd runs/serves-closed.urt/snapshot/1/request-response/a && for f in interaction/* out/*; do case $f in *.stdout) echo "== $f"; cat "$f";; esac; done
 == interaction/02-after.stdout
-Connection closed.
 after it
 exit 0
 $ changes
 added: ./runs/serves-closed.urt/snapshot/1/app.exe
 changed (2 bytes): ./runs/serves-closed.urt/snapshot/1/expected/exitcode
 added (190 bytes): ./runs/serves-closed.urt/snapshot/1/request-response/a/interaction/01.response
-added (28 bytes): ./runs/serves-closed.urt/snapshot/1/request-response/a/interaction/02-after.stdout
+added (9 bytes): ./runs/serves-closed.urt/snapshot/1/request-response/a/interaction/02-after.stdout
