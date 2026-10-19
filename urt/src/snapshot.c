@@ -1159,7 +1159,10 @@ static void exe_of(const char *settings, char *exe) {
  * ("Accepted connection.", "Serving URI ...", "Processed request for
  * messages ...") go the same way: they narrate what the runner did.  So
  * do the lines that say what each request took ("Served URI ...", "Failed
- * URI ..."), whose time differs from run to run. */
+ * URI ..."), whose time differs from run to run, and the note that the
+ * client closed a kept connection ("Connection closed."), which is printed
+ * after the answer: whether the cut after the answer has it differs from
+ * run to run too. */
 
 static int keep_server_line(const char *line, int *after_banner) {
     static const char *const start[] = {
@@ -1183,7 +1186,8 @@ static int keep_server_line(const char *line, int *after_banner) {
     }
     return !has_prefix(line, "Forking to PID ") && !has_prefix(line, "Listening on port ")
         && !has_prefix(line, "Error triggers unlimited retry: Couldn't allocate new ")
-        && strcmp(line, "Accepted connection.\n") != 0 && !has_prefix(line, "Handling connection with thread #")
+        && strcmp(line, "Accepted connection.\n") != 0 && strcmp(line, "Connection closed.\n") != 0
+        && !has_prefix(line, "Handling connection with thread #")
         && !has_prefix(line, "Serving URI ") && !has_prefix(line, "Served URI ")
         && !has_prefix(line, "Failed URI ");
 }
