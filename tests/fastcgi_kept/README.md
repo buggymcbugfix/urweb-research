@@ -13,13 +13,12 @@ each connection.
   after its answer, half of them with a reset, while the program may hold
   64 descriptors: the program has to close what the web server closed.
 - 128 connections kept open at once while the program may hold 64
-  descriptors, then ten of them closed and one more connection.  The
-  program ends with status 1 when `accept` fails, so it does not answer
-  them all, nor the connection that was waiting, nor the new one.  Three
-  lines record that, and a fix changes them in `expected`.  Two more say
-  that the program used under three seconds of CPU time, which a loop that
-  tried to accept again without a pause would not, and count the lines
-  about a failed accept in its log.
+  descriptors, then ten of them closed and one more connection.  When
+  `accept` fails for want of a descriptor, the program goes on.  It does
+  not answer the connection it could not accept until the client has
+  closed some of the others, and then it answers that one and the new one.
+  It logs one line about the failure, however long it waits, and uses
+  little CPU time meanwhile.
 - Which peers FCGI_WEB_SERVER_ADDRS lets in: a list with the peer last,
   first, and a list that holds a prefix of its address, and a peer that is
   not on the list, on TCP and on a Unix socket.  Three lines record what
