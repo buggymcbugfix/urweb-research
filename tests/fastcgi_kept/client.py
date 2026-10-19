@@ -12,6 +12,7 @@
 
 import os
 import re
+import resource
 import shutil
 import socket
 import struct
@@ -38,6 +39,10 @@ LOCAL, OTHER = "127.0.0.1", "10.9.9.9"
 # it none.
 WAIT = 5.0
 
+# Seconds to wait for the end of a program that is to go on, after something
+# has happened that would have ended it.
+QUIET = 1.0
+
 # Connections kept open at once.  The poller starts with room for 64.
 KEPT = 150
 
@@ -48,8 +53,16 @@ CYCLES = 150
 DESCRIPTORS = 64
 
 # Connections kept open at once under that limit: more than the program has
-# descriptors for.
+# descriptors for.  Then the client closes FREED of them, which leaves the
+# program that many descriptors again.
 CROWD = 2 * DESCRIPTORS
+FREED = 10
+
+# The CPU time, in seconds, that the program uses in that scenario when it
+# waits for a descriptor as it should: little.  It waits about six seconds
+# there, and a loop that tried to accept again without a pause would use
+# them all.
+CPU_MAX = 3.0
 
 
 def record(kind, content, request_id):
@@ -142,6 +155,15 @@ def token(answer):
     return found.group(1).decode() if found else "other"
 
 
+def program_environment(env=None):
+    """The program's environment: only what is named here, as for spawn-fcgi
+    in the idle test, and env."""
+    environment = {k: v for k, v in os.environ.items()
+                   if k in ("PATH", "LD_LIBRARY_PATH", "ASAN_OPTIONS", "UBSAN_OPTIONS")}
+    environment.update(env or {})
+    return environment
+
+
 class Program:
     """The program, on a Unix socket or on TCP."""
 
@@ -158,25 +180,28 @@ class Program:
         listener.bind(self.address)
         self.address = listener.getsockname()
         listener.listen(socket.SOMAXCONN)
-        # Only what is named here, as for spawn-fcgi in the idle test.
-        environment = {k: v for k, v in os.environ.items()
-                       if k in ("PATH", "LD_LIBRARY_PATH", "ASAN_OPTIONS", "UBSAN_OPTIONS")}
-        environment.update(env or {})
+        environment = program_environment(env)
         command = [exe, "-q"]
         if descriptors:
             command = ["/bin/sh", "-c", 'ulimit -n %d && exec "$@"' % descriptors, "sh"] + command
-        self.log = open(os.path.join(out, name + ".log"), "wb")
+        self.log_path = os.path.join(out, name + ".log")
+        self.log = open(self.log_path, "wb")
         self.process = subprocess.Popen(command, stdin=listener.fileno(), stdout=self.log,
                                         stderr=self.log, env=environment)
         # The program has it now; a connection after it has ended is refused.
         listener.close()
 
-    def exit_status(self):
-        """The program's exit status if it ends within WAIT, else None."""
+    def exit_status(self, wait=WAIT):
+        """The program's exit status if it ends within wait seconds, else None."""
         try:
-            return self.process.wait(WAIT)
+            return self.process.wait(wait)
         except subprocess.TimeoutExpired:
             return None
+
+    def logged(self, text):
+        """How many lines of the program's log, so far, contain text."""
+        with open(self.log_path, "rb") as log:
+            return sum(text.encode() in line for line in log)
 
     def stop(self):
         if self.process.poll() is None:
@@ -291,6 +316,7 @@ def closing(exe, out):
 
 
 def crowded(exe, out):
+    cpu_before = resource.getrusage(resource.RUSAGE_CHILDREN)
     program = Program(exe, out, "crowded", family=socket.AF_INET, descriptors=DESCRIPTORS)
     peers = []
     answered = 0
@@ -303,15 +329,33 @@ def crowded(exe, out):
         except OSError:
             break
         answered += 1
-    status = program.exit_status()
+    status = program.exit_status(QUIET)
     line = "%d connections kept open at once, the program held to %d descriptors: %s" % (
         CROWD, DESCRIPTORS, "all answered" if answered == CROWD else "not all answered")
-    if status is not None:
-        line += ", and the program ended with status %d" % status
+    line += ", and the program " + ("was still running" if status is None else "ended with status %d" % status)
     say(line)
+    # The connection that was sent a request and not answered: after the
+    # client has closed some of the others, the program has room for it.
+    stuck = peers[answered:]
+    for peer in peers[:FREED]:
+        peer.close()
+    again = bool(stuck) and token(stuck[0].answer()) == "x%d" % answered
+    say("%d of them closed, the connection that was not answered: %s" % (FREED, "answered" if again else "not answered"))
+    try:
+        last = Peer(program)
+        last.send(request(b"y"))
+        say("a new connection after that: %s" % token(last.answer()))
+        last.close()
+    except OSError:
+        say("a new connection after that: refused")
     for peer in peers:
         peer.close()
     program.stop()
+    # The program is the only child that was waited for meanwhile.
+    cpu_after = resource.getrusage(resource.RUSAGE_CHILDREN)
+    cpu = cpu_after.ru_utime + cpu_after.ru_stime - cpu_before.ru_utime - cpu_before.ru_stime
+    say("the program used under %d seconds of CPU time: %s" % (CPU_MAX, "yes" if cpu < CPU_MAX else "no"))
+    say("lines about a failed accept in the program's log: %d" % program.logged("Socket accept failed"))
 
 
 def web_server_addresses(exe, out, name, listed, family=socket.AF_INET):
@@ -334,6 +378,21 @@ def web_server_addresses(exe, out, name, listed, family=socket.AF_INET):
     program.stop()
     origin = "from " + LOCAL if family == socket.AF_INET else "on a Unix socket"
     say("FCGI_WEB_SERVER_ADDRS=%s, a connection %s: %s" % (listed, origin, result))
+
+
+def unusable_input(exe, out, name, what, stdin):
+    """The program started on a standard input that it cannot accept a
+    connection on: no accept can ever succeed, so the program has to end, and
+    not wait for one."""
+    with open(os.path.join(out, name + ".log"), "wb") as log:
+        process = subprocess.Popen([exe, "-q"], stdin=stdin, stdout=log, stderr=log, env=program_environment())
+        try:
+            result = "ended with status %d" % process.wait(WAIT)
+        except subprocess.TimeoutExpired:
+            result = "was still running"
+            process.kill()
+            process.wait()
+    say("standard input %s: the program %s" % (what, result))
 
 
 def attempt(scenario, *arguments):
@@ -361,6 +420,13 @@ def main():
                          ("prefix", LOCAL[:-1] + "," + OTHER), ("unlisted", OTHER)):
         web_server_addresses(exe, out, name, listed)
     web_server_addresses(exe, out, "unix-socket", LOCAL, family=socket.AF_UNIX)
+
+    # accept fails with ENOTSOCK on a file, and with EINVAL on a socket that
+    # is not listening.
+    with tempfile.TemporaryFile() as f:
+        unusable_input(exe, out, "file-input", "a file", f)
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        unusable_input(exe, out, "unlistening-input", "a socket that is not listening", s.fileno())
 
 
 if __name__ == "__main__":
