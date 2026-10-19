@@ -67,6 +67,17 @@ let
       --replace-fail 'else if (x > v) then concat3(split_gt(l,x),v,r)' \
         'else if (x < v) then concat3(split_gt(l,x),v,r)'
   '';
+
+  # spawn-fcgi starts the FastCGI programs of the tests
+  # on their Unix sockets. nixpkgs' 1.6.6 binds the socket under a name one
+  # byte short on the BSDs and macOS, where a feature macro it defines
+  # hides SUN_LEN (see the patch), and the program never comes up. The
+  # patch computes the length the way SUN_LEN does, on every platform, so
+  # the Linux builds exercise it too. Drop it once the pinned nixpkgs has
+  # a spawn-fcgi with the fix.
+  spawnFcgi = spawn_fcgi.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./nix/patches/spawn-fcgi/sun-len.patch ];
+  });
 in
 
 stdenv.mkDerivation (finalAttrs: {
@@ -116,7 +127,7 @@ stdenv.mkDerivation (finalAttrs: {
   # test dependencies
   nativeCheckInputs = [
     curl # the demo test's requests, and libcurl for tests/io_curl
-    spawn_fcgi # which starts that program on its socket
+    spawnFcgi # which starts that program on its socket
     python3 # tests/io_curl's stub server; urt's pty cases and stand-in server
   ];
 
