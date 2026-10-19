@@ -39,6 +39,7 @@ runs/good.urt/snapshot/1
 runs/serves-banner.urt/snapshot/1
 runs/serves-cgi-bad.urt/snapshot/1
 runs/serves-cgi.urt/snapshot/1
+runs/serves-closed.urt/snapshot/1
 runs/serves-corrupts.urt/snapshot/1
 runs/serves-cr.urt/snapshot/1
 runs/serves-dies.urt/snapshot/1

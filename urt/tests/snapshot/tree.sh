@@ -364,6 +364,15 @@ cd runs/serves-nul.urt/snapshot/1/request-response/a/interaction
 printf 'GET /print/task%%3A%%20a%%00b%%0Atask%%3A%%20b%%20again%%0A\n' > 01.request
 printf 'until b\n' > 02-b.wait
 cd "$root"
+# The server's note that a client closed its connection, which it prints
+# after the answer, and a line after it to wait for.
+proj runs serves-closed
+snap runs/serves-closed.urt/snapshot/1 exitcode
+arun runs/serves-closed.urt/snapshot/1/request-response/a
+cd runs/serves-closed.urt/snapshot/1/request-response/a/interaction
+printf 'GET /print/Connection%%20closed.%%0Aafter%%20it%%0A\n' > 01.request
+printf 'until after it\n' > 02-after.wait
+cd "$root"
 proj runs serves-banner
 snap runs/serves-banner.urt/snapshot/1 exitcode
 arun runs/serves-banner.urt/snapshot/1/request-response/a
