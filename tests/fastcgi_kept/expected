@@ -8,9 +8,9 @@ requests with ids 7 and 9 on one connection, answered with id/name: 7/r1, 9/r2
 a kept connection closed halfway through its next request: c1; a new connection: c3
 150 connections one after the other, kept and closed by the web server, half of them with a reset, the program held to 64 descriptors: 150 answered
 one more connection: z
-128 connections kept open at once, the program held to 64 descriptors: not all answered, and the program ended with status 1
-10 of them closed, the connection that was not answered: not answered
-a new connection after that: refused
+128 connections kept open at once, the program held to 64 descriptors: not all answered, and the program was still running
+10 of them closed, the connection that was not answered: answered
+a new connection after that: y
 the program used under 3 seconds of CPU time: yes
 lines about a failed accept in the program's log: 1
 FCGI_WEB_SERVER_ADDRS=10.9.9.9,127.0.0.1, a connection from 127.0.0.1: answered

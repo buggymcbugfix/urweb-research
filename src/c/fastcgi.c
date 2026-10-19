@@ -17,6 +17,7 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 
 #include <pthread.h>
 
@@ -854,11 +855,59 @@ static void help(char *cmd) {
 
 static uw_loggers ls = {NULL, log_error, log_debug};
 
+// How long the accept loop waits between attempts, in milliseconds, once
+// accept has failed with an error that may pass: at first
+// ACCEPT_WAIT_FIRST_MS, then twice as long each time, up to
+// ACCEPT_WAIT_LAST_MS.
+#define ACCEPT_WAIT_FIRST_MS 5
+#define ACCEPT_WAIT_LAST_MS 1000
+
+// A failed accept: whether the accept loop is to go on.  It stops only when
+// the listening socket itself is unusable (EBADF, ENOTSOCK, EINVAL, EFAULT):
+// no accept can succeed then, and trying again would spin.  A connection that
+// was dropped before accept got to it (ECONNABORTED, EPROTO) or a signal
+// (EINTR) is tried again at once.  Anything else is waited out: the program
+// being out of descriptors or memory (EMFILE, ENFILE, ENOBUFS, ENOMEM), which
+// passes as connections end, and the errors that Linux reports through accept
+// for a connection in the listen queue (ENETDOWN, ENETUNREACH, EHOSTDOWN,
+// EHOSTUNREACH, ENONET, ENOPROTOOPT, EOPNOTSUPP, EPERM for a firewall rule,
+// ETIMEDOUT, ...), which accept(2) says to treat as EAGAIN.  EOPNOTSUPP is
+// also what accept says on a socket that is not a stream; such a listener
+// gets the line and the waits, not an exit.  The loop waits for *wait_ms
+// milliseconds before it tries again, 0 meaning that the last accept worked,
+// and a line goes to stderr once for each spell of failures.  No kept
+// connection is closed to make room: closing one is for the web server to
+// decide.
+static int accept_failed(int error, int *wait_ms) {
+  struct timespec delay;
+
+  if (error == EINTR || error == ECONNABORTED || error == EPROTO)
+    return 1;
+
+  if (error == EBADF || error == ENOTSOCK || error == EINVAL || error == EFAULT) {
+    fprintf(stderr, "Socket accept failed: %s\n", strerror(error));
+    return 0;
+  }
+
+  if (!*wait_ms) {
+    *wait_ms = ACCEPT_WAIT_FIRST_MS;
+    fprintf(stderr, "Socket accept failed: %s; %s\n", strerror(error),
+            error == EMFILE || error == ENFILE ? "waiting for a descriptor"
+            : error == ENOBUFS || error == ENOMEM ? "waiting for memory"
+            : "trying again");
+  }
+  delay.tv_sec = *wait_ms / 1000;
+  delay.tv_nsec = (*wait_ms % 1000) * 1000000L;
+  nanosleep(&delay, NULL);
+  *wait_ms = *wait_ms < ACCEPT_WAIT_LAST_MS / 2 ? 2 * *wait_ms : ACCEPT_WAIT_LAST_MS;
+  return 1;
+}
+
 int main(int argc, char *argv[]) {
   // The skeleton for this function comes from Beej's sockets tutorial.
   struct sockaddr_in their_addr; // connector's address information
   socklen_t sin_size;
-  int nthreads = 1, i, *names, opt;
+  int nthreads = 1, i, *names, opt, accept_wait_ms = 0;
   char *fwsa = getenv("FCGI_WEB_SERVER_ADDRS"), *nthreads_s = getenv("URWEB_NUM_THREADS");
 
   if (nthreads_s) {
@@ -951,9 +1000,11 @@ int main(int argc, char *argv[]) {
     int new_fd = accept(FCGI_LISTENSOCK_FILENO, (struct sockaddr *)&their_addr, &sin_size);
 
     if (new_fd < 0) {
-      fprintf(stderr, "Socket accept failed\n");
+      if (accept_failed(errno, &accept_wait_ms))
+        continue;
       return 1;
     }
+    accept_wait_ms = 0;
 
     if (fwsa) {
       char host[100], matched = 0;
