@@ -200,7 +200,14 @@ check-shell-id:
 check-fastcgi-idle: bin/urweb
 	bash tests/fastcgi_idle/run.sh
 
-check-local: bin/urweb check-io-curl check-io-concurrent check-fastcgi-idle
+# Kept FastCGI connections beyond the first few, closed ones, requests that
+# follow each other on one, and FCGI_WEB_SERVER_ADDRS: see
+# tests/fastcgi_kept/README.md.  Needs python3.  Through bash, as above.
+.PHONY: check-fastcgi-kept
+check-fastcgi-kept: bin/urweb
+	bash tests/fastcgi_kept/run.sh
+
+check-local: bin/urweb check-io-curl check-io-concurrent check-fastcgi-idle check-fastcgi-kept
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \

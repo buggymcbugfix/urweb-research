@@ -1,0 +1,16 @@
+150 connections, each asked to be kept: 150 answered
+a second request on each, sent in reverse order: 150 answered, each with its own
+two requests in one write, answered in order: p1, p2
+a third on the same connection: p3
+a request that asks to keep the connection, then one that does not: q1, q2
+the program closes the connection after the second: yes
+requests with ids 7 and 9 on one connection, answered with id/name: 7/r1, 9/r2
+a kept connection closed halfway through its next request: c1; a new connection: c3
+150 connections one after the other, kept and closed by the web server, half of them with a reset, the program held to 64 descriptors: 150 answered
+one more connection: z
+128 connections kept open at once, the program held to 64 descriptors: not all answered, and the program ended with status 1
+FCGI_WEB_SERVER_ADDRS=10.9.9.9,127.0.0.1, a connection from 127.0.0.1: answered
+FCGI_WEB_SERVER_ADDRS=127.0.0.1,10.9.9.9, a connection from 127.0.0.1: answered
+FCGI_WEB_SERVER_ADDRS=127.0.0.,10.9.9.9, a connection from 127.0.0.1: answered
+FCGI_WEB_SERVER_ADDRS=10.9.9.9, a connection from 127.0.0.1: not answered, and the program ended with status 1
+FCGI_WEB_SERVER_ADDRS=127.0.0.1, a connection on a Unix socket: not answered, and the program ended with status 1
