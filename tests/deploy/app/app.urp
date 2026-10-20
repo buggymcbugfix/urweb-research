@@ -1,0 +1,5 @@
+safeGet bump
+rewrite all App/*
+allow env TEST_*
+
+app

@@ -107,6 +107,8 @@ let
     lib.fileset.unions [
       # Runs nix itself, outside the build (make check-shell-id).
       ./tests/shell_id
+      # The NixOS module's tests, which use the package.
+      ./tests/deploy
       # The benchmark, apart from its application, whose snapshots
       # check-snapshot runs.
       (lib.fileset.difference ./tests/bench ./tests/bench/app)
@@ -171,6 +173,10 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   passthru.configureEnv = configureEnv;
+
+  # The NixOS module that runs a FastCGI program as a service behind nginx:
+  # imports = [ urweb.nixosModule ]; see the file.
+  passthru.nixosModule = ./nixos/urweb.nix;
 
   # urweb.buildApp { pname, src, ... }: an application as a package, built
   # as the module deploys it; see nix/build-app.nix.
