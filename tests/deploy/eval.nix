@@ -46,7 +46,10 @@ let
   }).config;
 
   # A package that says it was built otherwise than buildApp builds.
-  other = passthru: pkgs.runCommand "other" { passthru.urweb = { name = "other"; } // passthru; } "";
+  other = passthru: pkgs.runCommand "other" {
+    passthru.urweb = { name = "other"; } // passthru;
+    meta.mainProgram = "other";
+  } "";
 
   render = config:
     let

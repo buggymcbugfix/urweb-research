@@ -24,4 +24,4 @@ install -D -m 644 schema.sql $out/share/app/schema.sql
 runHook postInstall
 
 ### passthru.urweb
-{"dbms":"sqlite","name":"app","prefix":"/shop/","protocol":"fastcgi","schema":true}
+{"dbms":"sqlite","name":"app","prefix":"/shop/","protocol":"fastcgi","schema":"/nix/store/HASH-app-0/share/app/schema.sql"}

@@ -39,7 +39,8 @@
 # fails at once instead of opening some other database.
 #
 # passthru.urweb says how the program was built, for the module:
-# protocol, dbms, prefix, schema, and name, the pname.
+# protocol, dbms, prefix, name (the pname), and schema, the path of the
+# schema in the package, or null without one.
 { lib, stdenv, urweb }:
 {
   pname,
@@ -61,8 +62,9 @@ let
   database =
     if dbms == "sqlite" then "/nonexistent/URWEB_SQLITE_DB_PATH-is-not-set.db"
     else "host=/nonexistent/URWEB_PQ_CON-is-not-set";
+  schemaPath = "share/${pname}/schema.sql";
 in
-stdenv.mkDerivation (
+stdenv.mkDerivation (finalAttrs:
   removeAttrs args [ "root" "project" "dbms" "prefix" "schema" "urwebFlags" ]
   // {
     inherit pname version src;
@@ -91,15 +93,16 @@ stdenv.mkDerivation (
     installPhase = ''
       runHook preInstall
       install -D ${pname}.exe $out/bin/${pname}
-      ${lib.optionalString schema "install -D -m 644 schema.sql $out/share/${pname}/schema.sql"}
+      ${lib.optionalString schema "install -D -m 644 schema.sql $out/${schemaPath}"}
       runHook postInstall
     '';
 
     passthru = (args.passthru or { }) // {
       urweb = {
         protocol = "fastcgi";
-        inherit dbms prefix schema;
+        inherit dbms prefix;
         name = pname;
+        schema = if schema then "${finalAttrs.finalPackage}/${schemaPath}" else null;
       };
     };
 

@@ -211,7 +211,6 @@ Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-http/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-http/http.db"
 CapabilityBoundingSet=
 ExecStart="/nix/store/HASH-other/bin/other" "-t" "8" "-q"
-ExecStartPre=/nix/store/HASH-unit-script-urweb-http-pre-start/bin/urweb-http-pre-start
 Group=urweb-http
 IPAddressDeny=any
 LockPersonality=true
@@ -254,12 +253,6 @@ User=urweb-http
 WantedBy=multi-user.target
 
 ### urweb-http.service preStart
-dir=/var/lib/urweb-http
-if [ ! -d "$dir" ]; then
-  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-http." >&2
-  exit 1
-fi
-exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-http-create-database
 
 ### http-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash

@@ -36,6 +36,7 @@ let
   unit = name: "urweb-${name}";
   socket = name: "/run/urweb-${name}.sock";
   dir = name: "/var/lib/urweb-${name}";
+  sqlite3 = app: lib.getExe' app.database.sqlitePackage "sqlite3";
   # A path in a unit setting that takes a list of them, such as
   # ReadWritePaths, which splits at spaces and expands %.
   unitPath = p: "\"${lib.escape [ "\\" "\"" ] (lib.replaceStrings [ "%" ] [ "%%" ] p)}\"";
@@ -48,7 +49,6 @@ in
       let
         # How the package was built, when urweb.buildApp built it.
         built = config.package.urweb or { };
-        pname = built.name or name;
       in
       {
         options = {
@@ -58,18 +58,15 @@ in
           };
           exe = mkOption {
             type = types.str;
-            default = "${config.package}/bin/${pname}";
-            defaultText = literalExpression ''"''${package}/bin/<name>"'';
+            default = lib.getExe config.package;
+            defaultText = literalExpression "lib.getExe package";
             description = "The program.";
           };
           schema = mkOption {
             type = types.nullOr types.path;
-            default =
-              if config.database.type == "sqlite" && (built.schema or true)
-              then "${config.package}/share/${pname}/schema.sql"
-              else null;
-            defaultText = literalExpression ''"''${package}/share/<name>/schema.sql" for SQLite, null for Postgres or a package built with schema = false'';
-            description = "The SQL that creates the SQLite database on the first start; null for a database set up otherwise, by migrations say.";
+            default = if config.database.type == "sqlite" then built.schema or null else null;
+            defaultText = literalExpression "package.urweb.schema for SQLite, null for Postgres";
+            description = "The SQL that creates the SQLite database on the first start, by default the one urweb.buildApp put in the package; null for a database set up otherwise, by migrations say.";
           };
           threads = mkOption {
             type = types.ints.positive;
@@ -223,7 +220,7 @@ in
             # fails, or a start cut short, leaves no database behind.
             tmp=$(mktemp "$db.XXXXXX")
             trap 'rm -f "$tmp"' EXIT
-            ${lib.getExe' app.database.sqlitePackage "sqlite3"} -bail "$tmp" < ${lib.escapeShellArg "${app.schema}"}
+            ${sqlite3 app} -bail "$tmp" < ${lib.escapeShellArg "${app.schema}"}
             # SQLite gives its WAL files the database's mode.
             chmod 660 "$tmp"
             mv "$tmp" "$db"
@@ -304,7 +301,7 @@ in
     environment.systemPackages = mapAttrsToList (name: app:
       pkgs.writeShellScriptBin "${name}-db" ''
         umask 007
-        exec ${lib.getExe' app.database.sqlitePackage "sqlite3"} -cmd "PRAGMA foreign_keys = ON" ${lib.escapeShellArg app.database.path} "$@"
+        exec ${sqlite3 app} -cmd "PRAGMA foreign_keys = ON" ${lib.escapeShellArg app.database.path} "$@"
       '') (filterAttrs (_: app: app.database.type == "sqlite") cfg.apps);
 
     services.nginx = {

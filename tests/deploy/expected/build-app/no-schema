@@ -24,4 +24,4 @@ install -D app.exe $out/bin/app
 runHook postInstall
 
 ### passthru.urweb
-{"dbms":"sqlite","name":"app","prefix":"/","protocol":"fastcgi","schema":false}
+{"dbms":"sqlite","name":"app","prefix":"/","protocol":"fastcgi","schema":null}

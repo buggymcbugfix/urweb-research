@@ -18,7 +18,8 @@
 { lib }:
 let
   # Directives of one word, which a .urp without a blank line could
-  # otherwise be taken to list as modules.
+  # otherwise be taken to list as modules: those that hasSpaceLine in
+  # src/compiler.sml knows, and to be kept the same.
   oneWord = [
     "debug"
     "dev"
