@@ -29,13 +29,16 @@
 # and, with database.path, a directory outside their state directories
 # that the deployment provides with that group.  The key stays the
 # program's own, since the runtime creates it 0700.
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, utils, ... }:
 let
   inherit (lib) mkOption mkIf mkDefault types mapAttrs' mapAttrsToList nameValuePair filterAttrs optional optionals optionalString literalExpression hasPrefix;
   cfg = config.services.urweb;
   unit = name: "urweb-${name}";
   socket = name: "/run/urweb-${name}.sock";
   dir = name: "/var/lib/urweb-${name}";
+  # A path in a unit setting that takes a list of them, such as
+  # ReadWritePaths, which splits at spaces and expands %.
+  unitPath = p: "\"${lib.escape [ "\\" "\"" ] (lib.replaceStrings [ "%" ] [ "%%" ] p)}\"";
 in
 {
   options.services.urweb.apps = mkOption {
@@ -197,17 +200,18 @@ in
         # Under a lock on the database's directory: applications sharing a
         # database start together, and only one may create it.
         preStart = optionalString (sqlite && app.schema != null) ''
-          ${pkgs.util-linux}/bin/flock ${dirOf db} ${pkgs.writeShellScript "${unit name}-create-database" ''
-            if [ ! -e ${db} ]; then
-              ${lib.getExe' app.database.sqlitePackage "sqlite3"} ${db} < ${app.schema}
+          ${pkgs.util-linux}/bin/flock ${lib.escapeShellArg (dirOf db)} ${pkgs.writeShellScript "${unit name}-create-database" ''
+            db=${lib.escapeShellArg db}
+            if [ ! -e "$db" ]; then
+              ${lib.getExe' app.database.sqlitePackage "sqlite3"} "$db" < ${lib.escapeShellArg "${app.schema}"}
               # SQLite creates a database 0644 whatever the umask, and gives
               # its WAL files the database's mode.
-              chmod g+rw ${db}
+              chmod g+rw "$db"
             fi
           ''}
         '';
         serviceConfig = {
-          ExecStart = "${app.exe} -t ${toString app.threads}${optionalString app.quiet " -q"}";
+          ExecStart = utils.escapeSystemdExecArgs ([ app.exe "-t" (toString app.threads) ] ++ optional app.quiet "-q");
           EnvironmentFile = app.environmentFiles;
           StandardInput = "socket"; # the listening socket as descriptor 0
           StandardOutput = "journal"; # with StandardInput=socket both would default to the socket
@@ -218,7 +222,7 @@ in
           UMask = "0007"; # what the program creates is the group's too
           StateDirectory = unit name;
           StateDirectoryMode = "2770"; # the group's, inherited by new files
-          ReadWritePaths = dbDir ++ app.readWritePaths;
+          ReadWritePaths = map unitPath (dbDir ++ app.readWritePaths);
 
           # The sandbox.  The program needs none of what these take away.
           NoNewPrivileges = true;
@@ -271,7 +275,7 @@ in
     environment.systemPackages = mapAttrsToList (name: app:
       pkgs.writeShellScriptBin "${name}-db" ''
         umask 007
-        exec ${lib.getExe' app.database.sqlitePackage "sqlite3"} -cmd "PRAGMA foreign_keys = ON" ${app.database.path} "$@"
+        exec ${lib.getExe' app.database.sqlitePackage "sqlite3"} -cmd "PRAGMA foreign_keys = ON" ${lib.escapeShellArg app.database.path} "$@"
       '') (filterAttrs (_: app: app.database.type == "sqlite") cfg.apps);
 
     services.nginx = {

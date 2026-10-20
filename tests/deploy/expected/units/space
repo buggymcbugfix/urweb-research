@@ -26,7 +26,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/my db/app.db"
 CapabilityBoundingSet=
-ExecStart=/nix/store/HASH-app-0/bin/app -t 8 -q
+ExecStart="/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-app-pre-start/bin/urweb-app-pre-start
 Group=urweb-app
 IPAddressDeny=any
@@ -47,7 +47,7 @@ ProtectKernelModules=true
 ProtectKernelTunables=true
 ProtectProc=invisible
 ProtectSystem=strict
-ReadWritePaths=/var/lib/my db
+ReadWritePaths="/var/lib/my db"
 RemoveIPC=true
 Restart=on-failure
 RestrictAddressFamilies=none
@@ -71,12 +71,12 @@ User=urweb-app
 WantedBy=multi-user.target
 
 ### urweb-app.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/my db /nix/store/HASH-urweb-app-create-database
+/nix/store/HASH-util-linux-2.42.2-bin/bin/flock '/var/lib/my db' /nix/store/HASH-urweb-app-create-database
 
 ### app-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash
 umask 007
-exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/my db/app.db "$@"
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" '/var/lib/my db/app.db' "$@"
 
 
 ### user urweb-app

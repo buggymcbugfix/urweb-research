@@ -28,7 +28,7 @@ Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-app/app.db"
 CapabilityBoundingSet=
 EnvironmentFile=/etc/test-secret.env
-ExecStart=/nix/store/HASH-app-0/bin/app -t 8
+ExecStart="/nix/store/HASH-app-0/bin/app" "-t" "8"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-app-pre-start/bin/urweb-app-pre-start
 Group=urweb-app
 IPAddressDeny=any
@@ -115,7 +115,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-erp/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/db/ww.db"
 CapabilityBoundingSet=
-ExecStart=/nix/store/HASH-app-0/bin/app -t 8 -q
+ExecStart="/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-erp-pre-start/bin/urweb-erp-pre-start
 Group=ww
 LockPersonality=true
@@ -135,7 +135,7 @@ ProtectKernelModules=true
 ProtectKernelTunables=true
 ProtectProc=invisible
 ProtectSystem=strict
-ReadWritePaths=/var/db
+ReadWritePaths="/var/db"
 RemoveIPC=true
 Restart=on-failure
 RestrictAddressFamilies=AF_UNIX
@@ -204,7 +204,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
 Environment="URWEB_PQ_CON=dbname=urweb-pg"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-pg/sig"
 CapabilityBoundingSet=
-ExecStart=/nix/store/HASH-app-0/bin/app -t 8 -q
+ExecStart="/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
 Group=urweb-pg
 IPAddressDeny=any
 LockPersonality=true
@@ -286,7 +286,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-shop/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/db/ww.db"
 CapabilityBoundingSet=
-ExecStart=/nix/store/HASH-app-0/bin/app -t 8 -q
+ExecStart="/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-shop-pre-start/bin/urweb-shop-pre-start
 Group=ww
 IPAddressDeny=any
@@ -307,7 +307,7 @@ ProtectKernelModules=true
 ProtectKernelTunables=true
 ProtectProc=invisible
 ProtectSystem=strict
-ReadWritePaths=/var/db
+ReadWritePaths="/var/db"
 RemoveIPC=true
 Restart=on-failure
 RestrictAddressFamilies=none

@@ -35,7 +35,7 @@ exit 1
 ./missing d 755
 ./missing/sub f 660
 ### space: a database in a directory with a space
-/BUILD/TMP
 exit 0
 ./space dir d 755
-./space f 660
+./space dir/space.db f 660
+tables: t

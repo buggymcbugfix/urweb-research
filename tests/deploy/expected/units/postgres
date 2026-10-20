@@ -26,7 +26,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
 Environment="URWEB_PQ_CON=dbname=urweb-pg"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-pg/sig"
 CapabilityBoundingSet=
-ExecStart=/nix/store/HASH-app-0/bin/app -t 8 -q
+ExecStart="/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
 Group=urweb-pg
 IPAddressDeny=any
 LockPersonality=true
