@@ -46,6 +46,9 @@ QUIET = 1.0
 # Connections kept open at once.  The poller starts with room for 64.
 KEPT = 150
 
+# Connections from sockets bound to a path.
+BOUND = 3
+
 # Connections that come and go one after the other, and the descriptors the
 # program may hold meanwhile: a program that did not close the connections
 # the web server has closed would run out of them long before the last.
@@ -85,11 +88,14 @@ def request(name, keep=True, request_id=1):
 
 
 class Peer:
-    """A connection to the program."""
+    """A connection to the program, from a socket bound to the path bound_to
+    if that is given."""
 
-    def __init__(self, program):
+    def __init__(self, program, bound_to=None):
         self.sock = socket.socket(program.family, socket.SOCK_STREAM)
         self.sock.settimeout(WAIT)
+        if bound_to:
+            self.sock.bind(bound_to)
         self.sock.connect(program.address)
         self.data = b""
 
@@ -286,6 +292,21 @@ def cut_off(program):
     other.close()
 
 
+def bound_peers(program):
+    """Connections from sockets bound to a path.  A peer's address is then
+    the path, longer than the 16 bytes of an IPv4 address, as an IPv6 one
+    is.  The program has to take each without writing past the buffer it
+    gives accept, which only a build with AddressSanitizer would see."""
+    names = []
+    for i in range(BOUND):
+        peer = Peer(program, bound_to=os.path.join(program.directory, "peer-bound-to-a-path-%d" % i))
+        peer.send(request(b"b%d" % i))
+        names.append(token(peer.answer()))
+        peer.close()
+    say("%d connections from sockets bound to a path, an address longer than an IPv4 one: %s"
+        % (BOUND, ", ".join(names)))
+
+
 def closing(exe, out):
     program = Program(exe, out, "closing", family=socket.AF_INET, descriptors=DESCRIPTORS)
     answered = 0
@@ -408,7 +429,7 @@ def main():
     exe, out = sys.argv[1], sys.argv[2]
 
     program = Program(exe, out, "unix")
-    for scenario in (kept_and_again, pipelined, kept_then_plain, request_ids, cut_off):
+    for scenario in (kept_and_again, pipelined, kept_then_plain, request_ids, cut_off, bound_peers):
         attempt(scenario, program)
     program.stop()
 

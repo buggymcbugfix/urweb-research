@@ -6,6 +6,7 @@ a request that asks to keep the connection, then one that does not: q1, q2
 the program closes the connection after the second: yes
 requests with ids 7 and 9 on one connection, answered with id/name: 7/r1, 9/r2
 a kept connection closed halfway through its next request: c1; a new connection: c3
+3 connections from sockets bound to a path, an address longer than an IPv4 one: b0, b1, b2
 150 connections one after the other, kept and closed by the web server, half of them with a reset, the program held to 64 descriptors: 150 answered
 one more connection: z
 128 connections kept open at once, the program held to 64 descriptors: not all answered, and the program was still running
