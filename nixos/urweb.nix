@@ -244,6 +244,16 @@ in
           ReadWritePaths = map unitPath (dbDir ++ app.readWritePaths);
 
           # The sandbox.  The program needs none of what these take away.
+          # systemd-analyze security still counts these, left open on
+          # purpose:
+          # - UMask, above, makes what the program writes the group's.
+          # - There is no RootDirectory.  The program sees the system
+          #   read-only already, and a root of its own would have to
+          #   carry the store.
+          # - DeviceAllow: ProtectClock allows the clock device, which
+          #   PrivateDevices leaves out anyway.
+          # - With network, the network itself.  Only the deployment
+          #   knows the hosts, and may add IPAddressAllow and IPAddressDeny.
           NoNewPrivileges = true;
           CapabilityBoundingSet = "";
           ProtectSystem = "strict"; # nothing writable but the state directory and ReadWritePaths
