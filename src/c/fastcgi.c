@@ -905,7 +905,9 @@ static int accept_failed(int error, int *wait_ms) {
 
 int main(int argc, char *argv[]) {
   // The skeleton for this function comes from Beej's sockets tutorial.
-  struct sockaddr_in their_addr; // connector's address information
+  // The connector's address: room for any family's, a Unix socket's path
+  // and an IPv6 address included.
+  struct sockaddr_storage their_addr;
   socklen_t sin_size;
   int nthreads = 1, i, *names, opt, accept_wait_ms = 0;
   char *fwsa = getenv("FCGI_WEB_SERVER_ADDRS"), *nthreads_s = getenv("URWEB_NUM_THREADS");
@@ -959,8 +961,6 @@ int main(int argc, char *argv[]) {
 
   names = calloc(nthreads, sizeof(int));
 
-  sin_size = sizeof their_addr;
-
   {
     pthread_t thread;
 
@@ -997,7 +997,13 @@ int main(int argc, char *argv[]) {
   }
 
   while (1) {
-    int new_fd = accept(FCGI_LISTENSOCK_FILENO, (struct sockaddr *)&their_addr, &sin_size);
+    int new_fd;
+
+    // accept leaves the length of the address in sin_size, which may be more
+    // than the buffer holds when the address was cut short; each call is
+    // given the buffer's size afresh.
+    sin_size = sizeof their_addr;
+    new_fd = accept(FCGI_LISTENSOCK_FILENO, (struct sockaddr *)&their_addr, &sin_size);
 
     if (new_fd < 0) {
       if (accept_failed(errno, &accept_wait_ms))
