@@ -70,7 +70,7 @@ run() {
   case_ 'postPatch added to the package'            derivation.nix '/^  doCheck = true;$/a\  postPatch = "true";'
   case_ 'version of the package bumped'             derivation.nix 's/^  version = "20200209";$/  version = "20200210";/'
   case_ 'preConfigure of the package edited'        derivation.nix 's/^    \.\/autogen\.sh$/    .\/autogen.sh; true/'
-  case_ 'env added to the package'                  derivation.nix '/^  env\.URWEB_COMMIT = commit;$/a\  env.FOO = "1";'
+  case_ 'env added to the package'                  derivation.nix '/^  doCheck = true;$/a\  env.FOO = "1";'
   case_ 'Makefile.am edited'                        Makefile.am    '$a# edit'
   case_ 'comment in the shell hook edited'          shell.nix      's/Run `repl` to rebuild/Run `repl` to build/'
   # What configure sees through the package: the id changes.

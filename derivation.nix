@@ -17,28 +17,15 @@
   spawn_fcgi,
   sqlite,
   stdenv,
-  # The commit `urweb -version` names, `<hash>` or `<hash>-dirty`.
-  # Read from .git unless given. It can be set here for flakes.
+  # The commit `urweb -version` names, for a release: a flake's self.rev,
+  # say. Without it the version names none, and the package depends on its
+  # sources alone, not on the commit they were taken from.
   rev ? null,
   # Build `urt` too? `nix-build --arg withUrt true` / `urweb.override { withUrt = true; }`
   withUrt ? false,
 }:
 
 let
-  commit =
-    if rev != null then
-      rev
-    else if lib.path.hasStorePathPrefix ./. then
-      "?"
-    else
-      let
-        git = builtins.fetchGit {
-          url = ./.;
-          shallow = true;
-        };
-      in
-      git.dirtyRev or git.rev;
-
   configureEnv = prefix: ''
     export SQHEADER="${sqlite.dev}/include/sqlite3.h"
     export PGHEADER="${postgresql.dev}/include/libpq-fe.h"
@@ -131,9 +118,8 @@ stdenv.mkDerivation (finalAttrs: {
     python3 # tests/io_curl's stub server and tests/fastcgi_idle's client; urt's pty cases and stand-in server
   ];
 
-  # What the build writes into src/version.sml (see Makefile.am): the
-  # sandbox has neither git nor .git to read it from
-  env.URWEB_COMMIT = commit;
+  # What the build writes into src/version.sml (see Makefile.am).
+  env.URWEB_COMMIT = if rev == null then "?" else rev;
 
   preConfigure = configureEnv "$out" + ''
     ./autogen.sh

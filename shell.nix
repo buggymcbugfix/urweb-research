@@ -1,16 +1,14 @@
 { pkgs ? import ./nixpkgs.nix }:
 let
   # The shell takes the compiler's inputs from its package and builds it
-  # in the tree, where make reads the commit itself. The package's commit
-  # is not read: mkShell compares the package with its inputs by output
-  # path, and without a rev that path would read .git at every start.
-  urweb = pkgs.callPackage ./derivation.nix { rev = "?"; };
+  # in the tree.
+  urweb = pkgs.callPackage ./derivation.nix { };
   # The shell apart from its hook
   shellInputs = {
     inputsFrom = [ urweb ];
 
     packages = with pkgs; [
-      git # read by make for `urweb -version`
+      git # make resnapshot
       python3 # urt's pty cases and stand-in server
       rlwrap
       smlnj

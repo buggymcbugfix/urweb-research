@@ -47,13 +47,13 @@ src/urweb.mlton.lex.sml: src/urweb.mlton.lex
 src/urweb.mlton.grm.sig src/urweb.mlton.grm.sml: src/urweb.mlton.grm
 	mlyacc $<
 
-# The commit the compiler was built from, which `urweb -version` names
-# after the release (`<hash>`, or `<hash>-dirty` with uncommitted
-# changes): read from git when built, or taken from URWEB_COMMIT in the
-# environment for a copy of the sources without .git, as the nix package
-# is.  Rewritten only when it changes, so nothing is relinked for nothing.
+# The commit `urweb -version` names after the release, from URWEB_COMMIT
+# in the environment, which a release build sets, or "?" without it.  Not
+# read from git: a new commit would then rebuild the compiler although
+# its sources are the same.  Rewritten only when it changes, so nothing is
+# relinked for nothing.
 src/version.sml: FORCE
-	@commit=$${URWEB_COMMIT:-$$(git -C '$(srcdir)' describe --always --dirty --exclude '*' --abbrev=40 2>/dev/null || echo '?')}; \
+	@commit=$${URWEB_COMMIT:-?}; \
 	echo "structure Version = struct val commit = \"$$commit\" end" > $@.tmp; \
 	if cmp -s $@.tmp $@; then rm -f $@.tmp; else mv -f $@.tmp $@; fi
 FORCE:
