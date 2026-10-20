@@ -616,7 +616,8 @@ fun parseUrp' accLibs fname =
                      (* Does the file have a directives section? *)
                      fun hasSpaceLine () =
                          case inputCommentableLine inf of
-                             (* Directives that consist of a single word and thus need to be distinguished from filenames: *)
+                             (* Directives that consist of a single word and thus need to be distinguished from filenames.
+                              * nix/project-files.nix keeps the same list (oneWord), to be changed with this one. *)
                              Content s => s = "debug" orelse s = "dev" orelse s = "profile"
                                           orelse s = "html5" orelse s = "xhtml"
                                           orelse s = "noMangleSql" orelse s = "lessSafeFfi"
