@@ -144,8 +144,7 @@ pkgs.testers.runNixOSTest {
     assert "1 visits" in get("app.example.org", "/main") # app still serves its own
 
     # A database whose directory is missing: the start fails, saying so.
-    # Today systemd fails it first, setting up ReadWritePaths.
-    machine.wait_until_succeeds("journalctl -u urweb-lost.service | grep -q 'status=226/NAMESPACE'")
+    machine.wait_until_succeeds("journalctl -u urweb-lost.service | grep -q '/var/missing does not exist'")
 
     # A package without a schema, from a .urp that names a sql file.
     import os

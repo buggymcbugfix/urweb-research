@@ -238,7 +238,10 @@ in
           UMask = "0007"; # what the program creates is the group's too
           StateDirectory = unit name;
           StateDirectoryMode = "2770"; # the group's, inherited by new files
-          ReadWritePaths = map unitPath (dbDir ++ app.readWritePaths);
+          # The database's directory with "-": when it is missing, the
+          # preStart says so, where systemd would only fail to set up the
+          # namespace.
+          ReadWritePaths = map (d: unitPath "-${d}") dbDir ++ map unitPath app.readWritePaths;
 
           # The sandbox.  The program needs none of what these take away.
           # systemd-analyze security still counts these, left open on
