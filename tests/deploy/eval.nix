@@ -106,6 +106,10 @@ let
       # Two applications at one place.
       here = { package = app { }; nginx.virtualHost = "example.org"; };
       there = { package = app { }; nginx.virtualHost = "example.org"; };
+      # A database the program is told about otherwise than by database.path.
+      elsewhere = { package = app { }; environment.URWEB_SQLITE_DB_PATH = "/srv/other.db"; };
+      # A relative database path.
+      relative = { package = app { }; database.path = "db/app.db"; };
     };
   };
 

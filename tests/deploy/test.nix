@@ -13,6 +13,8 @@ let
   urweb = pkgs.pkgsLinux.callPackage ../../derivation.nix { };
   app = pkgs.pkgsLinux.callPackage ./app.nix { inherit urweb; };
   pgApp = pkgs.pkgsLinux.callPackage ./app.nix { inherit urweb; dbms = "postgres"; prefix = "/pg/"; };
+  # Built only: a database set up otherwise, and the sql file app.urp names.
+  noSchemaApp = pkgs.pkgsLinux.callPackage ./app.nix { inherit urweb; schema = false; };
   shared = {
     package = app;
     database = { path = "/var/db/ww.db"; group = "ww"; };
@@ -38,6 +40,11 @@ pkgs.testers.runNixOSTest {
     services.urweb.apps.erp = shared // {
       nginx.virtualHost = "erp.example.org";
       network = true;
+    };
+    # Its database's directory is not there.
+    services.urweb.apps.lost = {
+      package = app;
+      database.path = "/var/missing/lost.db";
     };
     services.urweb.apps.pg = {
       package = pgApp;
@@ -135,6 +142,15 @@ pkgs.testers.runNixOSTest {
     assert "0 visits" in get("app.example.org", "/pg/main")
     assert "1 visits" in get("app.example.org", "/pg/bump")
     assert "1 visits" in get("app.example.org", "/main") # app still serves its own
+
+    # A database whose directory is missing: the start fails, saying so.
+    # Today systemd fails it first, setting up ReadWritePaths.
+    machine.wait_until_succeeds("journalctl -u urweb-lost.service | grep -q 'status=226/NAMESPACE'")
+
+    # A package without a schema, from a .urp that names a sql file.
+    import os
+    assert os.access("${noSchemaApp}/bin/app", os.X_OK)
+    assert not os.path.exists("${noSchemaApp}/share")
 
     # network: a loopback of its own without, the host's with.
     assert machine.succeed("systemctl show -p PrivateNetwork --value urweb-shop.service").strip() == "yes"

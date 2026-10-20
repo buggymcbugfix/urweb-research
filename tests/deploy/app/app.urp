@@ -1,5 +1,6 @@
 safeGet bump
 rewrite all App/*
 allow env TEST_*
+sql schema/app.sql
 
 app
