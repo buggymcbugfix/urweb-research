@@ -183,6 +183,7 @@ in
     systemd.services = mapAttrs' (name: app:
       let
         sqlite = app.database.type == "sqlite";
+        localPostgres = app.database.type == "postgres" && config.services.postgresql.enable;
         db = app.database.path;
         # The database's directory, when it is not the state directory.
         dbDir = optional (sqlite && !hasPrefix "${dir name}/" db) (dirOf db);
@@ -190,7 +191,10 @@ in
       nameValuePair (unit name) {
         description = "Ur/Web application ${name}";
         requires = [ "${unit name}.socket" ];
-        after = [ "${unit name}.socket" ];
+        # A Postgres program fails to start without its server, so it
+        # waits for one on this machine.
+        wants = optional localPostgres "postgresql.target";
+        after = [ "${unit name}.socket" ] ++ optional localPostgres "postgresql.target";
         wantedBy = [ "multi-user.target" ]; # at boot, not on the first request
         environment = {
           URWEB_SIGFILE_PATH = "${dir name}/sig"; # created on the first start
