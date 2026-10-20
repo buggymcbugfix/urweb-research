@@ -131,10 +131,10 @@ pkgs.testers.runNixOSTest {
     machine.fail("runuser -u other -- ls /var/lib/urweb-app/")
     machine.fail("runuser -u other -- app-db 'select 1'")
 
-    # pg, on Postgres under /pg/ beside app on its virtual host. Today
-    # nginx keeps only one location of a virtual host, app's, which
-    # answers /pg/main with a 404.
-    machine.fail("curl -sf -H 'Host: app.example.org' http://localhost/pg/main")
+    # pg, on Postgres under /pg/ beside app on its virtual host.
+    assert "0 visits" in get("app.example.org", "/pg/main")
+    assert "1 visits" in get("app.example.org", "/pg/bump")
+    assert "1 visits" in get("app.example.org", "/main") # app still serves its own
 
     # network: a loopback of its own without, the host's with.
     assert machine.succeed("systemctl show -p PrivateNetwork --value urweb-shop.service").strip() == "yes"

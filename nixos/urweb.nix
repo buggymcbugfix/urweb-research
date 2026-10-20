@@ -147,6 +147,10 @@ in
       let
         at = "services.urweb.apps.${name}";
         protocol = app.package.urweb.protocol or "fastcgi";
+        # The other applications served at the same place.
+        sharing = lib.attrNames (filterAttrs (other: o:
+          other != name && app.nginx.virtualHost != null
+          && o.nginx.virtualHost == app.nginx.virtualHost && o.nginx.location == app.nginx.location) cfg.apps);
       in
       [
         {
@@ -156,6 +160,10 @@ in
         {
           assertion = app.nginx.keepalive == 0 || app.nginx.keepalive >= app.threads;
           message = "${at}: nginx.keepalive = ${toString app.nginx.keepalive}, but threads = ${toString app.threads}. nginx closes idle connections beyond keepalive each time a request ends, so under load it would close connections the program could still serve on, which costs more than keeping them. Set nginx.keepalive to at least ${toString app.threads}, or to 0 for a connection per request.";
+        }
+        {
+          assertion = sharing == [ ];
+          message = "${at}: ${lib.concatStringsSep ", " (map (o: "services.urweb.apps.${o}") sharing)} is served at the same nginx.location ${app.nginx.location} of ${toString app.nginx.virtualHost}. Give each application a location of its own.";
         }
       ]) cfg.apps);
 
@@ -272,12 +280,13 @@ in
         servers."unix:${socket name}" = { };
         extraConfig = optionalString (app.nginx.keepalive > 0) "keepalive ${toString app.nginx.keepalive};";
       }) cfg.apps;
-      virtualHosts = mapAttrs' (name: app: nameValuePair app.nginx.virtualHost {
-        locations.${app.nginx.location}.extraConfig = ''
+      # Merged, so that applications on one virtual host each get their location.
+      virtualHosts = lib.mkMerge (mapAttrsToList (name: app: {
+        ${app.nginx.virtualHost}.locations.${app.nginx.location}.extraConfig = ''
           fastcgi_pass ${unit name};
           fastcgi_keep_conn ${if app.nginx.keepalive > 0 then "on" else "off"};
         '';
-      }) (filterAttrs (_: app: app.nginx.virtualHost != null) cfg.apps);
+      }) (filterAttrs (_: app: app.nginx.virtualHost != null) cfg.apps));
     };
   };
 }

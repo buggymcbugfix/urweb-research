@@ -351,6 +351,10 @@ location / {
 fastcgi_pass urweb-app;
 fastcgi_keep_conn on;
 }
+location /pg/ {
+fastcgi_pass urweb-pg;
+fastcgi_keep_conn on;
+}
 
 ### nginx server erp.example.org
 location / {

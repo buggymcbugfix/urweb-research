@@ -177,5 +177,9 @@ location /erp/ {
 fastcgi_pass urweb-erp;
 fastcgi_keep_conn on;
 }
+location /shop/ {
+fastcgi_pass urweb-shop;
+fastcgi_keep_conn on;
+}
 
 ### failed assertions

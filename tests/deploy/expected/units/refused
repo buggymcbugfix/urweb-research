@@ -350,8 +350,13 @@ keepalive 32;
 location / {
 fastcgi_pass urweb-here;
 fastcgi_keep_conn on;
+
+fastcgi_pass urweb-there;
+fastcgi_keep_conn on;
 }
 
 ### failed assertions
 services.urweb.apps.few: nginx.keepalive = 8, but threads = 16. nginx closes idle connections beyond keepalive each time a request ends, so under load it would close connections the program could still serve on, which costs more than keeping them. Set nginx.keepalive to at least 16, or to 0 for a connection per request.
+services.urweb.apps.here: services.urweb.apps.there is served at the same nginx.location / of example.org. Give each application a location of its own.
 services.urweb.apps.http: the package was built with -protocol http; the module runs FastCGI programs. Build it with urweb.buildApp, or with -protocol fastcgi.
+services.urweb.apps.there: services.urweb.apps.here is served at the same nginx.location / of example.org. Give each application a location of its own.
