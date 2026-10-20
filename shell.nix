@@ -1,11 +1,14 @@
 { pkgs ? import ./nixpkgs.nix }:
 let
-  # The shell takes the compiler's inputs from its package and builds it
-  # in the tree.
+  # The shell takes the compiler's inputs from its package, and those of
+  # its checks, and builds it in the tree.
   urweb = pkgs.callPackage ./derivation.nix { };
   # The shell apart from its hook
   shellInputs = {
-    inputsFrom = [ urweb ];
+    inputsFrom = [
+      urweb
+      urweb.tests.check
+    ];
 
     packages = with pkgs; [
       git # make resnapshot

@@ -65,33 +65,59 @@ let
   spawnFcgi = spawn_fcgi.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [ ./nix/patches/spawn-fcgi/sun-len.patch ];
   });
+
+  # The source is the tracked files in a fileset.
+  fromGit =
+    fileset:
+    lib.fileset.toSource {
+      root = ./.;
+      fileset = lib.fileset.intersection (lib.fileset.gitTracked ./.) fileset;
+    };
+
+  # What the package reads, and nothing else: a change to anything else
+  # would build the compiler again for nothing. The tests and the demo are
+  # not among them. The checks read them (see passthru.tests.check), so a
+  # change to a test runs the checks again and leaves the package alone.
+  buildFiles = lib.fileset.unions (
+    [
+      ./autogen.sh
+      ./configure.ac
+      ./include
+      ./lib
+      ./m4
+      ./Makefile.am
+      ./src
+      ./xml
+    ]
+    ++ lib.optionals withUrt [
+      ./urt/Makefile
+      ./urt/src
+    ]
+  );
+
+  # What the checks read besides.
+  testFiles = lib.fileset.difference (lib.fileset.unions (
+    [
+      ./demo
+      ./tests
+    ]
+    ++ lib.optional withUrt ./urt
+  )) (
+    lib.fileset.unions [
+      # Runs nix itself, outside the build (make check-shell-id).
+      ./tests/shell_id
+      # The benchmark, apart from its application, whose snapshots
+      # check-snapshot runs.
+      (lib.fileset.difference ./tests/bench ./tests/bench/app)
+    ]
+  );
 in
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "urweb";
   version = "20200209";
 
-  src = lib.fileset.toSource {
-    root = ./.;
-    fileset = lib.fileset.intersection (lib.fileset.gitTracked ./.) (
-      lib.fileset.unions (
-        [
-          ./autogen.sh
-          ./configure.ac
-          ./demo
-          ./doc
-          ./include
-          ./lib
-          ./m4
-          ./Makefile.am
-          ./src
-          ./tests
-          ./xml
-        ]
-        ++ lib.optional withUrt ./urt
-      )
-    );
-  };
+  src = fromGit buildFiles;
 
   # build-time dependencies
   nativeBuildInputs = [
@@ -111,13 +137,6 @@ stdenv.mkDerivation (finalAttrs: {
     sqlite
   ];
 
-  # test dependencies
-  nativeCheckInputs = [
-    curl # the demo test's requests, and libcurl for tests/io_curl
-    spawnFcgi # which starts that program on its socket
-    python3 # tests/io_curl's stub server and tests/fastcgi_idle's client; urt's pty cases and stand-in server
-  ];
-
   # What the build writes into src/version.sml (see Makefile.am).
   env.URWEB_COMMIT = if rev == null then "?" else rev;
 
@@ -135,13 +154,8 @@ stdenv.mkDerivation (finalAttrs: {
     runHook postBuild
   '';
 
-  doCheck = true;
-
-  checkPhase = ''
-    runHook preCheck
-    make check ${lib.optionalString withUrt "check-urt check-snapshot"}
-    runHook postCheck
-  '';
+  # The checks are passthru.tests.check, a derivation of their own.
+  doCheck = false;
 
   installPhase = ''
     runHook preInstall
@@ -156,6 +170,55 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   passthru.configureEnv = configureEnv;
+
+  /*
+    The checks, run on the compiler this package installs, not on one built
+    for them: make installcheck in a tree configured with the package's
+    prefix (see installcheck-local in Makefile.am). The tests, the demo and
+    (with urt) urt's own checks are inputs of this derivation and not of the
+    package, so a change to them runs the checks again and leaves the
+    compiler as it is. Configuring takes a few seconds and builds nothing.
+
+    nix-build -A check (default.nix), or urweb.tests.check
+  */
+  passthru.tests.check = stdenv.mkDerivation {
+    pname = "urweb-check";
+    inherit (finalAttrs) version;
+
+    src = fromGit (lib.fileset.union buildFiles testFiles);
+
+    nativeBuildInputs = finalAttrs.nativeBuildInputs ++ [
+      curl # the demo test's requests, and libcurl for tests/io_curl
+      spawnFcgi # which starts that program on its socket
+      python3 # tests/io_curl's stub server and tests/fastcgi_idle's client; urt's pty cases and stand-in server
+    ];
+
+    # The applications the tests compile link against these.
+    inherit (finalAttrs) buildInputs;
+
+    # configure --prefix: where make installcheck finds the compiler.
+    prefix = finalAttrs.finalPackage;
+    preConfigure = configureEnv "${finalAttrs.finalPackage}" + ''
+      ./autogen.sh
+    '';
+
+    dontBuild = true;
+
+    # Nothing to install: the output only records that the checks passed.
+    installPhase = ''
+      touch $out
+    '';
+
+    dontFixup = true;
+
+    doInstallCheck = true;
+
+    installCheckPhase = ''
+      runHook preInstallCheck
+      make installcheck ${lib.optionalString withUrt "INSTALLCHECKS='check-local check-urt check-snapshot'"}
+      runHook postInstallCheck
+    '';
+  };
 
   /*
     withLibraries accepts urweb libraries:

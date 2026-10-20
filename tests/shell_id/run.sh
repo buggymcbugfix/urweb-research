@@ -67,15 +67,16 @@ case_() {
 
 run() {
   # What only nix-build runs, or what is not an input: the id stays.
-  case_ 'postPatch added to the package'            derivation.nix '/^  doCheck = true;$/a\  postPatch = "true";'
+  case_ 'postPatch added to the package'            derivation.nix '/^  doCheck = false;$/a\  postPatch = "true";'
+  case_ 'postPatch added to the checks'             derivation.nix '/^    doInstallCheck = true;$/a\    postPatch = "true";'
   case_ 'version of the package bumped'             derivation.nix 's/^  version = "20200209";$/  version = "20200210";/'
   case_ 'preConfigure of the package edited'        derivation.nix 's/^    \.\/autogen\.sh$/    .\/autogen.sh; true/'
-  case_ 'env added to the package'                  derivation.nix '/^  doCheck = true;$/a\  env.FOO = "1";'
+  case_ 'env added to the package'                  derivation.nix '/^  doCheck = false;$/a\  env.FOO = "1";'
   case_ 'Makefile.am edited'                        Makefile.am    '$a# edit'
   case_ 'comment in the shell hook edited'          shell.nix      's/Run `repl` to rebuild/Run `repl` to build/'
   # What configure sees through the package: the id changes.
   case_ 'flag added to CCARGS in configureEnv'      derivation.nix 's/-Wno-error=int-conversion"/-Wno-error=int-conversion -Wno-foo"/'
-  case_ 'python3 dropped from the check inputs'     derivation.nix "/^    python3 # tests\\/io_curl/d"
+  case_ 'python3 dropped from the check inputs'     derivation.nix "/^      python3 # tests\\/io_curl/d"
   case_ 'icu dropped from the build inputs'         derivation.nix '/^  buildInputs = \[$/{n;/^    icu$/d}'
   case_ 'mlton changed in derivation.nix'           derivation.nix 's/-intbinaryset-fix"/-intbinaryset-fix2"/'
   # What configure sees through the shell's own packages: the id changes,

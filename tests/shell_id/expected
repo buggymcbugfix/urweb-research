@@ -1,4 +1,5 @@
 same     postPatch added to the package
+same     postPatch added to the checks
 same     version of the package bumped
 same     preConfigure of the package edited
 same     env added to the package
