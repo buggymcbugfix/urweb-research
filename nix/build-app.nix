@@ -26,10 +26,9 @@
 # the prefix the program has.  A prefix goes here, not in the .urp.
 #
 # An application whose database is set up otherwise, and whose .urp
-# names a sql file only to keep track of what the code would create,
-# says schema = false: no -sql then, so the .urp's sql is written where
-# it says, and no schema in the package.  The directory it names is
-# made before the build, since the source need not carry it.
+# may name a sql file only to keep track of what the code would create,
+# says schema = false: the schema then goes to /dev/null, the .urp's sql
+# is not written, and the package has no schema.
 #
 # The database is named when the program is started, by
 # URWEB_SQLITE_DB_PATH or URWEB_PQ_CON, as the module does.  What is
@@ -70,18 +69,12 @@ stdenv.mkDerivation (finalAttrs:
 
     buildPhase = ''
       runHook preBuild
-      # Without -sql, the schema goes where the .urp says, relative to the .urp; the directory has to exist.
-      sql=$(sed -n 's/#.*//; s/^sql[[:space:]]\{1,\}//p' ${project}.urp | head -n 1 | sed 's/[[:space:]]*$//')
-      case "$sql" in
-        "" | /*) ;;
-        *) mkdir -p "$(dirname "$(dirname ${project}.urp)/$sql")" ;;
-      esac
       ${lib.getExe urweb} \
         -protocol fastcgi \
         -dbms ${dbms} \
         -db ${lib.escapeShellArg database} \
         -prefix ${lib.escapeShellArg prefix} \
-        ${lib.optionalString schema "-sql schema.sql"} \
+        -sql ${if schema then "schema.sql" else "/dev/null"} \
         ${lib.escapeShellArgs urwebFlags} \
         -output ${pname}.exe \
         ${project}
