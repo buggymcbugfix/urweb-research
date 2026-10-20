@@ -165,6 +165,10 @@ in
           assertion = sharing == [ ];
           message = "${at}: ${lib.concatStringsSep ", " (map (o: "services.urweb.apps.${o}") sharing)} is served at the same nginx.location ${app.nginx.location} of ${toString app.nginx.virtualHost}. Give each application a location of its own.";
         }
+        {
+          assertion = app.database.type != "sqlite" || !(app.environment ? URWEB_SQLITE_DB_PATH);
+          message = "${at}: environment sets URWEB_SQLITE_DB_PATH, which the module sets from database.path, the database that the preStart creates and ${name}-db opens. Set database.path instead.";
+        }
       ]) cfg.apps);
 
     systemd.sockets = mapAttrs' (name: app: nameValuePair (unit name) {
