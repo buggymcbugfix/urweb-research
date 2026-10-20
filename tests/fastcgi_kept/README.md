@@ -9,6 +9,10 @@ each connection.
 - Two requests in one write; a request that asks for the connection to be
   kept followed by one that does not; request ids other than 1; a
   connection closed halfway through its next request.
+- Three connections from sockets bound to a path, whose addresses are
+  longer than an IPv4 one, as an IPv6 address is.  A gcc build answers
+  them however it stores the address; a build with AddressSanitizer
+  sees whether accept writes past the buffer it is given.
 - 150 connections one after the other, each closed by the web server
   after its answer, half of them with a reset, while the program may hold
   64 descriptors: the program has to close what the web server closed.
