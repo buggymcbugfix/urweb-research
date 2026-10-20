@@ -2,15 +2,17 @@
 #
 #   nix-build tests/deploy/test.nix
 #
-# Three instances of the application under tests/deploy/app: `app` in a
-# group of its own with its database in its state directory, and `shop`
-# and `erp` sharing one database elsewhere through a group, whose other
-# member reads and writes it too.  Without KVM the machine is emulated,
-# which takes minutes.
+# Four instances of the application under tests/deploy/app: `app` in a
+# group of its own with its database in its state directory, `shop` and
+# `erp` sharing one database elsewhere through a group, whose other
+# member reads and writes it too, and `pg` on Postgres, under /pg/ on
+# app's virtual host.  Without KVM the machine is emulated, which takes
+# minutes.
 { pkgs ? import ../../nixpkgs.nix }:
 let
   urweb = pkgs.pkgsLinux.callPackage ../../derivation.nix { };
   app = pkgs.pkgsLinux.callPackage ./app.nix { inherit urweb; };
+  pgApp = pkgs.pkgsLinux.callPackage ./app.nix { inherit urweb; dbms = "postgres"; prefix = "/pg/"; };
   shared = {
     package = app;
     database = { path = "/var/db/ww.db"; group = "ww"; };
@@ -20,7 +22,7 @@ pkgs.testers.runNixOSTest {
   name = "urweb-deploy";
   requiredFeatures.kvm = false;
 
-  nodes.machine = { lib, pkgs, ... }: {
+  nodes.machine = { config, lib, pkgs, ... }: {
     imports = [ ../../nixos/urweb.nix ];
 
     services.urweb.apps.app = {
@@ -36,6 +38,29 @@ pkgs.testers.runNixOSTest {
     services.urweb.apps.erp = shared // {
       nginx.virtualHost = "erp.example.org";
       network = true;
+    };
+    services.urweb.apps.pg = {
+      package = pgApp;
+      nginx.virtualHost = "app.example.org";
+      environment.URWEB_PQ_CON = "dbname=urweb-pg";
+    };
+
+    # pg's database, its tables created as its user, as a deployment would.
+    services.postgresql = {
+      enable = true;
+      ensureDatabases = [ "urweb-pg" ];
+      ensureUsers = [ { name = "urweb-pg"; ensureDBOwnership = true; } ];
+    };
+    # initdb on the first boot of an emulated machine can take longer than
+    # the 120 s systemd allows PostgreSQL to start.
+    systemd.services.postgresql.serviceConfig.TimeoutSec = lib.mkForce 600;
+    systemd.services.urweb-pg-schema = {
+      requiredBy = [ "urweb-pg.service" ];
+      before = [ "urweb-pg.service" ];
+      requires = [ "postgresql.target" ];
+      after = [ "postgresql.target" ];
+      serviceConfig = { Type = "oneshot"; RemainAfterExit = true; User = "urweb-pg"; };
+      script = "${config.services.postgresql.package}/bin/psql -d urweb-pg -v ON_ERROR_STOP=1 -f ${pgApp}/share/app/schema.sql";
     };
 
     systemd.tmpfiles.rules = [
@@ -53,7 +78,7 @@ pkgs.testers.runNixOSTest {
   };
 
   testScript = ''
-    units = ["urweb-app", "urweb-shop", "urweb-erp"]
+    units = ["urweb-app", "urweb-shop", "urweb-erp", "urweb-pg"]
 
     def get(host, path):
         return machine.succeed(f"curl -sfL -H 'Host: {host}' http://localhost{path}")
@@ -105,6 +130,11 @@ pkgs.testers.runNixOSTest {
     # Outside app's group, nobody reaches its state.
     machine.fail("runuser -u other -- ls /var/lib/urweb-app/")
     machine.fail("runuser -u other -- app-db 'select 1'")
+
+    # pg, on Postgres under /pg/ beside app on its virtual host. Today
+    # nginx keeps only one location of a virtual host, app's, which
+    # answers /pg/main with a 404.
+    machine.fail("curl -sf -H 'Host: app.example.org' http://localhost/pg/main")
 
     # network: a loopback of its own without, the host's with.
     assert machine.succeed("systemctl show -p PrivateNetwork --value urweb-shop.service").strip() == "yes"

@@ -1,0 +1,357 @@
+### urweb-few.socket
+[Unit]
+Description=Socket of the Ur/Web application few
+
+[Socket]
+ListenStream=/run/urweb-few.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-few.service
+[Unit]
+After=urweb-few.socket
+Description=Ur/Web application few
+Requires=urweb-few.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-few/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-few/few.db"
+CapabilityBoundingSet=
+ExecStart=/nix/store/HASH-app-0/bin/app -t 16 -q
+ExecStartPre=/nix/store/HASH-unit-script-urweb-few-pre-start/bin/urweb-few-pre-start
+Group=urweb-few
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-few
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-few
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-few.service preStart
+/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-few /nix/store/HASH-urweb-few-create-database
+
+### few-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-few/few.db "$@"
+
+
+### user urweb-few
+group urweb-few
+
+### nginx upstream urweb-few
+servers unix:/run/urweb-few.sock
+keepalive 8;
+
+### urweb-here.socket
+[Unit]
+Description=Socket of the Ur/Web application here
+
+[Socket]
+ListenStream=/run/urweb-here.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-here.service
+[Unit]
+After=urweb-here.socket
+Description=Ur/Web application here
+Requires=urweb-here.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-here/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-here/here.db"
+CapabilityBoundingSet=
+ExecStart=/nix/store/HASH-app-0/bin/app -t 8 -q
+ExecStartPre=/nix/store/HASH-unit-script-urweb-here-pre-start/bin/urweb-here-pre-start
+Group=urweb-here
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-here
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-here
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-here.service preStart
+/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-here /nix/store/HASH-urweb-here-create-database
+
+### here-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-here/here.db "$@"
+
+
+### user urweb-here
+group urweb-here
+
+### nginx upstream urweb-here
+servers unix:/run/urweb-here.sock
+keepalive 32;
+
+### urweb-http.socket
+[Unit]
+Description=Socket of the Ur/Web application http
+
+[Socket]
+ListenStream=/run/urweb-http.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-http.service
+[Unit]
+After=urweb-http.socket
+Description=Ur/Web application http
+Requires=urweb-http.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-http/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-http/http.db"
+CapabilityBoundingSet=
+ExecStart=/nix/store/HASH-other/bin/other -t 8 -q
+ExecStartPre=/nix/store/HASH-unit-script-urweb-http-pre-start/bin/urweb-http-pre-start
+Group=urweb-http
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-http
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-http
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-http.service preStart
+/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-http /nix/store/HASH-urweb-http-create-database
+
+### http-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-http/http.db "$@"
+
+
+### user urweb-http
+group urweb-http
+
+### nginx upstream urweb-http
+servers unix:/run/urweb-http.sock
+keepalive 32;
+
+### urweb-there.socket
+[Unit]
+Description=Socket of the Ur/Web application there
+
+[Socket]
+ListenStream=/run/urweb-there.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-there.service
+[Unit]
+After=urweb-there.socket
+Description=Ur/Web application there
+Requires=urweb-there.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-there/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-there/there.db"
+CapabilityBoundingSet=
+ExecStart=/nix/store/HASH-app-0/bin/app -t 8 -q
+ExecStartPre=/nix/store/HASH-unit-script-urweb-there-pre-start/bin/urweb-there-pre-start
+Group=urweb-there
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-there
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-there
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-there.service preStart
+/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-there /nix/store/HASH-urweb-there-create-database
+
+### there-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-there/there.db "$@"
+
+
+### user urweb-there
+group urweb-there
+
+### nginx upstream urweb-there
+servers unix:/run/urweb-there.sock
+keepalive 32;
+
+### nginx server example.org
+location / {
+fastcgi_pass urweb-here;
+fastcgi_keep_conn on;
+}
+
+### failed assertions
+services.urweb.apps.few: nginx.keepalive = 8, but threads = 16. nginx closes idle connections beyond keepalive each time a request ends, so under load it would close connections the program could still serve on, which costs more than keeping them. Set nginx.keepalive to at least 16, or to 0 for a connection per request.
+services.urweb.apps.http: the package was built with -protocol http; the module runs FastCGI programs. Build it with urweb.buildApp, or with -protocol fastcgi.
