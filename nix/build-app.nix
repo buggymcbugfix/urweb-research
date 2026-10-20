@@ -20,12 +20,10 @@
 # is bin/<pname>, built with -protocol fastcgi, and the schema that
 # creates its database is share/<pname>/schema.sql.
 #
-# The flags given here win over the .urp's own database and sql
-# directives: the compiler reads those only when no flag set them.  The
-# exception is the prefix "/", which the compiler takes for no flag at
-# all, so that a .urp's own prefix applies and passthru.urweb.prefix,
-# which the module's nginx location follows, does not say it.  A prefix
-# goes here, not in the .urp.
+# The flags given here win over the .urp's own prefix, database and sql
+# directives: the compiler reads those only when no flag set them.  So
+# passthru.urweb.prefix, which the module's nginx location follows, is
+# the prefix the program has.  A prefix goes here, not in the .urp.
 #
 # An application whose database is set up otherwise, and whose .urp
 # names a sql file only to keep track of what the code would create,

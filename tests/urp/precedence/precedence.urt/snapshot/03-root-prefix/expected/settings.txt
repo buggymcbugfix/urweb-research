@@ -1,4 +1,4 @@
-Prefix: /urp/
+Prefix: /
 Database: dbname=urp
 Exe: tests/urp/precedence/urp.exe
 SQL file: tests/urp/precedence/urp.sql
