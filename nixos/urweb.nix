@@ -198,16 +198,31 @@ in
           URWEB_SQLITE_DB_PATH = db;
         } // app.environment;
         # Under a lock on the database's directory: applications sharing a
-        # database start together, and only one may create it.
+        # database start together, and only one may create it.  flock
+        # would create a missing directory as a file, so it is checked
+        # first.
         preStart = optionalString (sqlite && app.schema != null) ''
-          ${pkgs.util-linux}/bin/flock ${lib.escapeShellArg (dirOf db)} ${pkgs.writeShellScript "${unit name}-create-database" ''
+          dir=${lib.escapeShellArg (dirOf db)}
+          if [ ! -d "$dir" ]; then
+            echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group ${app.database.group}." >&2
+            exit 1
+          fi
+          exec ${pkgs.util-linux}/bin/flock "$dir" ${pkgs.writeShellScript "${unit name}-create-database" ''
+            set -eu
             db=${lib.escapeShellArg db}
-            if [ ! -e "$db" ]; then
-              ${lib.getExe' app.database.sqlitePackage "sqlite3"} "$db" < ${lib.escapeShellArg "${app.schema}"}
-              # SQLite creates a database 0644 whatever the umask, and gives
-              # its WAL files the database's mode.
-              chmod g+rw "$db"
+            # Empty is how sqlite3 leaves a database it opened that did
+            # not exist, as <name>-db does before the first start.
+            if [ -s "$db" ]; then
+              exit 0
             fi
+            # Made aside and renamed into place, so that a schema that
+            # fails, or a start cut short, leaves no database behind.
+            tmp=$(mktemp "$db.XXXXXX")
+            trap 'rm -f "$tmp"' EXIT
+            ${lib.getExe' app.database.sqlitePackage "sqlite3"} -bail "$tmp" < ${lib.escapeShellArg "${app.schema}"}
+            # SQLite gives its WAL files the database's mode.
+            chmod 660 "$tmp"
+            mv "$tmp" "$db"
           ''}
         '';
         serviceConfig = {

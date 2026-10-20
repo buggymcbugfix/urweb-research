@@ -70,7 +70,12 @@ User=urweb-few
 WantedBy=multi-user.target
 
 ### urweb-few.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-few /nix/store/HASH-urweb-few-create-database
+dir=/var/lib/urweb-few
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-few." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-few-create-database
 
 ### few-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash
@@ -157,7 +162,12 @@ User=urweb-here
 WantedBy=multi-user.target
 
 ### urweb-here.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-here /nix/store/HASH-urweb-here-create-database
+dir=/var/lib/urweb-here
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-here." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-here-create-database
 
 ### here-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash
@@ -244,7 +254,12 @@ User=urweb-http
 WantedBy=multi-user.target
 
 ### urweb-http.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-http /nix/store/HASH-urweb-http-create-database
+dir=/var/lib/urweb-http
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-http." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-http-create-database
 
 ### http-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash
@@ -331,7 +346,12 @@ User=urweb-there
 WantedBy=multi-user.target
 
 ### urweb-there.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-there /nix/store/HASH-urweb-there-create-database
+dir=/var/lib/urweb-there
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-there." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-there-create-database
 
 ### there-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash

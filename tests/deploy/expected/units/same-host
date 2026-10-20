@@ -70,7 +70,12 @@ User=urweb-erp
 WantedBy=multi-user.target
 
 ### urweb-erp.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-erp /nix/store/HASH-urweb-erp-create-database
+dir=/var/lib/urweb-erp
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-erp." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-erp-create-database
 
 ### erp-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash
@@ -157,7 +162,12 @@ User=urweb-shop
 WantedBy=multi-user.target
 
 ### urweb-shop.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock /var/lib/urweb-shop /nix/store/HASH-urweb-shop-create-database
+dir=/var/lib/urweb-shop
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-shop." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-shop-create-database
 
 ### shop-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash

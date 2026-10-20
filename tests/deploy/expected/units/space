@@ -71,7 +71,12 @@ User=urweb-app
 WantedBy=multi-user.target
 
 ### urweb-app.service preStart
-/nix/store/HASH-util-linux-2.42.2-bin/bin/flock '/var/lib/my db' /nix/store/HASH-urweb-app-create-database
+dir='/var/lib/my db'
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-app." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-app-create-database
 
 ### app-db
 #!/nix/store/HASH-bash-5.3p15/bin/bash

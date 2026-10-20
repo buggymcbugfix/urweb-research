@@ -12,28 +12,25 @@ tables: t
 Parse error near line 3: near ";": syntax error
   CREATE TABLE u (;
                   ^--- error here
-exit 0
+exit 1
 ./bad d 755
-./bad/bad.db f 660
-tables: t v
 ### bad, started again
-exit 0
+Parse error near line 3: near ";": syntax error
+  CREATE TABLE u (;
+                  ^--- error here
+exit 1
 ./bad d 755
-./bad/bad.db f 660
-tables: t v
 ### empty: empty-db run before the first start
 Parse error in 4th command line argument: no such table: t
 exit 1
 exit 0
 ./empty d 755
-./empty/empty.db f 640
-tables:
+./empty/empty.db f 660
+tables: t
 ### missing: a database in a directory that does not exist
-Error: unable to open database "/DB/missing/sub/missing.db": unable to open database file
-chmod: cannot access '/DB/missing/sub/missing.db': Not a directory
+/DB/missing/sub does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-missing.
 exit 1
 ./missing d 755
-./missing/sub f 660
 ### space: a database in a directory with a space
 exit 0
 ./space dir d 755
