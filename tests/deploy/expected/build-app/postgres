@@ -9,7 +9,7 @@ esac
 /nix/store/HASH-urweb-20200209/bin/urweb \
   -protocol fastcgi \
   -dbms postgres \
-  -db 'host=/nonexistent dbname=URWEB_PQ_CON-is-not-set' \
+  -db 'host=/nonexistent/URWEB_PQ_CON-is-not-set' \
   -prefix / \
   -sql schema.sql \
    \

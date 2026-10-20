@@ -60,7 +60,7 @@ assert lib.assertMsg (args ? src || root != null) "urweb.buildApp: give root, th
 let
   database =
     if dbms == "sqlite" then "/nonexistent/URWEB_SQLITE_DB_PATH-is-not-set.db"
-    else "host=/nonexistent dbname=URWEB_PQ_CON-is-not-set";
+    else "host=/nonexistent/URWEB_PQ_CON-is-not-set";
 in
 stdenv.mkDerivation (
   removeAttrs args [ "root" "project" "dbms" "prefix" "schema" "urwebFlags" ]
