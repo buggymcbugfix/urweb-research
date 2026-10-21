@@ -1,6 +1,7 @@
 {
   autoconf,
   automake,
+  callPackage,
   curl,
   gcc,
   icu,
@@ -106,6 +107,8 @@ let
     lib.fileset.unions [
       # Runs nix itself, outside the build (make check-shell-id).
       ./tests/shell_id
+      # The tests of buildApp, which use the package.
+      ./tests/deploy
       # The benchmark, apart from its application, whose snapshots
       # check-snapshot runs.
       (lib.fileset.difference ./tests/bench ./tests/bench/app)
@@ -170,6 +173,10 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   passthru.configureEnv = configureEnv;
+
+  # urweb.buildApp { pname, src, ... }: an application as a package; see
+  # nix/build-app.nix.
+  passthru.buildApp = callPackage ./nix/build-app.nix { urweb = finalAttrs.finalPackage; };
 
   /*
     The checks, run on the compiler this package installs, not on one built
@@ -240,21 +247,24 @@ stdenv.mkDerivation (finalAttrs: {
     let
       libPath = linkFarm "urweb-libs" (lib.mapAttrsToList (name: path: { inherit name path; }) libs);
       urweb = finalAttrs.finalPackage;
+      withLibs = runCommand "urweb-with-libs"
+        {
+          nativeBuildInputs = [ makeBinaryWrapper ];
+          meta.mainProgram = "urweb";
+          # buildApp with this compiler, so that the application imports the libraries.
+          passthru.buildApp = callPackage ./nix/build-app.nix { urweb = withLibs; };
+        }
+        (
+          ''
+            makeWrapper ${lib.getExe urweb} $out/bin/urweb \
+              --add-flags "-path NIX_LIBS ${libPath}"
+          ''
+          + lib.optionalString withUrt ''
+            makeWrapper ${urweb}/bin/urt $out/bin/urt --set-default URWEB $out/bin/urweb
+          ''
+        );
     in
-    runCommand "urweb-with-libs"
-      {
-        nativeBuildInputs = [ makeBinaryWrapper ];
-        meta.mainProgram = "urweb";
-      }
-      (
-        ''
-          makeWrapper ${lib.getExe urweb} $out/bin/urweb \
-            --add-flags "-path NIX_LIBS ${libPath}"
-        ''
-        + lib.optionalString withUrt ''
-          makeWrapper ${urweb}/bin/urt $out/bin/urt --set-default URWEB $out/bin/urweb
-        ''
-      );
+    withLibs;
 
   meta = {
     description = "Advanced purely-functional web programming language";

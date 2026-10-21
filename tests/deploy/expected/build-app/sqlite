@@ -1,0 +1,21 @@
+### buildPhase
+runHook preBuild
+/nix/store/HASH-urweb-20200209/bin/urweb \
+  -protocol fastcgi \
+  -dbms sqlite \
+  -db /nonexistent/URWEB_SQLITE_DB_PATH-is-not-set.db \
+  -prefix / \
+  -sql schema.sql \
+   \
+  -output app.exe \
+  app
+runHook postBuild
+
+### installPhase
+runHook preInstall
+install -D app.exe $out/bin/app
+install -D -m 644 schema.sql $out/share/app/schema.sql
+runHook postInstall
+
+### passthru.urweb
+{"dbms":"sqlite","name":"app","prefix":"/","protocol":"fastcgi","schema":"/nix/store/HASH-app-0/share/app/schema.sql"}
