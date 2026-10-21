@@ -15,7 +15,7 @@ all-local: smlnj mlton
 
 SUBDIRS = src/c
 
-.PHONY: smlnj mlton mlton-tc test check-local urt check-snapshot update-snapshot check-urt
+.PHONY: smlnj mlton mlton-tc test check-local installcheck-local urt check-snapshot update-snapshot check-urt
 
 smlnj: src/urweb.cm src/version.sml xml/entities.sml
 mlton: bin/urweb
@@ -138,6 +138,22 @@ dist-hook:
 	cd demo; rm -f demo.ur*
 	cd demo/more; rm -f demo.ur*
 
+# The compiler the checks run, and the flags it gets: by default the in-tree
+# build, which needs -boot to find the library in the source tree.
+URWEB = bin/urweb
+URWEB_FLAGS = -boot -noEmacs
+
+# make installcheck, after make install, runs the checks of make check on
+# the installed compiler, $(bindir)/urweb, and builds nothing.  Given on the
+# command line of the inner make, URWEB and URWEB_FLAGS also reach the
+# runners under tests/, which read them from their environment.  A tree
+# with urt adds its checks:
+#
+#   make installcheck INSTALLCHECKS='check-local check-urt check-snapshot'
+INSTALLCHECKS = check-local
+installcheck-local:
+	$(MAKE) $(INSTALLCHECKS) URWEB='$(bindir)/urweb' URWEB_FLAGS=-noEmacs
+
 TEST_PRELUDE = set -e; \
 	pid=""; \
 	dbfile=$$(mktemp); \
@@ -152,10 +168,10 @@ TEST_PRELUDE = set -e; \
 	trap cleanup EXIT INT TERM; \
 	\
 	echo "Compiling demo.exe."; \
-	bin/urweb -boot -noEmacs -dbms sqlite -db $$dbfile -demo /Demo demo
+	$(URWEB) $(URWEB_FLAGS) -dbms sqlite -db $$dbfile -demo /Demo demo
 
 # The Ur/Web toolbox
-urt: bin/urweb
+urt: $(URWEB)
 	$(MAKE) -C urt CC="$(CC)"
 
 # Snapshot tests (see urt/urt snapshot --help).  Always from here, since
@@ -176,14 +192,14 @@ check-urt: urt
 # link the application.  The script runs through bash, not its first line:
 # the nix build sandbox has no /usr/bin/env.
 .PHONY: check-io-curl
-check-io-curl: bin/urweb
+check-io-curl: $(URWEB)
 	bash tests/io_curl/run.sh
 
 # io code under contention, several clients at once: see
 # tests/io_concurrent/README.md.  Needs curl and sqlite3, and on Linux cc.
 # Through bash, as check-io-curl.
 .PHONY: check-io-concurrent
-check-io-concurrent: bin/urweb
+check-io-concurrent: $(URWEB)
 	bash tests/io_concurrent/run.sh
 
 # What the id of the toolchain in shell.nix reacts to: see
@@ -197,17 +213,17 @@ check-shell-id:
 # tests/fastcgi_idle/README.md.  Needs python3 and spawn-fcgi.  Through
 # bash, as check-io-curl.
 .PHONY: check-fastcgi-idle
-check-fastcgi-idle: bin/urweb
+check-fastcgi-idle: $(URWEB)
 	bash tests/fastcgi_idle/run.sh
 
 # Kept FastCGI connections beyond the first few, closed ones, requests that
 # follow each other on one, and FCGI_WEB_SERVER_ADDRS: see
 # tests/fastcgi_kept/README.md.  Needs python3.  Through bash, as above.
 .PHONY: check-fastcgi-kept
-check-fastcgi-kept: bin/urweb
+check-fastcgi-kept: $(URWEB)
 	bash tests/fastcgi_kept/run.sh
 
-check-local: bin/urweb check-io-curl check-io-concurrent check-fastcgi-idle check-fastcgi-kept
+check-local: $(URWEB) check-io-curl check-io-concurrent check-fastcgi-idle check-fastcgi-kept
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \
@@ -219,7 +235,7 @@ check-local: bin/urweb check-io-curl check-io-concurrent check-fastcgi-idle chec
 	echo "Tests succeeded."
 
 .PHONY: check-ipv6
-check-ipv6: bin/urweb
+check-ipv6: $(URWEB)
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv6 test."; \
