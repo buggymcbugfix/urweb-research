@@ -1,0 +1,86 @@
+### urweb-app.socket
+[Unit]
+Description=Socket of the Ur/Web application app
+
+[Socket]
+ListenStream=/run/urweb-app.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-app.service
+[Unit]
+After=urweb-app.socket
+Description=Ur/Web application app
+Requires=urweb-app.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-app/app.db"
+CapabilityBoundingSet=
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
+Group=urweb-app
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-app
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-app
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-app.service preStart
+
+### app-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-app/app.db "$@"
+
+
+### user urweb-app
+group urweb-app
+
+### nginx upstream urweb-app
+servers unix:/run/urweb-app.sock
+
+
+### failed assertions
