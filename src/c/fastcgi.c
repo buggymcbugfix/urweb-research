@@ -62,6 +62,11 @@ typedef struct {
   // in one write.  NULL when each record is sent as it is made.
   unsigned char *buf;
   size_t used;
+  // Whether this answers a request for messages, through the functions the
+  // runtime got with its connection (fastcgi_send_normal, fastcgi_close).
+  // The program may have held that request for a long time, and the web
+  // server may have closed the connection meanwhile.
+  int poll;
 } FCGI_Output;
 
 // Room for two whole records: a response that fits goes out in one write,
@@ -89,12 +94,13 @@ static int fastcgi_request_id(const FCGI_Record* const r) {
 }
 
 // An output on the connection sock (-1: none yet) for the request
-// request_id: the fields of its record that every record shares, and no
-// buffer.
+// request_id: the fields of its record that every record shares, no
+// buffer, and not a poll's.
 static void fastcgi_output_init(FCGI_Output *o, int sock, int request_id) {
   o->sock = sock;
   o->request_id = request_id;
   o->buf = NULL;
+  o->poll = 0;
   o->r.version = FCGI_VERSION_1;
   o->r.paddingLength = 0;
   o->r.reserved = 0;
@@ -189,6 +195,18 @@ static void on_failure(uw_context ctx) {
   uw_write_header(ctx, "Status: 500 Internal Server Error\r\n");
 }
 
+// A send of o's that has just failed, in the function named: said on
+// stderr, unless o answers a poll and the web server had closed the
+// connection (EPIPE) or reset it (ECONNRESET).  That is how a poll ends
+// when the browser gives up on it, as urweb.js does every half of the
+// timeout, or leaves its page: nginx closes the connection then, and the
+// program finds out only when it answers the poll.
+static void send_failed(FCGI_Output *o, const char *function) {
+  if (o->poll && (errno == EPIPE || errno == ECONNRESET))
+    return;
+  fprintf(stderr, "fastcgi_send() failed in %s().\n", function);
+}
+
 static int write_stdout(void *data, const char *buf, size_t len) {
   FCGI_Output *o = (FCGI_Output *)data;
   while (len > 0) {
@@ -204,7 +222,7 @@ static int write_stdout(void *data, const char *buf, size_t len) {
       o->r.contentLengthB0 = len2 & 255;
       if (fastcgi_append(o, (const unsigned char *)&o->r, FCGI_HEADER_SIZE)
           || fastcgi_append(o, (const unsigned char *)buf, len2)) {
-        fprintf(stderr, "fastcgi_send() failed in write_stdout().\n");
+        send_failed(o, "write_stdout");
         return -1;
       }
       buf += len2;
@@ -213,7 +231,7 @@ static int write_stdout(void *data, const char *buf, size_t len) {
     }
     memcpy(o->r.contentData, buf, len2);
     if (fastcgi_send(o, FCGI_STDOUT, len2)) {
-      fprintf(stderr, "fastcgi_send() failed in write_stdout().\n");
+      send_failed(o, "write_stdout");
       return -1;
     }
     buf += len2;
@@ -225,7 +243,7 @@ static int write_stdout(void *data, const char *buf, size_t len) {
 
 static int close_stream(FCGI_Output *o, unsigned char type) {
   if (fastcgi_send(o, type, 0)) {
-    fprintf(stderr, "fastcgi_send() failed in close_stream().\n");
+    send_failed(o, "close_stream");
     return -1;
   }
   return 0;
@@ -586,6 +604,7 @@ static int fastcgi_close(int sock) {
   FCGI_Output out;
 
   fastcgi_output_init(&out, sock, handed_id(sock));
+  out.poll = 1;
   if (fastcgi_end_request(&out, SERVED) || !handed_keep(sock))
     return close(sock);
   park(sock);
@@ -596,6 +615,7 @@ int fastcgi_send_normal(int sock, const void *buf, ssize_t len) {
   FCGI_Output out;
 
   fastcgi_output_init(&out, sock, handed_id(sock));
+  out.poll = 1;
   return write_stdout(&out, buf, len);
 }
 
