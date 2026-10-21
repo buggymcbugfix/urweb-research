@@ -236,16 +236,18 @@ class Failed(Exception):
 
 def wait_for(check, seconds, what, proc, log):
     """Waits until check() holds.  If proc exits first, or seconds pass,
-    the row fails with what proc wrote to the file log."""
+    the row fails with the command that started proc and what proc wrote
+    to the file log."""
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
         if check():
             return
         if proc.poll() is not None:
-            raise Failed("%s exited with status %d before it came up; it wrote:\n%s"
-                         % (what, proc.returncode, written(log)))
+            raise Failed("%s exited with status %d before it came up; it was started as\n%s\nand wrote:\n%s"
+                         % (what, proc.returncode, shlex.join(proc.args), written(log)))
         time.sleep(0.05)
-    raise Failed("%s did not come up within %d s; it wrote:\n%s" % (what, seconds, written(log)))
+    raise Failed("%s did not come up within %d s; it was started as\n%s\nand wrote:\n%s"
+                 % (what, seconds, shlex.join(proc.args), written(log)))
 
 
 def written(log):
