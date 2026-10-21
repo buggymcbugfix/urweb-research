@@ -50,6 +50,7 @@ fun libFile s = OS.Path.joinDirFile {dir = libUr (),
                                      file = s}
 
 val urlPrefixFull = ref "/"
+val urlPrefixFlag = ref (NONE : string option)
 val urlPrefix = ref "/"
 val urlPrePrefix = ref ""
 val timeout = ref 0
@@ -90,6 +91,9 @@ fun setUrlPrefix p =
         urlPrePrefix := prepre;
         urlPrefix := prefix
     end
+
+fun setUrlPrefixFlag p = (urlPrefixFlag := SOME p; setUrlPrefix p)
+fun getUrlPrefixFlag () = !urlPrefixFlag
 
 fun getTimeout () = !timeout
 fun setTimeout n = timeout := n
@@ -1148,6 +1152,7 @@ fun getSaveJs () = !saveJs
 fun reset () =
     (Globals.setResetTime ();
      urlPrefixFull := "/";
+     urlPrefixFlag := NONE;
      urlPrefix := "/";
      urlPrePrefix := "";
      timeout := 0;

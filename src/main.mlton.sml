@@ -183,7 +183,7 @@ fun oneRun args =
               ("protocol", ONE ("[http|cgi|fastcgi|static]",
                                 Settings.setProtocol),
                     SOME "set server protocol"),
-              ("prefix", ONE ("<prefix>", Settings.setUrlPrefix),
+              ("prefix", ONE ("<prefix>", Settings.setUrlPrefixFlag),
                     SOME "set prefix used before all URI's"),
               ("db", ONE ("<string>", Settings.setDbstring o SOME),
                     SOME "database connection information"),

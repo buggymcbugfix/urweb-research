@@ -55,6 +55,10 @@ signature SETTINGS = sig
 
     (* How do all application URLs begin? *)
     val setUrlPrefix : string -> unit
+    (* The prefix given on the command line, which takes precedence over
+     * the .urp's, "/" included. *)
+    val setUrlPrefixFlag : string -> unit
+    val getUrlPrefixFlag : unit -> string option
     val getUrlPrefix : unit -> string
     val getUrlPrePrefix : unit -> string
     val getUrlPrefixFull : unit -> string
