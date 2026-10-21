@@ -1,0 +1,29 @@
+Prefix: /urp/
+Database: dbname=urp
+Exe: tests/urp/precedence/urp.exe
+SQL file: tests/urp/precedence/urp.sql
+Endpoints file: (none)
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Linker: (none)
+JsModule: (none)
+Url allow #*
+Source tests/urp/precedence/precedence
+Dbms: postgres
+Sigfile: urp.sig
+Filecache: (none)
+SafeGetDefault: false
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: (none)
+ MimeTypes: /etc/mime.types
