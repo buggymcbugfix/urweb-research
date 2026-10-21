@@ -346,6 +346,15 @@ void uw_client_connect(uw_context ctx, unsigned id, int pass, int sock,
 }
 
 static void free_client(client *c) {
+  // A poll still held for the client is answered as any poll for a client
+  // that is gone (chastise), and its connection goes back to the protocol,
+  // which closes it, or keeps it if the web server asked. Once the client
+  // is free, nothing else would answer it or close it.
+  if (c->sock != -1) {
+    chastise(c->send, c->close, c->sock);
+    c->sock = -1;
+  }
+
   c->mode = UNUSED;
   c->pass = -1;
 
