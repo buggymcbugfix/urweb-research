@@ -35,3 +35,13 @@ each connection.
   a file and a socket that is not listening: it ends with status 1, since
   no accept can ever succeed there, where it waits out an accept that
   failed for want of a descriptor.
+- A page with a channel, and the polls for its messages, which the program
+  holds for the page until it has something to send.  The web server
+  closes the connection of a held poll, as nginx does when the browser
+  gives up on the poll, and sends the next poll: the program ends the old
+  one then, and that its connection is gone is nothing to log.  The next
+  poll, on a connection the web server keeps, while the pruner expunges
+  the page's client (the application's timeout is two seconds, and the
+  pruner looks every five): the program has to answer it as it answers a
+  poll for a client that is gone, with `R`, and give the connection back
+  to the web server.  A poll for that client afterwards is answered so.

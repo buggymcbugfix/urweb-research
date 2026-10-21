@@ -1,3 +1,4 @@
 rewrite all Kept/*
+timeout 2
 
 kept

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # Connections to a FastCGI program as web servers open them, and what the
 # program does with them: many kept open at once, one after the other and
-# closed, requests that follow each other on one, and the connections
-# FCGI_WEB_SERVER_ADDRS lets in.  Prints one line for each thing tried.
+# closed, requests that follow each other on one, the connections
+# FCGI_WEB_SERVER_ADDRS lets in, and the polls for messages that it holds
+# for a page.  Prints one line for each thing tried.
 #
 #   client.py PROGRAM OUT-DIRECTORY
 #
@@ -67,6 +68,11 @@ FREED = 10
 # them all.
 CPU_MAX = 3.0
 
+# Seconds within which the pruner expunges a client last heard from now: the
+# application's timeout (kept.urp), two seconds, the pruner's pause between
+# passes, five, and some to spare.
+EXPUNGED = 12.0
+
 
 def record(kind, content, request_id):
     padding = -len(content) % ALIGN
@@ -77,11 +83,14 @@ def pair(name, value):
     return bytes([len(name), len(value)]) + name + value
 
 
-def request(name, keep=True, request_id=1):
-    """What a web server sends for a request of the page echo/NAME."""
+def request(name, keep=True, request_id=1, path=None, headers=()):
+    """What a web server sends for a request of the page echo/NAME, or of
+    path, with headers among the CGI variables, as pairs such as
+    (b"HTTP_URWEB_CLIENT", b"0")."""
     params = b"".join(pair(n, v) for n, v in [
-        (b"REQUEST_METHOD", b"GET"), (b"SCRIPT_NAME", b""), (b"PATH_INFO", b"/echo/" + name),
-        (b"QUERY_STRING", b""), (b"SERVER_PROTOCOL", b"HTTP/1.1"), (b"HTTP_HOST", b"localhost")])
+        (b"REQUEST_METHOD", b"GET"), (b"SCRIPT_NAME", b""), (b"PATH_INFO", path or b"/echo/" + name),
+        (b"QUERY_STRING", b""), (b"SERVER_PROTOCOL", b"HTTP/1.1"), (b"HTTP_HOST", b"localhost")]
+        + list(headers))
     begin = BEGIN_BODY.pack(RESPONDER, KEEP_CONN if keep else 0)
     return (record(BEGIN_REQUEST, begin, request_id) + record(PARAMS, params, request_id)
             + record(PARAMS, b"", request_id) + record(STDIN, b"", request_id))
@@ -159,6 +168,11 @@ def token(answer):
         return "none"
     found = re.search(rb"echo ([A-Za-z0-9_]+)", answer[1])
     return found.group(1).decode() if found else "other"
+
+
+def body(answer):
+    """What a response says after its headers; 'none' for no response."""
+    return answer[1].split(b"\r\n\r\n", 1)[-1].decode() if answer else "none"
 
 
 def program_environment(env=None):
@@ -416,6 +430,58 @@ def unusable_input(exe, out, name, what, stdin):
     say("standard input %s: the program %s" % (what, result))
 
 
+def polls(exe, out):
+    """A page with a channel, and the polls for its messages, which the
+    program holds for the page until it has something to send.  urweb.js
+    gives up on its poll every half of the timeout and sends the next, and
+    nginx then closes the connection of the poll given up on.  A page that is
+    left sends no next poll: its last one is held until the pruner expunges
+    the page's client.  The program has one thread, so a request that it has
+    answered tells that it has done with every request sent before."""
+    program = Program(exe, out, "polls")
+    page = Peer(program)
+    page.send(request(b"", path=b"/poll"))
+    answer = page.answer()
+    page.close()
+    found = answer and re.search(rb"client_id=(\d+);client_pass=(-?\d+)", answer[1])
+    if not found:
+        say("a page with a channel: %s" % ("not answered" if answer is None else "no client in it"))
+        program.stop()
+        return
+    client = [(b"HTTP_URWEB_CLIENT", found.group(1)), (b"HTTP_URWEB_PASS", found.group(2))]
+
+    def poll():
+        peer = Peer(program)
+        peer.send(request(b"", path=b"/.msgs", headers=client))
+        return peer
+
+    def settle():
+        peer = Peer(program)
+        peer.send(request(b"s"))
+        peer.answer()
+        peer.close()
+
+    given_up = poll()
+    settle()
+    given_up.close()
+    held = poll()
+    settle()
+    say("a held poll whose connection the web server closed, ended by the next poll:"
+        " lines about a failed send in the program's log: %d" % program.logged("failed in"))
+    answer = held.answer(time.monotonic() + EXPUNGED)
+    if answer is None:
+        result = "not answered"
+    else:
+        held.send(request(b"e1"))
+        result = "answered %s, and a request on its connection after that: %s" % (body(answer), token(held.answer()))
+    say("that next poll, its connection kept, when the pruner expunges the page's client: %s" % result)
+    held.close()
+    late = poll()
+    say("a poll for that client after that: %s" % body(late.answer()))
+    late.close()
+    program.stop()
+
+
 def attempt(scenario, *arguments):
     """Run a scenario; a connection the program breaks off or refuses ends it
     with a line saying so, not with a traceback."""
@@ -448,6 +514,8 @@ def main():
         unusable_input(exe, out, "file-input", "a file", f)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         unusable_input(exe, out, "unlistening-input", "a socket that is not listening", s.fileno())
+
+    attempt(polls, exe, out)
 
 
 if __name__ == "__main__":

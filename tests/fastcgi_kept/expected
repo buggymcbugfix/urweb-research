@@ -21,3 +21,6 @@ FCGI_WEB_SERVER_ADDRS=10.9.9.9, a connection from 127.0.0.1: not answered, and t
 FCGI_WEB_SERVER_ADDRS=127.0.0.1, a connection on a Unix socket: not answered, and the program ended with status 1
 standard input a file: the program ended with status 1
 standard input a socket that is not listening: the program ended with status 1
+a held poll whose connection the web server closed, ended by the next poll: lines about a failed send in the program's log: 2
+that next poll, its connection kept, when the pruner expunges the page's client: not answered
+a poll for that client after that: R
