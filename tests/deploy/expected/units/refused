@@ -1,0 +1,582 @@
+### urweb-elsewhere.socket
+[Unit]
+Description=Socket of the Ur/Web application elsewhere
+
+[Socket]
+ListenStream=/run/urweb-elsewhere.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-elsewhere.service
+[Unit]
+After=urweb-elsewhere.socket
+Description=Ur/Web application elsewhere
+Requires=urweb-elsewhere.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-elsewhere/sig"
+Environment="URWEB_SQLITE_DB_PATH=/srv/other.db"
+CapabilityBoundingSet=
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
+ExecStartPre=/nix/store/HASH-unit-script-urweb-elsewhere-pre-start/bin/urweb-elsewhere-pre-start
+Group=urweb-elsewhere
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-elsewhere
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-elsewhere
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-elsewhere.service preStart
+dir=/var/lib/urweb-elsewhere
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-elsewhere." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-elsewhere-create-database
+
+### elsewhere-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-elsewhere/elsewhere.db "$@"
+
+
+### user urweb-elsewhere
+group urweb-elsewhere
+
+### nginx upstream urweb-elsewhere
+servers unix:/run/urweb-elsewhere.sock
+keepalive 32;
+
+### urweb-few.socket
+[Unit]
+Description=Socket of the Ur/Web application few
+
+[Socket]
+ListenStream=/run/urweb-few.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-few.service
+[Unit]
+After=urweb-few.socket
+Description=Ur/Web application few
+Requires=urweb-few.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-few/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-few/few.db"
+CapabilityBoundingSet=
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app-0/bin/app" "-t" "16" "-q"
+ExecStartPre=/nix/store/HASH-unit-script-urweb-few-pre-start/bin/urweb-few-pre-start
+Group=urweb-few
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-few
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-few
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-few.service preStart
+dir=/var/lib/urweb-few
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-few." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-few-create-database
+
+### few-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-few/few.db "$@"
+
+
+### user urweb-few
+group urweb-few
+
+### nginx upstream urweb-few
+servers unix:/run/urweb-few.sock
+keepalive 8;
+
+### urweb-here.socket
+[Unit]
+Description=Socket of the Ur/Web application here
+
+[Socket]
+ListenStream=/run/urweb-here.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-here.service
+[Unit]
+After=urweb-here.socket
+Description=Ur/Web application here
+Requires=urweb-here.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-here/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-here/here.db"
+CapabilityBoundingSet=
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
+ExecStartPre=/nix/store/HASH-unit-script-urweb-here-pre-start/bin/urweb-here-pre-start
+Group=urweb-here
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-here
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-here
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-here.service preStart
+dir=/var/lib/urweb-here
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-here." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-here-create-database
+
+### here-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-here/here.db "$@"
+
+
+### user urweb-here
+group urweb-here
+
+### nginx upstream urweb-here
+servers unix:/run/urweb-here.sock
+keepalive 32;
+
+### urweb-http.socket
+[Unit]
+Description=Socket of the Ur/Web application http
+
+[Socket]
+ListenStream=/run/urweb-http.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-http.service
+[Unit]
+After=urweb-http.socket
+Description=Ur/Web application http
+Requires=urweb-http.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-http/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-http/http.db"
+CapabilityBoundingSet=
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-other/bin/other" "-t" "8" "-q"
+Group=urweb-http
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-http
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-http
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-http.service preStart
+
+### http-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-http/http.db "$@"
+
+
+### user urweb-http
+group urweb-http
+
+### nginx upstream urweb-http
+servers unix:/run/urweb-http.sock
+keepalive 32;
+
+### urweb-relative.socket
+[Unit]
+Description=Socket of the Ur/Web application relative
+
+[Socket]
+ListenStream=/run/urweb-relative.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-relative.service
+[Unit]
+After=urweb-relative.socket
+Description=Ur/Web application relative
+Requires=urweb-relative.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-relative/sig"
+Environment="URWEB_SQLITE_DB_PATH=db/app.db"
+CapabilityBoundingSet=
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
+ExecStartPre=/nix/store/HASH-unit-script-urweb-relative-pre-start/bin/urweb-relative-pre-start
+Group=urweb-relative
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+ReadWritePaths="-db"
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-relative
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-relative
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-relative.service preStart
+dir=db
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-relative." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-relative-create-database
+
+### relative-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" db/app.db "$@"
+
+
+### user urweb-relative
+group urweb-relative
+
+### nginx upstream urweb-relative
+servers unix:/run/urweb-relative.sock
+keepalive 32;
+
+### urweb-there.socket
+[Unit]
+Description=Socket of the Ur/Web application there
+
+[Socket]
+ListenStream=/run/urweb-there.sock
+SocketGroup=nginx
+SocketMode=0660
+
+
+
+
+[Install]
+WantedBy=sockets.target
+
+### urweb-there.service
+[Unit]
+After=urweb-there.socket
+Description=Ur/Web application there
+Requires=urweb-there.socket
+
+[Service]
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-there/sig"
+Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-there/there.db"
+CapabilityBoundingSet=
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app-0/bin/app" "-t" "8" "-q"
+ExecStartPre=/nix/store/HASH-unit-script-urweb-there-pre-start/bin/urweb-there-pre-start
+Group=urweb-there
+IPAddressDeny=any
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateDevices=true
+PrivateNetwork=true
+PrivateTmp=true
+PrivateUsers=true
+ProcSubset=pid
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=true
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectProc=invisible
+ProtectSystem=strict
+RemoveIPC=true
+Restart=on-failure
+RestrictAddressFamilies=none
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SocketBindDeny=any
+StandardError=journal
+StandardInput=socket
+StandardOutput=journal
+StateDirectory=urweb-there
+StateDirectoryMode=2770
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallFilter=~@resources
+UMask=0007
+User=urweb-there
+
+[Install]
+WantedBy=multi-user.target
+
+### urweb-there.service preStart
+dir=/var/lib/urweb-there
+if [ ! -d "$dir" ]; then
+  echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-there." >&2
+  exit 1
+fi
+exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-there-create-database
+
+### there-db
+#!/nix/store/HASH-bash-5.3p15/bin/bash
+umask 007
+exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-there/there.db "$@"
+
+
+### user urweb-there
+group urweb-there
+
+### nginx upstream urweb-there
+servers unix:/run/urweb-there.sock
+keepalive 32;
+
+### nginx server example.org
+location / {
+fastcgi_pass urweb-here;
+fastcgi_keep_conn on;
+
+fastcgi_pass urweb-there;
+fastcgi_keep_conn on;
+}
+
+### tmpfiles
+z /var/lib/urweb-elsewhere/elsewhere.db 0660 - urweb-elsewhere -
+z /var/lib/urweb-elsewhere/elsewhere.db-shm 0660 - urweb-elsewhere -
+z /var/lib/urweb-elsewhere/elsewhere.db-wal 0660 - urweb-elsewhere -
+z /var/lib/urweb-few/few.db 0660 - urweb-few -
+z /var/lib/urweb-few/few.db-shm 0660 - urweb-few -
+z /var/lib/urweb-few/few.db-wal 0660 - urweb-few -
+z /var/lib/urweb-here/here.db 0660 - urweb-here -
+z /var/lib/urweb-here/here.db-shm 0660 - urweb-here -
+z /var/lib/urweb-here/here.db-wal 0660 - urweb-here -
+z /var/lib/urweb-http/http.db 0660 - urweb-http -
+z /var/lib/urweb-http/http.db-shm 0660 - urweb-http -
+z /var/lib/urweb-http/http.db-wal 0660 - urweb-http -
+z /var/lib/urweb-there/there.db 0660 - urweb-there -
+z /var/lib/urweb-there/there.db-shm 0660 - urweb-there -
+z /var/lib/urweb-there/there.db-wal 0660 - urweb-there -
+z db/app.db 0660 - urweb-relative -
+z db/app.db-shm 0660 - urweb-relative -
+z db/app.db-wal 0660 - urweb-relative -
+
+### failed assertions
+services.urweb.apps.elsewhere: environment sets URWEB_SQLITE_DB_PATH, which the module sets from database.path, the database that the preStart creates and elsewhere-db opens. Set database.path instead.
+services.urweb.apps.few: nginx.keepalive = 8, but threads = 16. nginx closes idle connections beyond keepalive each time a request ends, so under load it would close connections the program could still serve on, which costs more than keeping them. Set nginx.keepalive to at least 16, or to 0 for a connection per request.
+services.urweb.apps.here: services.urweb.apps.there is served at the same nginx.location / of example.org. Give each application a location of its own.
+services.urweb.apps.http: the package was built with -protocol http; the module runs FastCGI programs. Build it with urweb.buildApp, or with -protocol fastcgi.
+services.urweb.apps.relative: database.path = "db/app.db" is not an absolute path.
+services.urweb.apps.there: services.urweb.apps.here is served at the same nginx.location / of example.org. Give each application a location of its own.

@@ -1,4 +1,5 @@
-# urweb.buildApp: an Ur/Web application as a package, built for FastCGI.
+# urweb.buildApp: an Ur/Web application as a package, built the way
+# nixos/urweb.nix deploys it.
 #
 #   urweb.buildApp {
 #     pname = "shop";
@@ -6,7 +7,7 @@
 #     root = ./.;                     # the tree the .urp's paths are relative to
 #     project = "ur/apps/shop/shop";  # the .urp, without the extension; pname by default
 #     dbms = "sqlite";                # or "postgres"
-#     prefix = "/";                   # where the application is served
+#     prefix = "/";                   # where the application is served; the module's nginx location follows it
 #     urwebFlags = [ ];               # anything else for the compiler
 #   }
 #
@@ -21,8 +22,8 @@
 #
 # The flags given here win over the .urp's own prefix, database and sql
 # directives: the compiler reads those only when no flag set them.  So
-# passthru.urweb.prefix is the prefix the program has.  A prefix goes
-# here, not in the .urp.
+# passthru.urweb.prefix, which the module's nginx location follows, is
+# the prefix the program has.  A prefix goes here, not in the .urp.
 #
 # An application whose database is set up otherwise, and whose .urp
 # may name a sql file only to keep track of what the code would create,
@@ -30,11 +31,11 @@
 # is not written, and the package has no schema.
 #
 # The database is named when the program is started, by
-# URWEB_SQLITE_DB_PATH or URWEB_PQ_CON.  What is compiled in cannot be
-# opened, so a program started without the variable fails at once
-# instead of opening some other database.
+# URWEB_SQLITE_DB_PATH or URWEB_PQ_CON, as the module does.  What is
+# compiled in cannot be opened, so a program started without the variable
+# fails at once instead of opening some other database.
 #
-# passthru.urweb says how the program was built, for whatever deploys it:
+# passthru.urweb says how the program was built, for the module:
 # protocol, dbms, prefix, name (the pname), and schema, the path of the
 # schema in the package, or null without one.
 { lib, stdenv, urweb }:
