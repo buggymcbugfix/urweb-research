@@ -14,6 +14,9 @@
 #   passthru.urweb, for several arguments.
 # expected/project-files: the files project-files.nix finds for .urp
 #   files of this tree.
+# expected/references: what a package buildApp builds references, and
+#   what its program loads at run time. The one record that builds
+#   the compiler and an application; the rest is evaluation.
 #
 # expected/vm is not among them: it is the record of the virtual
 # machine, which test.nix compares.
@@ -222,6 +225,39 @@ let
     in
     lib.concatMapStrings (u: "### ${u}.urp\n" + lib.concatMapStrings (f: rel f + "\n") (pf.files (../.. + "/${u}.urp"))) urps;
 
+  # What the package of an application references, the shared libraries
+  # its program needs and the directories it loads them from (the
+  # RUNPATH the linker wrote, in its order).  A package among the
+  # references is in every deployment of the application, with its own
+  # closure.  Versions are dropped along with the hashes, so that a bump
+  # of nixpkgs leaves the record alone: a segment of a store name that
+  # starts with a digit (glibc-2.42-67 is glibc, urweb-20200209-lib is
+  # urweb-lib), and a shared library's suffix (libssl.so.3 is libssl).
+  linked = {
+    sqlite = app { };
+    postgres = app { dbms = "postgres"; };
+  };
+  references = pkgs.runCommand "urweb-deploy-references" { } (
+    ''
+      unversion() {
+        sed -E 's|/nix/store/[a-z0-9]{32}-|/nix/store/HASH-|g; :a; s|(/nix/store/HASH-[^/ ]*)-[0-9][^-/ ]*|\1|; ta'
+      }
+      {
+    ''
+    + lib.concatStrings (lib.mapAttrsToList (n: p: ''
+      echo "### ${n}"
+      echo "references:"
+      unversion < ${pkgs.writeDirectReferencesToFile p} | sed 's|^/nix/store/HASH-||' | sort
+      echo "needed:"
+      patchelf --print-needed ${lib.getExe p} | sed -E 's/\.so(\.[0-9.]+)?$//'
+      echo "runpath:"
+      patchelf --print-rpath ${lib.getExe p} | tr : '\n' | unversion
+    '') linked)
+    + ''
+      } > $out
+    ''
+  );
+
   rendered = pkgs.runCommand "urweb-deploy-eval-rendered" { } ''
     mkdir -p $out/units $out/build-app
     ${lib.concatStrings (lib.mapAttrsToList (n: c: ''
@@ -232,6 +268,7 @@ let
     '') buildApps)}
     cp ${pkgs.writeText "project-files" projectFiles} $out/project-files
     cp ${prestart} $out/prestart
+    cp ${references} $out/references
   '';
 in
 pkgs.runCommand "urweb-deploy-eval" { passthru = { inherit rendered; }; } ''

@@ -44,4 +44,7 @@ fresh directory and on what can go wrong there (`prestart/` holds its
 schemas).  `expected/build-app/` holds the phases and `passthru.urweb`
 of `buildApp` for several arguments, and `expected/project-files` the
 files `nix/project-files.nix` finds for `.urp` files of this tree.
-Store hashes are masked.
+`expected/references` holds what a package `buildApp` builds
+references, and the shared libraries its program loads and from where;
+for this one the compiler and the application are built.
+Store hashes are masked, and so are versions in `expected/references`.
