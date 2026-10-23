@@ -1,6 +1,6 @@
 ### buildPhase
 runHook preBuild
-/nix/store/HASH-urweb-20200209/bin/urweb \
+/nix/store/HASH-urweb/bin/urweb \
   -protocol fastcgi \
   -dbms postgres \
   -db 'host=/nonexistent/URWEB_PQ_CON-is-not-set' \
@@ -18,4 +18,4 @@ install -D -m 644 schema.sql $out/share/app/schema.sql
 runHook postInstall
 
 ### passthru.urweb
-{"dbms":"postgres","name":"app","prefix":"/","protocol":"fastcgi","schema":"/nix/store/HASH-app-0/share/app/schema.sql"}
+{"dbms":"postgres","name":"app","prefix":"/","protocol":"fastcgi","schema":"/nix/store/HASH-app/share/app/schema.sql"}

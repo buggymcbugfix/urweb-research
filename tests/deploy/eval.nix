@@ -21,8 +21,9 @@
 # expected/vm is not among them: it is the record of the virtual
 # machine, which test.nix compares.
 #
-# Store hashes are masked, so a change of the compiler or of a package
-# shows only where a version or what the module writes changes.
+# Store hashes are masked and the versions in store names dropped (see
+# mask.nix), so that a bump of nixpkgs leaves the records alone and a
+# change shows only where what is written changes.
 { hostPkgs ? import ../../nixpkgs.nix }:
 let
   # Linux's packages whatever the machine, as the virtual machine's are:
@@ -33,8 +34,9 @@ let
   urweb = pkgs.callPackage ../../derivation.nix { };
   app = args: pkgs.callPackage ./app.nix ({ inherit urweb; } // args);
 
-  mask = s: lib.concatMapStrings (x: if lib.isList x then "/nix/store/HASH-" else x)
-    (builtins.split "/nix/store/[a-z0-9]{32}-" (builtins.unsafeDiscardStringContext s));
+  masks = import ./mask.nix;
+  mask = s: lib.concatMapStrings (x: if lib.isList x then masks.masked else x)
+    (builtins.split masks.hash (builtins.unsafeDiscardStringContext s));
 
   # A NixOS configuration with the module and the given apps.
   eval = apps: (import (pkgs.path + "/nixos/lib/eval-config.nix") {
@@ -182,7 +184,7 @@ let
       start empty ${preStart "empty"}
       echo "### missing: a database in a directory that does not exist"; start missing ${preStart "missing"}
       echo "### space: a database in a directory with a space"; start space ${preStart "space"}
-    } | sed "s|$DB|/DB|g; s|$PWD/tmp\.[A-Za-z0-9]*|/BUILD/TMP|g; s|/nix/store/[a-z0-9]\{32\}-|/nix/store/HASH-|g" > $out
+    } | sed -E "s|$DB|/DB|g; s|$PWD/tmp\.[A-Za-z0-9]*|/BUILD/TMP|g; s|${masks.hash}|${masks.masked}|g" > $out
   '';
 
   buildApps = {
@@ -229,10 +231,9 @@ let
   # its program needs and the directories it loads them from (the
   # RUNPATH the linker wrote, in its order).  A package among the
   # references is in every deployment of the application, with its own
-  # closure.  Versions are dropped along with the hashes, so that a bump
-  # of nixpkgs leaves the record alone: a segment of a store name that
-  # starts with a digit (glibc-2.42-67 is glibc, urweb-20200209-lib is
-  # urweb-lib), and a shared library's suffix (libssl.so.3 is libssl).
+  # closure.  As in every record, the versions in store names are dropped
+  # (urweb-20200209-lib is urweb-lib), and here a shared library's suffix
+  # too (libssl.so.3 is libssl).
   linked = {
     sqlite = app { };
     postgres = app { dbms = "postgres"; };
@@ -242,7 +243,7 @@ let
   references = pkgs.runCommand "urweb-deploy-references" { } (
     ''
       unversion() {
-        sed -E 's|/nix/store/[a-z0-9]{32}-|/nix/store/HASH-|g; :a; s|(/nix/store/HASH-[^/ ]*)-[0-9][^-/ ]*|\1|; ta'
+        sed -E '${masks.unversion}'
       }
       {
     ''
@@ -271,6 +272,8 @@ let
     cp ${pkgs.writeText "project-files" projectFiles} $out/project-files
     cp ${prestart} $out/prestart
     cp ${references} $out/references
+    # The versions, which the masks at evaluation leave.
+    sed -E -i '${masks.unversion}' $out/units/* $out/build-app/* $out/prestart
   '';
 in
 pkgs.runCommand "urweb-deploy-eval" { passthru = { inherit rendered; }; } ''

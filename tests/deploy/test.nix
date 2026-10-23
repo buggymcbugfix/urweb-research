@@ -17,6 +17,7 @@
 # shows as a diff to read, not as an assertion to rewrite.
 { pkgs ? import ../../nixpkgs.nix }:
 let
+  masks = import ./mask.nix;
   urweb = pkgs.pkgsLinux.callPackage ../../derivation.nix { };
   app = pkgs.pkgsLinux.callPackage ./app.nix { inherit urweb; };
   pgApp = pkgs.pkgsLinux.callPackage ./app.nix { inherit urweb; dbms = "postgres"; prefix = "/pg/"; };
@@ -100,6 +101,7 @@ let
 
     testScript = ''
       import re
+      import subprocess
       units = ["urweb-app", "urweb-shop", "urweb-erp", "urweb-pg"]
 
       observed = []
@@ -191,7 +193,9 @@ let
       for u in units + ["nginx"]:
           observe(f"the exposure of {u}", f"systemd-analyze security --no-pager {u}.service")
 
-      text = re.sub(r"/nix/store/[a-z0-9]{32}-", "/nix/store/HASH-", "\n".join(observed))
+      # Hashes masked and versions dropped, as in the other records.
+      text = subprocess.run(["${pkgs.gnused}/bin/sed", "-E", r"${masks.unversion}"],
+                            input="\n".join(observed), capture_output=True, text=True, check=True).stdout
       # systemd-analyze pads its columns, to the end of the line.
       text = re.sub(r"[ \t]+$", "", text, flags=re.M)
       (driver.out_dir / "observed").write_text(text)

@@ -47,4 +47,6 @@ files `nix/project-files.nix` finds for `.urp` files of this tree.
 `expected/references` holds what a package `buildApp` builds
 references, and the shared libraries its program loads and from where;
 for this one the compiler and the application are built.
-Store hashes are masked, and so are versions in `expected/references`.
+Store hashes are masked and the versions in store names dropped, in every
+record, `expected/vm` included (`mask.nix`), so that a bump of nixpkgs
+leaves the records alone.

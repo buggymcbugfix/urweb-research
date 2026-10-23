@@ -42,19 +42,19 @@ exit 0
 exit 1
 
 ### urweb-app's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TEST_GREETING=hello TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig URWEB_SQLITE_DB_PATH=/var/lib/urweb-app/app.db
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils/bin:/nix/store/HASH-findutils/bin:/nix/store/HASH-gnugrep/bin:/nix/store/HASH-gnused/bin:/nix/store/HASH-systemd/bin:/nix/store/HASH-coreutils/sbin:/nix/store/HASH-findutils/sbin:/nix/store/HASH-gnugrep/sbin:/nix/store/HASH-gnused/sbin:/nix/store/HASH-systemd/sbin TEST_GREETING=hello TZDIR=/nix/store/HASH-tzdata/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig URWEB_SQLITE_DB_PATH=/var/lib/urweb-app/app.db
 exit 0
 
 ### urweb-shop's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-shop/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils/bin:/nix/store/HASH-findutils/bin:/nix/store/HASH-gnugrep/bin:/nix/store/HASH-gnused/bin:/nix/store/HASH-systemd/bin:/nix/store/HASH-coreutils/sbin:/nix/store/HASH-findutils/sbin:/nix/store/HASH-gnugrep/sbin:/nix/store/HASH-gnused/sbin:/nix/store/HASH-systemd/sbin TZDIR=/nix/store/HASH-tzdata/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-shop/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
 exit 0
 
 ### urweb-erp's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-erp/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils/bin:/nix/store/HASH-findutils/bin:/nix/store/HASH-gnugrep/bin:/nix/store/HASH-gnused/bin:/nix/store/HASH-systemd/bin:/nix/store/HASH-coreutils/sbin:/nix/store/HASH-findutils/sbin:/nix/store/HASH-gnugrep/sbin:/nix/store/HASH-gnused/sbin:/nix/store/HASH-systemd/sbin TZDIR=/nix/store/HASH-tzdata/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-erp/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
 exit 0
 
 ### urweb-pg's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_PQ_CON=dbname=urweb-pg URWEB_SIGFILE_PATH=/var/lib/urweb-pg/sig
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils/bin:/nix/store/HASH-findutils/bin:/nix/store/HASH-gnugrep/bin:/nix/store/HASH-gnused/bin:/nix/store/HASH-systemd/bin:/nix/store/HASH-coreutils/sbin:/nix/store/HASH-findutils/sbin:/nix/store/HASH-gnugrep/sbin:/nix/store/HASH-gnused/sbin:/nix/store/HASH-systemd/sbin TZDIR=/nix/store/HASH-tzdata/share/zoneinfo URWEB_PQ_CON=dbname=urweb-pg URWEB_SIGFILE_PATH=/var/lib/urweb-pg/sig
 exit 0
 
 ### another user reads a secret

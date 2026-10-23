@@ -1,6 +1,6 @@
 ### buildPhase
 runHook preBuild
-/nix/store/HASH-urweb-20200209/bin/urweb \
+/nix/store/HASH-urweb/bin/urweb \
   -protocol fastcgi \
   -dbms sqlite \
   -db /nonexistent/URWEB_SQLITE_DB_PATH-is-not-set.db \
