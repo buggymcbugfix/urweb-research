@@ -42,19 +42,19 @@ exit 0
 exit 1
 
 ### urweb-app's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin TEST_GREETING=hello TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig URWEB_SQLITE_DB_PATH=/var/lib/urweb-app/app.db
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TEST_GREETING=hello TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig URWEB_SQLITE_DB_PATH=/var/lib/urweb-app/app.db
 exit 0
 
 ### urweb-shop's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-shop/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-shop/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
 exit 0
 
 ### urweb-erp's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-erp/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_SIGFILE_PATH=/var/lib/urweb-erp/sig URWEB_SQLITE_DB_PATH=/var/db/ww.db
 exit 0
 
 ### urweb-pg's unit environment
-Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo URWEB_PQ_CON=dbname=urweb-pg URWEB_SIGFILE_PATH=/var/lib/urweb-pg/sig
+Environment=LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo URWEB_PQ_CON=dbname=urweb-pg URWEB_SIGFILE_PATH=/var/lib/urweb-pg/sig
 exit 0
 
 ### another user reads a secret
@@ -603,6 +603,7 @@ exit 0
 ✗ AmbientCapabilities=                                        Service process receives ambient capabilities                                                               0.1
 ✓ CapabilityBoundingSet=~CAP_BPF                              Service may not load BPF programs
 ✓ SystemCallArchitectures=                                    Service may execute system calls only with native ABI
+✗ MemoryDenyWriteExecute=                                     Service may create writable executable memory mappings                                                      0.1
 ✗ RestrictAddressFamilies=~AF_UNIX                            Service may allocate local sockets                                                                          0.1
 ✗ RestrictAddressFamilies=~AF_(INET|INET6)                    Service may allocate Internet sockets                                                                       0.3
 ✓ ProtectSystem=                                              Service has strict read-only access to the OS file hierarchy
@@ -643,7 +644,6 @@ exit 0
 ✓ CapabilityBoundingSet=~CAP_SYS_CHROOT                       Service cannot issue chroot()
 ✓ PrivateMounts=                                              Service cannot install system mounts
 ✓ CapabilityBoundingSet=~CAP_BLOCK_SUSPEND                    Service cannot establish wake locks
-✓ MemoryDenyWriteExecute=                                     Service cannot create writable executable memory mappings
 ✓ RestrictNamespaces=~user                                    Service cannot create user namespaces
 ✓ RestrictNamespaces=~pid                                     Service cannot create process namespaces
 ✓ RestrictNamespaces=~net                                     Service cannot create network namespaces
@@ -665,5 +665,5 @@ exit 0
 ✓ RestrictSUIDSGID=                                           SUID/SGID file creation by service is restricted
 ✗ UMask=                                                      Files created by service are group-readable by default                                                      0.1
 
-→ Overall exposure level for nginx.service: 1.6 OK :-)
+→ Overall exposure level for nginx.service: 1.7 OK :-)
 exit 0

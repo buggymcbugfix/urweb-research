@@ -20,9 +20,9 @@ Description=Ur/Web application erp
 Requires=urweb-erp.socket
 
 [Service]
-Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
-Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
-Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-erp/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-erp/erp.db"
 CapabilityBoundingSet=
@@ -75,10 +75,10 @@ if [ ! -d "$dir" ]; then
   echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-erp." >&2
   exit 1
 fi
-exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-erp-create-database
+exec /nix/store/HASH-util-linux-2.42.4-bin/bin/flock "$dir" /nix/store/HASH-urweb-erp-create-database
 
 ### erp-db
-#!/nix/store/HASH-bash-5.3p15/bin/bash
+#!/nix/store/HASH-bash-5.3p20/bin/bash
 umask 007
 exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-erp/erp.db "$@"
 
@@ -112,9 +112,9 @@ Description=Ur/Web application shop
 Requires=urweb-shop.socket
 
 [Service]
-Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.42-67/lib/locale/locale-archive"
-Environment="PATH=/nix/store/HASH-coreutils-9.11/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-261.1/bin:/nix/store/HASH-coreutils-9.11/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-261.1/sbin"
-Environment="TZDIR=/nix/store/HASH-tzdata-2026c/share/zoneinfo"
+Environment="LOCALE_ARCHIVE=/nix/store/HASH-glibc-locales-2.44-57/lib/locale/locale-archive"
+Environment="PATH=/nix/store/HASH-coreutils-9.12/bin:/nix/store/HASH-findutils-4.11.0/bin:/nix/store/HASH-gnugrep-3.12/bin:/nix/store/HASH-gnused-4.10/bin:/nix/store/HASH-systemd-262/bin:/nix/store/HASH-coreutils-9.12/sbin:/nix/store/HASH-findutils-4.11.0/sbin:/nix/store/HASH-gnugrep-3.12/sbin:/nix/store/HASH-gnused-4.10/sbin:/nix/store/HASH-systemd-262/sbin"
+Environment="TZDIR=/nix/store/HASH-tzdata-2026e/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-shop/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-shop/shop.db"
 CapabilityBoundingSet=
@@ -167,10 +167,10 @@ if [ ! -d "$dir" ]; then
   echo "$dir does not exist. It is the directory of database.path, which the deployment makes, with the group urweb-shop." >&2
   exit 1
 fi
-exec /nix/store/HASH-util-linux-2.42.2-bin/bin/flock "$dir" /nix/store/HASH-urweb-shop-create-database
+exec /nix/store/HASH-util-linux-2.42.4-bin/bin/flock "$dir" /nix/store/HASH-urweb-shop-create-database
 
 ### shop-db
-#!/nix/store/HASH-bash-5.3p15/bin/bash
+#!/nix/store/HASH-bash-5.3p20/bin/bash
 umask 007
 exec /nix/store/HASH-sqlite-3.53.3-bin/bin/sqlite3 -cmd "PRAGMA foreign_keys = ON" /var/lib/urweb-shop/shop.db "$@"
 
