@@ -1,0 +1,16 @@
+### liburweb_http.a hidden
+The runtime's archives are missing: LIB/liburweb_http.a.  Link with -dynamic, or install the compiler with its archives (configured without --disable-static).
+exit 1, C compiler not called
+### liburweb.a hidden
+The runtime's archives are missing: LIB/liburweb.a.  Link with -dynamic, or install the compiler with its archives (configured without --disable-static).
+exit 1, C compiler not called
+### every archive hidden
+The runtime's archives are missing: LIB/liburweb_http.a, LIB/liburweb.a.  Link with -dynamic, or install the compiler with its archives (configured without --disable-static).
+exit 1, C compiler not called
+### every archive hidden, -static
+The runtime's archives are missing: LIB/liburweb_http.a, LIB/liburweb.a.  Link with -dynamic, or install the compiler with its archives (configured without --disable-static).
+exit 1, C compiler not called
+### every archive hidden, -dynamic
+exit 0, C compiler called
+### liburweb_http.a hidden, -protocol fastcgi
+exit 0, C compiler called

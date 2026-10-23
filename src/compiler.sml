@@ -1850,12 +1850,20 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
          * is named here.  The C library and the libraries that follow stay
          * shared; -static links those statically too.
          *
+         * The lib directory is named with -L all the same, for the
+         * libraries that a project links (link -lfoo) and that are
+         * installed beside the runtime.  With no -lurweb on the line, it
+         * brings in none of the runtime's shared libraries, and nixpkgs'
+         * linker wrapper writes a -L directory into the RUNPATH only when
+         * it holds a shared library that some -l takes.
+         *
          * -dynamic links the runtime as shared libraries after all, for a
          * host that runs many applications and keeps one copy of it: the
          * program then needs the compiler's lib directory at run time. *)
-        val runtime = !Settings.configLib ^ "/" ^ #linkStatic proto ^ " " ^
-                      !Settings.configLib ^ "/liburweb.a " ^
-                      !Settings.configIcuLibs ^ " -licui18n -licuuc -licudata -licuio"
+        val archives = map (fn a => !Settings.configLib ^ "/" ^ a) [#linkStatic proto, "liburweb.a"]
+        val runtime = String.concatWith " " archives ^ " " ^
+                      !Settings.configIcuLibs ^ " " ^ Config.icuLdlibs ^
+                      " -L" ^ !Settings.configLib
         val lib = case Settings.getLinking () of
                       Settings.Archives => runtime
                     | Settings.Static => " -static " ^ runtime
@@ -1957,9 +1965,24 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
              else
                  ();
              OS.Process.isSuccess (OS.Process.system s))
+
+        (* Without the archives, the linker would say only that it cannot
+         * find them, after the C has been compiled.  A compiler installed
+         * from a tree configured with --disable-static has the shared
+         * libraries alone, which -dynamic can still link. *)
+        fun archivesThere () =
+            Settings.getLinking () = Settings.Dynamic
+            orelse (case List.filter (fn a => not (OS.FileSys.access (a, [OS.FileSys.A_READ]))) archives of
+                        [] => true
+                      | missing =>
+                        (ErrorMsg.error ("The runtime's archives are missing: " ^ String.concatWith ", " missing
+                                         ^ ".  Link with -dynamic, or install the compiler with its archives"
+                                         ^ " (configured without --disable-static).");
+                         false))
     in
         !beforeC ();
-        system compile
+        archivesThere ()
+        andalso system compile
         andalso List.all (fn (s, obj) => system (compileOne (s, obj))) sources
         andalso system link
     end

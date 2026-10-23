@@ -109,6 +109,11 @@ if test -z $ICU_LIBS; then
    ICU_LIBS=
 fi
 
+dnl The ICU libraries the runtime uses.  liburweb is linked with them,
+dnl and so is a program that links the runtime from its archives
+dnl (compileC in src/compiler.sml), each with ICU_LIBS in front.
+ICU_LDLIBS="-licui18n -licuuc -licudata -licuio"
+
 AC_CHECK_HEADERS([unicode/utypes.h],
                  [],
                  [echo "You must install ICU."; exit 1])
@@ -131,6 +136,7 @@ AC_SUBST(PTHREAD_CFLAGS)
 AC_SUBST(PTHREAD_LIBS)
 AC_SUBST(ICU_INCLUDES)
 AC_SUBST(ICU_LIBS)
+AC_SUBST(ICU_LDLIBS)
 
 AC_CONFIG_FILES([
         Makefile

@@ -23,4 +23,5 @@ signature CONFIG = sig
 
     val icuIncludes : string
     val icuLibs : string
+    val icuLdlibs : string
 end

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # How the compiler links the runtime into a program, and what the program
-# then needs, recorded in two transcripts and compared with `expected`:
+# then needs, recorded in three transcripts and compared with `expected`:
 #
 #   expected/linking  The runtime's part of the link command for the flags
 #                     that choose how the runtime is linked: none, -static,
@@ -17,6 +17,11 @@
 #                     the runtime has no shared libraries (a tree configured
 #                     with --disable-shared) and off Linux or without
 #                     readelf.
+#   expected/no-archives
+#                     What the compiler says when the runtime's archives
+#                     are missing, with the flags that need them and those
+#                     that do not. hide.c, preloaded into the compiler,
+#                     hides them. Left out off Linux and without cc.
 #
 #   tests/linking/run.sh [-u]      -u rewrites expected
 #
@@ -166,6 +171,44 @@ if [ -e "$libdir/liburweb.so" ] && [ "$(uname -s)" = Linux ] && command -v reade
   } > "$out/shared" 2>&1
 fi
 
+# What the compiler says when the runtime's archives are missing. The test
+# cannot take them away from the compiler, so hide.c, preloaded into it,
+# makes access() fail for the paths that end in $HIDE. The C compiler is
+# the stand-in, and a case records whether the compiler called it. Linux
+# only, where the compiler takes access() from the C library at run time.
+noarchives=0
+if [ "$(uname -s)" = Linux ] && command -v cc >/dev/null; then
+  noarchives=1
+  cc -shared -fPIC -o "$out/hide.so" "$here/hide.c" -ldl > "$out/hide.log" 2>&1 ||
+    { cat "$out/hide.log" >&2; die "cannot build hide.so"; }
+  # hidden NAME SUFFIX FLAGS...: compile app/ with the paths that end in
+  # SUFFIX hidden; what the compiler printed, its exit status, and whether
+  # it called the C compiler.
+  hidden() {
+    local name=$1 suffix=$2 status called; shift 2
+    HIDE=$suffix LD_PRELOAD=$out/hide.so FAKECC_LOG=$out/$name.cc \
+      compile "$name" app/app -ccompiler "sh $out/fakecc" "$@"
+    status=$?
+    sed "s|$libdir|LIB|g" "$out/$name.log"
+    if [ -s "$out/$name.cc" ]; then called=called; else called="not called"; fi
+    echo "exit $status, C compiler $called"
+  }
+  {
+    echo "### liburweb_http.a hidden"
+    hidden hide-proto /liburweb_http.a
+    echo "### liburweb.a hidden"
+    hidden hide-runtime /liburweb.a
+    echo "### every archive hidden"
+    hidden hide-all .a
+    echo "### every archive hidden, -static"
+    hidden hide-static .a -static
+    echo "### every archive hidden, -dynamic"
+    hidden hide-dynamic .a -dynamic
+    echo "### liburweb_http.a hidden, -protocol fastcgi"
+    hidden hide-fastcgi /liburweb_http.a -protocol fastcgi
+  } > "$out/no-archives"
+fi
+
 check() {  # check NAME: out/NAME against expected/NAME
   if [ $update = 1 ]; then
     mkdir -p "$here/expected"; cp "$out/$1" "$here/expected/$1"; echo "updated expected/$1"
@@ -178,4 +221,5 @@ check() {  # check NAME: out/NAME against expected/NAME
 failed=0
 check linking
 if [ $shared = 1 ]; then check shared; else echo "check-linking: shared skipped, no shared runtime in $libdir"; fi
+if [ $noarchives = 1 ]; then check no-archives; else echo "check-linking: no-archives skipped, not on Linux or no cc"; fi
 exit $failed

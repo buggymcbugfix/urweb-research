@@ -1,5 +1,5 @@
 How the compiler links the runtime into a program, and what the program
-then needs.  `run.sh` (make check-linking) records two transcripts and
+then needs.  `run.sh` (make check-linking) records three transcripts and
 compares them with `expected/`; `run.sh -u` rewrites them.
 
 `expected/linking` holds, for the flags that choose how the runtime is
@@ -21,3 +21,11 @@ time (readelf), that it starts with the lib directory in LD_LIBRARY_PATH,
 and `members/` again, linked with `-dynamic`.  It is compared where the
 runtime has shared libraries and the system is Linux with readelf; with
 `--disable-shared` the test says it skips it.
+
+`expected/no-archives` holds what the compiler says when the runtime's
+archives are missing, and whether it went on to call the C compiler: for
+the protocol's archive, for liburweb.a, for both, with `-static` and
+`-dynamic`, and for another protocol than the one whose archive is gone.
+The test cannot take the archives away from the compiler, so `hide.c`,
+preloaded into it, makes `access` fail for the paths that end in a given
+suffix. It is compared on Linux, where `cc` builds the preload.
