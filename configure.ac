@@ -41,12 +41,20 @@ if test $prefix = "NONE"; then
     prefix=/usr/local
 fi
 
+if test "$exec_prefix" = "NONE"; then
+    exec_prefix='${prefix}'
+fi
+
 if test -z $BIN; then
     BIN=$prefix/bin
 fi
 
+dnl The compiler looks for the runtime's libraries where make install
+dnl puts them: libdir, which is ${exec_prefix}/lib unless --libdir says
+dnl otherwise.  Two evals expand it, through exec_prefix to prefix.
 if test -z $LIB; then
-    LIB=$prefix/lib
+    eval LIB="$libdir"
+    eval LIB="$LIB"
 fi
 
 if test -z $SRCLIB; then

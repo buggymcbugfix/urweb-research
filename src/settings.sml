@@ -757,13 +757,10 @@ val monoInline = ref 5
 fun setMonoInline n = monoInline := n
 fun getMonoInline () = !monoInline
 
-val staticLinking = ref false
-fun setStaticLinking b = staticLinking := b
-fun getStaticLinking () = !staticLinking
-
-val bootLinking = ref false
-fun setBootLinking b = bootLinking := b
-fun getBootLinking () = !bootLinking
+datatype linking = Archives | Static | Dynamic
+val linking = ref Archives
+fun setLinking l = linking := l
+fun getLinking () = !linking
 
 val deadlines = ref false
 fun setDeadlines b = deadlines := b
@@ -1188,7 +1185,7 @@ fun reset () =
      endpoints := NONE;
      coreInline := 5;
      monoInline := 5;
-     staticLinking := false;
+     linking := Archives;
      deadlines := false;
      sigFile := NONE;
      safeGet := SS.empty;

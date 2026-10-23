@@ -236,6 +236,8 @@ let
   linked = {
     sqlite = app { };
     postgres = app { dbms = "postgres"; };
+    # The runtime as shared libraries, from where the compiler keeps them.
+    dynamic = app { urwebFlags = [ "-dynamic" ]; };
   };
   references = pkgs.runCommand "urweb-deploy-references" { } (
     ''

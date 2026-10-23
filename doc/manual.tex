@@ -276,7 +276,7 @@ Note that to keep the server responsive we don't compile Ur/Web code in the trad
 
 Some other command-line parameters are accepted:
 \begin{itemize}
-\item \texttt{-boot}: Run Ur/Web from a build tree (and not from a system install).  This is useful if you're testing the compiler and don't want to install it.  It forces generation of statically linked executables.
+\item \texttt{-boot}: Run Ur/Web from a build tree (and not from a system install).  This is useful if you're testing the compiler and don't want to install it.
 
 \item \texttt{-ccompiler <PROGRAM>}: Select an alternative C compiler to call with command lines in compiling Ur/Web applications.  (It's possible to set the default compiler as part of the \texttt{configure} process, but it may sometimes be useful to override the default.)
 
@@ -318,6 +318,7 @@ UPDATE t SET c = datetime(c, 'utc');
 \item \texttt{-dumpSource}: When compilation fails, output to stderr the complete source code of the last intermediate program before the compilation phase that signaled the error.  (Warning: these outputs can be very long and aren't especially optimized for readability!)
 
 \item \texttt{-dumpVerboseSource}: Like \texttt{-dumpSource}, but prints the intermediate program with more detail (e.g., the internal numbering of identifiers), which can help when reading the output of the later, lower-level phases.
+\item \texttt{-dynamic}: Link the runtime system as shared libraries, from the compiler's \texttt{lib} directory, instead of from its archives.  A host that runs many applications then keeps one copy of the runtime; each program needs that directory at run time.  Of \texttt{-static} and \texttt{-dynamic}, the last one given counts.
 \item \texttt{-endpoints FILENAME}: Populate the specified file with a JSON description of all the HTTP endpoints that the compiled application supports, with information on MIME content type, for static resources.
 
 \item \texttt{-help}, \texttt{-version}, \texttt{-numeric-version}: Print, respectively, a summary of the command-line options, the version of the compiler, and its version as a plain number (convenient for scripts); then exit.
@@ -422,7 +423,7 @@ fastcgi.server = (
 
 \item \texttt{-sql FILENAME}: Set where a database set-up SQL script is written.  Run with \texttt{-stop sqlify} if all you want is this file.
 
-\item \texttt{-static}: Link the runtime system statically.  The default is to link against dynamic libraries.
+\item \texttt{-static}: Link everything statically, the C library included.  Without this, the runtime system is linked in from its archives, and the C library and the others (OpenSSL, ICU, the database client) are shared.
 
 \item \texttt{-stop PHASE}: Stop compilation after the named phase and print the intermediate program to stdout.  Stopping is not a failure: the exit status is zero unless there were errors.  This flag is mainly useful for debugging the Ur/Web compiler itself.
 \end{itemize}
@@ -2588,7 +2589,7 @@ It is most convenient to encapsulate an FFI binding with a new \texttt{.urp} fil
 \item \texttt{include FILE} requests inclusion of a C header file.
 \item \texttt{jsFile FILE} requests inclusion of a JavaScript source file.
 \item \texttt{jsFunc Module.ident=name} gives a mapping from an Ur name for a value to a JavaScript name.
-\item \texttt{link FILE} requests that \texttt{FILE} be linked into applications.  It should be a C object or library archive file, which you are responsible for generating with your own build process, or a C source file ending in \texttt{.c}, which the compiler compiles with the flags it uses for the C it generates, the \texttt{-I}, \texttt{-D} and \texttt{-U} given to \texttt{link} among them.
+\item \texttt{link FILE} requests that \texttt{FILE} be linked into applications.  It should be a C object or library archive file, which you are responsible for generating with your own build process, or a C source file ending in \texttt{.c}, which the compiler compiles with the flags it uses for the C it generates, the \texttt{-I}, \texttt{-D} and \texttt{-U} given to \texttt{link} among them.  Such files come after the runtime system on the linker's command line, so unless the runtime is linked as shared libraries (\texttt{-dynamic}), they can call only the runtime functions that the program pulls in itself: with \texttt{-protocol cgi} the request queue (\texttt{uw\_enqueue}, \texttt{uw\_dequeue}) is not among them, and with \texttt{-protocol static} neither are the functions that run requests (\texttt{uw\_request} and the others of \texttt{request.c}).
 \item \texttt{script URL} requests inclusion of a JavaScript source file within application HTML.
 \item \texttt{serverOnly Module.ident} registers a value as being allowed only in server-side code.
 \item \texttt{writesDB Module.ident} registers a function that writes to the database through the application's own connection, as the project directive of that name does.

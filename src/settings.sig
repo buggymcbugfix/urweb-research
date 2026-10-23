@@ -283,11 +283,13 @@ signature SETTINGS = sig
     val setMonoInline : int -> unit
     val getMonoInline : unit -> int
 
-    val setStaticLinking : bool -> unit
-    val getStaticLinking : unit -> bool
-
-    val setBootLinking : bool -> unit
-    val getBootLinking : unit -> bool
+    (* How the runtime, liburweb and liburweb_<protocol>, is linked: from
+     * its archives, everything statically (-static), or as shared
+     * libraries from the compiler's lib directory (-dynamic).  See
+     * compileC in compiler.sml. *)
+    datatype linking = Archives | Static | Dynamic
+    val setLinking : linking -> unit
+    val getLinking : unit -> linking
 
     val setDeadlines : bool -> unit
     val getDeadlines : unit -> bool

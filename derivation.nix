@@ -27,10 +27,16 @@
 }:
 
 let
+  # What configure is told: the headers the compiler is built with, and
+  # the directories of the shared libraries an application links, ICU,
+  # OpenSSL, SQLite and libpq.  A package that builds an application has
+  # the compiler among its inputs and none of these, so the compiler
+  # carries their directories.
   configureEnv = prefix: ''
     export SQHEADER="${sqlite.dev}/include/sqlite3.h"
     export PGHEADER="${postgresql.dev}/include/libpq-fe.h"
     export ICU_INCLUDES="-I${icu.dev}/include"
+    export ICU_LIBS="-L${lib.getLib icu}/lib"
     export CC="${gcc}/bin/gcc"
     export CCARGS="-I${prefix}/include \
       -L${lib.getLib openssl}/lib \
@@ -122,6 +128,33 @@ stdenv.mkDerivation (finalAttrs: {
 
   src = fromGit buildFiles;
 
+  # The runtime's libraries go to an output of their own: the compiler
+  # links an application against the archives by default, and with
+  # -dynamic against the shared libraries, which the program then loads
+  # from here.  With the libraries beside the compiler, such a program
+  # would carry the compiler and its toolchains in its closure.  The
+  # compiler finds them through configure's --libdir, which the output
+  # sets.  The library sources under lib/urweb and the headers stay with
+  # the compiler.
+  outputs = [
+    "out"
+    "lib"
+  ];
+
+  # A program built with -dynamic carries the lib output and whatever is
+  # behind it, so nothing of the compiler's may be: not the compiler, which
+  # Nix sees to on its own (the compiler references the output, and a
+  # reference back would be a cycle between outputs, refused), and not
+  # gcc or the dev outputs the compiler references, which a libtool .la
+  # file could name.  outputChecks needs structured attributes.
+  __structuredAttrs = true;
+  outputChecks.lib.disallowedRequisites = [
+    gcc
+    postgresql.dev
+    sqlite.dev
+    icu.dev
+  ];
+
   # build-time dependencies
   nativeBuildInputs = [
     autoconf
@@ -147,8 +180,8 @@ stdenv.mkDerivation (finalAttrs: {
     ./autogen.sh
   '';
 
-  # The urweb compiler links generated applications against the static
-  # archives, so keep the .a files in the output.
+  # nixpkgs configures with --disable-static, and the compiler links
+  # applications against the archives by default.
   dontDisableStatic = true;
 
   buildPhase = ''

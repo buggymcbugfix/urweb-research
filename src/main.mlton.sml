@@ -227,8 +227,12 @@ fun oneRun args =
                     SOME "output the app's own client-side script as <file>"),
               ("endpoints", ONE ("<file>", Settings.setEndpoints o SOME),
                     SOME "output exposed URL endpoints in JSON as <file>"),
-              ("static", call_true Settings.setStaticLinking,
-                    SOME "enable static linking"),
+              ("static", ZERO (fn () => Settings.setLinking Settings.Static),
+                    SOME "link everything statically, the C library included"),
+              ("dynamic", ZERO (fn () => Settings.setLinking Settings.Dynamic),
+                    SOME ("link the runtime as shared libraries, from the "^
+                          "compiler's lib directory; the last of -static and "^
+                          "-dynamic counts")),
               ("stop", ONE ("<phase>", Compiler.setStop),
                     SOME "stop compilation after <phase>, printing what it produced"),
               ("quiet", call_true Compiler.setQuiet,
@@ -248,11 +252,8 @@ fun oneRun args =
                             (fn (name, path) =>
                                 Compiler.addModuleRoot (path, name))),
                     SOME "prefix names of modules found in <path> with <name>"),
-              ("boot", ZERO (fn () =>
-                            (Compiler.enableBoot ();
-                             Settings.setBootLinking true)),
-                    SOME ("run from build tree and generate statically linked "^
-                          "executables ")),
+              ("boot", ZERO Compiler.enableBoot,
+                    SOME "run from build tree"),
               ("sigfile", ONE ("<file>", Settings.setSigFile o SOME),
                     SOME "search for cryptographic signing keys in <file>"),
               ("iflow", set_true Compiler.doIflow,

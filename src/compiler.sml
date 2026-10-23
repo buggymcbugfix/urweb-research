@@ -1840,16 +1840,26 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
     let
         val proto = Settings.currentProtocol ()
 
-        val lib = if Settings.getBootLinking () then
-                      !Settings.configLib ^ "/" ^ #linkStatic proto ^ " " ^
+        (* The runtime, liburweb_<protocol> and liburweb, from its archives,
+         * named by their paths: the program carries the runtime and loads
+         * nothing from where the compiler is installed.  Named with -L and
+         * -l, the shared libraries installed beside the archives would be
+         * taken instead, and the program would need the compiler's lib
+         * directory at run time; under Nix, the whole compiler would be in
+         * its closure.  ICU, which the shared liburweb would bring along,
+         * is named here.  The C library and the libraries that follow stay
+         * shared; -static links those statically too.
+         *
+         * -dynamic links the runtime as shared libraries after all, for a
+         * host that runs many applications and keeps one copy of it: the
+         * program then needs the compiler's lib directory at run time. *)
+        val runtime = !Settings.configLib ^ "/" ^ #linkStatic proto ^ " " ^
                       !Settings.configLib ^ "/liburweb.a " ^
                       !Settings.configIcuLibs ^ " -licui18n -licuuc -licudata -licuio"
-                  else if Settings.getStaticLinking () then
-                      " -static " ^ !Settings.configLib ^ "/" ^ #linkStatic
-                      proto ^ " " ^ !Settings.configLib ^ "/liburweb.a " ^
-                      !Settings.configIcuLibs ^ " -licui18n -licuuc -licudata -licuio"
-                  else
-                      "-L" ^ !Settings.configLib ^ " " ^ #linkDynamic proto ^ " -lurweb"
+        val lib = case Settings.getLinking () of
+                      Settings.Archives => runtime
+                    | Settings.Static => " -static " ^ runtime
+                    | Settings.Dynamic => "-L" ^ !Settings.configLib ^ " " ^ #linkDynamic proto ^ " -lurweb"
 
         val opt = if debug orelse dev then
                       " -O0 -Wno-cpp"
@@ -1919,7 +1929,7 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
 
         val linker = Option.getOpt (linker, (Settings.getCCompiler ()) ^ " -Werror" ^ opt ^ " " ^ args)
 
-        val ssl = if Settings.getStaticLinking () then
+        val ssl = if Settings.getLinking () = Settings.Static then
                       Config.openssl ^ " -ldl -lz"
                   else
                       Config.openssl
@@ -1929,6 +1939,16 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
 
         val link = link ^ extra
 
+        (* The files the project links come last, after the runtime's
+         * archives.  The linker takes from an archive only the members
+         * that define a symbol undefined when it gets there, and does not
+         * come back for more, so a runtime function that only a linked
+         * file called would be missing.  There is none: the generated code
+         * calls into urweb.o, which pulls in every other member of
+         * liburweb.a but request.o, queue.o and memmem.o, and main, in the
+         * protocol's archive, pulls in request.o and queue.o where it
+         * needs them.  A linked file that called into request.o under
+         * -protocol static, say, would have to come before the archives. *)
         val link = foldl (fn (s, link) => if preprocessor s then link else link ^ " " ^ linked s) link link'
 
         fun system s =
