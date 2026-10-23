@@ -1,0 +1,20 @@
+### (no flag)
+LIB/liburweb_http.a LIB/liburweb.a -licui18n -licuuc -licudata -licuio -lfoo link0_glue.o
+### -protocol static
+LIB/liburweb_static.a LIB/liburweb.a -licui18n -licuuc -licudata -licuio -lfoo link0_glue.o
+### -static
+-static LIB/liburweb_http.a LIB/liburweb.a -licui18n -licuuc -licudata -licuio -lfoo link0_glue.o
+### -dynamic
+-LLIB -lurweb_http -lurweb -lfoo link0_glue.o
+### -static -dynamic
+-LLIB -lurweb_http -lurweb -lfoo link0_glue.o
+### -dynamic -static
+-static LIB/liburweb_http.a LIB/liburweb.a -licui18n -licuuc -licudata -licuio -lfoo link0_glue.o
+### members, -protocol http
+linked
+### members, -protocol cgi
+not linked, undefined: uw_enqueue
+### members, -protocol fastcgi
+linked
+### members, -protocol static
+not linked, undefined: uw_enqueue uw_request_init

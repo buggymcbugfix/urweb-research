@@ -1,0 +1,4 @@
+allow url /Plain/main
+safeGet Plain/main
+
+plain

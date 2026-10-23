@@ -1,0 +1,10 @@
+### (no flag), runtime libraries it needs
+none
+### -dynamic, runtime libraries it needs
+liburweb.so.1 liburweb_http.so.1
+### -dynamic, started with the lib directory in LD_LIBRARY_PATH
+started
+### members, -dynamic, -protocol cgi
+linked
+### members, -dynamic, -protocol static
+linked

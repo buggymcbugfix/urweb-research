@@ -223,7 +223,13 @@ check-fastcgi-idle: $(URWEB)
 check-fastcgi-kept: $(URWEB)
 	bash tests/fastcgi_kept/run.sh
 
-check-local: $(URWEB) check-io-curl check-io-concurrent check-fastcgi-idle check-fastcgi-kept
+# How the runtime is linked into a program, and what -dynamic needs: see
+# tests/linking/README.md.  Through bash, as above.
+.PHONY: check-linking
+check-linking: $(URWEB)
+	bash tests/linking/run.sh
+
+check-local: $(URWEB) check-io-curl check-io-concurrent check-fastcgi-idle check-fastcgi-kept check-linking
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \

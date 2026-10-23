@@ -1,0 +1,8 @@
+ffi foo
+include foo.h
+link -lfoo
+link glue.c
+allow url /App/main
+safeGet App/main
+
+app

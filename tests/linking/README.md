@@ -1,0 +1,23 @@
+How the compiler links the runtime into a program, and what the program
+then needs.  `run.sh` (make check-linking) records two transcripts and
+compares them with `expected/`; `run.sh -u` rewrites them.
+
+`expected/linking` holds, for the flags that choose how the runtime is
+linked, the part of the link command that names it, in the order of the
+command, with the compiler's lib directory shown as LIB.  The C compiler is
+a stand-in that writes its arguments down and makes the files that `-o`
+names, so the record does not depend on the C library, on which libraries
+are installed, nor on where they are.  `app/` links `-lfoo` and a C file,
+which come last.  The flags are none, `-protocol static`, `-static`,
+`-dynamic`, and the two together in either order (the last one given
+counts).  Then `members/` is linked for real under each protocol: its C
+file takes the address of `uw_enqueue` and `uw_request_init`, runtime
+functions in `queue.o` and `request.o`, the two members of liburweb.a that
+the generated code does not need, and that only the protocol's own main
+pulls in, when it needs them.
+
+`expected/shared` holds what a program built with `-dynamic` needs at run
+time (readelf), that it starts with the lib directory in LD_LIBRARY_PATH,
+and `members/` again, linked with `-dynamic`.  It is compared where the
+runtime has shared libraries and the system is Linux with readelf; with
+`--disable-shared` the test says it skips it.
