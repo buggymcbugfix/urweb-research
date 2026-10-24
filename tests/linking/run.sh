@@ -9,9 +9,9 @@
 #                     stand-in for the C compiler writes its arguments down
 #                     and makes the files that -o names, so that the record
 #                     depends on neither the C library, nor the libraries
-#                     installed, nor the paths they are in.  Then, linked
-#                     for real, a C file that names runtime functions only
-#                     some protocols pull in from liburweb.a.
+#                     installed, nor the paths they are in. Then, linked
+#                     for real under each protocol, a C file that names
+#                     runtime functions the generated code does not need.
 #   expected/shared   What a program needs at run time when it is built
 #                     with -dynamic, and the same C file.  Left out where
 #                     the runtime has no shared libraries (a tree configured
@@ -80,23 +80,26 @@ faked() {
 }
 
 # The runtime's part of the link command in out/NAME.cc, the one run
-# without -c: in the order of the command, the archives, -static, the
-# libraries of the runtime and of ICU, -L of the compiler's lib directory
-# ($libdir, shown as LIB) and what the project links, each -l once: a tree
-# configured with ICU_LIBS naming the -l flags as well gets ICU's twice.  The
+# without -c: in the order of the command, -L of the compiler's lib
+# directory ($libdir, shown as LIB), what the project links, -static, the
+# archives and the libraries of the runtime and of ICU, each -l once, where
+# it last appears. A tree configured with ICU_LIBS naming the -l flags as
+# well gets ICU's twice, the first time ahead of the project's files. The
 # rest depends on where the libraries are, which the test does not care about.
 lines() {
   awk -v lib="$libdir" '
     $0 == "--" {
       if (!compile) {
-        for (i = 1; i <= n; i++) printf "%s%s", (i > 1 ? " " : ""), tok[i]
+        sep = ""
+        for (i = 1; i <= n; i++)
+          if (!(tok[i] in last) || last[tok[i]] == i) { printf "%s%s", sep, tok[i]; sep = " " }
         printf "\n"
       }
-      n = 0; compile = 0; delete seen; next
+      n = 0; compile = 0; delete last; next
     }
     $0 == "-c" { compile = 1 }
     $0 == "-static" { tok[++n] = $0 }
-    $0 ~ /^-l(urweb|icu|foo)/ && !($0 in seen) { seen[$0] = 1; tok[++n] = $0 }
+    $0 ~ /^-l(urweb|icu|foo)/ { tok[++n] = $0; last[$0] = n }
     $0 ~ /\.a$/ { t = $0; sub(lib, "LIB", t); tok[++n] = t }
     $0 == "-L" lib { tok[++n] = "-LLIB" }
     $0 ~ /\/link[0-9]+_[^\/]*\.o$/ { t = $0; sub(/.*\//, "", t); tok[++n] = t }

@@ -1859,15 +1859,23 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
          *
          * -dynamic links the runtime as shared libraries after all, for a
          * host that runs many applications and keeps one copy of it: the
-         * program then needs the compiler's lib directory at run time. *)
+         * program then needs the compiler's lib directory at run time.
+         *
+         * The files the project links go between the directories and the
+         * runtime. The linker takes from an archive only the members that
+         * define a symbol undefined when it gets there, so the runtime has
+         * to come after every file that calls into it. The directories
+         * come first, so that a -L of the project's cannot decide which
+         * runtime or ICU the -l flags here find. *)
         val archives = map (fn a => !Settings.configLib ^ "/" ^ a) [#linkStatic proto, "liburweb.a"]
-        val runtime = String.concatWith " " archives ^ " " ^
-                      !Settings.configIcuLibs ^ " " ^ Config.icuLdlibs ^
-                      " -L" ^ !Settings.configLib
-        val lib = case Settings.getLinking () of
-                      Settings.Archives => runtime
-                    | Settings.Static => " -static " ^ runtime
-                    | Settings.Dynamic => "-L" ^ !Settings.configLib ^ " " ^ #linkDynamic proto ^ " -lurweb"
+        val libDir = "-L" ^ !Settings.configLib
+        val archiveDirs = !Settings.configIcuLibs ^ " " ^ libDir
+        val fromArchives = String.concatWith " " archives ^ " " ^ Config.icuLdlibs
+        val (dirs, runtime) =
+            case Settings.getLinking () of
+                Settings.Archives => (archiveDirs, fromArchives)
+              | Settings.Static => (archiveDirs, "-static " ^ fromArchives)
+              | Settings.Dynamic => (libDir, #linkDynamic proto ^ " -lurweb")
 
         val opt = if debug orelse dev then
                       " -O0 -Wno-cpp"
@@ -1942,22 +1950,12 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
                   else
                       Config.openssl
 
-        val link = linker
-                   ^ " " ^ escapeFilename oname ^ " " ^ lib ^ " -lm " ^ ssl ^ " " ^ libs ^ " -o " ^ escapeFilename ename
+        (* The files the project links between the runtime's directories and
+         * the runtime: see archives above. *)
+        val link = foldl (fn (s, link) => if preprocessor s then link else link ^ " " ^ linked s)
+                         (linker ^ " " ^ escapeFilename oname ^ " " ^ dirs) link'
 
-        val link = link ^ extra
-
-        (* The files the project links come last, after the runtime's
-         * archives.  The linker takes from an archive only the members
-         * that define a symbol undefined when it gets there, and does not
-         * come back for more, so a runtime function that only a linked
-         * file called would be missing.  There is none: the generated code
-         * calls into urweb.o, which pulls in every other member of
-         * liburweb.a but request.o, queue.o and memmem.o, and main, in the
-         * protocol's archive, pulls in request.o and queue.o where it
-         * needs them.  A linked file that called into request.o under
-         * -protocol static, say, would have to come before the archives. *)
-        val link = foldl (fn (s, link) => if preprocessor s then link else link ^ " " ^ linked s) link link'
+        val link = link ^ " " ^ runtime ^ " -lm " ^ ssl ^ " " ^ libs ^ " -o " ^ escapeFilename ename ^ extra
 
         fun system s =
             (if debug then

@@ -8,13 +8,13 @@ command, with the compiler's lib directory shown as LIB.  The C compiler is
 a stand-in that writes its arguments down and makes the files that `-o`
 names, so the record does not depend on the C library, on which libraries
 are installed, nor on where they are.  `app/` links `-lfoo` and a C file,
-which come last.  The flags are none, `-protocol static`, `-static`,
-`-dynamic`, and the two together in either order (the last one given
-counts).  Then `members/` is linked for real under each protocol: its C
-file takes the address of `uw_enqueue` and `uw_request_init`, runtime
-functions in `queue.o` and `request.o`, the two members of liburweb.a that
-the generated code does not need, and that only the protocol's own main
-pulls in, when it needs them.
+which come between the runtime's directories and the runtime. The flags
+are none, `-protocol static`, `-static`, `-dynamic`, and the two together
+in either order (the last one given counts). Then `members/` is linked
+for real under each protocol: its C file takes the address of `uw_enqueue`
+and `uw_request_init`, runtime functions in `queue.o` and `request.o`, the
+two members of liburweb.a that the generated code does not need. The
+linker takes them from the archive for the C file, which comes before it.
 
 `expected/shared` holds what a program built with `-dynamic` needs at run
 time (readelf), that it starts with the lib directory in LD_LIBRARY_PATH,
