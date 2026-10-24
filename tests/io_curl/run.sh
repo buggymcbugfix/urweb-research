@@ -13,44 +13,23 @@
 # application started afresh, on a database of its own loaded from the
 # schema and whatever the case seeds, and the provider's charges forgotten.
 #
-# Run from the root of the tree (make check-io-curl): the compiler is the
-# one URWEB names, with the flags in URWEB_FLAGS, or else bin/urweb with
-# -boot -noEmacs.  Needs python3 (the provider), curl and sqlite3.  Exit
-# status: 0 every case passed, 1 some failed, 2 could not run.
+# Run from the root of the tree (make check-io-curl). The compiler, -u and
+# the exit status are as tests/lib.sh says. Needs python3 (the provider),
+# curl and sqlite3.
 
-set -u
+. "$(dirname "$0")/../lib.sh"
+needs python3 curl sqlite3
+needs_urweb
+fresh_out
 
-here=$(cd "$(dirname "$0")" && pwd)
-root=$(cd "$here/../.." && pwd)
-out=$here/out
-urweb=${URWEB:-$root/bin/urweb}
-urweb_flags=${URWEB_FLAGS:--boot -noEmacs}
-
-update=0
-if [ "${1:-}" = "-u" ]; then update=1; shift; fi
-
-die() { echo "run.sh: $*" >&2; exit 2; }
-
-for tool in python3 curl sqlite3; do
-  command -v "$tool" >/dev/null || die "$tool is needed"
-done
-[ -x "$urweb" ] || die "no compiler at $urweb: build it (make mlton) or set URWEB"
-
-rm -rf "$out"
-mkdir -p "$out"
-
-# The application, and the schema its database starts from.  The compiler
-# runs from the root, so that the file names in its messages are as the
-# snapshots have them.
-( cd "$root" && rm -f tests/io_curl/app/curl_io.exe \
-    && "$urweb" $urweb_flags -dbms sqlite -sql "$out/schema.sql" tests/io_curl/app/curl_io ) \
-  > "$out/build.log" 2>&1 || { cat "$out/build.log" >&2; die "the application failed to build"; }
+# The application, and the schema its database starts from.
+rm -f "$here/app/curl_io.exe"
+build build.log -dbms sqlite -sql "$out/schema.sql" tests/io_curl/app/curl_io
 exe=$here/app/curl_io.exe
 
 # The provider, until this script ends.
 python3 "$here/httpd.py" > "$out/httpd.out" 2> "$out/httpd.err" &
 httpd_pid=$!
-app_pid=
 cleanup() {
   [ -n "$app_pid" ] && kill "$app_pid" 2>/dev/null
   kill "$httpd_pid" 2>/dev/null
@@ -67,25 +46,15 @@ closed=http://127.0.0.1:$(sed -n 's/^closed=//p' "$out/httpd.out")
 # ---------------------------------------------------------------- helpers
 # For the cases.  Everything they print goes to the transcript.
 
-transcript=
-log=
-db=
 port=
 sig=
-log_mark=0
-
-# seed SQL...: rows for the database, before the application starts.
-seed() { printf '%s\n' "$@" | sqlite3 "$db"; }
 
 # start [-t N]: the application, on the case's database; the case's seed
 # must come first.  The server says pid=, port= and status= on descriptor 3
 # once it listens (-d3), and goes to the background.  Its environment is
 # only what is named here, plus the sanitizers' options when set.
 start() {
-  eval "$( env -i ${LD_LIBRARY_PATH:+LD_LIBRARY_PATH="$LD_LIBRARY_PATH"} PATH="$PATH" \
-             ${ASAN_OPTIONS:+ASAN_OPTIONS="$ASAN_OPTIONS"} ${UBSAN_OPTIONS:+UBSAN_OPTIONS="$UBSAN_OPTIONS"} \
-             CURL_TEST_HTTP="$http" CURL_TEST_CLOSED="$closed" \
-             URWEB_SQLITE_DB_PATH="$db" \
+  eval "$( "${clean_env[@]}" CURL_TEST_HTTP="$http" CURL_TEST_CLOSED="$closed" URWEB_SQLITE_DB_PATH="$db" \
              "$exe" "$@" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>> "$log" 2>&1 )"
   [ "${status:-}" = OK ] || { cat "$log" >&2; die "the application did not start"; }
   app_pid=$pid
@@ -96,14 +65,6 @@ start() {
   # ask for it.  The key is drawn afresh at every start.
   sig=$(curl -s -m 5 "http://127.0.0.1:$port/Curl_io/main" | sed -n 's/.*sig="\([0-9A-F]*\)".*/\1/p')
   [ -n "$sig" ] || { cat "$log" >&2; die "the page carries no cookie signature"; }
-}
-
-stop() {
-  if [ -n "$app_pid" ]; then
-    kill "$app_pid" 2>/dev/null
-    for _ in $(seq 100); do kill -0 "$app_pid" 2>/dev/null || break; sleep 0.05; done
-    app_pid=
-  fi
 }
 
 # rpc PATH: an RPC as the browser sends it, signature included; the status
@@ -119,18 +80,6 @@ page() {
   echo "> GET $1"
   curl -s -m 30 "http://127.0.0.1:$port$1" \
     | sed -e 's#</div>#\n#g' -e 's/<[^>]*>//g' | grep -v '^\s*$'
-}
-
-# wait_for TEXT: until the server has logged a line holding TEXT, 30 s at
-# most; then the log since the last look.
-wait_for() {
-  local i
-  for i in $(seq 300); do
-    tail -n +"$((log_mark + 1))" "$log" | grep -q -F -- "$1" && break
-    sleep 0.1
-  done
-  tail -n +"$((log_mark + 1))" "$log" | grep -q -F -- "$1" || echo "~ not logged within 30 s: $1"
-  show_log
 }
 
 # show_log: what the server logged since the last look, less its own lines
@@ -160,38 +109,12 @@ rows() {
 
 # ------------------------------------------------------------------ cases
 
-if [ $# -gt 0 ]; then
-  cases=("$@")
-else
-  cases=()
-  for f in "$here"/cases/*.sh; do cases+=("$(basename "$f" .sh)"); done
-fi
-
-failed=0
-for case in "${cases[@]}"; do
-  script=$here/cases/$case.sh
-  expected=$here/cases/$case.expected
-  transcript=$out/$case.actual
-  log=$out/$case.log
-  db=$out/$case.db
-  log_mark=0
-  [ -f "$script" ] || { echo "$case: no such case" >&2; failed=1; continue; }
-  rm -f "$db" "$db-wal" "$db-shm"
-  sqlite3 "$db" < "$out/schema.sql" > /dev/null
-  : > "$log"
+# case_setup NAME: what a case starts from (see run_cases in tests/lib.sh),
+# and the provider's charges forgotten.
+case_setup() {
+  fresh_case "$1"
   curl -s -m 5 -X POST "$http/reset" > /dev/null
-  . "$script" > "$transcript" 2>&1
-  stop
-  if [ $update = 1 ]; then
-    cp "$transcript" "$expected"
-    echo "$case: updated"
-  elif [ ! -f "$expected" ]; then
-    echo "$case: nothing expected yet (run with -u to record)" >&2; failed=1
-  elif diff -u "$expected" "$transcript" > "$out/$case.diff"; then
-    echo "$case: ok"
-  else
-    echo "$case: FAILED" >&2; cat "$out/$case.diff" >&2; failed=1
-  fi
-done
+}
 
+run_cases "$@"
 exit $failed

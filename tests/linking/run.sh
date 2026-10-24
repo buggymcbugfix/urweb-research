@@ -25,28 +25,13 @@
 #
 #   tests/linking/run.sh [-u]      -u rewrites expected
 #
-# Run from the root of the tree (make check-linking): the compiler is the
-# one URWEB names, with the flags in URWEB_FLAGS, or else bin/urweb with
-# -boot -noEmacs.  Exit status: 0 passed, 1 failed, 2 could not run.
+# Run from the root of the tree (make check-linking). The compiler, -u and
+# the exit status are as tests/lib.sh says.
 
-set -u
-
-here=$(cd "$(dirname "$0")" && pwd)
-root=$(cd "$here/../.." && pwd)
-out=$here/out
-urweb=${URWEB:-$root/bin/urweb}
-urweb_flags=${URWEB_FLAGS:--boot -noEmacs}
-rel=tests/linking
-
-update=0
-if [ "${1:-}" = "-u" ]; then update=1; shift; fi
-
-die() { echo "run.sh: $*" >&2; exit 2; }
-
-[ -x "$urweb" ] || die "no compiler at $urweb: build it (make mlton) or set URWEB"
-
-rm -rf "$out"
-mkdir -p "$out"
+. "$(dirname "$0")/../lib.sh"
+no_cases "$@"
+needs_urweb
+fresh_out
 
 # The stand-in for the C compiler: its arguments, one to a line and `--`
 # after the last, go to $FAKECC_LOG, and the files named by -o are made.
@@ -62,20 +47,18 @@ while [ $# -gt 0 ]; do
 done
 EOS
 
-# compile NAME PROJECT FLAGS...: the project, from the root of the tree,
-# with the compiler's own C compiler; the log of the run is out/NAME.log
-# and the program out/NAME.exe.
-compile() {
+# program NAME PROJECT FLAGS...: the project, with the compiler's own C
+# compiler, into out/NAME.exe; the log of the run is out/NAME.log.
+program() {
   local name=$1 project=$2; shift 2
-  ( cd "$root" && "$urweb" $urweb_flags -dbms sqlite -db "$out/x.db" "$@" \
-      -output "$out/$name.exe" "$rel/$project" ) > "$out/$name.log" 2>&1
+  compile "$name.log" -dbms sqlite -db "$out/x.db" "$@" -output "$out/$name.exe" "tests/linking/$project"
 }
 
-# faked NAME FLAGS...: as compile, but the C compiler is the stand-in; the
+# faked NAME FLAGS...: as program, but the C compiler is the stand-in; the
 # arguments it was called with are in out/NAME.cc.
 faked() {
   local name=$1; shift
-  FAKECC_LOG=$out/$name.cc compile "$name" app/app -ccompiler "sh $out/fakecc" "$@" \
+  FAKECC_LOG=$out/$name.cc program "$name" app/app -ccompiler "sh $out/fakecc" "$@" \
     || { cat "$out/$name.log" >&2; die "the compiler failed on the stand-in"; }
 }
 
@@ -130,7 +113,7 @@ libdir=$(sed -n 's|/liburweb\.a$||p' "$out/default.cc" | head -n 1)
 # to link for.
 members() {
   local name=$1; shift
-  if compile "$name" members/members "$@"; then
+  if program "$name" members/members "$@"; then
     echo "linked"
   else
     echo "not linked, undefined: $(grep -i undefined "$out/$name.log" | grep -o 'uw_[a-z_]*' | sort -u | tr '\n' ' ' | sed 's/ *$//')"
@@ -156,10 +139,10 @@ if [ -e "$libdir/liburweb.so" ] && [ "$(uname -s)" = Linux ] && command -v reade
   }
   {
     echo "### (no flag), runtime libraries it needs"
-    compile built plain/plain || { cat "$out/built.log" >&2; die "the application failed to build"; }
+    program built plain/plain || { cat "$out/built.log" >&2; die "the application failed to build"; }
     needed "$out/built.exe"
     echo "### -dynamic, runtime libraries it needs"
-    compile builtdyn plain/plain -dynamic || { cat "$out/builtdyn.log" >&2; die "the application failed to build with -dynamic"; }
+    program builtdyn plain/plain -dynamic || { cat "$out/builtdyn.log" >&2; die "the application failed to build with -dynamic"; }
     needed "$out/builtdyn.exe"
     echo "### -dynamic, started with the lib directory in LD_LIBRARY_PATH"
     if LD_LIBRARY_PATH=$libdir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} "$out/builtdyn.exe" -h 2>&1 | head -n 1 | grep -q '^Usage:'; then
@@ -182,15 +165,14 @@ fi
 noarchives=0
 if [ "$(uname -s)" = Linux ] && command -v cc >/dev/null; then
   noarchives=1
-  cc -shared -fPIC -o "$out/hide.so" "$here/hide.c" -ldl > "$out/hide.log" 2>&1 ||
-    { cat "$out/hide.log" >&2; die "cannot build hide.so"; }
+  build_preload hide "$here/hide.c"
   # hidden NAME SUFFIX FLAGS...: compile app/ with the paths that end in
   # SUFFIX hidden; what the compiler printed, its exit status, and whether
   # it called the C compiler.
   hidden() {
     local name=$1 suffix=$2 status called; shift 2
     HIDE=$suffix LD_PRELOAD=$out/hide.so FAKECC_LOG=$out/$name.cc \
-      compile "$name" app/app -ccompiler "sh $out/fakecc" "$@"
+      program "$name" app/app -ccompiler "sh $out/fakecc" "$@"
     status=$?
     sed "s|$libdir|LIB|g" "$out/$name.log"
     if [ -s "$out/$name.cc" ]; then called=called; else called="not called"; fi
@@ -212,17 +194,9 @@ if [ "$(uname -s)" = Linux ] && command -v cc >/dev/null; then
   } > "$out/no-archives"
 fi
 
-check() {  # check NAME: out/NAME against expected/NAME
-  if [ $update = 1 ]; then
-    mkdir -p "$here/expected"; cp "$out/$1" "$here/expected/$1"; echo "updated expected/$1"
-  elif diff -u "$here/expected/$1" "$out/$1" > "$out/$1.diff"; then
-    echo "check-linking: $1 ok"
-  else
-    cat "$out/$1.diff"; echo "check-linking: $1 FAILED"; failed=1
-  fi
-}
-failed=0
+# check NAME: out/NAME against expected/NAME.
+check() { compare "$1" "$here/expected/$1" "$out/$1"; }
 check linking
-if [ $shared = 1 ]; then check shared; else echo "check-linking: shared skipped, no shared runtime in $libdir"; fi
-if [ $noarchives = 1 ]; then check no-archives; else echo "check-linking: no-archives skipped, not on Linux or no cc"; fi
+if [ $shared = 1 ]; then check shared; else echo "$suite: shared skipped, no shared runtime in $libdir"; fi
+if [ $noarchives = 1 ]; then check no-archives; else echo "$suite: no-archives skipped, not on Linux or no cc"; fi
 exit $failed

@@ -11,24 +11,14 @@
 # A case that records "same" for an edit configure would see is a gap in the
 # id, and is pinned as it is: see the comments in the list.
 #
-# Run from anywhere in the tree (make check-shell-id).  Needs nix-instantiate
-# and git, outside nix-shell and nix-build.  Exit status: 0 as expected, 1
-# not, 2 could not run.
+# Run from anywhere in the tree (make check-shell-id). -u and the exit
+# status are as tests/lib.sh says. Needs nix-instantiate and git, outside
+# nix-shell and nix-build.
 
-set -u
-
-here=$(cd "$(dirname "$0")" && pwd)
-root=$(cd "$here/../.." && pwd)
+. "$(dirname "$0")/../lib.sh"
+no_cases "$@"
+needs nix-instantiate git sed cmp
 files="shell.nix derivation.nix nixpkgs.nix"
-
-update=0
-if [ "${1:-}" = "-u" ]; then update=1; shift; fi
-
-die() { echo "run.sh: $*" >&2; exit 2; }
-
-for tool in nix-instantiate git sed cmp; do
-  command -v "$tool" >/dev/null || die "$tool is needed"
-done
 
 tmp=$(mktemp -d) || die "no temporary directory"
 tree=$tmp/tree
@@ -93,15 +83,5 @@ run() {
 }
 
 run >"$tmp/got" || exit 2
-
-if [ "$update" = 1 ]; then
-  cp "$tmp/got" "$here/expected"
-  echo "rewrote $here/expected"
-  exit 0
-fi
-if diff -u "$here/expected" "$tmp/got"; then
-  echo "shell_id: ok"
-else
-  echo "shell_id: FAILED"
-  exit 1
-fi
+compare "" "$here/expected" "$tmp/got"
+exit $failed

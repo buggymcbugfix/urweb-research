@@ -16,54 +16,28 @@
 # application started afresh, with several worker threads, on a database of
 # its own loaded from the schema and whatever the case seeds.
 #
-# Run from the root of the tree (make check-io-concurrent): the compiler is
-# the one URWEB names, with the flags in URWEB_FLAGS, or else bin/urweb with
-# -boot -noEmacs.  Needs curl and sqlite3, and on Linux cc for the shim
-# writer_first.c.  Exit status: 0 every case passed, 1 some failed, 2
-# could not run.
+# Run from the root of the tree (make check-io-concurrent). The compiler, -u
+# and the exit status are as tests/lib.sh says. Needs curl and sqlite3, and
+# on Linux cc for the shim writer_first.c.
 
-set -u
+. "$(dirname "$0")/../lib.sh"
+needs curl sqlite3
+needs_urweb
+fresh_out
 
-here=$(cd "$(dirname "$0")" && pwd)
-root=$(cd "$here/../.." && pwd)
-out=$here/out
-urweb=${URWEB:-$root/bin/urweb}
-urweb_flags=${URWEB_FLAGS:--boot -noEmacs}
-
-update=0
-if [ "${1:-}" = "-u" ]; then update=1; shift; fi
-
-die() { echo "run.sh: $*" >&2; exit 2; }
-
-for tool in curl sqlite3; do
-  command -v "$tool" >/dev/null || die "$tool is needed"
-done
-[ -x "$urweb" ] || die "no compiler at $urweb: build it (make mlton) or set URWEB"
-
-rm -rf "$out"
-mkdir -p "$out"
-
-# The application, twice: as it is, and with the SQL cache.  The compiler
-# runs from the root, so that the file names in its messages are as the
-# snapshots have them.
-build() {
-  ( cd "$root" && "$urweb" $urweb_flags -dbms sqlite "$@" tests/io_concurrent/app/concurrent ) \
-    > "$out/build.log" 2>&1 || { cat "$out/build.log" >&2; die "the application failed to build"; }
-}
-build -sql "$out/schema.sql" -output "$out/concurrent.exe"
-build -sqlcache -output "$out/concurrent-cache.exe"
+# The application, twice: as it is, and with the SQL cache.
+build build.log -dbms sqlite -sql "$out/schema.sql" -output "$out/concurrent.exe" tests/io_concurrent/app/concurrent
+build build-cache.log -dbms sqlite -sqlcache -output "$out/concurrent-cache.exe" tests/io_concurrent/app/concurrent
 
 # For the cases that need read-write locks to let a waiting writer go first,
 # as macOS's do: on Linux a shim that makes glibc's locks do so (see
 # writer_first.c); elsewhere the platform's own locks.
 writer_first=
 if [ "$(uname -s)" = Linux ]; then
-  cc -shared -fPIC -O2 -o "$out/writer_first.so" "$here/writer_first.c" -ldl > "$out/writer_first.log" 2>&1 \
-    || { cat "$out/writer_first.log" >&2; die "the shim writer_first.c failed to build"; }
+  build_preload writer_first "$here/writer_first.c"
   writer_first=$out/writer_first.so
 fi
 
-app_pid=
 cleanup() {
   [ -n "$app_pid" ] && kill "$app_pid" 2>/dev/null
   # whatever a case left in the background
@@ -74,15 +48,9 @@ trap cleanup EXIT
 # ---------------------------------------------------------------- helpers
 # For the cases.  Everything they print goes to the transcript.
 
-transcript=
-log=
-db=
 port=
-log_mark=0
+transcript_name=
 declare -A client_id client_pass
-
-# seed SQL...: rows for the database, before the application starts.
-seed() { printf '%s\n' "$@" | sqlite3 "$db"; }
 
 # launch [-cache] [-writer-first] [FLAGS...]: the application, with eight
 # worker threads unless the flags say otherwise, on the case's database; the
@@ -102,10 +70,7 @@ launch() {
   done
   [ -n "$preload" ] && asan="${asan:+$asan:}verify_asan_link_order=0"
   status=
-  eval "$( env -i ${LD_LIBRARY_PATH:+LD_LIBRARY_PATH="$LD_LIBRARY_PATH"} PATH="$PATH" \
-             ${asan:+ASAN_OPTIONS="$asan"} ${UBSAN_OPTIONS:+UBSAN_OPTIONS="$UBSAN_OPTIONS"} \
-             ${preload:+LD_PRELOAD="$preload"} \
-             URWEB_SQLITE_DB_PATH="$db" \
+  eval "$( "${clean_env[@]}" ${asan:+ASAN_OPTIONS="$asan"} ${preload:+LD_PRELOAD="$preload"} URWEB_SQLITE_DB_PATH="$db" \
              "$exe" -t 8 "$@" -a 127.0.0.1 -p 8000 -P 9000 -d3 3>&1 1>> "$log" 2>&1 )"
 }
 
@@ -130,14 +95,6 @@ try_start() {
     bucket "the application started" $(( (e - s) / 1000000 ))
   else
     bucket "the application gave up" $(( (e - s) / 1000000 ))
-  fi
-}
-
-stop() {
-  if [ -n "$app_pid" ]; then
-    kill "$app_pid" 2>/dev/null
-    for _ in $(seq 100); do kill -0 "$app_pid" 2>/dev/null || break; sleep 0.05; done
-    app_pid=
   fi
 }
 
@@ -232,18 +189,6 @@ ticks() {
   if [ "$n" -eq 0 ]; then echo "$1: no tick"; else echo "$1: ticks"; fi
 }
 
-# wait_for TEXT: until the server has logged a line holding TEXT, 30 s at
-# most; then the log since the last look.
-wait_for() {
-  local i
-  for i in $(seq 300); do
-    tail -n +"$((log_mark + 1))" "$log" | grep -q -F -- "$1" && break
-    sleep 0.1
-  done
-  tail -n +"$((log_mark + 1))" "$log" | grep -q -F -- "$1" || echo "~ not logged within 30 s: $1"
-  show_log
-}
-
 # show_log: what the server logged since the last look, less its own lines
 # about connections and requests, sorted, since the threads interleave.
 show_log() {
@@ -295,39 +240,13 @@ rows() {
 
 # ------------------------------------------------------------------ cases
 
-if [ $# -gt 0 ]; then
-  cases=("$@")
-else
-  cases=()
-  for f in "$here"/cases/*.sh; do cases+=("$(basename "$f" .sh)"); done
-fi
-
-failed=0
-for case in "${cases[@]}"; do
-  script=$here/cases/$case.sh
-  expected=$here/cases/$case.expected
-  transcript_name=$case
-  transcript=$out/$case.actual
-  log=$out/$case.log
-  db=$out/$case.db
-  log_mark=0
+# case_setup NAME: what a case starts from (see run_cases in tests/lib.sh),
+# with no client yet; the files of its requests are out/NAME.*.
+case_setup() {
+  fresh_case "$1"
+  transcript_name=$1
   client_id=(); client_pass=()
-  [ -f "$script" ] || { echo "$case: no such case" >&2; failed=1; continue; }
-  rm -f "$db" "$db-wal" "$db-shm"
-  sqlite3 "$db" < "$out/schema.sql" > /dev/null
-  : > "$log"
-  . "$script" > "$transcript" 2>&1
-  stop
-  if [ $update = 1 ]; then
-    cp "$transcript" "$expected"
-    echo "$case: updated"
-  elif [ ! -f "$expected" ]; then
-    echo "$case: nothing expected yet (run with -u to record)" >&2; failed=1
-  elif diff -u "$expected" "$transcript" > "$out/$case.diff"; then
-    echo "$case: ok"
-  else
-    echo "$case: FAILED" >&2; cat "$out/$case.diff" >&2; failed=1
-  fi
-done
+}
 
+run_cases "$@"
 exit $failed
