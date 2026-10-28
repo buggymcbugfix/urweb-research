@@ -1,0 +1,201 @@
+fastcgi without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi -q: ran
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi -l err: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi -l warning: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi -l info: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi -l debug: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi -l bogus: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi -q -l debug: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi -l debug -q: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi, stderr to the journal, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi, stderr to the journal, -l debug: ended with status 1
+  stdout 1 The '-q' option turns off the debug output on stdout.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi, a request whose web server closed the connection before the program started, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Dropped URI /main: the web server has closed the connection
+  stdout 1 Served URI /main ...
+  stdout 1 main: running
+fastcgi, the page long, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 L[1100 x]E
+  stdout 1 Served URI /long/1100 ...
+fastcgi, the page lines, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Served URI /lines ...
+  stdout 1 ends without a newline
+  stdout 1 first line
+  stdout 1 second line
+fastcgi, 40 requests for long at once, 4 threads, without flags: ran
+  stdout 6 Database connection initialized.
+  stdout 40 L[1100 x]E
+  stdout 40 Served URI /long/1100 ...
+fastcgi, the page slow, its web server leaving meanwhile, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Served URI /slow ...
+  stdout 1 slow: done
+  stdout 1 slow: running
+  stderr 1 fastcgi_flush() failed in fastcgi_end_request().
+fastcgi, stderr to the journal, a request whose web server closed the connection before the program started, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Dropped URI /main: the web server has closed the connection
+  stdout 1 Served URI /main ...
+  stdout 1 main: running
+fastcgi, stderr to the journal, the page long, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 L[1100 x]E
+  stdout 1 Served URI /long/1100 ...
+fastcgi, stderr to the journal, the page lines, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Served URI /lines ...
+  stdout 1 ends without a newline
+  stdout 1 first line
+  stdout 1 second line
+fastcgi, stderr to the journal, 40 requests for long at once, 4 threads, without flags: ran
+  stdout 6 Database connection initialized.
+  stdout 40 L[1100 x]E
+  stdout 40 Served URI /long/1100 ...
+fastcgi, stderr to the journal, the page slow, its web server leaving meanwhile, without flags: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Served URI /slow ...
+  stdout 1 slow: done
+  stdout 1 slow: running
+  stderr 1 fastcgi_flush() failed in fastcgi_end_request().
+http without flags: ran
+  stdout 1
+  stdout 2 Accepted connection.
+  stdout 3 Database connection initialized.
+  stdout 1 Failed URI /fail ...
+  stdout 2 Handling connection with thread #0.
+  stdout 1 Listening on port 8080....
+  stdout 1 ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,
+  stdout 1 Served URI /main ...
+  stdout 1 Serving URI /fail....
+  stdout 1 Serving URI /main....
+  stdout 1 Starting the Ur/Web native HTTP server, which is intended for use
+  stdout 1 behind a production-quality HTTP server, for a real deployment.
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+http -q: ran
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+http -l debug: ended with status 1
+  stdout 1
+  stdout 1              [ "$status" = 'OK' ] || { echo failed; exit 1 }
+  stdout 1              eval "$(... -d3 3>&1 1>/dev/null)"
+  stdout 1          'port' or 'socket' to file descriptor <fd>. Typical shell usage:
+  stdout 1          arg is provided, the parent first writes shell assignments for 'pid' and either
+  stdout 1 The '-P' option picks the first free port in the range [p..P], where p is the value of '-p' (default 8080) and P is the value of '-P'.
+  stdout 1 The '-T' option sets socket recv timeout (0 disables timeout, default is 5 sec).
+  stdout 1 The '-d' option daemonizes the server by forking once it is listening; when the optional <fd>
+  stdout 1 The '-k' option turns on HTTP keepalive.
+  stdout 1 The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)
+  stdout 1 The '-q' option turns off some chatter on stdout.
+  stdout 1 Usage: PROGRAM [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-q] [-T SEC] [-d[fd]]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+http -l bogus: ended with status 1
+  stdout 1
+  stdout 1              [ "$status" = 'OK' ] || { echo failed; exit 1 }
+  stdout 1              eval "$(... -d3 3>&1 1>/dev/null)"
+  stdout 1          'port' or 'socket' to file descriptor <fd>. Typical shell usage:
+  stdout 1          arg is provided, the parent first writes shell assignments for 'pid' and either
+  stdout 1 The '-P' option picks the first free port in the range [p..P], where p is the value of '-p' (default 8080) and P is the value of '-P'.
+  stdout 1 The '-T' option sets socket recv timeout (0 disables timeout, default is 5 sec).
+  stdout 1 The '-d' option daemonizes the server by forking once it is listening; when the optional <fd>
+  stdout 1 The '-k' option turns on HTTP keepalive.
+  stdout 1 The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)
+  stdout 1 The '-q' option turns off some chatter on stdout.
+  stdout 1 Usage: PROGRAM [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-q] [-T SEC] [-d[fd]]
+  stderr 1 PROGRAM: invalid option -- 'l'
+  stderr 1 Unknown command-line option
+http, stderr to the journal, without flags: ran
+  stdout 1
+  stdout 2 Accepted connection.
+  stdout 3 Database connection initialized.
+  stdout 1 Failed URI /fail ...
+  stdout 2 Handling connection with thread #0.
+  stdout 1 Listening on port 8080....
+  stdout 1 ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,
+  stdout 1 Served URI /main ...
+  stdout 1 Serving URI /fail....
+  stdout 1 Serving URI /main....
+  stdout 1 Starting the Ur/Web native HTTP server, which is intended for use
+  stdout 1 behind a production-quality HTTP server, for a real deployment.
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+cgi, the page /main, without flags: ended with status 0
+  stdout 1
+  stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>
+  stdout 1 Content-type: text/html; charset=utf-8
+static, the page /main, without flags: ended with status 0
+  stdout 2
+  stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>main: running
+  stdout 1 Content-type: text/html; charset=utf-8
+cgi, the page /fail, without flags: ended with status 1
+  stdout 1
+  stdout 1 </body></html>
+  stdout 1 <html><head><title>Fatal Error</title></head><body>Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stdout 1 Content-type: text/html
+  stdout 1 Status: 500 Internal Server Error
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+static, the page /fail, without flags: ended with status 1
+  stdout 1 fail: running
+  stderr 1 Error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+cgi, the page /lines, without flags: ended with status 0
+  stdout 1
+  stdout 1 <!DOCTYPE html><html><head></head><body>lines</body></html>
+  stdout 1 Content-type: text/html; charset=utf-8
+static, the page /lines, without flags: ended with status 0
+  stdout 2
+  stdout 1 <!DOCTYPE html><html><head></head><body>lines</body></html>first line
+  stdout 1 Content-type: text/html; charset=utf-8
+  stdout 1 ends without a newline
+  stdout 1 second line

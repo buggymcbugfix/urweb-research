@@ -1,0 +1,7 @@
+rewrite all Levels/*
+ffi levelsffi
+include levelsffi.h
+link levelsffi.c
+benignEffectful Levelsffi.wait
+
+levels

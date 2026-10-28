@@ -223,13 +223,20 @@ check-fastcgi-idle: $(URWEB)
 check-fastcgi-kept: $(URWEB)
 	bash tests/fastcgi_kept/run.sh
 
+# Where a program's log lines go with -q and -l, and with stderr connected
+# to the journal: see tests/log_levels/README.md. Needs python3. Through
+# bash, as above.
+.PHONY: check-log-levels
+check-log-levels: $(URWEB)
+	bash tests/log_levels/run.sh
+
 # How the runtime is linked into a program, and what -dynamic needs: see
 # tests/linking/README.md.  Through bash, as above.
 .PHONY: check-linking
 check-linking: $(URWEB)
 	bash tests/linking/run.sh
 
-check-local: $(URWEB) check-io-curl check-io-concurrent check-fastcgi-idle check-fastcgi-kept check-linking
+check-local: $(URWEB) check-io-curl check-io-concurrent check-fastcgi-idle check-fastcgi-kept check-log-levels check-linking
 	@$(TEST_PRELUDE); \
 	\
 	echo "Running IPv4 test."; \
