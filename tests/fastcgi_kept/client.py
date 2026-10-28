@@ -2,8 +2,9 @@
 # Connections to a FastCGI program as web servers open them, and what the
 # program does with them: many kept open at once, one after the other and
 # closed, requests that follow each other on one, the connections
-# FCGI_WEB_SERVER_ADDRS lets in, and the polls for messages that it holds
-# for a page.  Prints one line for each thing tried.
+# FCGI_WEB_SERVER_ADDRS lets in, the polls for messages that it holds for a
+# page, and requests whose web server has given up on them. Prints one line
+# for each thing tried.
 #
 #   client.py PROGRAM OUT-DIRECTORY
 #
@@ -100,12 +101,15 @@ class Peer:
     """A connection to the program, from a socket bound to the path bound_to
     if that is given."""
 
-    def __init__(self, program, bound_to=None):
-        self.sock = socket.socket(program.family, socket.SOCK_STREAM)
+    def __init__(self, program, bound_to=None, sock=None):
+        """On sock, a connection made already, if that is given."""
+        if sock is None:
+            sock = socket.socket(program.family, socket.SOCK_STREAM)
+            if bound_to:
+                sock.bind(bound_to)
+            sock.connect(program.address)
+        self.sock = sock
         self.sock.settimeout(WAIT)
-        if bound_to:
-            self.sock.bind(bound_to)
-        self.sock.connect(program.address)
         self.data = b""
 
     def send(self, data):
@@ -187,8 +191,15 @@ def program_environment(env=None):
 class Program:
     """The program, on a Unix socket or on TCP."""
 
-    def __init__(self, exe, out, name, family=socket.AF_UNIX, env=None, descriptors=None):
+    def __init__(self, exe, out, name, family=socket.AF_UNIX, env=None, descriptors=None, quiet=True,
+                 queued=(), half_closed=(), reset=()):
+        """queued, half_closed, reset: requests that wait for the program in
+        the listening socket's queue, each on a connection of its own that
+        its web server has closed, half-closed (its writing side shut down,
+        the socket kept in self.half_closed for the answer) or reset by the
+        time the program starts. quiet: -q, no line per request."""
         self.family = family
+        self.half_closed = []
         self.directory = None
         listener = socket.socket(family, socket.SOCK_STREAM)
         if family == socket.AF_UNIX:
@@ -200,8 +211,25 @@ class Program:
         listener.bind(self.address)
         self.address = listener.getsockname()
         listener.listen(socket.SOMAXCONN)
+        for data in queued:
+            gone = socket.socket(family, socket.SOCK_STREAM)
+            gone.connect(self.address)
+            gone.sendall(data)
+            gone.close()
+        for data in half_closed:
+            waiting = socket.socket(family, socket.SOCK_STREAM)
+            waiting.connect(self.address)
+            waiting.sendall(data)
+            waiting.shutdown(socket.SHUT_WR)
+            self.half_closed.append(waiting)
+        for data in reset:
+            gone = socket.socket(family, socket.SOCK_STREAM)
+            gone.connect(self.address)
+            gone.sendall(data)
+            gone.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+            gone.close()
         environment = program_environment(env)
-        command = [exe, "-q"]
+        command = [exe] + (["-q"] if quiet else [])
         if descriptors:
             command = ["/bin/sh", "-c", 'ulimit -n %d && exec "$@"' % descriptors, "sh"] + command
         self.log_path = os.path.join(out, name + ".log")
@@ -482,6 +510,55 @@ def polls(exe, out):
     program.stop()
 
 
+def abandoned(exe, out):
+    """A request that its web server gave up on before the program took its
+    connection: the program was down, or busy, for longer than the web server
+    waits, which then answered the client itself (nginx: 504) and closed the
+    connection. The connection stays in the listening socket's queue, its
+    request in it, and the program finds it there, after a restart too, since
+    systemd keeps the socket open meanwhile. Its answer can reach no one.
+    The program logs a line per request here (no -q), and has one thread, so
+    the answer to the request after it tells that it has done with that one."""
+    program = Program(exe, out, "abandoned", quiet=False, queued=[request(b"gone")])
+    live = Peer(program)
+    live.send(request(b"live"))
+    after = token(live.answer())
+    live.close()
+    say("a request whose web server closed the connection before the program took it: %s;"
+        " a request after it: %s" % (ran(program), after))
+    say("lines about dropping it in the program's log: %d" % program.logged("Dropped URI /echo/gone"))
+    program.stop()
+
+    # The same for a request not asking to keep the connection; for a web
+    # server that has only shut down its writing side and waits for the
+    # answer; and over TCP, where a closed connection looks like one that
+    # has only stopped writing, and one that was reset does not.
+    for name, words, family, how in (
+            ("notkept", "not asking to keep the connection, whose web server closed it", socket.AF_UNIX,
+             dict(queued=[request(b"gone", keep=False)])),
+            ("halfclosed", "whose web server half-closed the connection and waits", socket.AF_UNIX,
+             dict(half_closed=[request(b"gone")])),
+            ("tcp", "over TCP whose web server closed the connection", socket.AF_INET,
+             dict(queued=[request(b"gone")])),
+            ("tcp-reset", "over TCP whose web server reset the connection", socket.AF_INET,
+             dict(reset=[request(b"gone")]))):
+        program = Program(exe, out, "abandoned-" + name, family=family, quiet=False, **how)
+        live = Peer(program)
+        live.send(request(b"live"))
+        after = token(live.answer())
+        live.close()
+        line = "a request %s before the program took it: %s; a request after it: %s" % (words, ran(program), after)
+        if program.half_closed:
+            line += "; its own answer: %s" % token(Peer(program, sock=program.half_closed[0]).answer())
+        say(line)
+        program.stop()
+
+
+def ran(program):
+    """Whether the program's log says that it ran the request echo/gone."""
+    return "run" if program.logged("Served URI /echo/gone") else "not run"
+
+
 def attempt(scenario, *arguments):
     """Run a scenario; a connection the program breaks off or refuses ends it
     with a line saying so, not with a traceback."""
@@ -516,6 +593,7 @@ def main():
         unusable_input(exe, out, "unlistening-input", "a socket that is not listening", s.fileno())
 
     attempt(polls, exe, out)
+    attempt(abandoned, exe, out)
 
 
 if __name__ == "__main__":

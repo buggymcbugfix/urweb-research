@@ -45,3 +45,13 @@ each connection.
   pruner looks every five): the program has to answer it as it answers a
   poll for a client that is gone, with `R`, and give the connection back
   to the web server.  A poll for that client afterwards is answered so.
+- A request that waits in the listening socket's queue on a connection
+  that its web server has closed, as nginx closes one after its
+  `fastcgi_read_timeout` while the program is down or busy: the program
+  finds it when it starts, as it does after a restart, since systemd
+  keeps the socket open meanwhile. Its answer can reach no one. Whether
+  the program runs it, and the line it logs about it; the program runs
+  without `-q` there. The same for a request that does not ask to keep
+  the connection, for a web server that has only shut down its writing
+  side and waits for the answer, and over TCP, with the connection
+  closed and with it reset.
