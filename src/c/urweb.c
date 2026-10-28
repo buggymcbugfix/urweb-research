@@ -1077,6 +1077,7 @@ static void uw_set_error(uw_context ctx, const char *fmt, ...) {
   va_start(ap, fmt);
 
   vsnprintf(ctx->error_message, ERROR_BUF_LEN, fmt, ap);
+  va_end(ap);
 }
 
 int uw_has_error(uw_context ctx) {
@@ -1109,6 +1110,9 @@ __attribute__((noreturn)) void uw_error(uw_context ctx, failure_kind fk, const c
   va_start(ap, fmt);
 
   vsnprintf(ctx->error_message, ERROR_BUF_LEN, fmt, ap);
+  // Before the longjmp of uw_reraise: a va_start without its va_end is
+  // undefined, and the jump would skip one after the call.
+  va_end(ap);
 
   uw_reraise(ctx, fk);
 }
@@ -1292,6 +1296,7 @@ void uw_set_error_message(uw_context ctx, const char *fmt, ...) {
   va_start(ap, fmt);
   
   vsnprintf(ctx->error_message, ERROR_BUF_LEN, fmt, ap);
+  va_end(ap);
   ctx->error_message[ERROR_BUF_LEN-1] = 0;
 }
 
