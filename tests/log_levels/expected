@@ -161,8 +161,8 @@ cgi, the page /main, without flags: ended with status 0
   stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>
   stdout 1 Content-type: text/html; charset=utf-8
 static, the page /main, without flags: ended with status 0
-  stdout 2
-  stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>main: running
+  stdout 1
+  stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>
   stdout 1 Content-type: text/html; charset=utf-8
 cgi, the page /fail, without flags: ended with status 1
   stdout 1
@@ -172,15 +172,12 @@ cgi, the page /fail, without flags: ended with status 1
   stdout 1 Status: 500 Internal Server Error
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
 static, the page /fail, without flags: ended with status 1
-  stdout 1 fail: running
   stderr 1 Error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
 cgi, the page /lines, without flags: ended with status 0
   stdout 1
   stdout 1 <!DOCTYPE html><html><head></head><body>lines</body></html>
   stdout 1 Content-type: text/html; charset=utf-8
 static, the page /lines, without flags: ended with status 0
-  stdout 2
-  stdout 1 <!DOCTYPE html><html><head></head><body>lines</body></html>first line
+  stdout 1
+  stdout 1 <!DOCTYPE html><html><head></head><body>lines</body></html>
   stdout 1 Content-type: text/html; charset=utf-8
-  stdout 1 ends without a newline
-  stdout 1 second line

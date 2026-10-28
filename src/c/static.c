@@ -7,16 +7,26 @@
 
 extern uw_app uw_application;
 
-static void log_(void *data, const char *fmt, ...) {
-  (void)data;
-
+// Errors at err and debug output at info, through uw_vlog, which main
+// sets to print warnings and errors only, as cgi.c does: stdout is the
+// page.
+static void log_error(void *data, const char *fmt, ...) {
   va_list ap;
+  (void)data;
   va_start(ap, fmt);
-
-  vprintf(fmt, ap);
+  uw_vlog(UW_LOG_ERR, fmt, ap);
+  va_end(ap);
 }
 
-static uw_loggers loggers = {NULL, log_, log_};
+static void log_debug(void *data, const char *fmt, ...) {
+  va_list ap;
+  (void)data;
+  va_start(ap, fmt);
+  uw_vlog(UW_LOG_INFO, fmt, ap);
+  va_end(ap);
+}
+
+static uw_loggers loggers = {NULL, log_error, log_debug};
 
 static char *get_header(void *data, const char *h) {
   (void)data;
@@ -27,6 +37,10 @@ static char *get_header(void *data, const char *h) {
 int main(int argc, char *argv[]) {
   uw_context ctx;
   failure_kind fk;
+
+  // The program takes no option, and its stdout is the page: warnings and
+  // errors only, on stderr.
+  uw_set_log_level(UW_LOG_WARNING);
 
   if (argc != 2) {
     uw_log(UW_LOG_ERR, "Pass exactly one argument: the URI to run\n");
