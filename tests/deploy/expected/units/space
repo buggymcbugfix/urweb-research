@@ -26,7 +26,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-app/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/my db/app.db"
 CapabilityBoundingSet=
-ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-q"
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-l" "warning"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-app-pre-start/bin/urweb-app-pre-start
 Group=urweb-app
 IPAddressDeny=any

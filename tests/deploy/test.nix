@@ -37,7 +37,7 @@ let
       services.urweb.apps.app = {
         package = app;
         nginx.virtualHost = "app.example.org";
-        quiet = false; # the journal shows its lines
+        logLevel = "info"; # the journal shows a line for each request
         environment.TEST_GREETING = "hello";
         credentials = {
           TEST_SECRET_1 = "/etc/secrets/secret1";

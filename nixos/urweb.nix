@@ -86,10 +86,10 @@ in
             default = 8;
             description = "Worker threads: how many requests are served at once.";
           };
-          quiet = mkOption {
-            type = types.bool;
-            default = true;
-            description = "-q: no line per request in the journal.";
+          logLevel = mkOption {
+            type = types.enum [ "err" "warning" "info" "debug" ];
+            default = "warning";
+            description = "-l: the least severe level of the lines that reach the journal: err, warning, info (with a line for each request) or debug. The journal records each line at its level's priority.";
           };
           environment = mkOption {
             type = types.attrsOf types.str;
@@ -251,7 +251,7 @@ in
         unitConfig.AssertPathExists = lib.attrValues app.credentials;
         serviceConfig = {
           LoadCredential = lib.mapAttrsToList (name: path: "${name}:${path}") app.credentials;
-          ExecStart = utils.escapeSystemdExecArgs ([ exec app.exe "-t" (toString app.threads) ] ++ optional app.quiet "-q");
+          ExecStart = utils.escapeSystemdExecArgs [ exec app.exe "-t" (toString app.threads) "-l" app.logLevel ];
           StandardInput = "socket"; # the listening socket as descriptor 0
           StandardOutput = "journal"; # with StandardInput=socket both would default to the socket
           StandardError = "journal";

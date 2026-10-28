@@ -26,7 +26,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-elsewhere/sig"
 Environment="URWEB_SQLITE_DB_PATH=/srv/other.db"
 CapabilityBoundingSet=
-ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-q"
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-l" "warning"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-elsewhere-pre-start/bin/urweb-elsewhere-pre-start
 Group=urweb-elsewhere
 IPAddressDeny=any
@@ -118,7 +118,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-few/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-few/few.db"
 CapabilityBoundingSet=
-ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "16" "-q"
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "16" "-l" "warning"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-few-pre-start/bin/urweb-few-pre-start
 Group=urweb-few
 IPAddressDeny=any
@@ -210,7 +210,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-here/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-here/here.db"
 CapabilityBoundingSet=
-ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-q"
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-l" "warning"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-here-pre-start/bin/urweb-here-pre-start
 Group=urweb-here
 IPAddressDeny=any
@@ -302,7 +302,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-http/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-http/http.db"
 CapabilityBoundingSet=
-ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-other/bin/other" "-t" "8" "-q"
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-other/bin/other" "-t" "8" "-l" "warning"
 Group=urweb-http
 IPAddressDeny=any
 LockPersonality=true
@@ -387,7 +387,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-relative/sig"
 Environment="URWEB_SQLITE_DB_PATH=db/app.db"
 CapabilityBoundingSet=
-ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-q"
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-l" "warning"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-relative-pre-start/bin/urweb-relative-pre-start
 Group=urweb-relative
 IPAddressDeny=any
@@ -480,7 +480,7 @@ Environment="TZDIR=/nix/store/HASH-tzdata/share/zoneinfo"
 Environment="URWEB_SIGFILE_PATH=/var/lib/urweb-there/sig"
 Environment="URWEB_SQLITE_DB_PATH=/var/lib/urweb-there/there.db"
 CapabilityBoundingSet=
-ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-q"
+ExecStart="/nix/store/HASH-urweb-exec" "/nix/store/HASH-app/bin/app" "-t" "8" "-l" "warning"
 ExecStartPre=/nix/store/HASH-unit-script-urweb-there-pre-start/bin/urweb-there-pre-start
 Group=urweb-there
 IPAddressDeny=any
