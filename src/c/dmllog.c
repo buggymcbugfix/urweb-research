@@ -49,7 +49,7 @@ static void flush(void *data) {
 
   fd = open(log_path, O_WRONLY | O_APPEND | O_CREAT, 0666);
   if (fd < 0 || uw_really_write(fd, buf->start, len) < 0) {
-    fprintf(stderr, "URWEB_DML_LOG: cannot write %s: %s\n", log_path, strerror(errno));
+    uw_log(UW_LOG_ERR, "URWEB_DML_LOG: cannot write %s: %s\n", log_path, strerror(errno));
   }
   if (fd >= 0) { close(fd); }
 }
@@ -80,7 +80,7 @@ void uw_log_dml(uw_context ctx, const char *loc, const char *sql, long rows) {
     char *url = uw_Basis_currentUrl(ctx);
 
     if (uw_register_transactional(ctx, buf, flush, NULL, forget) < 0) {
-      fprintf(stderr, "URWEB_DML_LOG: too many transactionals; not logging %s\n", sql);
+      uw_log(UW_LOG_ERR, "URWEB_DML_LOG: too many transactionals; not logging %s\n", sql);
       return;
     }
 
@@ -111,6 +111,6 @@ void uw_log_dml(uw_context ctx, const char *loc, const char *sql, long rows) {
   failed |= uw_buffer_append(buf, ";\n", 2);
 
   if (failed) {
-    fprintf(stderr, "URWEB_DML_LOG: out of memory; the log of this transaction is incomplete\n");
+    uw_log(UW_LOG_ERR, "URWEB_DML_LOG: out of memory; the log of this transaction is incomplete\n");
   }
 }

@@ -7,11 +7,14 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
 #include <openssl/opensslconf.h>
 #include <openssl/opensslv.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+
+#include "urweb.h"
 
 #if !defined(OPENSSL_THREADS)
 #error "Ur/Web requires OpenSSL configured with thread support"
@@ -27,8 +30,7 @@ char *uw_sig_file = NULL;
 
 static void random_password() {
   if (!RAND_bytes((unsigned char *)password, sizeof password)) {
-    fprintf(stderr, "Error generating random password\n");
-    perror("RAND_bytes");
+    uw_log(UW_LOG_ERR, "Error generating random password\n");
     exit(1);
   }
 }
@@ -48,26 +50,24 @@ void uw_init_crypto() {
       random_password();
 
       if ((fd = open(uw_sig_file, O_WRONLY | O_CREAT, 0700)) < 0) {
-        fprintf(stderr, "Can't open signature file %s\n", uw_sig_file);
-        perror("open");
+        uw_log(UW_LOG_ERR, "Can't open signature file %s: %s\n", uw_sig_file, strerror(errno));
         exit(1);
       }
 
       if (write(fd, &password, sizeof password) != sizeof password) {
-        fprintf(stderr, "Error writing signature file\n");
+        uw_log(UW_LOG_ERR, "Error writing signature file\n");
         exit(1);
       }
 
       close(fd);
     } else {
       if ((fd = open(uw_sig_file, O_RDONLY)) < 0) {
-        fprintf(stderr, "Can't open signature file %s\n", uw_sig_file);
-        perror("open");
+        uw_log(UW_LOG_ERR, "Can't open signature file %s: %s\n", uw_sig_file, strerror(errno));
         exit(1);
       }
 
       if (read(fd, &password, sizeof password) != sizeof password) {
-        fprintf(stderr, "Error reading signature file\n");
+        uw_log(UW_LOG_ERR, "Error reading signature file\n");
         exit(1);
       }
 

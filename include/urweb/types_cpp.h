@@ -75,6 +75,15 @@ typedef void (*uw_callback)(void *);
 typedef void (*uw_callback_with_retry)(void *, int will_retry);
 typedef void (*uw_logger)(void*, const char *fmt, ...);
 
+// The levels of the runtime's log lines, numbered as in syslog: a line that
+// starts with <3> reaches the journal at priority err, and so on.
+typedef enum {
+  UW_LOG_ERR = 3,     // something failed that needs a person to look at it
+  UW_LOG_WARNING = 4, // something unusual that the program handled
+  UW_LOG_INFO = 6,    // what happens routinely: the line for each request
+  UW_LOG_DEBUG = 7    // what the runtime does, step by step
+} uw_log_level;
+
 struct uw_context;
 
 typedef struct {
@@ -159,6 +168,8 @@ typedef struct {
                    // that serve requests are marked for it (uw_io_prepare)
 } uw_app;
 
+// A protocol's loggers, which a context logs through: log_error at err,
+// log_debug at info, both through uw_vlog.
 typedef struct {
   /* uw_app *app; */
   void *logger_data;

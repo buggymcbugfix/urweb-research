@@ -23,10 +23,7 @@
 extern uw_app uw_application;
 
 int uw_backlog = SOMAXCONN;
-static int keepalive = 0, quiet = 0;
-
-#define qfprintf(f, fmt, args...) do { if(!quiet) fprintf(f, fmt, ##args); } while(0)
-#define qprintf(fmt, args...) do { if(!quiet) printf(fmt, ##args); } while(0)
+static int keepalive = 0;
 
 static char *get_header(void *data, const char *h) {
   char *s = data;
@@ -60,26 +57,22 @@ static void on_failure(uw_context ctx) {
   uw_write_header(ctx, "HTTP/1.1 500 Internal Server Error\r\n");
 }
 
+// Errors at err, debug output and the line for each request at info, both
+// through uw_vlog.
 static void log_error(void *data, const char *fmt, ...) {
-  (void)data;
-
   va_list ap;
+  (void)data;
   va_start(ap, fmt);
-
-  vfprintf(stderr, fmt, ap);
-  fflush(stderr);
+  uw_vlog(UW_LOG_ERR, fmt, ap);
+  va_end(ap);
 }
 
 static void log_debug(void *data, const char *fmt, ...) {
+  va_list ap;
   (void)data;
-
-  if (!quiet) {
-    va_list ap;
-    va_start(ap, fmt);
-
-    vprintf(fmt, ap);
-    fflush(stdout);
-  }
+  va_start(ap, fmt);
+  uw_vlog(UW_LOG_INFO, fmt, ap);
+  va_end(ap);
 }
 
 static uw_loggers ls = {NULL, log_error, log_debug};
@@ -108,7 +101,7 @@ static void *worker(void *data) {
 
     uw_set_remoteSock(ctx, sock);
 
-    qprintf("Handling connection with thread #%d.\n", me);
+    uw_log(UW_LOG_INFO, "Handling connection with thread #%d.\n", me);
 
     while (1) {
       int r;
@@ -118,14 +111,14 @@ static void *worker(void *data) {
         char *new_buf;
         size_t new_buf_size = buf_size*2;
         if (new_buf_size > max_buf_size) {
-          qfprintf(stderr, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
+          uw_log(UW_LOG_INFO, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
           close(sock);
           sock = 0;
           break;
         }
         new_buf = realloc(buf, new_buf_size);
         if(!new_buf) {
-          qfprintf(stderr, "Realloc failed while receiving header\n");
+          uw_log(UW_LOG_INFO, "Realloc failed while receiving header\n");
           close(sock);
           sock = 0;
           break;
@@ -141,14 +134,14 @@ static void *worker(void *data) {
         r = recv(sock, back, buf_size - 1 - (back - buf), 0);
 
         if (r < 0) {
-          qfprintf(stderr, "Recv failed while receiving header, retcode %d errno %m\n", r);
+          uw_log(UW_LOG_INFO, "Recv failed while receiving header, retcode %d errno %m\n", r);
           close(sock);
           sock = 0;
           break;
         }
 
         if (r == 0) {
-          qprintf("Connection closed.\n");
+          uw_log(UW_LOG_INFO, "Connection closed.\n");
           close(sock);
           sock = 0;
           break;
@@ -169,7 +162,7 @@ static void *worker(void *data) {
           int clen;
 
           if (sscanf(s + 18, "%d\r\n", &clen) != 1) {
-            fprintf(stderr, "Malformed Content-Length header\n");
+            uw_log(UW_LOG_ERR, "Malformed Content-Length header\n");
             close(sock);
             sock = 0;
             break;
@@ -180,14 +173,14 @@ static void *worker(void *data) {
               char *new_buf;
               size_t new_buf_size = buf_size * 2;
               if (new_buf_size > max_buf_size) {
-                qfprintf(stderr, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
+                uw_log(UW_LOG_INFO, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
                 close(sock);
                 sock = 0;
                 break;
               }
               new_buf = realloc(buf, new_buf_size);
               if(!new_buf) {
-                qfprintf(stderr, "Realloc failed while receiving content\n");
+                uw_log(UW_LOG_INFO, "Realloc failed while receiving content\n");
                 close(sock);
                 sock = 0;
                 goto done;
@@ -204,14 +197,14 @@ static void *worker(void *data) {
             r = recv(sock, back, buf_size - 1 - (back - buf), 0);
 
             if (r < 0) {
-              qfprintf(stderr, "Recv failed while receiving content, retcode %d errno %m\n", r);
+              uw_log(UW_LOG_INFO, "Recv failed while receiving content, retcode %d errno %m\n", r);
               close(sock);
               sock = 0;
               goto done;
             }
 
             if (r == 0) {
-              qfprintf(stderr, "Connection closed.\n");
+              uw_log(UW_LOG_INFO, "Connection closed.\n");
               close(sock);
               sock = 0;
               goto done;
@@ -229,7 +222,7 @@ static void *worker(void *data) {
         body[-3] = '\n';
 
         if (!(s = strstr(buf, "\r\n"))) {
-          fprintf(stderr, "No newline in request\n");
+          uw_log(UW_LOG_ERR, "No newline in request\n");
           close(sock);
           sock = 0;
           goto done;
@@ -243,7 +236,7 @@ static void *worker(void *data) {
 
         strsep(&s, " ");
         if (!s) {
-          fprintf(stderr, "No first space in HTTP command\n");
+          uw_log(UW_LOG_ERR, "No first space in HTTP command\n");
           close(sock);
           sock = 0;
           goto done;
@@ -279,7 +272,7 @@ static void *worker(void *data) {
         uw_set_headers(ctx, get_header, headers);
         uw_set_env(ctx, get_env, NULL);
 
-        qprintf("Serving URI %s....\n", path);
+        uw_log(UW_LOG_INFO, "Serving URI %s....\n", path);
         rr = uw_request(rc, ctx, method, path, query_string, body, back - body,
                         on_success, on_failure,
                         NULL, log_error, log_debug,
@@ -329,7 +322,7 @@ static void *worker(void *data) {
         } else if (rr == KEEP_OPEN)
           sock = 0;
         else
-          fprintf(stderr, "Illegal uw_request return code: %d\n", rr);
+          uw_log(UW_LOG_ERR, "Illegal uw_request return code: %d\n", rr);
 
         break;
       }
@@ -345,10 +338,10 @@ static void *worker(void *data) {
 
 static void help(char *cmd) {
   printf(
-    "Usage: %s [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-q] [-T SEC] [-d[fd]]\n"
+    "Usage: %s [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] " UW_LOG_USAGE " [-T SEC] [-d[fd]]\n"
       "The '-P' option picks the first free port in the range [p..P], where p is the value of '-p' (default 8080) and P is the value of '-P'.\n"
       "The '-k' option turns on HTTP keepalive.\n"
-      "The '-q' option turns off some chatter on stdout.\n"
+      UW_LOG_HELP
       "The '-T' option sets socket recv timeout (0 disables timeout, default is 5 sec).\n"
       "The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)\n" // XXX: I don't think this is correct
       "The '-d' option daemonizes the server by forking once it is listening; when the optional <fd>\n"
@@ -389,10 +382,10 @@ int main(int argc, char *argv[]) {
   my_addr.sa.sa_family = AF_INET;
   my_addr.ipv4.sin_addr.s_addr = INADDR_ANY; // auto-fill with my IP
 
-  while ((opt = getopt(argc, argv, "hp:P:a:A:u:t:kqT:m:d::")) != -1) {
+  while ((opt = getopt(argc, argv, "hp:P:a:A:u:t:k" UW_LOG_GETOPT "T:m:d::")) != -1) {
     switch (opt) {
     case '?':
-      fprintf(stderr, "Unknown command-line option\n");
+      uw_log(UW_LOG_ERR, "Unknown command-line option\n");
       help(argv[0]);
       return 1;
 
@@ -403,7 +396,7 @@ int main(int argc, char *argv[]) {
     case 'p':
       uw_port = atoi(optarg);
       if (uw_port <= 0) {
-        fprintf(stderr, "Invalid port number\n");
+        uw_log(UW_LOG_ERR, "Invalid port number\n");
         help(argv[0]);
         return 1;
       }
@@ -412,7 +405,7 @@ int main(int argc, char *argv[]) {
     case 'P':
       port_upper = atoi(optarg);
       if (port_upper <= 0) {
-        fprintf(stderr, "Invalid upper-bound port number\n");
+        uw_log(UW_LOG_ERR, "Invalid upper-bound port number\n");
         help(argv[0]);
         return 1;
       }
@@ -421,7 +414,7 @@ int main(int argc, char *argv[]) {
     case 'a':
       my_addr.sa.sa_family = AF_INET;
       if (!inet_pton(AF_INET, optarg, &my_addr.ipv4.sin_addr)) {
-        fprintf(stderr, "Invalid IPv4 address\n");
+        uw_log(UW_LOG_ERR, "Invalid IPv4 address\n");
         help(argv[0]);
         return 1;
       }
@@ -430,7 +423,7 @@ int main(int argc, char *argv[]) {
     case 'A':
       my_addr.sa.sa_family = AF_INET6;
       if (!inet_pton(AF_INET6, optarg, &my_addr.ipv6.sin6_addr)) {
-        fprintf(stderr, "Invalid IPv6 address\n");
+        uw_log(UW_LOG_ERR, "Invalid IPv6 address\n");
         help(argv[0]);
         return 1;
       }
@@ -439,7 +432,7 @@ int main(int argc, char *argv[]) {
     case 'u':
       my_addr.sa.sa_family = AF_UNIX;
       if (!strncpy(my_addr.un.sun_path, optarg, sizeof(my_addr.un.sun_path)-1)) {
-        fprintf(stderr, "Invalid UNIX socket filename\n");
+        uw_log(UW_LOG_ERR, "Invalid UNIX socket filename\n");
         help(argv[0]);
         return 1;
       }
@@ -448,7 +441,7 @@ int main(int argc, char *argv[]) {
     case 't':
       nthreads = atoi(optarg);
       if (nthreads <= 0) {
-        fprintf(stderr, "Invalid thread count\n");
+        uw_log(UW_LOG_ERR, "Invalid thread count\n");
         help(argv[0]);
         return 1;
       }
@@ -461,20 +454,24 @@ int main(int argc, char *argv[]) {
     case 'T':
       recv_timeout_sec = atoi(optarg);
       if (recv_timeout_sec < 0) {
-        fprintf(stderr, "Invalid recv timeout\n");
+        uw_log(UW_LOG_ERR, "Invalid recv timeout\n");
         help(argv[0]);
         return 1;
       }
       break;
 
+    case 'l':
     case 'q':
-      quiet = 1;
+      if (uw_log_option(opt, optarg)) {
+        help(argv[0]);
+        return 1;
+      }
       break;
 
     case 'm':
       opt = atoi(optarg);
       if (opt <= 0) {
-        fprintf(stderr, "Invalid maximum buffer size\n");
+        uw_log(UW_LOG_ERR, "Invalid maximum buffer size\n");
         help(argv[0]);
         return 1;
       }
@@ -488,7 +485,7 @@ int main(int argc, char *argv[]) {
         char *end;
         long v = strtol(optarg, &end, 10);
         if (*optarg == '\0' || *end != '\0' || v < 0 || v > INT_MAX) {
-          fprintf(stderr, "Invalid file descriptor for -d: '%s'\n", optarg);
+          uw_log(UW_LOG_ERR, "Invalid file descriptor for -d: '%s'\n", optarg);
           return 1;
         }
         meta_fd = (int)v;
@@ -496,18 +493,18 @@ int main(int argc, char *argv[]) {
       break;
 
     default:
-      fprintf(stderr, "Unexpected getopt() behavior\n");
+      uw_log(UW_LOG_ERR, "Unexpected getopt() behavior\n");
       return 1;
     }
   }
 
   if (port_upper != 0) {
     if (port_upper <= uw_port) {
-      fprintf(stderr, "-P upper bound must be strictly greater than -p lower bound\n");
+      uw_log(UW_LOG_ERR, "-P upper bound must be strictly greater than -p lower bound\n");
       return 1;
     }
     if (my_addr.sa.sa_family == AF_UNIX) {
-      fprintf(stderr, "-P is not applicable to UNIX-socket listeners\n");
+      uw_log(UW_LOG_ERR, "-P is not applicable to UNIX-socket listeners\n");
       return 1;
     }
   }
@@ -523,12 +520,12 @@ int main(int argc, char *argv[]) {
   sockfd = socket(my_addr.sa.sa_family, SOCK_STREAM, 0); // do some error checking!
 
   if (sockfd < 0) {
-    fprintf(stderr, "Listener socket creation failed\n");
+    uw_log(UW_LOG_ERR, "Listener socket creation failed\n");
     return 1;
   }
 
   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0) {
-    fprintf(stderr, "Listener socket option setting failed\n");
+    uw_log(UW_LOG_ERR, "Listener socket option setting failed\n");
     return 1;
   }
 
@@ -552,7 +549,7 @@ int main(int argc, char *argv[]) {
 
   if (port_upper == 0) {
     if (bind(sockfd, &my_addr.sa, my_size) < 0) {
-      fprintf(stderr, "Listener socket bind failed\n");
+      uw_log(UW_LOG_ERR, "Listener socket bind failed\n");
       return 1;
     }
   } else {
@@ -568,20 +565,20 @@ int main(int argc, char *argv[]) {
         break;
     }
     if (port > port_upper) {
-      fprintf(stderr, "No free port found in range [%d..%d]\n", uw_port, port_upper);
+      uw_log(UW_LOG_ERR, "No free port found in range [%d..%d]\n", uw_port, port_upper);
       return 1;
     }
     uw_port = port; // so the existing "Listening on port %d" message reports the chosen one.
   }
 
   if (listen(sockfd, uw_backlog) < 0) {
-    fprintf(stderr, "Socket listen failed\n");
+    uw_log(UW_LOG_ERR, "Socket listen failed\n");
     return 1;
   }
 
   sin_size = sizeof their_addr;
 
-  qprintf("Starting the Ur/Web native HTTP server, which is intended for use\n"
+  uw_log(UW_LOG_INFO, "Starting the Ur/Web native HTTP server, which is intended for use\n"
           "ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,\n"
           "behind a production-quality HTTP server, for a real deployment.\n\n");
 
@@ -600,11 +597,11 @@ int main(int argc, char *argv[]) {
   if (daemonize) {
     pid_t child = fork();
     if (child < 0) {
-      fprintf(stderr, "fork failed: %m\n");
+      uw_log(UW_LOG_ERR, "fork failed: %m\n");
       return 1;
     }
     if (child > 0) {
-      qprintf("Forking to PID %d....\n", child);
+      uw_log(UW_LOG_INFO, "Forking to PID %d....\n", child);
       if (meta_fd >= 0) {
         // Use fdopen+fprintf rather than write() so we can format integers
         // without manual itoa. "w" is fine: fdopen does not truncate or
@@ -631,7 +628,7 @@ int main(int argc, char *argv[]) {
           }
         }
         if (!ok) {
-          fprintf(stderr, "Failed to write metadata to fd %d: %m\n", meta_fd);
+          uw_log(UW_LOG_ERR, "Failed to write metadata to fd %d: %m\n", meta_fd);
           kill(child, SIGTERM);
           return 1;
         }
@@ -643,7 +640,7 @@ int main(int argc, char *argv[]) {
 
   uw_request_start_threads(&uw_application, &ls);
 
-  qprintf("Listening on port %d....\n", uw_port);
+  uw_log(UW_LOG_INFO, "Listening on port %d....\n", uw_port);
 
   {
     pthread_t thread;
@@ -653,7 +650,7 @@ int main(int argc, char *argv[]) {
     pd->loggers = &ls;
 
     if (pthread_create_big(&thread, NULL, client_pruner, pd)) {
-      fprintf(stderr, "Error creating pruner thread\n");
+      uw_log(UW_LOG_ERR, "Error creating pruner thread\n");
       return 1;
     }
   }
@@ -662,7 +659,7 @@ int main(int argc, char *argv[]) {
     pthread_t thread;    
     names[i] = i;
     if (pthread_create_big(&thread, NULL, worker, &names[i])) {
-      fprintf(stderr, "Error creating worker thread #%d\n", i);
+      uw_log(UW_LOG_ERR, "Error creating worker thread #%d\n", i);
       return 1;
     }
   }
@@ -671,9 +668,9 @@ int main(int argc, char *argv[]) {
     int new_fd = accept(sockfd, &their_addr.sa, &sin_size);
 
     if (new_fd < 0) {
-      qfprintf(stderr, "Socket accept failed\n");
+      uw_log(UW_LOG_INFO, "Socket accept failed\n");
     } else {
-      qprintf("Accepted connection.\n");
+      uw_log(UW_LOG_INFO, "Accepted connection.\n");
 
       if (keepalive) {
         int flag = 1; 
@@ -687,7 +684,7 @@ int main(int argc, char *argv[]) {
         tv.tv_sec = recv_timeout_sec;
         ret = setsockopt(new_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
         if(ret != 0) {
-          qfprintf(stderr, "Timeout setting failed, errcode %d errno '%m'\n", ret);
+          uw_log(UW_LOG_INFO, "Timeout setting failed, errcode %d errno '%m'\n", ret);
         }
       }
 

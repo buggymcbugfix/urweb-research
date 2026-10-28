@@ -1,6 +1,7 @@
 #ifndef URWEB_CPP_H
 #define URWEB_CPP_H
 
+#include <stdarg.h>
 #include <sys/types.h>
 
 #include "types_cpp.h"
@@ -22,6 +23,30 @@ void uw_set_activity(struct uw_context *, const char *fmt, ...);
 // An error on the context's error logger, after what the context is doing:
 // "GET /Foo/bar: Fatal error: ...".
 void uw_log_error(struct uw_context *, const char *fmt, ...);
+// A line at a level, printed when the level is no less severe than the one
+// uw_set_log_level chose, info unless it was called (see uw_vlog).
+void uw_log(uw_log_level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+void uw_vlog(uw_log_level, const char *fmt, va_list);
+// A line at a level after what the context is doing, as uw_log_error has it.
+void uw_log_at(struct uw_context *, uw_log_level, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
+// The least severe level printed from now on.
+void uw_set_log_level(uw_log_level);
+// The level a name stands for, err, warning, info or debug: 0, and -1 for
+// any other name.
+int uw_log_level_named(const char *, uw_log_level *);
+// The options of a server that choose the level, -l LEVEL and -q: their
+// letters for getopt, how its usage line shows them, and the lines of its
+// help about them.
+#define UW_LOG_GETOPT "l:q"
+#define UW_LOG_USAGE "[-l <level>] [-q]"
+#define UW_LOG_HELP \
+  "The '-l' option sets the least severe level of log line printed: err, warning,\n" \
+  "info (the default, with a line for each request) or debug.\n" \
+  "The '-q' option is short for -l warning. Of -l and -q, the later counts.\n"
+// Takes one of those options as getopt returned it, with its argument:
+// 0 once the level is set, -1 for a name that is no level, after a line
+// saying so; the server then prints its usage and ends.
+int uw_log_option(int, const char *);
 void uw_prune_clients(struct uw_context *);
 failure_kind uw_initialize(struct uw_context *);
 

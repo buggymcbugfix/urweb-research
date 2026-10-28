@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
   failure_kind fk;
 
   if (argc != 2) {
-    fprintf(stderr, "Pass exactly one argument: the URI to run\n");
+    uw_log(UW_LOG_ERR, "Pass exactly one argument: the URI to run\n");
     return 1;
   }
  
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
       puts("");
       return 0;
     } else if (fk != UNLIMITED_RETRY) {
-      fprintf(stderr, "Error: %s\n", uw_error_message(ctx));
+      uw_log(UW_LOG_ERR, "Error: %s\n", uw_error_message(ctx));
       return 1;
     }
 

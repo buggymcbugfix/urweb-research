@@ -258,7 +258,7 @@ void uw_request_init(uw_app *app, uw_loggers* ls) {
     stackSize = atoll(stackSize_s);
 
     if (stackSize <= 0) {
-      fprintf(stderr, "Invalid stack size \"%s\"\n", stackSize_s);
+      uw_log(UW_LOG_ERR, "Invalid stack size \"%s\"\n", stackSize_s);
       exit(1);
     }
   }
@@ -315,7 +315,7 @@ void uw_request_start_threads(uw_app *app, uw_loggers *ls) {
     pthread_t thread;
 
     if (uw_time_max && pthread_create_big(&thread, NULL, ticker, NULL)) {
-      fprintf(stderr, "Error creating ticker thread\n");
+      uw_log(UW_LOG_ERR, "Error creating ticker thread\n");
       exit(1);
     }
   }
@@ -330,7 +330,7 @@ void uw_request_start_threads(uw_app *app, uw_loggers *ls) {
     arg->app = app;
 
     if (pthread_create_big(&thread, NULL, periodic_loop, arg)) {
-      fprintf(stderr, "Error creating periodic thread\n");
+      uw_log(UW_LOG_ERR, "Error creating periodic thread\n");
       exit(1);
     }
   }

@@ -55,18 +55,22 @@ static void on_failure(uw_context ctx) {
   uw_write_header(ctx, "Status: 500 Internal Server Error\r\n");
 }
 
+// Errors at err, debug output at info, which a CGI program does not print
+// (see main).
 static void log_error(void *data, const char *fmt, ...) {
-  (void)data;
-
   va_list ap;
+  (void)data;
   va_start(ap, fmt);
-
-  vfprintf(stderr, fmt, ap);
+  uw_vlog(UW_LOG_ERR, fmt, ap);
+  va_end(ap);
 }
 
 static void log_debug(void *data, const char *fmt, ...) {
+  va_list ap;
   (void)data;
-  (void)fmt;
+  va_start(ap, fmt);
+  uw_vlog(UW_LOG_INFO, fmt, ap);
+  va_end(ap);
 }
 
 static uw_loggers ls = {NULL, log_error, log_debug};
@@ -85,6 +89,9 @@ int main(int argc, char *argv[]) {
   ssize_t body_len = 1, body_pos = 0, res;
 
   uppercased = malloc(6);
+  // A web server hands a CGI program no flags, and the program's stdout is
+  // its response: errors and warnings only, on stderr.
+  uw_set_log_level(UW_LOG_WARNING);
 
   if (!method) {
     log_error(NULL, "REQUEST_METHOD not set\n");

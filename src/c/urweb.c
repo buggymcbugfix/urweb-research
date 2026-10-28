@@ -21,6 +21,8 @@
 
 #include <pthread.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include <unicode/utf8.h>
@@ -32,6 +34,7 @@
 
 // Defined with the context below, used before it.
 void uw_log_error(uw_context ctx, const char *fmt, ...);
+void uw_log(uw_log_level level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 uw_unit uw_unit_v = 0;
 
@@ -622,7 +625,7 @@ static int uw_bytes_from_env(const char *name, unsigned long long *n) {
   errno = 0;
   *n = strtoull(s, &end, 10);
   if (errno || end == s || *end || strspn(s, "0123456789") != strlen(s)) {
-    fprintf(stderr, "%s: '%s' is not a number of bytes\n", name, s);
+    uw_log(UW_LOG_ERR, "%s: '%s' is not a number of bytes\n", name, s);
     exit(1);
   }
   return 1;
@@ -635,7 +638,7 @@ static void uw_heap_from_env() {
   if (uw_bytes_from_env("URWEB_LIMIT_HEAP", &n)) {
     // SIZE_MAX itself is what uw_heap_max holds for no limit at all.
     if (n == 0 || n >= SIZE_MAX) {
-      fprintf(stderr, "URWEB_LIMIT_HEAP: %llu is no limit for a heap: it has to be between 1 and %zu\n",
+      uw_log(UW_LOG_ERR, "URWEB_LIMIT_HEAP: %llu is no limit for a heap: it has to be between 1 and %zu\n",
               n, (size_t)SIZE_MAX - 1);
       exit(1);
     }
@@ -645,7 +648,7 @@ static void uw_heap_from_env() {
 
   if (uw_bytes_from_env("URWEB_MIN_HEAP", &n)) {
     if (n > INT_MAX) {
-      fprintf(stderr, "URWEB_MIN_HEAP: %llu is more than a heap can start at, %d\n", n, INT_MAX);
+      uw_log(UW_LOG_ERR, "URWEB_MIN_HEAP: %llu is more than a heap can start at, %d\n", n, INT_MAX);
       exit(1);
     }
     uw_min_heap = (int)n;
@@ -653,7 +656,7 @@ static void uw_heap_from_env() {
   }
 
   if ((size_t)uw_min_heap > uw_heap_max) {
-    fprintf(stderr, "The heap would start at %d bytes (%s), more than its limit of %zu (%s)\n",
+    uw_log(UW_LOG_ERR, "The heap would start at %d bytes (%s), more than its limit of %zu (%s)\n",
             uw_min_heap, min_from, uw_heap_max, limit_from);
     exit(1);
   }
@@ -666,23 +669,157 @@ void uw_set_activity(uw_context ctx, const char *fmt, ...) {
   va_end(ap);
 }
 
-void uw_log_error(uw_context ctx, const char *fmt, ...) {
-  char small[1024], *msg = small;
-  va_list ap, again;
+// The buffer on the stack that a log line is formatted into; a longer one
+// gets a buffer from malloc.
+#define LOG_SMALL 1024
+
+// fmt with ap in small, or in a buffer from malloc when it does not fit
+// there and malloc gives one; what fitted in small when it does not. NULL
+// when vsnprintf fails.
+static char *vformat(char *small, size_t size, const char *fmt, va_list ap) {
+  char *msg = small;
+  va_list again;
   int n;
 
-  va_start(ap, fmt);
   va_copy(again, ap);
-  n = vsnprintf(small, sizeof small, fmt, ap);
-  if (n >= (int)sizeof small && (msg = malloc(n + 1)))
+  n = vsnprintf(small, size, fmt, ap);
+  if (n >= (int)size && (msg = malloc(n + 1)))
     vsnprintf(msg, n + 1, fmt, again);
   else if (!msg)
-    msg = small;   // what fitted
+    msg = small;
   va_end(again);
-  va_end(ap);
-  ctx->loggers->log_error(ctx->loggers->logger_data, "%s: %s", ctx->activity, n < 0 ? fmt : msg);
-  if (msg != small)
+  return n < 0 ? NULL : msg;
+}
+
+// A line after what the context is doing, "GET /Foo/bar: ...": at level
+// through uw_log, or, when level is THROUGH_LOGGERS, through the context's
+// error logger, which is how uw_log_error has always logged.
+#define THROUGH_LOGGERS (-1)
+
+static void log_activity(uw_context ctx, int level, const char *fmt, va_list ap) {
+  char small[LOG_SMALL], *msg = vformat(small, sizeof small, fmt, ap);
+  const char *text = msg ? msg : fmt;
+
+  if (level == THROUGH_LOGGERS)
+    ctx->loggers->log_error(ctx->loggers->logger_data, "%s: %s", ctx->activity, text);
+  else
+    uw_log(level, "%s: %s", ctx->activity, text);
+  if (msg && msg != small)
     free(msg);
+}
+
+void uw_log_error(uw_context ctx, const char *fmt, ...) {
+  va_list ap;
+
+  va_start(ap, fmt);
+  log_activity(ctx, THROUGH_LOGGERS, fmt, ap);
+  va_end(ap);
+}
+
+void uw_log_at(uw_context ctx, uw_log_level level, const char *fmt, ...) {
+  va_list ap;
+
+  va_start(ap, fmt);
+  log_activity(ctx, level, fmt, ap);
+  va_end(ap);
+}
+
+// The least severe level printed.
+static uw_log_level log_least = UW_LOG_INFO;
+
+void uw_set_log_level(uw_log_level least) {
+  log_least = least;
+}
+
+int uw_log_level_named(const char *name, uw_log_level *level) {
+  static const struct {
+    const char *name;
+    uw_log_level level;
+  } levels[] = {
+    {"err", UW_LOG_ERR}, {"warning", UW_LOG_WARNING}, {"info", UW_LOG_INFO}, {"debug", UW_LOG_DEBUG}
+  };
+  size_t i;
+
+  for (i = 0; i < sizeof levels / sizeof levels[0]; ++i)
+    if (!strcmp(name, levels[i].name)) {
+      *level = levels[i].level;
+      return 0;
+    }
+  return -1;
+}
+
+int uw_log_option(int opt, const char *arg) {
+  uw_log_level level;
+
+  if (opt == 'q')
+    level = UW_LOG_WARNING;
+  else if (uw_log_level_named(arg, &level)) {
+    uw_log(UW_LOG_ERR, "Unknown log level '%s'\n", arg);
+    return -1;
+  }
+  uw_set_log_level(level);
+  return 0;
+}
+
+// Whether stderr is the journal. systemd says so in JOURNAL_STREAM, the
+// device and inode of the stream it connected stderr to (or stdout, when
+// only that one goes to the journal), which are compared with stderr's: a
+// program started by one whose stderr was the journal inherits the
+// variable without the stream.
+static int log_journal;
+static pthread_once_t log_journal_once = PTHREAD_ONCE_INIT;
+
+static void log_journal_init(void) {
+  const char *s = getenv("JOURNAL_STREAM");
+  unsigned long long dev, ino;
+  struct stat st;
+  char end;
+
+  log_journal = s && sscanf(s, "%llu:%llu%c", &dev, &ino, &end) == 2 && !fstat(STDERR_FILENO, &st)
+    && (unsigned long long)st.st_dev == dev && (unsigned long long)st.st_ino == ino;
+}
+
+// Under the journal every line goes to stderr with its level in front,
+// which the journal takes for the line's priority (SyslogLevelPrefix=, on
+// by default). Elsewhere err and warning go to stderr and info and debug to
+// stdout, with no prefix, as they always did. A message goes out whole,
+// with its stream locked, so that two threads' lines do not mix, and ends
+// with a newline even where its format has none, so that the next message
+// does not go on in its line.
+void uw_vlog(uw_log_level level, const char *fmt, va_list ap) {
+  char small[LOG_SMALL], *msg;
+  const char *text, *line, *end;
+  int saved = errno;
+  FILE *f;
+
+  if (level > log_least)
+    return;
+  pthread_once(&log_journal_once, log_journal_init);
+  errno = saved; // for %m
+  msg = vformat(small, sizeof small, fmt, ap);
+  text = msg ? msg : fmt;
+  f = log_journal || level <= UW_LOG_WARNING ? stderr : stdout;
+  flockfile(f);
+  for (line = text; *line; line = *end ? end + 1 : end) {
+    if (!(end = strchr(line, '\n')))
+      end = line + strlen(line);
+    if (log_journal)
+      fprintf(f, "<%d>%.*s\n", (int)level, (int)(end - line), line);
+    else
+      fprintf(f, "%.*s\n", (int)(end - line), line);
+  }
+  fflush(f);
+  funlockfile(f);
+  if (msg && msg != small)
+    free(msg);
+}
+
+void uw_log(uw_log_level level, const char *fmt, ...) {
+  va_list ap;
+
+  va_start(ap, fmt);
+  uw_vlog(level, fmt, ap);
+  va_end(ap);
 }
 
 uw_context uw_init(int id, uw_loggers *lg) {
@@ -1070,7 +1207,7 @@ void uw_transaction_departs() {
   if (transactions_in_progress == 0)
     // A departure without an arrival.  Counting it would let the expunger in
     // during the next transaction, so it is only reported.
-    fprintf(stderr, "Transaction departed without arriving\n");
+    uw_log(UW_LOG_ERR, "Transaction departed without arriving\n");
   else if (--transactions_in_progress == 0)
     pthread_cond_signal(&transactions_gone);
   pthread_mutex_unlock(&expunge_gate);
@@ -1706,7 +1843,7 @@ static char *uw_heap_reserve(size_t limit, size_t reserve) {
 #endif
                , -1, 0);
   if (map == MAP_FAILED) {
-    fprintf(stderr, "Cannot reserve %zu bytes of address space for a heap: %s\n"
+    uw_log(UW_LOG_ERR, "Cannot reserve %zu bytes of address space for a heap: %s\n"
             "(Each request-handling thread and task reserves the heap limit, URWEB_LIMIT_HEAP or `limit heap` in the .urp,"
             " or %llu bytes when there is none.)\n",
             limit, strerror(reserve ? errno : EOVERFLOW), (unsigned long long)UW_HEAP_DEFAULT_RESERVATION);
@@ -1754,7 +1891,7 @@ static void uw_heap_init(uw_context ctx) {
   if (initial > reserve)
     initial = reserve;
   if (initial > committed && mprotect(map + committed, initial - committed, PROT_READ | PROT_WRITE)) {
-    fprintf(stderr, "Cannot commit the first %zu bytes of a heap: %s\n", initial, strerror(errno));
+    uw_log(UW_LOG_ERR, "Cannot commit the first %zu bytes of a heap: %s\n", initial, strerror(errno));
     exit(1);
   }
 
@@ -5499,7 +5636,7 @@ uw_Basis_int uw_Basis_naughtyDebug(uw_context ctx, uw_Basis_string s) {
   if (ctx->loggers->log_debug)
     ctx->loggers->log_debug(ctx->loggers->logger_data, "%s\n", s);
   else
-    fprintf(stderr, "%s\n", s);
+    uw_log(UW_LOG_INFO, "%s\n", s);
   return 0;
 }
 
@@ -5507,7 +5644,7 @@ uw_Basis_unit uw_Basis_debug(uw_context ctx, uw_Basis_string s) {
   if (ctx->loggers->log_debug)
     ctx->loggers->log_debug(ctx->loggers->logger_data, "%s\n", s);
   else
-    fprintf(stderr, "%s\n", s);
+    uw_log(UW_LOG_INFO, "%s\n", s);
   return uw_unit_v;
 }
 

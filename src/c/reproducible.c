@@ -40,7 +40,7 @@ static int env_integer(const char *name, uint64_t *out) {
   *out = strtoull(s, &end, 10);
 
   if (errno || end == s || *end) {
-    fprintf(stderr, "%s: '%s' is not an integer\n", name, s);
+    uw_log(UW_LOG_ERR, "%s: '%s' is not an integer\n", name, s);
     exit(1);
   }
 

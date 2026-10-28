@@ -9,42 +9,13 @@ fastcgi without flags: ran
 fastcgi -q: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
   stderr 1 Request is for a role besides RESPONDER
-fastcgi -l err: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-fastcgi -l warning: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-fastcgi -l info: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-fastcgi -l debug: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-fastcgi -l bogus: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-fastcgi -q -l debug: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-fastcgi -l debug -q: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-fastcgi, stderr to the journal, without flags: ran
+fastcgi -l err: ran
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi -l warning: ran
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi -l info: ran
   stdout 3 Database connection initialized.
   stdout 1 Failed URI /fail ...
   stdout 1 Served URI /main ...
@@ -52,11 +23,47 @@ fastcgi, stderr to the journal, without flags: ran
   stdout 1 main: running
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
   stderr 1 Request is for a role besides RESPONDER
-fastcgi, stderr to the journal, -l debug: ended with status 1
-  stdout 1 The '-q' option turns off the debug output on stdout.
-  stdout 1 Usage: PROGRAM [-t <thread-count>] [-q]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
+fastcgi -l debug: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi -l bogus: ended with status 1
+  stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
+  stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-l <level>] [-q]
+  stdout 1 info (the default, with a line for each request) or debug.
+  stderr 1 Unknown log level 'bogus'
+fastcgi -q -l debug: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi -l debug -q: ran
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi, stderr to the journal, without flags: ran
+  stderr 1 <3>GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 <3>Request is for a role besides RESPONDER
+  stderr 3 <6>Database connection initialized.
+  stderr 1 <6>Failed URI /fail ...
+  stderr 1 <6>Served URI /main ...
+  stderr 1 <6>fail: running
+  stderr 1 <6>main: running
+fastcgi, stderr to the journal, -l debug: ran
+  stderr 1 <3>GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 <3>Request is for a role besides RESPONDER
+  stderr 3 <6>Database connection initialized.
+  stderr 1 <6>Failed URI /fail ...
+  stderr 1 <6>Served URI /main ...
+  stderr 1 <6>fail: running
+  stderr 1 <6>main: running
 fastcgi, a request whose web server closed the connection before the program started, without flags: ran
   stdout 3 Database connection initialized.
   stdout 1 Dropped URI /main: the web server has closed the connection
@@ -83,30 +90,30 @@ fastcgi, the page slow, its web server leaving meanwhile, without flags: ran
   stdout 1 slow: running
   stderr 1 fastcgi_flush() failed in fastcgi_end_request().
 fastcgi, stderr to the journal, a request whose web server closed the connection before the program started, without flags: ran
-  stdout 3 Database connection initialized.
-  stdout 1 Dropped URI /main: the web server has closed the connection
-  stdout 1 Served URI /main ...
-  stdout 1 main: running
+  stderr 3 <6>Database connection initialized.
+  stderr 1 <6>Dropped URI /main: the web server has closed the connection
+  stderr 1 <6>Served URI /main ...
+  stderr 1 <6>main: running
 fastcgi, stderr to the journal, the page long, without flags: ran
-  stdout 3 Database connection initialized.
-  stdout 1 L[1100 x]E
-  stdout 1 Served URI /long/1100 ...
+  stderr 3 <6>Database connection initialized.
+  stderr 1 <6>L[1100 x]E
+  stderr 1 <6>Served URI /long/1100 ...
 fastcgi, stderr to the journal, the page lines, without flags: ran
-  stdout 3 Database connection initialized.
-  stdout 1 Served URI /lines ...
-  stdout 1 ends without a newline
-  stdout 1 first line
-  stdout 1 second line
+  stderr 3 <6>Database connection initialized.
+  stderr 1 <6>Served URI /lines ...
+  stderr 1 <6>ends without a newline
+  stderr 1 <6>first line
+  stderr 1 <6>second line
 fastcgi, stderr to the journal, 40 requests for long at once, 4 threads, without flags: ran
-  stdout 6 Database connection initialized.
-  stdout 40 L[1100 x]E
-  stdout 40 Served URI /long/1100 ...
+  stderr 6 <6>Database connection initialized.
+  stderr 40 <6>L[1100 x]E
+  stderr 40 <6>Served URI /long/1100 ...
 fastcgi, stderr to the journal, the page slow, its web server leaving meanwhile, without flags: ran
-  stdout 3 Database connection initialized.
-  stdout 1 Served URI /slow ...
-  stdout 1 slow: done
-  stdout 1 slow: running
-  stderr 1 fastcgi_flush() failed in fastcgi_end_request().
+  stderr 1 <3>fastcgi_flush() failed in fastcgi_end_request().
+  stderr 3 <6>Database connection initialized.
+  stderr 1 <6>Served URI /slow ...
+  stderr 1 <6>slow: done
+  stderr 1 <6>slow: running
 http without flags: ran
   stdout 1
   stdout 2 Accepted connection.
@@ -125,37 +132,7 @@ http without flags: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
 http -q: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
-http -l debug: ended with status 1
-  stdout 1
-  stdout 1              [ "$status" = 'OK' ] || { echo failed; exit 1 }
-  stdout 1              eval "$(... -d3 3>&1 1>/dev/null)"
-  stdout 1          'port' or 'socket' to file descriptor <fd>. Typical shell usage:
-  stdout 1          arg is provided, the parent first writes shell assignments for 'pid' and either
-  stdout 1 The '-P' option picks the first free port in the range [p..P], where p is the value of '-p' (default 8080) and P is the value of '-P'.
-  stdout 1 The '-T' option sets socket recv timeout (0 disables timeout, default is 5 sec).
-  stdout 1 The '-d' option daemonizes the server by forking once it is listening; when the optional <fd>
-  stdout 1 The '-k' option turns on HTTP keepalive.
-  stdout 1 The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)
-  stdout 1 The '-q' option turns off some chatter on stdout.
-  stdout 1 Usage: PROGRAM [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-q] [-T SEC] [-d[fd]]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-http -l bogus: ended with status 1
-  stdout 1
-  stdout 1              [ "$status" = 'OK' ] || { echo failed; exit 1 }
-  stdout 1              eval "$(... -d3 3>&1 1>/dev/null)"
-  stdout 1          'port' or 'socket' to file descriptor <fd>. Typical shell usage:
-  stdout 1          arg is provided, the parent first writes shell assignments for 'pid' and either
-  stdout 1 The '-P' option picks the first free port in the range [p..P], where p is the value of '-p' (default 8080) and P is the value of '-P'.
-  stdout 1 The '-T' option sets socket recv timeout (0 disables timeout, default is 5 sec).
-  stdout 1 The '-d' option daemonizes the server by forking once it is listening; when the optional <fd>
-  stdout 1 The '-k' option turns on HTTP keepalive.
-  stdout 1 The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)
-  stdout 1 The '-q' option turns off some chatter on stdout.
-  stdout 1 Usage: PROGRAM [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-q] [-T SEC] [-d[fd]]
-  stderr 1 PROGRAM: invalid option -- 'l'
-  stderr 1 Unknown command-line option
-http, stderr to the journal, without flags: ran
+http -l debug: ran
   stdout 1
   stdout 2 Accepted connection.
   stdout 3 Database connection initialized.
@@ -171,6 +148,38 @@ http, stderr to the journal, without flags: ran
   stdout 1 fail: running
   stdout 1 main: running
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+http -l bogus: ended with status 1
+  stdout 1
+  stdout 1              [ "$status" = 'OK' ] || { echo failed; exit 1 }
+  stdout 1              eval "$(... -d3 3>&1 1>/dev/null)"
+  stdout 1          'port' or 'socket' to file descriptor <fd>. Typical shell usage:
+  stdout 1          arg is provided, the parent first writes shell assignments for 'pid' and either
+  stdout 1 The '-P' option picks the first free port in the range [p..P], where p is the value of '-p' (default 8080) and P is the value of '-P'.
+  stdout 1 The '-T' option sets socket recv timeout (0 disables timeout, default is 5 sec).
+  stdout 1 The '-d' option daemonizes the server by forking once it is listening; when the optional <fd>
+  stdout 1 The '-k' option turns on HTTP keepalive.
+  stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
+  stdout 1 The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)
+  stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
+  stdout 1 Usage: PROGRAM [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-l <level>] [-q] [-T SEC] [-d[fd]]
+  stdout 1 info (the default, with a line for each request) or debug.
+  stderr 1 Unknown log level 'bogus'
+http, stderr to the journal, without flags: ran
+  stderr 1 <3>GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 <6>
+  stderr 2 <6>Accepted connection.
+  stderr 3 <6>Database connection initialized.
+  stderr 1 <6>Failed URI /fail ...
+  stderr 2 <6>Handling connection with thread #0.
+  stderr 1 <6>Listening on port 8080....
+  stderr 1 <6>ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,
+  stderr 1 <6>Served URI /main ...
+  stderr 1 <6>Serving URI /fail....
+  stderr 1 <6>Serving URI /main....
+  stderr 1 <6>Starting the Ur/Web native HTTP server, which is intended for use
+  stderr 1 <6>behind a production-quality HTTP server, for a real deployment.
+  stderr 1 <6>fail: running
+  stderr 1 <6>main: running
 cgi, the page /main, without flags: ended with status 0
   stdout 1
   stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>

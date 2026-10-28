@@ -204,7 +204,7 @@ static void on_failure(uw_context ctx) {
 static void send_failed(FCGI_Output *o, const char *function) {
   if (o->poll && (errno == EPIPE || errno == ECONNRESET))
     return;
-  fprintf(stderr, "fastcgi_send() failed in %s().\n", function);
+  uw_log(UW_LOG_ERR, "fastcgi_send() failed in %s().\n", function);
 }
 
 static int write_stdout(void *data, const char *buf, size_t len) {
@@ -249,33 +249,25 @@ static int close_stream(FCGI_Output *o, unsigned char type) {
   return 0;
 }
 
-// The program logs as the HTTP server does: errors on stderr, and debug
-// output on stdout, which -q turns off.  Nothing goes on a request's
-// FastCGI stderr stream, which a web server puts in its error log apart
-// from the program's other output.  A complaint about a request as the
-// web server sent it goes the same way.
+// The program logs as the HTTP server does, through uw_vlog: errors at
+// err, debug output and the line for each request at info. Nothing goes on
+// a request's FastCGI stderr stream, which a web server puts in its error
+// log apart from the program's other output. A complaint about a request
+// as the web server sent it goes the same way.
 static void log_error(void *data, const char *fmt, ...) {
   va_list ap;
   (void)data;
   va_start(ap, fmt);
-  vfprintf(stderr, fmt, ap);
-  fflush(stderr);
+  uw_vlog(UW_LOG_ERR, fmt, ap);
   va_end(ap);
 }
 
-static int quiet = 0;
-
 static void log_debug(void *data, const char *fmt, ...) {
+  va_list ap;
   (void)data;
-
-  if (!quiet) {
-    va_list ap;
-    va_start(ap, fmt);
-
-    vprintf(fmt, ap);
-    fflush(stdout);
-    va_end(ap);
-  }
+  va_start(ap, fmt);
+  uw_vlog(UW_LOG_INFO, fmt, ap);
+  va_end(ap);
 }
 
 typedef struct {
@@ -396,7 +388,7 @@ static int fastcgi_end_request(FCGI_Output *out, request_result rr) {
   erb->protocolStatus = FCGI_REQUEST_COMPLETE;
   failed |= fastcgi_send(out, FCGI_END_REQUEST, sizeof(FCGI_EndRequestBody));
   if (out->buf && fastcgi_flush(out)) {
-    fprintf(stderr, "fastcgi_flush() failed in fastcgi_end_request().\n");
+    uw_log(UW_LOG_ERR, "fastcgi_flush() failed in fastcgi_end_request().\n");
     failed = -1;
   }
   return failed ? -1 : 0;
@@ -580,7 +572,7 @@ static void *poller(void *data) {
     if (poll(fds, n + 1, -1) < 0) {
       if (errno == EINTR)
         continue;
-      fprintf(stderr, "poll failed in the poller: %s\n", strerror(errno));
+      uw_log(UW_LOG_ERR, "poll failed in the poller: %s\n", strerror(errno));
       exit(1);
     }
 
@@ -684,7 +676,7 @@ static void *worker(void *data) {
     if (!(r = fastcgi_recv(in))) {
       // A kept connection that the web server closes is simply done with.
       if (!kept)
-        fprintf(stderr, "Error receiving initial message\n");
+        uw_log(UW_LOG_ERR, "Error receiving initial message\n");
       goto done;
     }
 
@@ -899,8 +891,7 @@ static void *worker(void *data) {
 }
 
 static void help(char *cmd) {
-  printf("Usage: %s [-t <thread-count>] [-q]\n"
-         "The '-q' option turns off the debug output on stdout.\n", cmd);
+  printf("Usage: %s [-t <thread-count>] " UW_LOG_USAGE "\n" UW_LOG_HELP, cmd);
 }
 
 static uw_loggers ls = {NULL, log_error, log_debug};
@@ -935,13 +926,13 @@ static int accept_failed(int error, int *wait_ms) {
     return 1;
 
   if (error == EBADF || error == ENOTSOCK || error == EINVAL || error == EFAULT) {
-    fprintf(stderr, "Socket accept failed: %s\n", strerror(error));
+    uw_log(UW_LOG_ERR, "Socket accept failed: %s\n", strerror(error));
     return 0;
   }
 
   if (!*wait_ms) {
     *wait_ms = ACCEPT_WAIT_FIRST_MS;
-    fprintf(stderr, "Socket accept failed: %s; %s\n", strerror(error),
+    uw_log(UW_LOG_ERR, "Socket accept failed: %s; %s\n", strerror(error),
             error == EMFILE || error == ENFILE ? "waiting for a descriptor"
             : error == ENOBUFS || error == ENOMEM ? "waiting for memory"
             : "trying again");
@@ -965,7 +956,7 @@ int main(int argc, char *argv[]) {
   if (nthreads_s) {
     nthreads = atoi(nthreads_s);
     if (nthreads <= 0) {
-      fprintf(stderr, "Bad URWEB_NUM_THREADS value\n");
+      uw_log(UW_LOG_ERR, "Bad URWEB_NUM_THREADS value\n");
       return 1;
     }
   }
@@ -974,10 +965,10 @@ int main(int argc, char *argv[]) {
   // A line at a time, whatever stdout is, as for the HTTP server.
   setvbuf(stdout, NULL, _IOLBF, 0);
 
-  while ((opt = getopt(argc, argv, "hqt:")) != -1) {
+  while ((opt = getopt(argc, argv, "h" UW_LOG_GETOPT "t:")) != -1) {
     switch (opt) {
     case '?':
-      fprintf(stderr, "Unknown command-line option");
+      uw_log(UW_LOG_ERR, "Unknown command-line option");
       help(argv[0]);
       return 1;
 
@@ -985,21 +976,25 @@ int main(int argc, char *argv[]) {
       help(argv[0]);
       return 0;
 
+    case 'l':
     case 'q':
-      quiet = 1;
+      if (uw_log_option(opt, optarg)) {
+        help(argv[0]);
+        return 1;
+      }
       break;
 
     case 't':
       nthreads = atoi(optarg);
       if (nthreads <= 0) {
-        fprintf(stderr, "Invalid thread count\n");
+        uw_log(UW_LOG_ERR, "Invalid thread count\n");
         help(argv[0]);
         return 1;
       }
       break;
 
     default:
-      fprintf(stderr, "Unexpected getopt() behavior\n");
+      uw_log(UW_LOG_ERR, "Unexpected getopt() behavior\n");
       return 1;
     }
   }
@@ -1019,7 +1014,7 @@ int main(int argc, char *argv[]) {
     pd->loggers = &ls;
 
     if (pthread_create_big(&thread, NULL, client_pruner, pd)) {
-      fprintf(stderr, "Error creating pruner thread\n");
+      uw_log(UW_LOG_ERR, "Error creating pruner thread\n");
       return 1;
     }
   }
@@ -1028,11 +1023,11 @@ int main(int argc, char *argv[]) {
     pthread_t thread;
 
     if (pipe(poller_pipe) || fcntl(poller_pipe[0], F_SETFL, O_NONBLOCK) || fcntl(poller_pipe[1], F_SETFL, O_NONBLOCK)) {
-      fprintf(stderr, "Error creating the poller's pipe\n");
+      uw_log(UW_LOG_ERR, "Error creating the poller's pipe\n");
       return 1;
     }
     if (pthread_create(&thread, NULL, poller, NULL)) {
-      fprintf(stderr, "Error creating poller thread\n");
+      uw_log(UW_LOG_ERR, "Error creating poller thread\n");
       return 1;
     }
   }
@@ -1041,7 +1036,7 @@ int main(int argc, char *argv[]) {
     pthread_t thread;
     names[i] = i;
     if (pthread_create_big(&thread, NULL, worker, &names[i])) {
-      fprintf(stderr, "Error creating worker thread #%d\n", i);
+      uw_log(UW_LOG_ERR, "Error creating worker thread #%d\n", i);
       return 1;
     }
   }
@@ -1067,7 +1062,7 @@ int main(int argc, char *argv[]) {
       char *ips, *sep;
 
       if (getnameinfo((struct sockaddr *)&their_addr, sin_size, host, sizeof host, NULL, 0, NI_NUMERICHOST)) {
-        fprintf(stderr, "Remote IP determination failed\n");
+        uw_log(UW_LOG_ERR, "Remote IP determination failed\n");
         return 1;
       }
 
@@ -1079,7 +1074,7 @@ int main(int argc, char *argv[]) {
       }
 
       if (!matched && strcmp(ips, host)) {
-        fprintf(stderr, "Remote address is not in FCGI_WEB_SERVER_ADDRS");
+        uw_log(UW_LOG_ERR, "Remote address is not in FCGI_WEB_SERVER_ADDRS");
         return 1;
       }
     }
