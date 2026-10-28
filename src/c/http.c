@@ -101,7 +101,7 @@ static void *worker(void *data) {
 
     uw_set_remoteSock(ctx, sock);
 
-    uw_log(UW_LOG_INFO, "Handling connection with thread #%d.\n", me);
+    uw_log(UW_LOG_DEBUG, "Handling connection with thread #%d.\n", me);
 
     while (1) {
       int r;
@@ -111,14 +111,14 @@ static void *worker(void *data) {
         char *new_buf;
         size_t new_buf_size = buf_size*2;
         if (new_buf_size > max_buf_size) {
-          uw_log(UW_LOG_INFO, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
+          uw_log(UW_LOG_WARNING, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
           close(sock);
           sock = 0;
           break;
         }
         new_buf = realloc(buf, new_buf_size);
         if(!new_buf) {
-          uw_log(UW_LOG_INFO, "Realloc failed while receiving header\n");
+          uw_log(UW_LOG_ERR, "Realloc failed while receiving header\n");
           close(sock);
           sock = 0;
           break;
@@ -141,7 +141,7 @@ static void *worker(void *data) {
         }
 
         if (r == 0) {
-          uw_log(UW_LOG_INFO, "Connection closed.\n");
+          uw_log(UW_LOG_DEBUG, "Connection closed.\n");
           close(sock);
           sock = 0;
           break;
@@ -162,7 +162,7 @@ static void *worker(void *data) {
           int clen;
 
           if (sscanf(s + 18, "%d\r\n", &clen) != 1) {
-            uw_log(UW_LOG_ERR, "Malformed Content-Length header\n");
+            uw_log(UW_LOG_INFO, "Malformed Content-Length header\n");
             close(sock);
             sock = 0;
             break;
@@ -173,14 +173,14 @@ static void *worker(void *data) {
               char *new_buf;
               size_t new_buf_size = buf_size * 2;
               if (new_buf_size > max_buf_size) {
-                uw_log(UW_LOG_INFO, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
+                uw_log(UW_LOG_WARNING, "HTTP input exceeds buffer-size limit of %u bytes.\n", max_buf_size);
                 close(sock);
                 sock = 0;
                 break;
               }
               new_buf = realloc(buf, new_buf_size);
               if(!new_buf) {
-                uw_log(UW_LOG_INFO, "Realloc failed while receiving content\n");
+                uw_log(UW_LOG_ERR, "Realloc failed while receiving content\n");
                 close(sock);
                 sock = 0;
                 goto done;
@@ -204,7 +204,7 @@ static void *worker(void *data) {
             }
 
             if (r == 0) {
-              uw_log(UW_LOG_INFO, "Connection closed.\n");
+              uw_log(UW_LOG_DEBUG, "Connection closed.\n");
               close(sock);
               sock = 0;
               goto done;
@@ -222,7 +222,7 @@ static void *worker(void *data) {
         body[-3] = '\n';
 
         if (!(s = strstr(buf, "\r\n"))) {
-          uw_log(UW_LOG_ERR, "No newline in request\n");
+          uw_log(UW_LOG_INFO, "No newline in request\n");
           close(sock);
           sock = 0;
           goto done;
@@ -236,7 +236,7 @@ static void *worker(void *data) {
 
         strsep(&s, " ");
         if (!s) {
-          uw_log(UW_LOG_ERR, "No first space in HTTP command\n");
+          uw_log(UW_LOG_INFO, "No first space in HTTP command\n");
           close(sock);
           sock = 0;
           goto done;
@@ -272,7 +272,7 @@ static void *worker(void *data) {
         uw_set_headers(ctx, get_header, headers);
         uw_set_env(ctx, get_env, NULL);
 
-        uw_log(UW_LOG_INFO, "Serving URI %s....\n", path);
+        uw_log(UW_LOG_DEBUG, "Serving URI %s....\n", path);
         rr = uw_request(rc, ctx, method, path, query_string, body, back - body,
                         on_success, on_failure,
                         NULL, log_error, log_debug,
@@ -601,7 +601,7 @@ int main(int argc, char *argv[]) {
       return 1;
     }
     if (child > 0) {
-      uw_log(UW_LOG_INFO, "Forking to PID %d....\n", child);
+      uw_log(UW_LOG_DEBUG, "Forking to PID %d....\n", child);
       if (meta_fd >= 0) {
         // Use fdopen+fprintf rather than write() so we can format integers
         // without manual itoa. "w" is fine: fdopen does not truncate or
@@ -668,9 +668,9 @@ int main(int argc, char *argv[]) {
     int new_fd = accept(sockfd, &their_addr.sa, &sin_size);
 
     if (new_fd < 0) {
-      uw_log(UW_LOG_INFO, "Socket accept failed\n");
+      uw_log(UW_LOG_ERR, "Socket accept failed\n");
     } else {
-      uw_log(UW_LOG_INFO, "Accepted connection.\n");
+      uw_log(UW_LOG_DEBUG, "Accepted connection.\n");
 
       if (keepalive) {
         int flag = 1; 
@@ -684,7 +684,7 @@ int main(int argc, char *argv[]) {
         tv.tv_sec = recv_timeout_sec;
         ret = setsockopt(new_fd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
         if(ret != 0) {
-          uw_log(UW_LOG_INFO, "Timeout setting failed, errcode %d errno '%m'\n", ret);
+          uw_log(UW_LOG_WARNING, "Timeout setting failed, errcode %d errno '%m'\n", ret);
         }
       }
 

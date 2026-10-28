@@ -1,5 +1,4 @@
 fastcgi without flags: ran
-  stdout 3 Database connection initialized.
   stdout 1 Failed URI /fail ...
   stdout 1 Served URI /main ...
   stdout 1 fail: running
@@ -11,12 +10,10 @@ fastcgi -q: ran
   stderr 1 Request is for a role besides RESPONDER
 fastcgi -l err: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
-  stderr 1 Request is for a role besides RESPONDER
 fastcgi -l warning: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
   stderr 1 Request is for a role besides RESPONDER
 fastcgi -l info: ran
-  stdout 3 Database connection initialized.
   stdout 1 Failed URI /fail ...
   stdout 1 Served URI /main ...
   stdout 1 fail: running
@@ -50,81 +47,65 @@ fastcgi -l debug -q: ran
   stderr 1 Request is for a role besides RESPONDER
 fastcgi, stderr to the journal, without flags: ran
   stderr 1 <3>GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
-  stderr 1 <3>Request is for a role besides RESPONDER
-  stderr 3 <6>Database connection initialized.
+  stderr 1 <4>Request is for a role besides RESPONDER
   stderr 1 <6>Failed URI /fail ...
   stderr 1 <6>Served URI /main ...
   stderr 1 <6>fail: running
   stderr 1 <6>main: running
 fastcgi, stderr to the journal, -l debug: ran
   stderr 1 <3>GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
-  stderr 1 <3>Request is for a role besides RESPONDER
-  stderr 3 <6>Database connection initialized.
+  stderr 1 <4>Request is for a role besides RESPONDER
   stderr 1 <6>Failed URI /fail ...
   stderr 1 <6>Served URI /main ...
   stderr 1 <6>fail: running
   stderr 1 <6>main: running
+  stderr 3 <7>Database connection initialized.
 fastcgi, a request whose web server closed the connection before the program started, without flags: ran
-  stdout 3 Database connection initialized.
-  stdout 1 Dropped URI /main: the web server has closed the connection
   stdout 1 Served URI /main ...
   stdout 1 main: running
+  stderr 1 Dropped URI /main: the web server has closed the connection
 fastcgi, the page long, without flags: ran
-  stdout 3 Database connection initialized.
   stdout 1 L[1100 x]E
   stdout 1 Served URI /long/1100 ...
 fastcgi, the page lines, without flags: ran
-  stdout 3 Database connection initialized.
   stdout 1 Served URI /lines ...
   stdout 1 ends without a newline
   stdout 1 first line
   stdout 1 second line
 fastcgi, 40 requests for long at once, 4 threads, without flags: ran
-  stdout 6 Database connection initialized.
   stdout 40 L[1100 x]E
   stdout 40 Served URI /long/1100 ...
 fastcgi, the page slow, its web server leaving meanwhile, without flags: ran
-  stdout 3 Database connection initialized.
   stdout 1 Served URI /slow ...
+  stdout 1 fastcgi_flush() failed in fastcgi_end_request().
   stdout 1 slow: done
   stdout 1 slow: running
-  stderr 1 fastcgi_flush() failed in fastcgi_end_request().
 fastcgi, stderr to the journal, a request whose web server closed the connection before the program started, without flags: ran
-  stderr 3 <6>Database connection initialized.
-  stderr 1 <6>Dropped URI /main: the web server has closed the connection
+  stderr 1 <4>Dropped URI /main: the web server has closed the connection
   stderr 1 <6>Served URI /main ...
   stderr 1 <6>main: running
 fastcgi, stderr to the journal, the page long, without flags: ran
-  stderr 3 <6>Database connection initialized.
   stderr 1 <6>L[1100 x]E
   stderr 1 <6>Served URI /long/1100 ...
 fastcgi, stderr to the journal, the page lines, without flags: ran
-  stderr 3 <6>Database connection initialized.
   stderr 1 <6>Served URI /lines ...
   stderr 1 <6>ends without a newline
   stderr 1 <6>first line
   stderr 1 <6>second line
 fastcgi, stderr to the journal, 40 requests for long at once, 4 threads, without flags: ran
-  stderr 6 <6>Database connection initialized.
   stderr 40 <6>L[1100 x]E
   stderr 40 <6>Served URI /long/1100 ...
 fastcgi, stderr to the journal, the page slow, its web server leaving meanwhile, without flags: ran
-  stderr 1 <3>fastcgi_flush() failed in fastcgi_end_request().
-  stderr 3 <6>Database connection initialized.
   stderr 1 <6>Served URI /slow ...
+  stderr 1 <6>fastcgi_flush() failed in fastcgi_end_request().
   stderr 1 <6>slow: done
   stderr 1 <6>slow: running
 http without flags: ran
   stdout 1
-  stdout 2 Accepted connection.
-  stdout 3 Database connection initialized.
   stdout 1 Failed URI /fail ...
-  stdout 2 Handling connection with thread #0.
   stdout 1 Listening on port 8080....
   stdout 1 ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,
   stdout 1 Served URI /main ...
-  stdout 1 Serving URI /fail....
-  stdout 1 Serving URI /main....
   stdout 1 Starting the Ur/Web native HTTP server, which is intended for use
   stdout 1 behind a production-quality HTTP server, for a real deployment.
   stdout 1 fail: running
@@ -167,15 +148,10 @@ http -l bogus: ended with status 1
 http, stderr to the journal, without flags: ran
   stderr 1 <3>GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
   stderr 1 <6>
-  stderr 2 <6>Accepted connection.
-  stderr 3 <6>Database connection initialized.
   stderr 1 <6>Failed URI /fail ...
-  stderr 2 <6>Handling connection with thread #0.
   stderr 1 <6>Listening on port 8080....
   stderr 1 <6>ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,
   stderr 1 <6>Served URI /main ...
-  stderr 1 <6>Serving URI /fail....
-  stderr 1 <6>Serving URI /main....
   stderr 1 <6>Starting the Ur/Web native HTTP server, which is intended for use
   stderr 1 <6>behind a production-quality HTTP server, for a real deployment.
   stderr 1 <6>fail: running

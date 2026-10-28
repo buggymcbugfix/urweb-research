@@ -195,16 +195,23 @@ static void on_failure(uw_context ctx) {
   uw_write_header(ctx, "Status: 500 Internal Server Error\r\n");
 }
 
-// A send of o's that has just failed, in the function named: said on
-// stderr, unless o answers a poll and the web server had closed the
-// connection (EPIPE) or reset it (ECONNRESET).  That is how a poll ends
-// when the browser gives up on it, as urweb.js does every half of the
-// timeout, or leaves its page: nginx closes the connection then, and the
-// program finds out only when it answers the poll.
+// Whether the send that has just failed did so because the web server had
+// closed the connection (EPIPE) or reset it (ECONNRESET).
+static int web_server_left(void) {
+  return errno == EPIPE || errno == ECONNRESET;
+}
+
+// A send of o's that has just failed, in the function named: logged at
+// info when the web server had left, which is routine (a visitor that did
+// not wait), and at warning for anything else, which is not. Not at all
+// when o answers a poll and the web server had left: that is how a poll
+// ends when the browser gives up on it, as urweb.js does every half of
+// the timeout, or leaves its page; nginx closes the connection then, and
+// the program finds out only when it answers the poll.
 static void send_failed(FCGI_Output *o, const char *function) {
-  if (o->poll && (errno == EPIPE || errno == ECONNRESET))
+  if (o->poll && web_server_left())
     return;
-  uw_log(UW_LOG_ERR, "fastcgi_send() failed in %s().\n", function);
+  uw_log(web_server_left() ? UW_LOG_INFO : UW_LOG_WARNING, "fastcgi_send() failed in %s().\n", function);
 }
 
 static int write_stdout(void *data, const char *buf, size_t len) {
@@ -388,7 +395,7 @@ static int fastcgi_end_request(FCGI_Output *out, request_result rr) {
   erb->protocolStatus = FCGI_REQUEST_COMPLETE;
   failed |= fastcgi_send(out, FCGI_END_REQUEST, sizeof(FCGI_EndRequestBody));
   if (out->buf && fastcgi_flush(out)) {
-    uw_log(UW_LOG_ERR, "fastcgi_flush() failed in fastcgi_end_request().\n");
+    uw_log(web_server_left() ? UW_LOG_INFO : UW_LOG_WARNING, "fastcgi_flush() failed in fastcgi_end_request().\n");
     failed = -1;
   }
   return failed ? -1 : 0;
@@ -676,17 +683,17 @@ static void *worker(void *data) {
     if (!(r = fastcgi_recv(in))) {
       // A kept connection that the web server closes is simply done with.
       if (!kept)
-        uw_log(UW_LOG_ERR, "Error receiving initial message\n");
+        uw_log(UW_LOG_INFO, "Error receiving initial message\n");
       goto done;
     }
 
     out->request_id = fastcgi_request_id(r);
 
     if (r->type != FCGI_BEGIN_REQUEST) {
-      log_error(out, "First message is not BEGIN_REQUEST\n");
+      uw_log(UW_LOG_WARNING, "First message is not BEGIN_REQUEST\n");
       goto done;
     } else if (r->contentData[1] != FCGI_RESPONDER) {
-      log_error(out, "Request is for a role besides RESPONDER\n");
+      uw_log(UW_LOG_WARNING, "Request is for a role besides RESPONDER\n");
       goto done;
     }
 
@@ -697,18 +704,18 @@ static void *worker(void *data) {
       int len;
 
       if (!(r = fastcgi_recv(in))) {
-        log_error(out, "Error receiving environment variables\n");
+        uw_log(UW_LOG_INFO, "Error receiving environment variables\n");
         goto done;
       }
 
       if (fastcgi_request_id(r) != out->request_id) {
-        log_error(out, "Ignoring environment variables for request %d (current request has id %d)\n",
+        uw_log(UW_LOG_WARNING, "Ignoring environment variables for request %d (current request has id %d)\n",
                   fastcgi_request_id(r), out->request_id);
         continue;
       }
 
       if (r->type != FCGI_PARAMS) {
-        log_error(out, "Expected FCGI_PARAMS but got %d\n", r->type);
+        uw_log(UW_LOG_WARNING, "Expected FCGI_PARAMS but got %d\n", r->type);
         goto done;
       }
 
@@ -728,7 +735,7 @@ static void *worker(void *data) {
         }
 
         if (read_nvp(&buf, len - (buf - r->contentData), &hs.nvps[used_nvps]) < 0) {
-          log_error(out, "Error reading FCGI_PARAMS name-value pair\n");
+          uw_log(UW_LOG_WARNING, "Error reading FCGI_PARAMS name-value pair\n");
           goto done;
         }
 
@@ -743,7 +750,7 @@ static void *worker(void *data) {
     if ((s = get_header(&hs, "Content-Length"))) {
       body_len = atoi(s);
       if (body_len < 0) {
-        log_error(out, "Invalid Content-Length\n");
+        uw_log(UW_LOG_INFO, "Invalid Content-Length\n");
         goto done;
       }
     } else
@@ -763,31 +770,31 @@ static void *worker(void *data) {
       int this_len;
 
       if (!(r = fastcgi_recv(in))) {
-        log_error(out, "Error receiving STDIN\n");
+        uw_log(UW_LOG_INFO, "Error receiving STDIN\n");
         goto done;
       }
 
       if (fastcgi_request_id(r) != out->request_id) {
-        log_error(out, "Ignoring STDIN for request %d (current request has id %d)\n",
+        uw_log(UW_LOG_WARNING, "Ignoring STDIN for request %d (current request has id %d)\n",
                   fastcgi_request_id(r), out->request_id);
         continue;
       }
 
       if (r->type != FCGI_STDIN) {
-        log_error(out, "Expected FCGI_STDIN but got %d\n", r->type);
+        uw_log(UW_LOG_WARNING, "Expected FCGI_STDIN but got %d\n", r->type);
         goto done;
       }
 
       if (r->contentLengthB1 == 0 && r->contentLengthB0 == 0) {
         if (body_read < body_len)
-          log_error(out, "FastCGI stdin ended %d bytes short of CONTENT_LENGTH\n", body_len - body_read);
+          uw_log(UW_LOG_INFO, "FastCGI stdin ended %d bytes short of CONTENT_LENGTH\n", body_len - body_read);
         break;
       }
 
       this_len = (r->contentLengthB1 << 8) | r->contentLengthB0;
 
       if (body_read + this_len > body_len) {
-        log_error(out, "Too much STDIN\n");
+        uw_log(UW_LOG_WARNING, "Too much STDIN\n");
         goto done;
       }
 
@@ -835,7 +842,7 @@ static void *worker(void *data) {
     // take effect long after its client was told that it failed. A web
     // server that gives up after this point still has its request run.
     if (web_server_gone(in->sock)) {
-      log_debug(out, "Dropped URI %s: the web server has closed the connection\n", path);
+      uw_log(UW_LOG_WARNING, "Dropped URI %s: the web server has closed the connection\n", path);
       goto done;
     }
 

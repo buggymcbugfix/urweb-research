@@ -35,6 +35,7 @@
 // Defined with the context below, used before it.
 void uw_log_error(uw_context ctx, const char *fmt, ...);
 void uw_log(uw_log_level level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+void uw_log_at(uw_context ctx, uw_log_level level, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 
 uw_unit uw_unit_v = 0;
 
@@ -304,7 +305,7 @@ void uw_client_connect(uw_context ctx, unsigned id, int pass, int sock,
   client *c = find_client(id);
 
   if (c == NULL) {
-    uw_log_error(ctx, "Out-of-bounds client request (%u)\n", id);
+    uw_log_at(ctx, UW_LOG_INFO, "Out-of-bounds client request (%u)\n", id);
     chastise(send, close, sock);
     return;
   }
@@ -313,14 +314,14 @@ void uw_client_connect(uw_context ctx, unsigned id, int pass, int sock,
 
   if (c->mode != USED) {
     pthread_mutex_unlock(&c->lock);
-    uw_log_error(ctx, "Client request for unused slot (%u)\n", id);
+    uw_log_at(ctx, UW_LOG_INFO, "Client request for unused slot (%u)\n", id);
     chastise(send, close, sock);
     return;
   }
 
   if (pass != c->pass) {
     pthread_mutex_unlock(&c->lock);
-    uw_log_error(ctx, "Wrong client password (%u, %d)\n", id, pass);
+    uw_log_at(ctx, UW_LOG_INFO, "Wrong client password (%u, %d)\n", id, pass);
     chastise(send, close, sock);
     return;
   }
@@ -386,7 +387,7 @@ static void client_send(uw_context ctx, client *c, uw_buffer *msg, const char *s
     c->close(c->sock);
     c->sock = -1;
   } else if (uw_buffer_append(&c->msgs, msg->start, uw_buffer_used(msg)))
-    uw_log_error(ctx, "Client message buffer size exceeded\n");
+    uw_log_at(ctx, UW_LOG_WARNING, "Client message buffer size exceeded\n");
 
   pthread_mutex_unlock(&c->lock);
 }
@@ -4816,7 +4817,7 @@ void uw_prune_clients(uw_context ctx) {
       fk = uw_expunge(ctx, c->id, c->data);
       if (fk == SUCCESS) {
         if (uw_has_error(ctx))
-          uw_log_error(ctx, "Expunge done, but a commit callback failed: %s\n", uw_error_message(ctx));
+          uw_log_at(ctx, UW_LOG_WARNING, "Expunge done, but a commit callback failed: %s\n", uw_error_message(ctx));
         if (prev)
           prev->next = next;
         else
@@ -4825,7 +4826,7 @@ void uw_prune_clients(uw_context ctx) {
       } else {
         // Nothing was written, so the client is as it was: it stays, to be
         // tried again at the next pass unless it is heard from by then.
-        uw_log_error(ctx, "Expunge failed, to be tried again at the next pass: %s\n", uw_error_message(ctx));
+        uw_log_at(ctx, UW_LOG_WARNING, "Expunge failed, to be tried again at the next pass: %s\n", uw_error_message(ctx));
         prev = c;
         // A database that is busy, or a conflict: the pass ends here, since
         // it keeps every request out while it waits on the database, and
