@@ -24,9 +24,9 @@ standard input a socket that is not listening: the program ended with status 1
 a held poll whose connection the web server closed, ended by the next poll: lines about a failed send in the program's log: 0
 that next poll, its connection kept, when the pruner expunges the page's client: answered R, and a request on its connection after that: e1
 a poll for that client after that: R
-a request whose web server closed the connection before the program took it: run; a request after it: live
-lines about dropping it in the program's log: 0
-a request not asking to keep the connection, whose web server closed it before the program took it: run; a request after it: live
+a request whose web server closed the connection before the program took it: not run; a request after it: live
+lines about dropping it in the program's log: 1
+a request not asking to keep the connection, whose web server closed it before the program took it: not run; a request after it: live
 a request whose web server half-closed the connection and waits before the program took it: run; a request after it: live; its own answer: gone
 a request over TCP whose web server closed the connection before the program took it: run; a request after it: live
-a request over TCP whose web server reset the connection before the program took it: run; a request after it: live
+a request over TCP whose web server reset the connection before the program took it: not run; a request after it: live

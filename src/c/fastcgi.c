@@ -489,6 +489,17 @@ static int dequeued_kept(int sock) {
   return r;
 }
 
+// Whether the web server has closed its end of sock, asked without waiting.
+// On a Unix socket Linux reports POLLHUP only once the other end has closed
+// completely; one that has only stopped writing gets POLLRDHUP, and is still
+// there to read an answer. A peer's close over TCP gives no POLLHUP, so
+// there this rarely says yes, and it is never wrong.
+static int web_server_gone(int sock) {
+  struct pollfd p = { .fd = sock, .events = 0, .revents = 0 };
+
+  return poll(&p, 1, 0) == 1 && (p.revents & POLLHUP);
+}
+
 // The poller.  A kept connection whose response has gone sits idle until
 // the web server sends its next request on it or closes it, which may be
 // a long time: nginx keeps a connection for 60 seconds by default.  Such
@@ -822,6 +833,19 @@ static void *worker(void *data) {
 
     uw_set_headers(ctx, get_header, &hs);
     uw_set_env(ctx, get_env, &hs);
+
+    // A request whose web server has closed the connection is not run. It
+    // has waited for a thread, or in the listening socket's queue, for
+    // longer than the web server waits, which has answered the client
+    // itself (nginx: 504) and given up. The socket keeps its queue while
+    // the program restarts, so such a request can be hours old, and running
+    // it could only do harm: its answer reaches no one, and a POST would
+    // take effect long after its client was told that it failed. A web
+    // server that gives up after this point still has its request run.
+    if (web_server_gone(in->sock)) {
+      log_debug(out, "Dropped URI %s: the web server has closed the connection\n", path);
+      goto done;
+    }
 
     {
       request_result rr;
