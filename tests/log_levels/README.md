@@ -25,10 +25,28 @@ program wrote on stdout and on stderr.
   argument, a form handler without its field, a page that reads the POST
   body by GET, a PUT, a POST short of its CONTENT_LENGTH, and a poll for
   a client that is none.
+- FastCGI, sent in one run what a request is refused for before any page
+  runs, each on a connection of its own, with what the program answers,
+  the reason among it: a multipart form that is malformed in each of the
+  ways the program tells apart (and one that is not, for contrast), a poll
+  without its client or its password, and a negative CONTENT_LENGTH, which
+  the program does not answer at all.
+- FastCGI with a `JOURNAL_STREAM` that does not name its standard error:
+  another inode, another device, text after the inode, no numbers. The
+  program is not taken to be under the journal then.
+- FastCGI with `-q` and with `-l err`, sent the request whose web server
+  has gone: the line about dropping it is a warning, shown by one and not
+  by the other. And with `-l` twice, in both orders: the later counts.
 - HTTP without flags, with `-q`, with `-l debug` and with a name that is
   not a level, and with its standard error connected to the journal.
+- HTTP, in one run, sent what a request is refused for: a page that does
+  not exist, a HEAD, a PUT, a bad escape, a multipart type without a
+  boundary, a poll without its fields, a negative Content-Length, one
+  that is no number and a request line without a space.
 - CGI and static, one page per run, with no option, as a web server
-  starts them: stdout is their response.
+  starts them: stdout is their response. The pages include one that does
+  not exist and one with a bad escape. CGI is also sent a PUT and a POST
+  with a negative CONTENT_LENGTH.
 
 Each output's lines are printed sorted, each once with how often it came,
 since the lines the threads print at start-up come in no fixed order; a

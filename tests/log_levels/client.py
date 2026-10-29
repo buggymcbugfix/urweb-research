@@ -28,6 +28,18 @@
 # bad escape, a form handler without its field, a postBody page by GET, a
 # PUT, a POST short of its CONTENT_LENGTH, a poll for a client that is
 # none) also say what the program answered.
+#
+# Further runs send a program what its request is refused for before any
+# page runs, each request on a connection of its own to one program, and
+# say for each what it answered, the first line of its body where that is
+# plain text: a multipart form that is malformed in each of the ways the
+# program tells apart, a poll missing its client or its password, and a
+# CONTENT_LENGTH that is negative; to the HTTP server, the same in its own
+# way, with a HEAD and a Content-Length that is no number; and a page that
+# is none, a bad escape, a PUT and a negative CONTENT_LENGTH to a CGI and a
+# static program. FastCGI is started with a JOURNAL_STREAM that does not
+# name its standard error, with -l twice, and with -q or -l err for the
+# request whose web server has gone.
 
 import collections
 import os
@@ -66,6 +78,10 @@ AT_ONCE = 40
 # it leaves.
 LEAVES_AFTER = 0.3
 
+# What the runs with a request queued before the program starts, whose web
+# server has closed its connection, are called.
+GONE = "a request whose web server closed the connection before the program started"
+
 
 def record(kind, content, request_id=1):
     padding = -len(content) % 8
@@ -76,23 +92,33 @@ def pair(name, value):
     return bytes([len(name), len(value)]) + name + value
 
 
-def cgi_variables(path):
-    """The CGI variables of a GET of path, as pairs."""
-    return [(b"REQUEST_METHOD", b"GET"), (b"SCRIPT_NAME", b""), (b"PATH_INFO", path),
+def cgi_variables(path, method=b"GET"):
+    """The CGI variables of a request of path by method, as pairs."""
+    return [(b"REQUEST_METHOD", method), (b"SCRIPT_NAME", b""), (b"PATH_INFO", path),
             (b"QUERY_STRING", b""), (b"SERVER_PROTOCOL", b"HTTP/1.1"), (b"HTTP_HOST", b"localhost")]
 
 
-def fastcgi_request(path, role=RESPONDER, method=b"GET", body=b"", length=None, headers=()):
-    """A request of path, by method, with body as its POST body (declared
-    as length bytes long when that is given) and headers as further CGI
-    variables, pairs such as (b"HTTP_URWEB_CLIENT", b"5")."""
-    variables = [(n, method if n == b"REQUEST_METHOD" else v) for n, v in cgi_variables(path)]
+FORM = b"application/x-www-form-urlencoded"
+
+
+def fastcgi_request(path, role=RESPONDER, method=b"GET", body=b"", length=None, headers=(), content_type=FORM):
+    """A request of path, by method, with body as its POST body of
+    content_type (declared as length bytes long when that is given) and
+    headers as further CGI variables, pairs such as (b"HTTP_URWEB_CLIENT",
+    b"5")."""
+    variables = cgi_variables(path, method)
     if body or length is not None:
-        variables += [(b"CONTENT_TYPE", b"application/x-www-form-urlencoded"),
+        variables += [(b"CONTENT_TYPE", content_type),
                       (b"CONTENT_LENGTH", str(len(body) if length is None else length).encode())]
     params = b"".join(pair(n, v) for n, v in variables + list(headers))
     return (record(BEGIN_REQUEST, struct.pack(">HB5x", role, 0)) + record(PARAMS, params)
             + record(PARAMS, b"") + (record(STDIN, body) if body else b"") + record(STDIN, b""))
+
+
+def http_request(method, path, headers=(), body=b""):
+    """A request of path by method to the HTTP server, headers being lines
+    such as b"Content-Length: 5", and body what follows them."""
+    return b"\r\n".join([method + b" " + path + b" HTTP/1.0", b"Host: localhost"] + list(headers)) + b"\r\n\r\n" + body
 
 
 def exchange(address, data, leave_after=None):
@@ -127,10 +153,11 @@ def unframed(answer):
     return out
 
 
-def status(answer):
-    """The status of a FastCGI program's answer: its Status header, "200 OK"
-    when it sends none; "nothing" for no answer at all."""
-    for line in unframed(answer).split(b"\r\n\r\n", 1)[0].split(b"\r\n"):
+def status(answer, http=False):
+    """The status of a program's answer: its Status header, "200 OK" when it
+    sends none; "nothing" for no answer at all. A FastCGI program's answer
+    is records, an HTTP server's the response itself."""
+    for line in (answer if http else unframed(answer)).split(b"\r\n\r\n", 1)[0].split(b"\r\n"):
         if line.startswith(b"HTTP/"):
             return line.split(b" ", 1)[1].decode(errors="replace")
         if line.startswith(b"Status: "):
@@ -138,15 +165,30 @@ def status(answer):
     return "200 OK" if answer else "nothing"
 
 
+def described(answer, http=False):
+    """The status of an answer (see status) and, when its body is plain
+    text, the first line of it: the reason a request was refused."""
+    head, _, body = (answer if http else unframed(answer)).partition(b"\r\n\r\n")
+    first = body.split(b"\n", 1)[0].decode(errors="replace")
+    plain = b"Content-type: text/plain" in head.split(b"\r\n")
+    return status(answer, http) + (": " + first if plain and first else "")
+
+
+def stream_of(f, device_step=0, inode_step=0):
+    """The value of JOURNAL_STREAM that names the file f, as systemd names
+    the stream it connects to the journal: its device and inode, which the
+    steps move on to name another file."""
+    st = os.fstat(f.fileno())
+    return "%d:%d" % (st.st_dev + device_step, st.st_ino + inode_step)
+
+
 def environment(journal_of=None, variables=()):
     """The program's environment: the path, and, when journal_of is the
-    file its standard error goes to, JOURNAL_STREAM naming that file as
-    systemd names the stream it connects to the journal; variables, as
-    pairs, for a CGI program."""
+    file its standard error goes to, JOURNAL_STREAM naming that file;
+    variables, as pairs, for a CGI program."""
     env = {k: v for k, v in os.environ.items() if k in ("PATH", "LD_LIBRARY_PATH", "ASAN_OPTIONS", "UBSAN_OPTIONS")}
     if journal_of is not None:
-        st = os.fstat(journal_of.fileno())
-        env["JOURNAL_STREAM"] = "%d:%d" % (st.st_dev, st.st_ino)
+        env["JOURNAL_STREAM"] = stream_of(journal_of)
     env.update((n.decode(), v.decode()) for n, v in variables)
     return env
 
@@ -189,6 +231,15 @@ def answered(*requests):
     """The requests given, each a fastcgi_request, with their statuses in
     the transcript."""
     return lambda path, stdout, stderr: [status(exchange(path, r)) for r in requests]
+
+
+def refused(*cases, http=False):
+    """The requests given, each a label and a fastcgi_request (an
+    http_request with http), sent one at a time, with what the program
+    answered to each in the transcript, the reason a request was refused
+    among it."""
+    return lambda path, stdout, stderr: ["%s: %s" % (label, described(exchange(path, request), http))
+                                         for label, request in cases]
 
 
 def at_once(path, stdout, stderr):
@@ -236,7 +287,14 @@ def run_fastcgi(exe, directory, args, stdout, stderr, env, requests=pages, queue
     return stop(process), statuses
 
 
-def run_http(exe, directory, args, stdout, stderr, env):
+def http_pages(path, stdout, stderr):
+    """The requests of most HTTP runs: main and fail."""
+    for page in (b"/main", b"/fail"):
+        exchange(path, http_request(b"GET", page))
+    return []
+
+
+def run_http(exe, directory, args, stdout, stderr, env, requests=http_pages):
     path = os.path.join(directory, "socket")
     process = subprocess.Popen([exe, "-u", path] + args, stdin=subprocess.DEVNULL, stdout=stdout,
                                stderr=stderr, env=env)
@@ -245,15 +303,18 @@ def run_http(exe, directory, args, stdout, stderr, env):
         if process.poll() is not None or time.monotonic() > deadline:
             return stop(process), []
         time.sleep(0.05)
-    for page in (b"/main", b"/fail"):
-        exchange(path, b"GET " + page + b" HTTP/1.0\r\nHost: localhost\r\n\r\n")
-    return stop(process), []
+    answers = requests(path, stdout, stderr)
+    return stop(process), answers
 
 
-def run_cgi(exe, directory, args, stdout, stderr, env, page=b"/main"):
-    """The CGI program once, for page, as a web server runs it: the request
-    in its environment, its body on stdin, no arguments."""
-    env = dict(env, **environment(variables=cgi_variables(page)))
+def run_cgi(exe, directory, args, stdout, stderr, env, page=b"/main", method=b"GET", length=None):
+    """The CGI program once, for page by method, as a web server runs it:
+    the request in its environment, its body (empty, though length may
+    say otherwise) on stdin, no arguments."""
+    variables = cgi_variables(page, method)
+    if length is not None:
+        variables += [(b"CONTENT_TYPE", FORM), (b"CONTENT_LENGTH", str(length).encode())]
+    env = dict(env, **environment(variables=variables))
     return subprocess.run([exe], stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, env=env).returncode, []
 
 
@@ -269,9 +330,13 @@ def normalized(line, exe, directory):
 
 
 def report(name, flags, status, answers, files, exe, directory):
-    print("%s %s: %s%s" % (name, " ".join(flags) or "without flags",
-                           "ran" if status is None else "ended with status %d" % status,
-                           ", answered " + "; ".join(answers) if answers else ""))
+    """One answer goes on the run's line, several each on a line of its own."""
+    line = "%s %s: %s" % (name, " ".join(flags) or "without flags",
+                          "ran" if status is None else "ended with status %d" % status)
+    print(line + (", answered " + answers[0] if len(answers) == 1 else ", answered:" if answers else ""))
+    if len(answers) > 1:
+        for answer in answers:
+            print("  > " + answer)
     for stream, path in files:
         with open(path, "rb") as f:
             lines = [normalized(l.decode(errors="replace"), exe, directory) for l in f.read().splitlines()]
@@ -279,14 +344,19 @@ def report(name, flags, status, answers, files, exe, directory):
             print(("  %s %d %s" % (stream, n, line)).rstrip())
 
 
-def run(name, start, exe, out, flags, journal=False, label="", **how):
+def run(name, start, exe, out, flags, journal=False, label="", stream=None, **how):
     """One run of a program: name says which, label what it is sent when
-    that is not the usual, how is for start."""
+    that is not the usual, how is for start. stream, a function of the
+    files the program writes on (stdout, stderr), is the value of its
+    JOURNAL_STREAM when that names something else than stderr."""
     directory = tempfile.mkdtemp(prefix="log_levels")
     files = [(s, os.path.join(out, "%s-%d.%s" % (name, run.count, s))) for s in ("stdout", "stderr")]
     run.count += 1
     with open(files[0][1], "wb") as stdout, open(files[1][1], "wb") as stderr:
-        ended, answers = start(exe, directory, flags, stdout, stderr, environment(stderr if journal else None), **how)
+        env = environment(stderr if journal else None)
+        if stream:
+            env["JOURNAL_STREAM"] = stream(stdout, stderr)
+        ended, answers = start(exe, directory, flags, stdout, stderr, env, **how)
     what = [name] + (["stderr to the journal"] if journal else []) + ([label] if label else [])
     report(", ".join(what) + ("," if len(what) > 1 else ""), flags, ended, answers, files, exe, directory)
     os.remove(os.path.join(directory, "socket")) if os.path.exists(os.path.join(directory, "socket")) else None
@@ -294,6 +364,56 @@ def run(name, start, exe, out, flags, journal=False, label="", **how):
 
 
 run.count = 0
+
+# The boundary of the multipart forms below, and the header of the part that
+# holds the field of the form handler.
+MULTIPART = b"multipart/form-data; boundary=B"
+AMOUNT = b'Content-Disposition: form-data; name="Amount"'
+
+
+def form(body, content_type=MULTIPART):
+    """A POST of body to the form handler, as a form of content_type."""
+    return fastcgi_request(b"/handler", method=b"POST", body=body, content_type=content_type)
+
+
+# What a request is refused for before any page runs, each a label and the
+# request: a multipart form malformed in each of the ways the program tells
+# apart (the first is well formed, for contrast), a poll lacking a field
+# and a CONTENT_LENGTH that is negative.
+REFUSED = (
+    ("a multipart form that is well formed", form(b"--B\r\n" + AMOUNT + b"\r\n\r\n1\r\n--B--\r\n")),
+    ("a multipart type without a boundary", form(b"x", b"multipart/form-data")),
+    ("a body without the boundary", form(b"x")),
+    ("no CR after the boundary", form(b"--Bx")),
+    ("no LF after the boundary", form(b"--B\rx")),
+    ("no end of the headers", form(b"--B\r\n" + AMOUNT + b"\r\n")),
+    ("a header without a colon", form(b"--B\r\nContent-Disposition\r\n\r\n1\r\n--B--\r\n")),
+    ("no space after the colon", form(b"--B\r\nContent-Disposition:form-data\r\n\r\n1\r\n--B--\r\n")),
+    ("a part that is not form-data", form(b"--B\r\nContent-Disposition: attachment\r\n\r\n1\r\n--B--\r\n")),
+    ("a name without its opening quote", form(b"--B\r\nContent-Disposition: form-data; name=Amount\r\n\r\n1\r\n--B--\r\n")),
+    ("a name without its closing quote", form(b'--B\r\nContent-Disposition: form-data; name="Amount\r\n\r\n1\r\n--B--\r\n')),
+    ("no boundary after the part", form(b"--B\r\n" + AMOUNT + b"\r\n\r\n1")),
+    ("a poll without a client or a password", fastcgi_request(b"/.msgs")),
+    ("a poll without a password", fastcgi_request(b"/.msgs", headers=[(b"HTTP_URWEB_CLIENT", b"5")])),
+    ("a poll without a client", fastcgi_request(b"/.msgs", headers=[(b"HTTP_URWEB_PASS", b"0")])),
+    ("a negative CONTENT_LENGTH", fastcgi_request(b"/handler", method=b"POST", length=-1)),
+)
+
+# The same for the HTTP server, to which a request is a message: the
+# multipart forms are one that has no boundary, a HEAD is added, and so are
+# a Content-Length that is no number and a request line that has no space.
+HTTP_REFUSED = (
+    ("a page that is none", http_request(b"GET", b"/nosuch")),
+    ("a HEAD", http_request(b"HEAD", b"/main")),
+    ("a PUT", http_request(b"PUT", b"/main")),
+    ("a bad escape", http_request(b"GET", b"/greet/%zz")),
+    ("a multipart type without a boundary",
+     http_request(b"POST", b"/handler", [b"Content-Type: multipart/form-data", b"Content-Length: 1"], b"x")),
+    ("a poll without a client or a password", http_request(b"GET", b"/.msgs")),
+    ("a negative Content-Length", http_request(b"POST", b"/handler", [b"Content-Type: " + FORM, b"Content-Length: -1"])),
+    ("a Content-Length that is no number", http_request(b"POST", b"/handler", [b"Content-Type: " + FORM, b"Content-Length: x"])),
+    ("a request line without a space", b"GETmain\r\n\r\n"),
+)
 
 
 def main():
@@ -305,8 +425,7 @@ def main():
         run("fastcgi", run_fastcgi, fastcgi, out, flags, journal=True)
     # What else a program may be sent, plain and with the journal.
     for journal in (False, True):
-        run("fastcgi", run_fastcgi, fastcgi, out, [], journal, "a request whose web server closed the connection before the program started",
-            requests=one_page(b"/main"), queued=[fastcgi_request(b"/main")])
+        run("fastcgi", run_fastcgi, fastcgi, out, [], journal, GONE, requests=one_page(b"/main"), queued=[fastcgi_request(b"/main")])
         run("fastcgi", run_fastcgi, fastcgi, out, [], journal, "the page long", requests=one_page(b"/long/%d" % LONG))
         run("fastcgi", run_fastcgi, fastcgi, out, [], journal, "the page lines", requests=one_page(b"/lines"))
         run("fastcgi", run_fastcgi, fastcgi, out, [], journal, "%d requests for long at once, %d threads" % (AT_ONCE, THREADS),
@@ -325,12 +444,32 @@ def main():
                 ("a POST short of its CONTENT_LENGTH", fastcgi_request(b"/handler", method=b"POST", body=b"Amount=1", length=20)),
                 ("a poll for a client that is none", fastcgi_request(b"/.msgs", headers=[(b"HTTP_URWEB_CLIENT", b"5"), (b"HTTP_URWEB_PASS", b"0")]))):
             run("fastcgi", run_fastcgi, fastcgi, out, [], journal, label, requests=answered(request))
+    # What a request is refused for before any page runs, and what it is
+    # answered with, to one program.
+    run("fastcgi", run_fastcgi, fastcgi, out, [], label="requests refused for their shape", requests=refused(*REFUSED))
+    # A JOURNAL_STREAM that does not name standard error is not the journal.
+    for label, stream in (
+            ("JOURNAL_STREAM with another inode than standard error's", lambda o, e: stream_of(e, inode_step=1)),
+            ("JOURNAL_STREAM with another device than standard error's", lambda o, e: stream_of(e, device_step=1)),
+            ("JOURNAL_STREAM with text after the inode", lambda o, e: stream_of(e) + "x"),
+            ("JOURNAL_STREAM that is no pair of numbers", lambda o, e: "stderr")):
+        run("fastcgi", run_fastcgi, fastcgi, out, [], label=label, stream=stream)
+    # The line for a request whose web server has gone, at levels that show
+    # it and one that does not.
+    for flags in (["-q"], ["-l", "err"]):
+        run("fastcgi", run_fastcgi, fastcgi, out, flags, label=GONE, requests=one_page(b"/main"), queued=[fastcgi_request(b"/main")])
+    # Of two -l, the later counts, as of -l and -q.
+    for flags in (["-l", "err", "-l", "debug"], ["-l", "debug", "-l", "err"]):
+        run("fastcgi", run_fastcgi, fastcgi, out, flags)
     for flags in ([], ["-q"], ["-l", "debug"], ["-l", "bogus"]):
         run("http", run_http, http, out, flags)
     run("http", run_http, http, out, [], journal=True)
-    for page in (b"/main", b"/fail", b"/lines"):
+    run("http", run_http, http, out, [], label="requests refused for their shape", requests=refused(*HTTP_REFUSED, http=True))
+    for page in (b"/main", b"/fail", b"/lines", b"/nosuch", b"/greet/%zz"):
         run("cgi", run_cgi, cgi, out, [], label="the page " + page.decode(), page=page)
         run("static", run_static, static, out, [], label="the page " + page.decode(), page=page)
+    run("cgi", run_cgi, cgi, out, [], label="a PUT", method=b"PUT")
+    run("cgi", run_cgi, cgi, out, [], label="a POST with a negative CONTENT_LENGTH", page=b"/handler", method=b"POST", length=-1)
 
 
 if __name__ == "__main__":

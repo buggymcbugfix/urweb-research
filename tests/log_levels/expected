@@ -151,6 +151,82 @@ fastcgi, stderr to the journal, a POST short of its CONTENT_LENGTH, without flag
   stderr 1 <6>FastCGI stdin ended 12 bytes short of CONTENT_LENGTH
 fastcgi, stderr to the journal, a poll for a client that is none, without flags: ran, answered 200 OK
   stderr 1 <5>GET /.msgs: Out-of-bounds client request (5)
+fastcgi, requests refused for their shape, without flags: ran, answered:
+  > a multipart form that is well formed: 200 OK
+  > a multipart type without a boundary: 400 Bad Request: Bad request: Bad multipart boundary spec
+  > a body without the boundary: 400 Bad Request: Bad request: Missing first multipart boundary
+  > no CR after the boundary: 400 Bad Request: Bad request: No \r after multipart boundary
+  > no LF after the boundary: 400 Bad Request: Bad request: No \n after multipart boundary
+  > no end of the headers: 400 Bad Request: Bad request: Missing end of headers after multipart boundary
+  > a header without a colon: 400 Bad Request: Bad request: Missing colon in multipart sub-header
+  > no space after the colon: 400 Bad Request: Bad request: No space after colon in multipart sub-header
+  > a part that is not form-data: 400 Bad Request: Bad request: Multipart data is not "form-data"
+  > a name without its opening quote: 400 Bad Request: Bad request: Disposition setting is missing initial quote
+  > a name without its closing quote: 400 Bad Request: Bad request: Disposition setting is missing final quote
+  > no boundary after the part: 400 Bad Request: Bad request: Missing boundary after multipart payload
+  > a poll without a client or a password: 400 Bad Request: Bad request: Missing fields in .msgs request: (none), (none)
+  > a poll without a password: 400 Bad Request: Bad request: Missing fields in .msgs request: 5, (none)
+  > a poll without a client: 400 Bad Request: Bad request: Missing fields in .msgs request: (none), 0
+  > a negative CONTENT_LENGTH: nothing
+  stdout 3 Failed URI /.msgs ...
+  stdout 11 Failed URI /handler ...
+  stdout 1 GET /.msgs: Missing fields in .msgs request: (none), (none)
+  stdout 1 GET /.msgs: Missing fields in .msgs request: (none), 0
+  stdout 1 GET /.msgs: Missing fields in .msgs request: 5, (none)
+  stdout 1 Invalid Content-Length
+  stdout 1 POST /handler: Bad multipart boundary spec
+  stdout 1 POST /handler: Disposition setting is missing final quote
+  stdout 1 POST /handler: Disposition setting is missing initial quote
+  stdout 1 POST /handler: Missing boundary after multipart payload
+  stdout 1 POST /handler: Missing colon in multipart sub-header
+  stdout 1 POST /handler: Missing end of headers after multipart boundary
+  stdout 1 POST /handler: Missing first multipart boundary
+  stdout 1 POST /handler: Multipart data is not "form-data"
+  stdout 1 POST /handler: No \n after multipart boundary
+  stdout 1 POST /handler: No \r after multipart boundary
+  stdout 1 POST /handler: No space after colon in multipart sub-header
+  stdout 1 Served URI /handler ...
+fastcgi, JOURNAL_STREAM with another inode than standard error's, without flags: ran
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi, JOURNAL_STREAM with another device than standard error's, without flags: ran
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi, JOURNAL_STREAM with text after the inode, without flags: ran
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi, JOURNAL_STREAM that is no pair of numbers, without flags: ran
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi, a request whose web server closed the connection before the program started, -q: ran
+  stderr 1 Dropped URI /main: the web server has closed the connection
+fastcgi, a request whose web server closed the connection before the program started, -l err: ran
+fastcgi -l err -l debug: ran
+  stdout 3 Database connection initialized.
+  stdout 1 Failed URI /fail ...
+  stdout 1 Served URI /main ...
+  stdout 1 fail: running
+  stdout 1 main: running
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
+fastcgi -l debug -l err: ran
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
 http without flags: ran
   stdout 1
   stdout 1 Failed URI /fail ...
@@ -207,6 +283,35 @@ http, stderr to the journal, without flags: ran
   stderr 1 <6>behind a production-quality HTTP server, for a real deployment.
   stderr 1 <6>fail: running
   stderr 1 <6>main: running
+http, requests refused for their shape, without flags: ran, answered:
+  > a page that is none: 404 Not Found: Not Found
+  > a HEAD: 400 Bad Request: Bad request: Not ready for non-GET/POST command: HEAD
+  > a PUT: 400 Bad Request: Bad request: Not ready for non-GET/POST command: PUT
+  > a bad escape: 400 Bad Request
+  > a multipart type without a boundary: 400 Bad Request: Bad request: Bad multipart boundary spec
+  > a poll without a client or a password: 400 Bad Request: Bad request: Missing fields in .msgs request: (none), (none)
+  > a negative Content-Length: 400 Bad Request: Bad request: Negative Content-length with POST
+  > a Content-Length that is no number: nothing
+  > a request line without a space: nothing
+  stdout 1
+  stdout 1 Failed URI /.msgs ...
+  stdout 1 Failed URI /greet/%zz ...
+  stdout 2 Failed URI /handler ...
+  stdout 2 Failed URI /main ...
+  stdout 1 GET /.msgs: Missing fields in .msgs request: (none), (none)
+  stdout 1 GET /greet/%zz: Bad request: Invalid escaped URL byte starting at: %zz
+  stdout 1 GET /nosuch: not found
+  stdout 1 HEAD /main: Not ready for non-GET/POST command: HEAD
+  stdout 1 Listening on port 8080....
+  stdout 1 Malformed Content-Length header
+  stdout 1 No first space in HTTP command
+  stdout 1 ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,
+  stdout 1 POST /handler: Bad multipart boundary spec
+  stdout 1 POST /handler: Negative Content-length with POST
+  stdout 1 PUT /main: Not ready for non-GET/POST command: PUT
+  stdout 1 Served URI /nosuch ...
+  stdout 1 Starting the Ur/Web native HTTP server, which is intended for use
+  stdout 1 behind a production-quality HTTP server, for a real deployment.
 cgi, the page /main, without flags: ended with status 0
   stdout 1
   stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>
@@ -232,3 +337,31 @@ static, the page /lines, without flags: ended with status 0
   stdout 1
   stdout 1 <!DOCTYPE html><html><head></head><body>lines</body></html>
   stdout 1 Content-type: text/html; charset=utf-8
+cgi, the page /nosuch, without flags: ended with status 0
+  stdout 1
+  stdout 1 Content-type: text/plain
+  stdout 1 Not Found
+  stdout 1 Status: 404 Not Found
+static, the page /nosuch, without flags: ended with status 0
+  stdout 1
+  stdout 1 Content-type: text/plain
+  stdout 1 Not Found
+  stdout 1 Status: 404 Not Found
+cgi, the page /greet/%zz, without flags: ended with status 1
+  stdout 1
+  stdout 1 </body></html>
+  stdout 1 <html><head><title>Bad Request</title></head><body>Bad request: Invalid escaped URL byte starting at: %zz
+  stdout 1 Content-type: text/html
+  stdout 1 Status: 400 Bad Request
+static, the page /greet/%zz, without flags: ended with status 1
+  stderr 1 Error: Invalid escaped URL byte starting at: %zz
+cgi, a PUT, without flags: ended with status 1
+  stdout 1
+  stdout 1 Bad request: Not ready for non-GET/POST command: PUT
+  stdout 1 Content-type: text/plain
+  stdout 1 Status: 400 Bad Request
+cgi, a POST with a negative CONTENT_LENGTH, without flags: ended with status 1
+  stdout 1
+  stdout 1 Bad request: Negative Content-length with POST
+  stdout 1 Content-type: text/plain
+  stdout 1 Status: 400 Bad Request
