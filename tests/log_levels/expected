@@ -334,6 +334,18 @@ http, requests refused for their shape, without flags: ran, answered:
   stdout 1 Served URI /nosuch ...
   stdout 1 Starting the Ur/Web native HTTP server, which is intended for use
   stdout 1 behind a production-quality HTTP server, for a real deployment.
+http, a HEAD and a GET on one connection, -k: ran, answered:
+  > the HEAD: 400 Bad Request, Content-length: 54
+  > after the head of its answer: Bad request: Not ready for non-GET/POST command: HEAD
+  stdout 1
+  stdout 1 Failed URI /main ...
+  stdout 1 HEAD /main: Not ready for non-GET/POST command: HEAD
+  stdout 1 Listening on port 8080....
+  stdout 1 ONLY DURING DEVELOPMENT.  You probably want to use one of the other backends,
+  stdout 1 Served URI /main ...
+  stdout 1 Starting the Ur/Web native HTTP server, which is intended for use
+  stdout 1 behind a production-quality HTTP server, for a real deployment.
+  stdout 1 main: running
 cgi, the page /main, without flags: ended with status 0
   stdout 1
   stdout 1 <!DOCTYPE html><html><head></head><body>main</body></html>

@@ -47,6 +47,10 @@ program wrote on stdout and on stderr.
   not exist, a HEAD, a PUT, a bad escape, a multipart type without a
   boundary, a poll without its fields, a negative Content-Length, one
   that is no number and a request line without a space.
+- HTTP with `-k`, sent a HEAD and then a GET in one write, on one
+  connection: the status and length of the answer to the HEAD, and what
+  follows the head of that answer, which a client that reads no body
+  after a HEAD takes for the answer to the GET.
 - CGI and static, one page per run, with no option, as a web server
   starts them: stdout is their response. The pages include one that does
   not exist and one with a bad escape. CGI is also sent a PUT and a POST

@@ -36,11 +36,12 @@
 # program tells apart, a poll missing its client or its password, a
 # CONTENT_LENGTH that is negative, and each method other than GET and
 # POST; to the HTTP server, the same in its own way, with a HEAD and a
-# Content-Length that is no number; and a page that is none, a bad
-# escape, a PUT and a negative CONTENT_LENGTH to a CGI and a static
-# program. FastCGI is started with a JOURNAL_STREAM that does not name
-# its standard error, with -l twice, and with -q or -l err for the
-# request whose web server has gone.
+# Content-Length that is no number, and a HEAD followed by a GET on a
+# connection it keeps; and a page that is none, a bad escape, a PUT and a
+# negative CONTENT_LENGTH to a CGI and a static program. FastCGI is
+# started with a JOURNAL_STREAM that does not name its standard error,
+# with -l twice, and with -q or -l err for the request whose web server
+# has gone.
 
 import collections
 import os
@@ -298,6 +299,20 @@ def http_pages(path, stdout, stderr):
     return []
 
 
+def head_then_get(path, stdout, stderr):
+    """A HEAD and then a GET, in one write on one connection, the GET asking
+    for the connection to be closed: the status and length of the answer to
+    the HEAD, and what follows the head of that answer. A client reads no
+    body after the head of an answer to a HEAD, so what follows has to be
+    the answer to the GET."""
+    answer = exchange(path, b"HEAD /main HTTP/1.1\r\nHost: localhost\r\n\r\n"
+                      b"GET /main HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+    head, _, rest = answer.partition(b"\r\n\r\n")
+    length = [l.decode() for l in head.split(b"\r\n") if l.lower().startswith(b"content-length: ")]
+    return ["the HEAD: %s, %s" % (status(answer, http=True), length[0] if length else "no Content-length"),
+            "after the head of its answer: %s" % rest.split(b"\n", 1)[0].rstrip(b"\r").decode(errors="replace")]
+
+
 def run_http(exe, directory, args, stdout, stderr, env, requests=http_pages):
     path = os.path.join(directory, "socket")
     process = subprocess.Popen([exe, "-u", path] + args, stdin=subprocess.DEVNULL, stdout=stdout,
@@ -479,6 +494,7 @@ def main():
         run("http", run_http, http, out, flags)
     run("http", run_http, http, out, [], journal=True)
     run("http", run_http, http, out, [], label="requests refused for their shape", requests=refused(*HTTP_REFUSED, http=True))
+    run("http", run_http, http, out, ["-k"], label="a HEAD and a GET on one connection", requests=head_then_get)
     for page in (b"/main", b"/fail", b"/lines", b"/nosuch", b"/greet/%zz"):
         run("cgi", run_cgi, cgi, out, [], label="the page " + page.decode(), page=page)
         run("static", run_static, static, out, [], label="the page " + page.decode(), page=page)
