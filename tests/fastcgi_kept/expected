@@ -30,5 +30,5 @@ a request not asking to keep the connection, whose web server closed it before t
 a request whose web server half-closed the connection and waits before the program took it: run; a request after it: live; its own answer: gone
 a request over TCP whose web server closed the connection before the program took it: run; a request after it: live
 a request over TCP whose web server reset the connection before the program took it: not run; a request after it: live
-a GET whose CONTENT_LENGTH is 2147483647, without a body: not answered, and the program ended
-a POST whose CONTENT_LENGTH is 2147483647, without a body: not answered, and the program ended
+a GET whose CONTENT_LENGTH is 2147483647, without a body: answered l1; a request after it: l2
+a POST whose CONTENT_LENGTH is 2147483647, without a body: answered 400 Bad Request with "Bad request: Request doesn't contain all POST data (according to Content-Length)"; a request after it: l2

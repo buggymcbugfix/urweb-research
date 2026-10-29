@@ -17,6 +17,7 @@
 #include <poll.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <limits.h>
 #include <time.h>
 
 #include <pthread.h>
@@ -629,6 +630,26 @@ int fastcgi_send_normal(int sock, const void *buf, ssize_t len) {
   return write_stdout(&out, buf, len);
 }
 
+// Room for need bytes in a worker's buffer for request bodies, *body of
+// *size bytes.  The buffer grows as the records of a body come, to twice
+// its size or to need if that is more, never by what CONTENT_LENGTH
+// announces: a length that no body comes up to costs nothing.  0 when there
+// is room, and -1, logged, when realloc fails, *body staying as it was.
+static int body_room(char **body, size_t *size, size_t need) {
+  size_t grown = *size * 2 > need ? *size * 2 : need;
+  char *more;
+
+  if (need <= *size)
+    return 0;
+  if (!(more = realloc(*body, grown))) {
+    uw_log(UW_LOG_ERR, "Not enough memory for a request body of %zu bytes\n", need - 1);
+    return -1;
+  }
+  *body = more;
+  *size = grown;
+  return 0;
+}
+
 static void *worker(void *data) {
   FCGI_Input *in = fastcgi_input();
   FCGI_Output *out = fastcgi_output();
@@ -667,7 +688,8 @@ static void *worker(void *data) {
   while (1) {
     FCGI_Record *r;
     size_t used_nvps = 0;
-    int body_len, body_read;
+    long long body_len; // CONTENT_LENGTH, which the body may fall short of
+    int body_read;
     char *s;
     char *method, *path, *path_info, *query_string;
     int kept = keep;
@@ -748,18 +770,15 @@ static void *worker(void *data) {
     hs.nvps[used_nvps].name[0] = 0;
 
     if ((s = get_header(&hs, "Content-Length"))) {
-      body_len = atoi(s);
+      // Read as atoi reads it, but into a long long: a length beyond what
+      // an int holds is not cut down to some other int.
+      body_len = strtoll(s, NULL, 10);
       if (body_len < 0) {
         uw_log(UW_LOG_NOTICE, "Invalid Content-Length\n");
         goto done;
       }
     } else
       body_len = 0;
-
-    if (body_len+1 > body_size) {
-      body_size = body_len+1;
-      body = realloc(body, body_size);
-    }
 
     // Read the stream to its end, the empty record, even past Content-Length
     // bytes and even when there is no body.  Answering before that record
@@ -787,21 +806,28 @@ static void *worker(void *data) {
 
       if (r->contentLengthB1 == 0 && r->contentLengthB0 == 0) {
         if (body_read < body_len)
-          uw_log(UW_LOG_INFO, "FastCGI stdin ended %d bytes short of CONTENT_LENGTH\n", body_len - body_read);
+          uw_log(UW_LOG_INFO, "FastCGI stdin ended %lld bytes short of CONTENT_LENGTH\n", body_len - body_read);
         break;
       }
 
       this_len = (r->contentLengthB1 << 8) | r->contentLengthB0;
 
-      if (body_read + this_len > body_len) {
+      // body_read never passes body_len, nor INT_MAX, the most a body is
+      // counted in further on, so neither difference can overflow.
+      if (this_len > body_len - body_read || this_len > INT_MAX - body_read) {
         uw_log(UW_LOG_WARNING, "Too much STDIN\n");
         goto done;
       }
 
+      if (body_room(&body, &body_size, (size_t)body_read + this_len + 1))
+        goto done;
       memcpy(&body[body_read], r->contentData, this_len);
       body_read += this_len;
     }
 
+    // Room for the terminator, when no record came.
+    if (body_room(&body, &body_size, (size_t)body_read + 1))
+      goto done;
     body[body_read] = 0;
 
     if (!(method = search_nvps(hs.nvps, "REQUEST_METHOD"))) {
