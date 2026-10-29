@@ -655,7 +655,7 @@
      
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input A");
+      uw_bad_request(ctx, "Missing input A");
       uw_input_A = uw_Basis_unurlifyString_fromClient(ctx, &request);
       struct __uws_3 uw_inputs = {
        uw_input_A,

@@ -86,6 +86,10 @@ typedef enum {
   UW_LOG_DEBUG = 7    // what the runtime does, step by step
 } uw_log_level;
 
+// The size of the buffer on the stack that a log line is formatted into
+// first; a longer line gets a buffer from malloc (uw_vformat).
+#define UW_LOG_SMALL 1024
+
 struct uw_context;
 
 typedef struct {

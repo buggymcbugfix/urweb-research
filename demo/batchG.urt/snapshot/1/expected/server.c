@@ -884,7 +884,7 @@
         });
        tmp;
        }))
-      : (uw_error(ctx, FATAL, "Error unurlifying datatype list_s"), NULL))));
+      : (uw_bad_request(ctx, "Error unurlifying datatype list_s"), NULL))));
       }
      
      static uw_served_file uw_served_files[] = {

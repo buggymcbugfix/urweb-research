@@ -767,9 +767,9 @@
      }
     {
      uw_Basis_string sig = uw_Basis_requestHeader(ctx, "UrWeb-Sig");
-     if (sig == NULL) uw_error(ctx, FATAL, "Missing cookie signature");
+     if (sig == NULL) uw_bad_request(ctx, "Missing cookie signature");
      if (!uw_streq(sig, uw_cookie_sig(ctx)))
-     uw_error(ctx, FATAL, "Wrong cookie signature");
+     uw_bad_request(ctx, "Wrong cookie signature");
       }
      uw_write_header(ctx, "Content-type: text/plain\r\n");
       uw_set_could_write_db(ctx, 1);
@@ -797,9 +797,9 @@
      }
     {
      uw_Basis_string sig = uw_Basis_requestHeader(ctx, "UrWeb-Sig");
-     if (sig == NULL) uw_error(ctx, FATAL, "Missing cookie signature");
+     if (sig == NULL) uw_bad_request(ctx, "Missing cookie signature");
      if (!uw_streq(sig, uw_cookie_sig(ctx)))
-     uw_error(ctx, FATAL, "Wrong cookie signature");
+     uw_bad_request(ctx, "Wrong cookie signature");
       }
      uw_write_header(ctx, "Content-type: text/plain\r\n");
       uw_set_could_write_db(ctx, 1);

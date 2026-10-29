@@ -2809,7 +2809,7 @@
         tmp;
         }))
         :
-        (uw_error(ctx, FATAL, "Error unurlifying list: %s", *request), NULL))));
+        (uw_bad_request(ctx, "Error unurlifying list: %s", *request), NULL))));
         }
        
        static struct __uwd_color_3*
@@ -2850,13 +2850,13 @@
                   *tmp = uw_Basis_unurlifyInt(ctx, request);
                   tmp;
                   })) :
-                 (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+                 (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
                 struct __uws_1 tmp = { uwr_1, uwr_2 };
               tmp;
               });
              tmp;
             }) :
-            (uw_error(ctx, FATAL, "Error unurlifying datatype color"), NULL))));
+            (uw_bad_request(ctx, "Error unurlifying datatype color"), NULL))));
          }
         
         static struct __uws_7*
@@ -2878,7 +2878,7 @@
           tmp;
           }))
           :
-          (uw_error(ctx, FATAL, "Error unurlifying list: %s", *request), NULL))));
+          (uw_bad_request(ctx, "Error unurlifying list: %s", *request), NULL))));
           }
          
          static void urlifyl_7(uw_context ctx, struct __uws_7
@@ -3123,8 +3123,7 @@
           uw_Basis_int *tmp = uw_malloc(ctx, sizeof(uw_Basis_int));
           *tmp = uw_Basis_unurlifyInt(ctx, &request);
           tmp;
-          })) :
-         (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+          })) : (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
         struct __uws_2* arg4 = unurlify_list_2(ctx, &request);
          struct __uwd_color_3* arg5 = unurlify_3(ctx, &request);
           uw_io_request __uwr;
@@ -3171,7 +3170,7 @@
            *tmp = uw_Basis_unurlifyFloat(ctx, &request);
            tmp;
            })) :
-          (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+          (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
          struct __uws_3 tmp = { uwr_A, uwr_B, uwr_C };
       tmp;
       });
@@ -3382,7 +3381,7 @@
        uw_Basis_int *tmp = uw_malloc(ctx, sizeof(uw_Basis_int));
        *tmp = uw_Basis_unurlifyInt(ctx, &request);
        tmp;
-       })) : (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+       })) : (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
      uw_io_request __uwr;
     uw_io_request_begin(ctx, &__uwr);
     {

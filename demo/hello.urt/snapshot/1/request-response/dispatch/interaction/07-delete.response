@@ -1,2 +1,6 @@
+HTTP/1.1 400 Bad Request
+Content-type: text/plain
 Connection: close
-curl: (1) Received HTTP/0.9 when not allowed
+Content-length: 56
+
+Bad request: Not ready for non-GET/POST command: DELETE

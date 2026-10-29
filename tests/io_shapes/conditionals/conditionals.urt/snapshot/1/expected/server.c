@@ -1365,7 +1365,7 @@
        uw_Basis_int *tmp = uw_malloc(ctx, sizeof(uw_Basis_int));
        *tmp = uw_Basis_unurlifyInt(ctx, &request);
        tmp;
-       })) : (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+       })) : (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
      uw_io_request __uwr;
     uw_io_request_begin(ctx, &__uwr);
     {

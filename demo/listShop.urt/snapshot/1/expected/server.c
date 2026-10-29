@@ -642,7 +642,7 @@
        });
       tmp;
       }))
-     : (uw_error(ctx, FATAL, "Error unurlifying datatype list_s"), NULL))));
+     : (uw_bad_request(ctx, "Error unurlifying datatype list_s"), NULL))));
      }
     
     static struct __uws_1
@@ -664,7 +664,7 @@
         });
        tmp;
        }))
-      : (uw_error(ctx, FATAL, "Error unurlifying datatype list_s"), NULL))));
+      : (uw_bad_request(ctx, "Error unurlifying datatype list_s"), NULL))));
       }
      
      static uw_served_file uw_served_files[] = {
@@ -759,7 +759,7 @@
       
       request = uw_get_input(ctx, 0);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input X");
+       uw_bad_request(ctx, "Missing input X");
        uw_input_X = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_2 uw_inputs = {
         uw_input_X,
@@ -788,7 +788,7 @@
       
       request = uw_get_input(ctx, 0);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input X");
+       uw_bad_request(ctx, "Missing input X");
        uw_input_X = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_2 uw_inputs = {
         uw_input_X,

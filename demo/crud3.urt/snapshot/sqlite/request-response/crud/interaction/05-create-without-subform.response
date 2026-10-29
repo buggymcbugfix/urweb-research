@@ -1,7 +1,7 @@
-HTTP/1.1 500 Internal Server Error
+HTTP/1.1 400 Bad Request
 Content-type: text/html
 Connection: close
 Content-length: 123
 
-<html><head><title>Fatal Error</title></head><body>Fatal error: Tried to read a normal form input as subform
+<html><head><title>Bad Request</title></head><body>Bad request: Tried to read a normal form input as subform
 </body></html>

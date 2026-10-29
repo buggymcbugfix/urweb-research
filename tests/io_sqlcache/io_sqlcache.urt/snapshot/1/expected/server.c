@@ -705,7 +705,7 @@
                                                  });
                                                 tmp;
                                                 })) :
-                                               (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+                                               (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
                                               });
                                            })
                                            :
@@ -898,7 +898,7 @@
                                                });
                                               tmp;
                                               })) :
-                                             (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+                                             (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
                                             });
                                          })
                                          :
@@ -1089,7 +1089,7 @@
                                                                   });
                                                                  tmp;
                                                                  })) :
-                                                                (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+                                                                (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
                                                                });
                                                             })
                                                             :

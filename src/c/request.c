@@ -357,6 +357,27 @@ void uw_free_request_context(uw_request_context r) {
   free(r);
 }
 
+// A request refused for its shape before any page runs: logged at notice
+// after what the program was doing, and answered 400 with the reason as
+// the body, so that the visitor hears what was wrong instead of nothing.
+static request_result bad_request(uw_context ctx, const char *fmt, ...) {
+  char small[UW_LOG_SMALL], *msg;
+  va_list ap;
+
+  va_start(ap, fmt);
+  msg = uw_vformat(small, sizeof small, fmt, ap);
+  va_end(ap);
+  uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", msg ? msg : fmt);
+  uw_write_status(ctx, "400 Bad Request");
+  uw_write_header(ctx, "Content-type: text/plain\r\n");
+  uw_write(ctx, "Bad request: ");
+  uw_write(ctx, msg ? msg : fmt);
+  uw_write(ctx, "\n");
+  if (msg && msg != small)
+    free(msg);
+  return FAILED;
+}
+
 // uw_request, but for the line it logs at the end; *attempts counts how
 // many times the handler started.
 static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
@@ -376,7 +397,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
   char *inputs;
   const char *prefix = uw_get_url_prefix(ctx);
   char *s;
-  int had_error = 0, is_fancy = 0;
+  int had_error = 0, bad = 0, is_fancy = 0;
   char errmsg[ERROR_BUF_LEN];
 
   uw_reset(ctx);
@@ -401,15 +422,11 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       return FAILED;*/
     }
     int clen = atoi(clen_s);
-    if (clen < 0) {
-      uw_log_at(ctx, UW_LOG_NOTICE, "Negative Content-length with POST\n");
-      return FAILED;
-    }
+    if (clen < 0)
+      return bad_request(ctx, "Negative Content-length with POST");
 
-    if (body_len < clen) {
-      uw_log_at(ctx, UW_LOG_NOTICE, "Request doesn't contain all POST data (according to Content-Length)\n");
-      return FAILED;
-    }
+    if (body_len < clen)
+      return bad_request(ctx, "Request doesn't contain all POST data (according to Content-Length)");
 
     is_post = 1;
     uw_isPost(ctx);
@@ -420,10 +437,8 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       is_fancy = 1;
 
     if (clen_s && !strncasecmp(clen_s, "multipart/form-data", 19)) {
-      if (strncasecmp(clen_s + 19, "; boundary=", 11)) {
-        uw_log_at(ctx, UW_LOG_NOTICE, "Bad multipart boundary spec");
-        return FAILED;
-      }
+      if (strncasecmp(clen_s + 19, "; boundary=", 11))
+        return bad_request(ctx, "Bad multipart boundary spec");
 
       boundary = clen_s + 28;
       boundary[0] = '-';
@@ -433,10 +448,8 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       uw_Basis_postBody pb = {clen_s, body, body_len};
       uw_postBody(ctx, pb);
     }
-  } else if (strcmp(method, "GET")) {
-    uw_log_at(ctx, UW_LOG_NOTICE, "Not ready for non-GET/POST command: %s\n", method);
-    return FAILED;
-  }
+  } else if (strcmp(method, "GET"))
+    return bad_request(ctx, "Not ready for non-GET/POST command: %s", method);
 
   if (!strncmp(path, prefix, strlen(prefix))
       && !strcmp(path + strlen(prefix), ".msgs")) {
@@ -454,10 +467,8 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       uw_log(UW_LOG_DEBUG, "Processed request for messages by client %u\n\n", idn);
       return KEEP_OPEN;
     }
-    else {
-      uw_log_at(ctx, UW_LOG_NOTICE, "Missing fields in .msgs request: %s, %s\n\n", id, pass);
-      return FAILED;
-    }
+    else
+      return bad_request(ctx, "Missing fields in .msgs request: %s, %s", id ? id : "(none)", pass ? pass : "(none)");
   }
 
   if (boundary) {
@@ -465,10 +476,8 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     size_t part_len;
 
     part = strstr(part, boundary);
-    if (!part) {
-      uw_log_at(ctx, UW_LOG_NOTICE, "Missing first multipart boundary\n");
-      return FAILED;
-    }
+    if (!part)
+      return bad_request(ctx, "Missing first multipart boundary");
     part += boundary_len;
 
     while (1) {
@@ -477,21 +486,15 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       if (part[0] == '-' && part[1] == '-')
         break;
 
-      if (*part != '\r') {
-        uw_log_at(ctx, UW_LOG_NOTICE, "No \\r after multipart boundary\n");
-        return FAILED;
-      }
+      if (*part != '\r')
+        return bad_request(ctx, "No \\r after multipart boundary");
       ++part;
-      if (*part != '\n') {
-        uw_log_at(ctx, UW_LOG_NOTICE, "No \\n after multipart boundary\n");
-        return FAILED;
-      }
+      if (*part != '\n')
+        return bad_request(ctx, "No \\n after multipart boundary");
       ++part;
             
-      if (!(after_sub_headers = strstr(part, "\r\n\r\n"))) {
-        uw_log_at(ctx, UW_LOG_NOTICE, "Missing end of headers after multipart boundary\n");
-        return FAILED;
-      }
+      if (!(after_sub_headers = strstr(part, "\r\n\r\n")))
+        return bad_request(ctx, "Missing end of headers after multipart boundary");
       after_sub_headers[2] = 0;
       after_sub_headers += 4;
 
@@ -499,34 +502,24 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         char *colon, *after_colon;
 
         *after_header = 0;
-        if (!(colon = strchr(header, ':'))) {
-          uw_log_at(ctx, UW_LOG_NOTICE, "Missing colon in multipart sub-header\n");
-          return FAILED;
-        }
+        if (!(colon = strchr(header, ':')))
+          return bad_request(ctx, "Missing colon in multipart sub-header");
         *colon++ = 0;
-        if (*colon++ != ' ') {
-          uw_log_at(ctx, UW_LOG_NOTICE, "No space after colon in multipart sub-header\n");
-          return FAILED;
-        }
+        if (*colon++ != ' ')
+          return bad_request(ctx, "No space after colon in multipart sub-header");
         
         if (!strcasecmp(header, "Content-Disposition")) {
-          if (strncmp(colon, "form-data; ", 11)) {
-            uw_log_at(ctx, UW_LOG_NOTICE, "Multipart data is not \"form-data\"\n");
-            return FAILED;
-          }
+          if (strncmp(colon, "form-data; ", 11))
+            return bad_request(ctx, "Multipart data is not \"form-data\"");
 
           for (colon += 11; (after_colon = strchr(colon, '=')); colon = after_colon) {
             char *data;
             after_colon[0] = 0;
-            if (after_colon[1] != '"') {
-              uw_log_at(ctx, UW_LOG_NOTICE, "Disposition setting is missing initial quote\n");
-              return FAILED;
-            }
+            if (after_colon[1] != '"')
+              return bad_request(ctx, "Disposition setting is missing initial quote");
             data = after_colon+2;
-            if (!(after_colon = strchr(data, '"'))) {
-              uw_log_at(ctx, UW_LOG_NOTICE, "Disposition setting is missing final quote\n");
-              return FAILED;
-            }
+            if (!(after_colon = strchr(data, '"')))
+              return bad_request(ctx, "Disposition setting is missing final quote");
             after_colon[0] = 0;
             ++after_colon;
             if (after_colon[0] == ';' && after_colon[1] == ' ')
@@ -543,10 +536,8 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       }
 
       part = memmem(after_sub_headers, body + body_len - after_sub_headers, boundary, boundary_len);
-      if (!part) {
-        uw_log_at(ctx, UW_LOG_NOTICE, "Missing boundary after multipart payload\n");
-        return FAILED;
-      }
+      if (!part)
+        return bad_request(ctx, "Missing boundary after multipart payload");
       part[-2] = 0;
       part_len = part - after_sub_headers - 2;
       part[0] = 0;
@@ -555,14 +546,10 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       if (filename) {
         uw_Basis_file f = {filename, type, {part_len, after_sub_headers}};
 
-        if (uw_set_file_input(ctx, name, f)) {
-          uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
-          return FAILED;
-        }
-      } else if (uw_set_input(ctx, name, after_sub_headers)) {
-        uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
-        return FAILED;
-      }
+        if (uw_set_file_input(ctx, name, f))
+          return bad_request(ctx, "%s", uw_error_message(ctx));
+      } else if (uw_set_input(ctx, name, after_sub_headers))
+        return bad_request(ctx, "%s", uw_error_message(ctx));
     }
   }
   else if (!is_fancy) {
@@ -592,15 +579,11 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
         if ((value = strchr(name, '='))) {
           *value++ = 0;
-          if (uw_set_input(ctx, name, value)) {
-            uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
-            return FAILED;
-          }
+          if (uw_set_input(ctx, name, value))
+            return bad_request(ctx, "%s", uw_error_message(ctx));
         }
-        else if (uw_set_input(ctx, name, "")) {
-          uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
-          return FAILED;
-        }
+        else if (uw_set_input(ctx, name, ""))
+          return bad_request(ctx, "%s", uw_error_message(ctx));
       }
     }
   }
@@ -632,7 +615,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     } else {
       uw_set_deadline(ctx, uw_time + uw_time_max);
       uw_transaction_arrives();
-      fk = uw_begin_onError(ctx, errmsg);
+      fk = uw_begin_onError(ctx, errmsg, bad ? "400 Bad Request" : "500 Internal Server Error");
     }
 
     if (fk == SUCCESS || fk == RETURN_INDIRECTLY) {
@@ -698,7 +681,16 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     } else if (fk == UNLIMITED_RETRY)
       log_debug(logger_data, "Error triggers unlimited retry: %s\n", uw_error_message(ctx));
     else if (fk == FATAL) {
-      uw_log_error(ctx, "Fatal error: %s\n", uw_error_message(ctx));
+      // A bad request, an argument or an input the request sent that is
+      // none or malformed, is the request's own doing: a line at notice
+      // and a 400, where an error of the program's is a line at err and a
+      // 500. The mark is read here, before any reset clears it, and kept
+      // for the onError page.
+      bad = uw_bad_request_raised(ctx);
+      if (bad)
+        uw_log_at(ctx, UW_LOG_NOTICE, "Bad request: %s\n", uw_error_message(ctx));
+      else
+        uw_log_error(ctx, "Fatal error: %s\n", uw_error_message(ctx));
 
       if (uw_get_app(ctx)->on_error && !had_error) {
         had_error = 1;
@@ -708,10 +700,13 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         uw_transaction_departs();
 
         uw_reset_keep_error_message(ctx);
-        on_failure(ctx);
+        if (bad)
+          uw_write_status(ctx, "400 Bad Request");
+        else
+          on_failure(ctx);
         uw_write_header(ctx, "Content-type: text/html\r\n");
-        uw_write(ctx, "<html><head><title>Fatal Error</title></head><body>");
-        uw_write(ctx, "Fatal error: ");
+        uw_write(ctx, bad ? "<html><head><title>Bad Request</title></head><body>Bad request: "
+                 : "<html><head><title>Fatal Error</title></head><body>Fatal error: ");
         uw_write(ctx, uw_error_message(ctx));
         uw_write(ctx, "\n</body></html>");
 

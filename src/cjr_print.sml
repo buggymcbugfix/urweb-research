@@ -645,7 +645,7 @@ fun unurlify fromClient env (t, loc) =
 
                     fun doEm xncs =
                         case xncs of
-                            [] => string ("(uw_error(ctx, FATAL, \"Error unurlifying datatype "
+                            [] => string ("(uw_bad_request(ctx, \"Error unurlifying datatype "
                                           ^ x ^ "\"), (enum __uwe_"
                                           ^ x ^ "_" ^ Int.toString i ^ ")0)")
                           | (x', n, to) :: rest =>
@@ -782,7 +782,7 @@ fun unurlify fromClient env (t, loc) =
                                                  newline,
                                                  string ":",
                                                  space,
-                                                 string ("(uw_error(ctx, FATAL, \"Error unurlifying datatype " ^ x
+                                                 string ("(uw_bad_request(ctx, \"Error unurlifying datatype " ^ x
                                                          ^ "\"), NULL))));"),
                                                  newline],
                                             string "}",
@@ -807,7 +807,7 @@ fun unurlify fromClient env (t, loc) =
 
                         fun doEm xncs =
                             case xncs of
-                                [] => string ("(uw_error(ctx, FATAL, \"Error unurlifying datatype "
+                                [] => string ("(uw_bad_request(ctx, \"Error unurlifying datatype "
                                               ^ x ^ "\"), NULL)")
                               | (x', n, to) :: rest =>
                                 box [string "((!strncmp(*request, \"",
@@ -959,7 +959,7 @@ fun unurlify fromClient env (t, loc) =
                                               newline,
                                               string ":",
                                               space,
-                                              string ("(uw_error(ctx, FATAL, \"Error unurlifying list: %s\", *request), NULL))));"),
+                                              string ("(uw_bad_request(ctx, \"Error unurlifying list: %s\", *request), NULL))));"),
                                               newline],
                                          string "}",
                                          newline,
@@ -1004,7 +1004,7 @@ fun unurlify fromClient env (t, loc) =
                               string "})"],
                      string ") :",
                      space,
-                     string "(uw_error(ctx, FATAL, \"Error unurlifying option type\"), NULL))))"]
+                     string "(uw_bad_request(ctx, \"Error unurlifying option type\"), NULL))))"]
 
               | _ => (ErrorMsg.errorAt loc "Unable to choose a URL decoding function";
                       space)
@@ -3085,7 +3085,7 @@ fun p_file env (ds, ps) =
                               newline,
                               string "if (request == NULL)",
                               newline,
-                              box [string "uw_error(ctx, FATAL, \"Missing input ",
+                              box [string "uw_bad_request(ctx, \"Missing input ",
                                    string x,
                                    string "\");"],
                               newline,
@@ -3219,11 +3219,11 @@ fun p_file env (ds, ps) =
                                       string ("uw_get_input(ctx, " ^ Int.toString inum ^ ")"),
                               string ";",
                               newline,
-                              string "if (sig == NULL) uw_error(ctx, FATAL, \"Missing cookie signature\");",
+                              string "if (sig == NULL) uw_bad_request(ctx, \"Missing cookie signature\");",
                               newline,
                               string "if (!uw_streq(sig, uw_cookie_sig(ctx)))",
                               newline,
-                              box [string "uw_error(ctx, FATAL, \"Wrong cookie signature\");",
+                              box [string "uw_bad_request(ctx, \"Wrong cookie signature\");",
                                    newline],
                               string "}",
                               newline]

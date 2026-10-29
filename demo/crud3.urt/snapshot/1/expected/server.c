@@ -1027,13 +1027,13 @@
            
          request = uw_get_input(ctx, 0);
           if (request == NULL)
-          uw_error(ctx, FATAL, "Missing input A");
+          uw_bad_request(ctx, "Missing input A");
           uw_input_A = uw_Basis_unurlifyString_fromClient(ctx, &request);
           result.__uwf_A = uw_input_A;
           
           request = uw_get_input(ctx, 1);
            if (request == NULL)
-           uw_error(ctx, FATAL, "Missing input B");
+           uw_bad_request(ctx, "Missing input B");
            uw_input_B = uw_Basis_unurlifyString_fromClient(ctx, &request);
            result.__uwf_B = uw_input_B;
            
@@ -1073,13 +1073,13 @@
             
           request = uw_get_input(ctx, 0);
            if (request == NULL)
-           uw_error(ctx, FATAL, "Missing input A");
+           uw_bad_request(ctx, "Missing input A");
            uw_input_A = uw_Basis_unurlifyString_fromClient(ctx, &request);
            result.__uwf_A = uw_input_A;
            
            request = uw_get_input(ctx, 1);
             if (request == NULL)
-            uw_error(ctx, FATAL, "Missing input B");
+            uw_bad_request(ctx, "Missing input B");
             uw_input_B = uw_Basis_unurlifyString_fromClient(ctx, &request);
             result.__uwf_B = uw_input_B;
             

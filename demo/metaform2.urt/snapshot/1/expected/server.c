@@ -223,11 +223,11 @@
       
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input X");
+      uw_bad_request(ctx, "Missing input X");
       uw_input_X = uw_Basis_unurlifyString_fromClient(ctx, &request);
       request = uw_get_input(ctx, 1);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input Y");
+       uw_bad_request(ctx, "Missing input Y");
        uw_input_Y = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_1 uw_inputs = {
         uw_input_X,

@@ -1814,7 +1814,7 @@
      
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input Title");
+      uw_bad_request(ctx, "Missing input Title");
       uw_input_Title = uw_Basis_unurlifyString_fromClient(ctx, &request);
       struct __uws_11 uw_inputs = {
        uw_input_Title,

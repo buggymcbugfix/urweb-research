@@ -669,7 +669,7 @@
      
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input User");
+      uw_bad_request(ctx, "Missing input User");
       uw_input_User = uw_Basis_unurlifyString_fromClient(ctx, &request);
       struct __uws_3 uw_inputs = {
        uw_input_User,
@@ -685,9 +685,9 @@
    if (*request == '/') ++request;
    {
     uw_Basis_string sig = uw_get_input(ctx, 0);
-    if (sig == NULL) uw_error(ctx, FATAL, "Missing cookie signature");
+    if (sig == NULL) uw_bad_request(ctx, "Missing cookie signature");
     if (!uw_streq(sig, uw_cookie_sig(ctx)))
-    uw_error(ctx, FATAL, "Wrong cookie signature");
+    uw_bad_request(ctx, "Wrong cookie signature");
      }
     uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
      uw_write(ctx, uw_begin_html5);

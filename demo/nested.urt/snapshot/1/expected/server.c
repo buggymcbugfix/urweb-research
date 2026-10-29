@@ -345,11 +345,11 @@
       
      request = uw_get_optional_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input EnterSurname");
+      uw_bad_request(ctx, "Missing input EnterSurname");
       uw_input_EnterSurname = uw_Basis_unurlifyBool(ctx, &request);
       request = uw_get_input(ctx, 1);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input Forename");
+       uw_bad_request(ctx, "Missing input Forename");
        uw_input_Forename = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_2 uw_inputs = {
         uw_input_EnterSurname,
@@ -379,7 +379,7 @@
       
       request = uw_get_input(ctx, 0);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input Surname");
+       uw_bad_request(ctx, "Missing input Surname");
        uw_input_Surname = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_1 uw_inputs = {
         uw_input_Surname,

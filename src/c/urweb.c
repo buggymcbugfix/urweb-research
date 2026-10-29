@@ -581,6 +581,9 @@ struct uw_context {
   int amInitializing;
 
   char error_message[ERROR_BUF_LEN];
+  // Whether the error in error_message is the request's own doing, raised
+  // by uw_bad_request: cleared with the message.
+  int bad_request;
 
   int usedSig, needsResig;
 
@@ -670,14 +673,10 @@ void uw_set_activity(uw_context ctx, const char *fmt, ...) {
   va_end(ap);
 }
 
-// The buffer on the stack that a log line is formatted into; a longer one
-// gets a buffer from malloc.
-#define LOG_SMALL 1024
-
 // fmt with ap in small, or in a buffer from malloc when it does not fit
 // there and malloc gives one; what fitted in small when it does not. NULL
 // when vsnprintf fails.
-static char *vformat(char *small, size_t size, const char *fmt, va_list ap) {
+char *uw_vformat(char *small, size_t size, const char *fmt, va_list ap) {
   char *msg = small;
   va_list again;
   int n;
@@ -698,7 +697,7 @@ static char *vformat(char *small, size_t size, const char *fmt, va_list ap) {
 #define THROUGH_LOGGERS (-1)
 
 static void log_activity(uw_context ctx, int level, const char *fmt, va_list ap) {
-  char small[LOG_SMALL], *msg = vformat(small, sizeof small, fmt, ap);
+  char small[UW_LOG_SMALL], *msg = uw_vformat(small, sizeof small, fmt, ap);
   const char *text = msg ? msg : fmt;
 
   if (level == THROUGH_LOGGERS)
@@ -789,7 +788,7 @@ static void log_journal_init(void) {
 // with a newline even where its format has none, so that the next message
 // does not go on in its line.
 void uw_vlog(uw_log_level level, const char *fmt, va_list ap) {
-  char small[LOG_SMALL], *msg;
+  char small[UW_LOG_SMALL], *msg;
   const char *text, *line, *end;
   int saved = errno;
   FILE *f;
@@ -798,7 +797,7 @@ void uw_vlog(uw_log_level level, const char *fmt, va_list ap) {
     return;
   pthread_once(&log_journal_once, log_journal_init);
   errno = saved; // for %m
-  msg = vformat(small, sizeof small, fmt, ap);
+  msg = uw_vformat(small, sizeof small, fmt, ap);
   text = msg ? msg : fmt;
   f = log_journal || level <= UW_LOG_WARNING ? stderr : stdout;
   flockfile(f);
@@ -879,6 +878,7 @@ uw_context uw_init(int id, uw_loggers *lg) {
   ctx->client = NULL;
 
   ctx->error_message[0] = 0;
+  ctx->bad_request = 0;
 
   ctx->transactionals = malloc(0);
   ctx->n_transactionals = ctx->used_transactionals = 0;
@@ -1032,6 +1032,7 @@ void uw_reset_keep_error_message(uw_context ctx) {
 void uw_reset_keep_request(uw_context ctx) {
   uw_reset_keep_error_message(ctx);
   ctx->error_message[0] = 0;
+  ctx->bad_request = 0;
 }
 
 void uw_reset(uw_context ctx) {
@@ -1118,6 +1119,21 @@ __attribute__((noreturn)) void uw_error(uw_context ctx, failure_kind fk, const c
   uw_reraise(ctx, fk);
 }
 
+__attribute__((noreturn)) void uw_bad_request(uw_context ctx, const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+
+  vsnprintf(ctx->error_message, ERROR_BUF_LEN, fmt, ap);
+  va_end(ap);
+  ctx->bad_request = 1;
+
+  uw_reraise(ctx, FATAL);
+}
+
+int uw_bad_request_raised(uw_context ctx) {
+  return ctx->bad_request;
+}
+
 size_t uw_cleanup_max = SIZE_MAX;
 
 void uw_push_cleanup(uw_context ctx, void (*func)(void *), void *arg) {
@@ -1157,15 +1173,15 @@ void uw_login(uw_context ctx) {
     client *c = find_client(id);
 
     if (c == NULL)
-      uw_error(ctx, FATAL, "Unknown client ID in HTTP headers (%s, %s)", uw_Basis_htmlifyString(ctx, id_s), uw_Basis_htmlifyString(ctx, pass_s));
+      uw_bad_request(ctx, "Unknown client ID in HTTP headers (%s, %s)", uw_Basis_htmlifyString(ctx, id_s), uw_Basis_htmlifyString(ctx, pass_s));
     else {
       use_client(c);
       ctx->client = c;
 
       if (c->mode != USED)
-        uw_error(ctx, FATAL, "Stale client ID (%u) in subscription request", id);
+        uw_bad_request(ctx, "Stale client ID (%u) in subscription request", id);
       if (c->pass != pass)
-        uw_error(ctx, FATAL, "Wrong client password (%u, %d) in subscription request", id, pass);
+        uw_bad_request(ctx, "Wrong client password (%u, %d) in subscription request", id, pass);
     }
   } else if (ctx->needs_push) {
     client *c = new_client(ctx);
@@ -1505,13 +1521,13 @@ char *uw_get_input(uw_context ctx, int n) {
   case UNSET:
     return NULL;
   case FIL:
-    uw_error(ctx, FATAL, "Tried to read a file form input as normal");
+    uw_bad_request(ctx, "Tried to read a file form input as normal");
   case SUBFORM:
-    uw_error(ctx, FATAL, "Tried to read a subform form input as normal");
+    uw_bad_request(ctx, "Tried to read a subform form input as normal");
   case SUBFORMS:
-    uw_error(ctx, FATAL, "Tried to read a subforms form input as normal");
+    uw_bad_request(ctx, "Tried to read a subforms form input as normal");
   case ENTRY:
-    uw_error(ctx, FATAL, "Tried to read an entry form input as normal");
+    uw_bad_request(ctx, "Tried to read an entry form input as normal");
   case NORMAL:
     return INP(ctx)[n].data.normal;
   default:
@@ -1529,13 +1545,13 @@ char *uw_get_optional_input(uw_context ctx, int n) {
   case UNSET:
     return "";
   case FIL:
-    uw_error(ctx, FATAL, "Tried to read a file form input as normal");
+    uw_bad_request(ctx, "Tried to read a file form input as normal");
   case SUBFORM:
-    uw_error(ctx, FATAL, "Tried to read a subform form input as normal");
+    uw_bad_request(ctx, "Tried to read a subform form input as normal");
   case SUBFORMS:
-    uw_error(ctx, FATAL, "Tried to read a subforms form input as normal");
+    uw_bad_request(ctx, "Tried to read a subforms form input as normal");
   case ENTRY:
-    uw_error(ctx, FATAL, "Tried to read an entry form input as normal");
+    uw_bad_request(ctx, "Tried to read an entry form input as normal");
   case NORMAL:
     return INP(ctx)[n].data.normal;
   default:
@@ -1580,13 +1596,13 @@ uw_Basis_file uw_get_file_input(uw_context ctx, int n) {
   case FIL:
     return INP(ctx)[n].data.file;
   case NORMAL:
-    uw_error(ctx, FATAL, "Tried to read a normal form input as files");
+    uw_bad_request(ctx, "Tried to read a normal form input as files");
   case SUBFORM:
-    uw_error(ctx, FATAL, "Tried to read a subform form input as files");
+    uw_bad_request(ctx, "Tried to read a subform form input as files");
   case SUBFORMS:
-    uw_error(ctx, FATAL, "Tried to read a subforms form input as files");
+    uw_bad_request(ctx, "Tried to read a subforms form input as files");
   case ENTRY:
-    uw_error(ctx, FATAL, "Tried to read an entry form input as files");
+    uw_bad_request(ctx, "Tried to read an entry form input as files");
   default:
     uw_error(ctx, FATAL, "Impossible input kind");
   }
@@ -1600,15 +1616,15 @@ void uw_enter_subform(uw_context ctx, int n) {
 
   switch (INP(ctx)[n].kind) {
   case UNSET:
-    uw_error(ctx, FATAL, "Missing subform");
+    uw_bad_request(ctx, "Missing subform");
   case FIL:
-    uw_error(ctx, FATAL, "Tried to read a file form input as subform");
+    uw_bad_request(ctx, "Tried to read a file form input as subform");
   case NORMAL:
-    uw_error(ctx, FATAL, "Tried to read a normal form input as subform");
+    uw_bad_request(ctx, "Tried to read a normal form input as subform");
   case SUBFORMS:
-    uw_error(ctx, FATAL, "Tried to read a subforms form input as subform");
+    uw_bad_request(ctx, "Tried to read a subforms form input as subform");
   case ENTRY:
-    uw_error(ctx, FATAL, "Tried to read an entry form input as subform");
+    uw_bad_request(ctx, "Tried to read an entry form input as subform");
   case SUBFORM:
     INP(ctx)[n].data.subform.parent = ctx->cur_container;
     ctx->cur_container = &INP(ctx)[n];
@@ -1639,15 +1655,15 @@ int uw_enter_subforms(uw_context ctx, int n) {
 
   switch (INP(ctx)[n].kind) {
   case UNSET:
-    uw_error(ctx, FATAL, "Missing subforms");
+    uw_bad_request(ctx, "Missing subforms");
   case FIL:
-    uw_error(ctx, FATAL, "Tried to read a file form input as subforms");
+    uw_bad_request(ctx, "Tried to read a file form input as subforms");
   case NORMAL:
-    uw_error(ctx, FATAL, "Tried to read a normal form input %p as subforms", &INP(ctx)[n]);
+    uw_bad_request(ctx, "Tried to read a normal form input %p as subforms", &INP(ctx)[n]);
   case SUBFORM:
-    uw_error(ctx, FATAL, "Tried to read a subform form input as subforms");
+    uw_bad_request(ctx, "Tried to read a subform form input as subforms");
   case ENTRY:
-    uw_error(ctx, FATAL, "Tried to read an entry form input as subforms");
+    uw_bad_request(ctx, "Tried to read an entry form input as subforms");
   case SUBFORMS:
     inps = INP(ctx)[n].data.subforms.entries;
     if (inps) {
@@ -1667,15 +1683,15 @@ int uw_next_entry(uw_context ctx) {
 
   switch (ctx->cur_container->kind) {
   case UNSET:
-    uw_error(ctx, FATAL, "Missing entry");
+    uw_bad_request(ctx, "Missing entry");
   case FIL:
-    uw_error(ctx, FATAL, "Tried to read a file form input as entry");
+    uw_bad_request(ctx, "Tried to read a file form input as entry");
   case NORMAL:
-    uw_error(ctx, FATAL, "Tried to read a normal form input as entry");
+    uw_bad_request(ctx, "Tried to read a normal form input as entry");
   case SUBFORM:
-    uw_error(ctx, FATAL, "Tried to read a subform form input as entry");
+    uw_bad_request(ctx, "Tried to read a subform form input as entry");
   case SUBFORMS:
-    uw_error(ctx, FATAL, "Tried to read a subforms form input as entry");
+    uw_bad_request(ctx, "Tried to read a subforms form input as entry");
   case ENTRY:
     if (ctx->cur_container->data.entry.next) {
       ctx->cur_container = ctx->cur_container->data.entry.next;
@@ -2924,22 +2940,22 @@ static uw_Basis_string uw_unurlifyString_to(int fromClient, uw_context ctx, char
       break;
     case '%':
       if (s2[1] == 0)
-        uw_error(ctx, FATAL, "Missing first character of escaped URL byte");
+        uw_bad_request(ctx, "Missing first character of escaped URL byte");
       if (s2[2] == 0)
-        uw_error(ctx, FATAL, "Missing second character of escaped URL byte");
+        uw_bad_request(ctx, "Missing second character of escaped URL byte");
       if (sscanf(s2+1, "%02X", &n) != 1)
-        uw_error(ctx, FATAL, "Invalid escaped URL byte starting at: %s", uw_Basis_htmlifyString(ctx, s2));
+        uw_bad_request(ctx, "Invalid escaped URL byte starting at: %s", uw_Basis_htmlifyString(ctx, s2));
       *s1 = n;
       s2 += 2;
       break;
     case '.':
       if (!fromClient) {
         if (s2[1] == 0)
-          uw_error(ctx, FATAL, "Missing first character of escaped URL byte");
+          uw_bad_request(ctx, "Missing first character of escaped URL byte");
         if (s2[2] == 0)
-          uw_error(ctx, FATAL, "Missing second character of escaped URL byte");
+          uw_bad_request(ctx, "Missing second character of escaped URL byte");
         if (sscanf(s2+1, "%02X", &n) != 1)
-          uw_error(ctx, FATAL, "Invalid escaped URL byte starting at: %s", uw_Basis_htmlifyString(ctx, s2));
+          uw_bad_request(ctx, "Invalid escaped URL byte starting at: %s", uw_Basis_htmlifyString(ctx, s2));
         *s1 = n;
         s2 += 2;
         break;
@@ -3004,7 +3020,7 @@ uw_Basis_char uw_Basis_unurlifyChar(uw_context ctx, char **s) {
         return c;
     }
   }
-  uw_error(ctx, FATAL, "Unurlified character is not exactly one character");
+  uw_bad_request(ctx, "Unurlified character is not exactly one character");
 }
 
 uw_Basis_unit uw_Basis_unurlifyUnit(uw_context ctx, char **s) {
@@ -3482,6 +3498,7 @@ uw_Basis_string uw_dup_and_clear_error_message(uw_context ctx) {
   if (ctx->error_message[0]) {
     char *s = uw_strdup(ctx, ctx->error_message);
     ctx->error_message[0] = 0;
+    ctx->bad_request = 0;
     return s;
   } else
     return NULL;
@@ -5722,7 +5739,7 @@ uw_Basis_postBody uw_getPostBody(uw_context ctx) {
   if (ctx->hasPostBody)
     return ctx->postBody;
   else
-    uw_error(ctx, FATAL, "Asked for POST body when none exists");
+    uw_bad_request(ctx, "Asked for POST body when none exists");
 }
 
 int uw_retry_again(failure_kind fk, int *attempts_left) {
@@ -5927,9 +5944,10 @@ int uw_io_transaction_retry(uw_context ctx, uw_io_transaction *t, int fk) {
     ctx->loggers->log_error(ld, "Error running SQL ROLLBACK in io transaction\n");
   uw_io_transaction_cut(ctx, t, 0);
 
-  if (again)
+  if (again) {
     ctx->error_message[0] = 0;
-  else {
+    ctx->bad_request = 0;
+  } else {
     t->failed = 1;
     strcpy(ctx->io_error_message, ctx->error_message);
   }
@@ -5945,10 +5963,12 @@ void uw_io_transaction_end(uw_context ctx, uw_io_transaction *t, int reraise) {
   if (t->failed) {
     if (reraise)
       uw_error(ctx, FATAL, "%s", ctx->io_error_message);
-    else
+    else {
       // Handled by the program: the computation goes on, with the message
       // kept for io_errorMessage alone.
       ctx->error_message[0] = 0;
+      ctx->bad_request = 0;
+    }
   }
 }
 
@@ -6029,20 +6049,24 @@ uw_Basis_time *uw_Basis_readUtc(uw_context ctx, uw_Basis_string s) {
     return NULL;
 }
 
+// The status line of an answer, "400 Bad Request" say, as the protocol
+// spells it: on_success is set when the server answers HTTP itself.
+void uw_write_status(uw_context ctx, const char *status) {
+  uw_write_header(ctx, on_success[0] ? "HTTP/1.1 " : "Status: ");
+  uw_write_header(ctx, (char *)status); // uw_write_header reads it only
+  uw_write_header(ctx, "\r\n");
+}
+
 // The handler's transaction begins at its first database operation, as a
 // page's does, once the generated uw_onError has said whether it may write.
 // Beginning it here would take the value of the handler that failed.
-failure_kind uw_begin_onError(uw_context ctx, char *msg) {
+failure_kind uw_begin_onError(uw_context ctx, char *msg, const char *status) {
   int r = setjmp(ctx->jmp_buf);
 
   if (ctx->app->on_error) {
     if (r == 0) {
       uw_buffer_reset(&ctx->outHeaders);
-      if (on_success[0])
-        uw_write_header(ctx, "HTTP/1.1 ");
-      else
-        uw_write_header(ctx, "Status: ");
-      uw_write_header(ctx, "500 Internal Server Error\r\n");
+      uw_write_status(ctx, status);
       uw_write_header(ctx, "Content-type: text/html\r\n");
       uw_write(ctx, ctx->app->is_html5 ? uw_begin_html5 : uw_begin_xhtml);
       ctx->app->on_error(ctx, msg);

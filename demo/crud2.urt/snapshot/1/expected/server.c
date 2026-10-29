@@ -1184,11 +1184,11 @@
       
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input Name");
+      uw_bad_request(ctx, "Missing input Name");
       uw_input_Name = uw_Basis_unurlifyString_fromClient(ctx, &request);
       request = uw_get_input(ctx, 1);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input Ready");
+       uw_bad_request(ctx, "Missing input Ready");
        uw_input_Ready = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_5 uw_inputs = {
         uw_input_Name,
@@ -1219,11 +1219,11 @@
        
       request = uw_get_input(ctx, 0);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input Name");
+       uw_bad_request(ctx, "Missing input Name");
        uw_input_Name = uw_Basis_unurlifyString_fromClient(ctx, &request);
        request = uw_get_input(ctx, 1);
         if (request == NULL)
-        uw_error(ctx, FATAL, "Missing input Ready");
+        uw_bad_request(ctx, "Missing input Ready");
         uw_input_Ready = uw_Basis_unurlifyString_fromClient(ctx, &request);
         struct __uws_5 uw_inputs = {
          uw_input_Name,

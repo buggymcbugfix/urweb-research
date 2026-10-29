@@ -326,13 +326,13 @@
           
         request = uw_get_input(ctx, 0);
          if (request == NULL)
-         uw_error(ctx, FATAL, "Missing input Num");
+         uw_bad_request(ctx, "Missing input Num");
          uw_input_Num = uw_Basis_unurlifyString_fromClient(ctx, &request);
          result->__uwf_1.__uwf_Num = uw_input_Num;
          
          request = uw_get_input(ctx, 1);
           if (request == NULL)
-          uw_error(ctx, FATAL, "Missing input Text");
+          uw_bad_request(ctx, "Missing input Text");
           uw_input_Text = uw_Basis_unurlifyString_fromClient(ctx, &request);
           result->__uwf_1.__uwf_Text = uw_input_Text;
           }

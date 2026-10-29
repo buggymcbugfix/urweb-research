@@ -27,6 +27,11 @@ void uw_log_error(struct uw_context *, const char *fmt, ...);
 // uw_set_log_level chose, info unless it was called (see uw_vlog).
 void uw_log(uw_log_level, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 void uw_vlog(uw_log_level, const char *fmt, va_list);
+// fmt with ap, formatted in small, of size bytes, or in a buffer from malloc
+// when it does not fit there, which the caller frees; what fitted in small
+// when malloc fails, NULL when formatting fails. UW_LOG_SMALL (types_cpp.h)
+// is the size the runtime's own lines start with.
+char *uw_vformat(char *small, size_t size, const char *fmt, va_list);
 // A line at a level after what the context is doing, as uw_log_error has it.
 void uw_log_at(struct uw_context *, uw_log_level, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 // The least severe level printed from now on.
@@ -81,7 +86,18 @@ uw_loggers* uw_get_loggers(struct uw_context *ctx);
 failure_kind uw_begin(struct uw_context *, char *path);
 void uw_ensure_transaction(struct uw_context *);
 void uw_try_reconnecting_and_restarting(struct uw_context *);
-failure_kind uw_begin_onError(struct uw_context *, char *msg);
+// The application's onError page for msg, answered with status, "500
+// Internal Server Error" or "400 Bad Request", as uw_write_status spells it.
+failure_kind uw_begin_onError(struct uw_context *, char *msg, const char *status);
+// A status line as the protocol has it: "HTTP/1.1 " or "Status: " before
+// status, for a server that answers HTTP itself or through a web server.
+void uw_write_status(struct uw_context *, const char *status);
+// An error of the request's own doing, a URL argument, a form input or a
+// header that is none or malformed: raised as a fatal error and marked as
+// such, so that the request is answered 400 and logged at notice.
+__attribute__((noreturn)) void uw_bad_request(struct uw_context *, const char *fmt, ...);
+// Whether the error raised last on the context was a bad request.
+int uw_bad_request_raised(struct uw_context *);
 void uw_login(struct uw_context *);
 int uw_commit(struct uw_context *);
 // ^-- returns nonzero if the transaction should be restarted

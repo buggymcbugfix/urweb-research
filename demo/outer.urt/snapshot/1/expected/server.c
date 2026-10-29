@@ -911,11 +911,11 @@
       
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input B");
+      uw_bad_request(ctx, "Missing input B");
       uw_input_B = uw_Basis_unurlifyString_fromClient(ctx, &request);
       request = uw_get_input(ctx, 2);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input Id");
+       uw_bad_request(ctx, "Missing input Id");
        uw_input_Id = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_5 uw_inputs = {
         uw_input_B,
@@ -947,19 +947,19 @@
         
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input C");
+      uw_bad_request(ctx, "Missing input C");
       uw_input_C = uw_Basis_unurlifyString_fromClient(ctx, &request);
       request = uw_get_input(ctx, 1);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input D");
+       uw_bad_request(ctx, "Missing input D");
        uw_input_D = uw_Basis_unurlifyString_fromClient(ctx, &request);
        request = uw_get_input(ctx, 2);
         if (request == NULL)
-        uw_error(ctx, FATAL, "Missing input Id");
+        uw_bad_request(ctx, "Missing input Id");
         uw_input_Id = uw_Basis_unurlifyString_fromClient(ctx, &request);
         request = uw_get_input(ctx, 3);
          if (request == NULL)
-         uw_error(ctx, FATAL, "Missing input Link");
+         uw_bad_request(ctx, "Missing input Link");
          uw_input_Link = uw_Basis_unurlifyString_fromClient(ctx, &request);
          struct __uws_4 uw_inputs
           = {

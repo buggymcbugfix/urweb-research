@@ -788,12 +788,12 @@
        uw_Basis_int *tmp = uw_malloc(ctx, sizeof(uw_Basis_int));
        *tmp = uw_Basis_unurlifyInt(ctx, &request);
        tmp;
-       })) : (uw_error(ctx, FATAL, "Error unurlifying option type"), NULL))));
+       })) : (uw_bad_request(ctx, "Error unurlifying option type"), NULL))));
      uw_Basis_string uw_input_Nam;
       
       request = uw_get_input(ctx, 0);
        if (request == NULL)
-       uw_error(ctx, FATAL, "Missing input Nam");
+       uw_bad_request(ctx, "Missing input Nam");
        uw_input_Nam = uw_Basis_unurlifyString_fromClient(ctx, &request);
        struct __uws_3 uw_inputs = {
         uw_input_Nam,

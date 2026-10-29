@@ -190,7 +190,7 @@
      
      request = uw_get_input(ctx, 0);
       if (request == NULL)
-      uw_error(ctx, FATAL, "Missing input Url");
+      uw_bad_request(ctx, "Missing input Url");
       uw_input_Url = uw_Basis_unurlifyString_fromClient(ctx, &request);
       struct __uws_1 uw_inputs = {
        uw_input_Url,

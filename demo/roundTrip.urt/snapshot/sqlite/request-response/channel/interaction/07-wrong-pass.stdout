@@ -1,0 +1,1 @@
+POST /RoundTrip/writeBack/x/0/0: Bad request: Wrong client password (0, 42) in subscription request

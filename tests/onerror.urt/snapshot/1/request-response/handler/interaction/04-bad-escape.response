@@ -1,4 +1,4 @@
-HTTP/1.1 500 Internal Server Error
+HTTP/1.1 400 Bad Request
 Content-type: text/html
 Connection: close
 Content-length: 117
