@@ -42,6 +42,9 @@ program wrote on stdout and on stderr.
 - FastCGI with `-q` and with `-l err`, sent the request whose web server
   has gone: the line about dropping it is a warning, shown by one and not
   by the other. And with `-l` twice, in both orders: the later counts.
+- FastCGI with options that name no level: `-l` without its argument,
+  with an empty name, with `DEBUG` and with `7`, and `-Z`, which is no
+  option.
 - FastCGI with `-l notice`, plain and with the journal, sent a path with a
   newline in it and one with a CR, as a web server passes `%0A` and `%0D`
   on decoded: the line logged about each. Under the journal each line of

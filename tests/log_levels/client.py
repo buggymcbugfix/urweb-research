@@ -352,7 +352,7 @@ def normalized(line, exe, directory):
 
 def report(name, flags, status, answers, files, exe, directory):
     """One answer goes on the run's line, several each on a line of its own."""
-    line = "%s %s: %s" % (name, " ".join(flags) or "without flags",
+    line = "%s %s: %s" % (name, " ".join(f or "''" for f in flags) or "without flags",
                           "ran" if status is None else "ended with status %d" % status)
     print(line + (", answered " + answers[0] if len(answers) == 1 else ", answered:" if answers else ""))
     if len(answers) > 1:
@@ -497,6 +497,11 @@ def main():
         run("fastcgi", run_fastcgi, fastcgi, out, flags, label=GONE, requests=one_page(b"/main"), queued=[fastcgi_request(b"/main")])
     # Of two -l, the later counts, as of -l and -q.
     for flags in (["-l", "err", "-l", "debug"], ["-l", "debug", "-l", "err"]):
+        run("fastcgi", run_fastcgi, fastcgi, out, flags)
+    # Options that name no level: -l without its argument, with an empty
+    # name, with a name in upper case and with a syslog number, and an
+    # option that is none.
+    for flags in (["-l"], ["-l", ""], ["-l", "DEBUG"], ["-l", "7"], ["-Z"]):
         run("fastcgi", run_fastcgi, fastcgi, out, flags)
     # A newline and a CR in a path, as a web server passes %0A and %0D on
     # decoded in PATH_INFO: the line logged about the request, plain and

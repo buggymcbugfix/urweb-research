@@ -252,6 +252,38 @@ fastcgi -l err -l debug: ran
   stderr 1 Request is for a role besides RESPONDER
 fastcgi -l debug -l err: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+fastcgi -l: ended with status 1
+  stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
+  stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-l <level>] [-q]
+  stdout 1 notice, info (the default, with a line for each request) or debug.
+  stderr 1 PROGRAM: option requires an argument -- 'l'
+  stderr 1 Unknown command-line option
+fastcgi -l '': ended with status 1
+  stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
+  stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-l <level>] [-q]
+  stdout 1 notice, info (the default, with a line for each request) or debug.
+  stderr 1 Unknown log level ''
+fastcgi -l DEBUG: ended with status 1
+  stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
+  stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-l <level>] [-q]
+  stdout 1 notice, info (the default, with a line for each request) or debug.
+  stderr 1 Unknown log level 'DEBUG'
+fastcgi -l 7: ended with status 1
+  stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
+  stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-l <level>] [-q]
+  stdout 1 notice, info (the default, with a line for each request) or debug.
+  stderr 1 Unknown log level '7'
+fastcgi -Z: ended with status 1
+  stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
+  stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
+  stdout 1 Usage: PROGRAM [-t <thread-count>] [-l <level>] [-q]
+  stdout 1 notice, info (the default, with a line for each request) or debug.
+  stderr 1 PROGRAM: invalid option -- 'Z'
+  stderr 1 Unknown command-line option
 fastcgi, a newline and a CR in a path, -l notice: ran, answered:
   > 404 Not Found
   > 404 Not Found
