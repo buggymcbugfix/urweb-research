@@ -769,15 +769,13 @@ static void *worker(void *data) {
 
     hs.nvps[used_nvps].name[0] = 0;
 
-    if ((s = get_header(&hs, "Content-Length"))) {
-      // Read as atoi reads it, but into a long long: a length beyond what
-      // an int holds is not cut down to some other int.
+    // Read as atoi reads it, but into a long long: a length beyond what an
+    // int holds is not cut down to some other int.  A negative length
+    // takes no body, and request.c answers a POST with one, as it does
+    // under the other protocols.
+    if ((s = get_header(&hs, "Content-Length")))
       body_len = strtoll(s, NULL, 10);
-      if (body_len < 0) {
-        uw_log(UW_LOG_NOTICE, "Invalid Content-Length\n");
-        goto done;
-      }
-    } else
+    else
       body_len = 0;
 
     // Read the stream to its end, the empty record, even past Content-Length
@@ -812,8 +810,9 @@ static void *worker(void *data) {
 
       this_len = (r->contentLengthB1 << 8) | r->contentLengthB0;
 
-      // body_read never passes body_len, nor INT_MAX, the most a body is
-      // counted in further on, so neither difference can overflow.
+      // Neither difference can overflow: body_read stays within INT_MAX,
+      // the most a body is counted in further on, and within body_len, or
+      // at 0 when body_len is negative and takes no body.
       if (this_len > body_len - body_read || this_len > INT_MAX - body_read) {
         uw_log(UW_LOG_WARNING, "Too much STDIN\n");
         goto done;

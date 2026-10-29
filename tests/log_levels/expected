@@ -167,13 +167,12 @@ fastcgi, requests refused for their shape, without flags: ran, answered:
   > a poll without a client or a password: 400 Bad Request: Bad request: Missing fields in .msgs request: (none), (none)
   > a poll without a password: 400 Bad Request: Bad request: Missing fields in .msgs request: 5, (none)
   > a poll without a client: 400 Bad Request: Bad request: Missing fields in .msgs request: (none), 0
-  > a negative CONTENT_LENGTH: nothing
+  > a negative CONTENT_LENGTH: 400 Bad Request: Bad request: Negative Content-length with POST
   stdout 3 Failed URI /.msgs ...
-  stdout 11 Failed URI /handler ...
+  stdout 12 Failed URI /handler ...
   stdout 1 GET /.msgs: Missing fields in .msgs request: (none), (none)
   stdout 1 GET /.msgs: Missing fields in .msgs request: (none), 0
   stdout 1 GET /.msgs: Missing fields in .msgs request: 5, (none)
-  stdout 1 Invalid Content-Length
   stdout 1 POST /handler: Bad multipart boundary spec
   stdout 1 POST /handler: Disposition setting is missing final quote
   stdout 1 POST /handler: Disposition setting is missing initial quote
@@ -182,6 +181,7 @@ fastcgi, requests refused for their shape, without flags: ran, answered:
   stdout 1 POST /handler: Missing end of headers after multipart boundary
   stdout 1 POST /handler: Missing first multipart boundary
   stdout 1 POST /handler: Multipart data is not "form-data"
+  stdout 1 POST /handler: Negative Content-length with POST
   stdout 1 POST /handler: No \n after multipart boundary
   stdout 1 POST /handler: No \r after multipart boundary
   stdout 1 POST /handler: No space after colon in multipart sub-header
@@ -208,8 +208,9 @@ fastcgi, methods other than GET and POST, without flags: ran, answered:
   stdout 1 PATCH /main: Not ready for non-GET/POST command: PATCH
   stdout 1 TRACE /main: Not ready for non-GET/POST command: TRACE
   stdout 1 get /main: Not ready for non-GET/POST command: get
-fastcgi, a GET with a negative CONTENT_LENGTH, without flags: ran, answered nothing
-  stdout 1 Invalid Content-Length
+fastcgi, a GET with a negative CONTENT_LENGTH, without flags: ran, answered 200 OK
+  stdout 1 Served URI /main ...
+  stdout 1 main: running
 fastcgi, JOURNAL_STREAM with another inode than standard error's, without flags: ran
   stdout 1 Failed URI /fail ...
   stdout 1 Served URI /main ...

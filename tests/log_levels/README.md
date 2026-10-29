@@ -29,8 +29,7 @@ program wrote on stdout and on stderr.
   runs, each on a connection of its own, with what the program answers,
   the reason among it: a multipart form that is malformed in each of the
   ways the program tells apart (and one that is not, for contrast), a poll
-  without its client or its password, and a negative CONTENT_LENGTH, which
-  the program does not answer at all.
+  without its client or its password, and a negative CONTENT_LENGTH.
 - FastCGI, sent each method other than GET and POST, each on a connection
   of its own, with what the program answers: HEAD, OPTIONS, DELETE,
   TRACE, PATCH, CONNECT, GET in lower case, no method at all, and one
