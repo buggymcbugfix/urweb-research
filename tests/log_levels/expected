@@ -252,6 +252,18 @@ fastcgi -l err -l debug: ran
   stderr 1 Request is for a role besides RESPONDER
 fastcgi -l debug -l err: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+fastcgi, a newline and a CR in a path, -l notice: ran, answered:
+  > 404 Not Found
+  > 404 Not Found
+  stdout 1 <3>forged: not found
+  stdout 1 GET /nosuch
+  stdout 1 GET /nosuch\r<3>forged: not found
+fastcgi, stderr to the journal, a newline and a CR in a path, -l notice: ran, answered:
+  > 404 Not Found
+  > 404 Not Found
+  stderr 1 <5><3>forged: not found
+  stderr 1 <5>GET /nosuch
+  stderr 1 <5>GET /nosuch\r<3>forged: not found
 http without flags: ran
   stdout 1
   stdout 1 Failed URI /fail ...

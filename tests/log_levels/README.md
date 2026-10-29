@@ -42,6 +42,11 @@ program wrote on stdout and on stderr.
 - FastCGI with `-q` and with `-l err`, sent the request whose web server
   has gone: the line about dropping it is a warning, shown by one and not
   by the other. And with `-l` twice, in both orders: the later counts.
+- FastCGI with `-l notice`, plain and with the journal, sent a path with a
+  newline in it and one with a CR, as a web server passes `%0A` and `%0D`
+  on decoded: the line logged about each. Under the journal each line of
+  it has a level of its own, so a path cannot pass a line off at another
+  level; a CR ends no line, and is shown as `\r`.
 - HTTP without flags, with `-q`, with `-l debug` and with a name that is
   not a level, and with its standard error connected to the journal.
 - HTTP, in one run, sent what a request is refused for: a page that does

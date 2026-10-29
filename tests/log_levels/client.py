@@ -41,7 +41,8 @@
 # negative CONTENT_LENGTH to a CGI and a static program. FastCGI is
 # started with a JOURNAL_STREAM that does not name its standard error,
 # with -l twice, and with -q or -l err for the request whose web server
-# has gone.
+# has gone; and, with -l notice, it is sent a path with a newline in it
+# and one with a CR, plain and with the journal.
 
 import collections
 import os
@@ -343,7 +344,8 @@ def run_static(exe, directory, args, stdout, stderr, env, page=b"/main"):
 
 
 def normalized(line, exe, directory):
-    line = line.rstrip().replace(exe, "PROGRAM").replace(directory, "DIR")
+    """A line as the transcript shows it; a CR inside it as \\r."""
+    line = line.rstrip().replace("\r", "\\r").replace(exe, "PROGRAM").replace(directory, "DIR")
     line = re.sub(r"^(<\d>)?((Served|Failed) URI \S+) in .*$", r"\1\2 ...", line)
     return re.sub(r"^(<\d>)?L(x+)E$", lambda m: "%sL[%d x]E" % (m.group(1) or "", len(m.group(2))), line)
 
@@ -358,7 +360,10 @@ def report(name, flags, status, answers, files, exe, directory):
             print(("  > " + answer).rstrip())
     for stream, path in files:
         with open(path, "rb") as f:
-            lines = [normalized(l.decode(errors="replace"), exe, directory) for l in f.read().splitlines()]
+            # Lines end at a newline only, as the journal's do.
+            written = f.read()
+            lines = [normalized(l.decode(errors="replace"), exe, directory)
+                     for l in (written[:-1] if written.endswith(b"\n") else written).split(b"\n")] if written else []
         for line, n in sorted(collections.Counter(lines).items()):
             print(("  %s %d %s" % (stream, n, line)).rstrip())
 
@@ -493,6 +498,14 @@ def main():
     # Of two -l, the later counts, as of -l and -q.
     for flags in (["-l", "err", "-l", "debug"], ["-l", "debug", "-l", "err"]):
         run("fastcgi", run_fastcgi, fastcgi, out, flags)
+    # A newline and a CR in a path, as a web server passes %0A and %0D on
+    # decoded in PATH_INFO: the line logged about the request, plain and
+    # under the journal, which takes each line for an entry of its own.
+    # -l notice leaves out the line for each request, whose time and heap
+    # figures would land on a line of their own after the newline.
+    for journal in (False, True):
+        run("fastcgi", run_fastcgi, fastcgi, out, ["-l", "notice"], journal, "a newline and a CR in a path",
+            requests=answered(fastcgi_request(b"/nosuch\n<3>forged"), fastcgi_request(b"/nosuch\r<3>forged")))
     for flags in ([], ["-q"], ["-l", "debug"], ["-l", "bogus"]):
         run("http", run_http, http, out, flags)
     run("http", run_http, http, out, [], journal=True)
