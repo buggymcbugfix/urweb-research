@@ -1,0 +1,7 @@
+Status: 500 Internal Server Error
+Content-type: text/html
+
+<!DOCTYPE html><html><head></head><body>
+<h1>Bad thing!</h1>
+tests/onerror.ur:3:11-4:3: Zero is bad!
+</body></html>

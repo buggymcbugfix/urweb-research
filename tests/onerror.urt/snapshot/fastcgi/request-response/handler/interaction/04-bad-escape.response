@@ -1,0 +1,7 @@
+Status: 400 Bad Request
+Content-type: text/html
+
+<!DOCTYPE html><html><head></head><body>
+<h1>Bad thing!</h1>
+Invalid escaped URL byte starting at: %zz
+</body></html>
