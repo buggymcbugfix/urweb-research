@@ -55,3 +55,8 @@ each connection.
   the connection, for a web server that has only shut down its writing
   side and waits for the answer, and over TCP, with the connection
   closed and with it reset.
+- A GET and a POST whose CONTENT_LENGTH is 2147483647, the largest an
+  `int` holds, and that come without a body, each to a program of its
+  own, as a web server passes them on when it does not limit the body
+  (nginx with `client_max_body_size 0` and `fastcgi_request_buffering
+  off`): what each is answered, and whether the program serves on.

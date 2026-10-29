@@ -84,12 +84,12 @@ def pair(name, value):
     return bytes([len(name), len(value)]) + name + value
 
 
-def request(name, keep=True, request_id=1, path=None, headers=()):
+def request(name, keep=True, request_id=1, path=None, headers=(), method=b"GET"):
     """What a web server sends for a request of the page echo/NAME, or of
     path, with headers among the CGI variables, as pairs such as
-    (b"HTTP_URWEB_CLIENT", b"0")."""
+    (b"HTTP_URWEB_CLIENT", b"0"), and no body."""
     params = b"".join(pair(n, v) for n, v in [
-        (b"REQUEST_METHOD", b"GET"), (b"SCRIPT_NAME", b""), (b"PATH_INFO", path or b"/echo/" + name),
+        (b"REQUEST_METHOD", method), (b"SCRIPT_NAME", b""), (b"PATH_INFO", path or b"/echo/" + name),
         (b"QUERY_STRING", b""), (b"SERVER_PROTOCOL", b"HTTP/1.1"), (b"HTTP_HOST", b"localhost")]
         + list(headers))
     begin = BEGIN_BODY.pack(RESPONDER, KEEP_CONN if keep else 0)
@@ -177,6 +177,13 @@ def token(answer):
 def body(answer):
     """What a response says after its headers; 'none' for no response."""
     return answer[1].split(b"\r\n\r\n", 1)[-1].decode() if answer else "none"
+
+
+def status(answer):
+    """The status of a response, from its Status header; a page answered as
+    asked has none, and is '200 OK'."""
+    found = re.search(rb"^Status: ([^\r\n]*)", answer[1], re.MULTILINE)
+    return found.group(1).decode() if found else "200 OK"
 
 
 def program_environment(env=None):
@@ -559,6 +566,37 @@ def ran(program):
     return "run" if program.logged("Served URI /echo/gone") else "not run"
 
 
+# The largest CONTENT_LENGTH an int holds.
+LONGEST = 2 ** 31 - 1
+
+
+def lengths(exe, out):
+    """A request whose CONTENT_LENGTH is LONGEST and that comes without a
+    body, a GET and a POST, each to a program of its own: what it is
+    answered, and whether the program serves on. A web server passes such a
+    length on from its client when it does not limit the body: nginx with
+    client_max_body_size 0 and fastcgi_request_buffering off."""
+    for method in (b"GET", b"POST"):
+        program = Program(exe, out, "length-" + method.decode().lower())
+        peer = Peer(program)
+        peer.send(request(b"l1", method=method, headers=[
+            (b"CONTENT_LENGTH", b"%d" % LONGEST), (b"CONTENT_TYPE", b"application/x-www-form-urlencoded")]))
+        answer = peer.answer()
+        peer.close()
+        if answer is None:
+            ended = program.exit_status() is not None
+            result = "not answered, and the program " + ("ended" if ended else "was still running")
+        else:
+            result = "answered " + (token(answer) if token(answer) == "l1"
+                                    else '%s with "%s"' % (status(answer), body(answer).strip()))
+            after = Peer(program)
+            after.send(request(b"l2"))
+            result += "; a request after it: %s" % token(after.answer())
+            after.close()
+        program.stop()
+        say("a %s whose CONTENT_LENGTH is %d, without a body: %s" % (method.decode(), LONGEST, result))
+
+
 def attempt(scenario, *arguments):
     """Run a scenario; a connection the program breaks off or refuses ends it
     with a line saying so, not with a traceback."""
@@ -594,6 +632,7 @@ def main():
 
     attempt(polls, exe, out)
     attempt(abandoned, exe, out)
+    attempt(lengths, exe, out)
 
 
 if __name__ == "__main__":
