@@ -78,10 +78,7 @@
  if (uw_serve_file(ctx, request, "Thu, 01 Jan 1970 00:00:00 GMT")) return;
  
  
- uw_clear_headers(ctx);
- uw_write_header(ctx, uw_supports_direct_status ? "HTTP/1.1 404 Not Found\r\n" : "Status: 404 Not Found\r\n");
- uw_write_header(ctx, "Content-type: text/plain\r\n");
- uw_write(ctx, "Not Found");
+ uw_not_found(ctx);
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {

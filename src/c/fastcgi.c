@@ -750,7 +750,7 @@ static void *worker(void *data) {
     if ((s = get_header(&hs, "Content-Length"))) {
       body_len = atoi(s);
       if (body_len < 0) {
-        uw_log(UW_LOG_INFO, "Invalid Content-Length\n");
+        uw_log(UW_LOG_NOTICE, "Invalid Content-Length\n");
         goto done;
       }
     } else

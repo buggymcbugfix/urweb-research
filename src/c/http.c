@@ -162,7 +162,7 @@ static void *worker(void *data) {
           int clen;
 
           if (sscanf(s + 18, "%d\r\n", &clen) != 1) {
-            uw_log(UW_LOG_INFO, "Malformed Content-Length header\n");
+            uw_log(UW_LOG_NOTICE, "Malformed Content-Length header\n");
             close(sock);
             sock = 0;
             break;
@@ -222,7 +222,7 @@ static void *worker(void *data) {
         body[-3] = '\n';
 
         if (!(s = strstr(buf, "\r\n"))) {
-          uw_log(UW_LOG_INFO, "No newline in request\n");
+          uw_log(UW_LOG_NOTICE, "No newline in request\n");
           close(sock);
           sock = 0;
           goto done;
@@ -236,7 +236,7 @@ static void *worker(void *data) {
 
         strsep(&s, " ");
         if (!s) {
-          uw_log(UW_LOG_INFO, "No first space in HTTP command\n");
+          uw_log(UW_LOG_NOTICE, "No first space in HTTP command\n");
           close(sock);
           sock = 0;
           goto done;

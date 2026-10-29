@@ -13,6 +13,9 @@ fastcgi -l err: ran
 fastcgi -l warning: ran
   stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
   stderr 1 Request is for a role besides RESPONDER
+fastcgi -l notice: ran
+  stderr 1 GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose
+  stderr 1 Request is for a role besides RESPONDER
 fastcgi -l info: ran
   stdout 1 Failed URI /fail ...
   stdout 1 Served URI /main ...
@@ -32,7 +35,7 @@ fastcgi -l bogus: ended with status 1
   stdout 1 The '-l' option sets the least severe level of log line printed: err, warning,
   stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
   stdout 1 Usage: PROGRAM [-t <thread-count>] [-l <level>] [-q]
-  stdout 1 info (the default, with a line for each request) or debug.
+  stdout 1 notice, info (the default, with a line for each request) or debug.
   stderr 1 Unknown log level 'bogus'
 fastcgi -q -l debug: ran
   stdout 3 Database connection initialized.
@@ -101,6 +104,7 @@ fastcgi, stderr to the journal, the page slow, its web server leaving meanwhile,
   stderr 1 <6>slow: done
   stderr 1 <6>slow: running
 fastcgi, a page that is none, without flags: ran, answered 404 Not Found
+  stdout 1 GET /nosuch: not found
   stdout 1 Served URI /nosuch ...
 fastcgi, a constructor that is none, without flags: ran, answered 500 Internal Server Error
   stdout 1 Failed URI /catalog/Xx/1 ...
@@ -124,6 +128,7 @@ fastcgi, a POST short of its CONTENT_LENGTH, without flags: ran, answered 200 OK
 fastcgi, a poll for a client that is none, without flags: ran, answered 200 OK
   stdout 1 GET /.msgs: Out-of-bounds client request (5)
 fastcgi, stderr to the journal, a page that is none, without flags: ran, answered 404 Not Found
+  stderr 1 <5>GET /nosuch: not found
   stderr 1 <6>Served URI /nosuch ...
 fastcgi, stderr to the journal, a constructor that is none, without flags: ran, answered 500 Internal Server Error
   stderr 1 <3>GET /catalog/Xx/1: Fatal error: Error unurlifying datatype language
@@ -138,14 +143,14 @@ fastcgi, stderr to the journal, the postBody page by GET, without flags: ran, an
   stderr 1 <3>GET /hook: Fatal error: Asked for POST body when none exists
   stderr 1 <6>Failed URI /hook ...
 fastcgi, stderr to the journal, a PUT, without flags: ran, answered 200 OK
+  stderr 1 <5>PUT /main: Not ready for non-GET/POST command: PUT
   stderr 1 <6>Failed URI /main ...
-  stderr 1 <6>PUT /main: Not ready for non-GET/POST command: PUT
 fastcgi, stderr to the journal, a POST short of its CONTENT_LENGTH, without flags: ran, answered 200 OK
+  stderr 1 <5>POST /handler: Request doesn't contain all POST data (according to Content-Length)
   stderr 1 <6>Failed URI /handler ...
   stderr 1 <6>FastCGI stdin ended 12 bytes short of CONTENT_LENGTH
-  stderr 1 <6>POST /handler: Request doesn't contain all POST data (according to Content-Length)
 fastcgi, stderr to the journal, a poll for a client that is none, without flags: ran, answered 200 OK
-  stderr 1 <6>GET /.msgs: Out-of-bounds client request (5)
+  stderr 1 <5>GET /.msgs: Out-of-bounds client request (5)
 http without flags: ran
   stdout 1
   stdout 1 Failed URI /fail ...
@@ -189,7 +194,7 @@ http -l bogus: ended with status 1
   stdout 1 The '-m' sets the maximum size (in bytes) for any buffer used to hold HTTP data sent by clients.  (The default is 1 MB.)
   stdout 1 The '-q' option is short for -l warning. Of -l and -q, the later counts.
   stdout 1 Usage: PROGRAM [-p <port>] [-P <upper-bound port>] [-a <IPv4 address>] [-A <IPv6 address>] [-u <UNIX socket>] [-t <thread count>] [-m <bytes>] [-k] [-l <level>] [-q] [-T SEC] [-d[fd]]
-  stdout 1 info (the default, with a line for each request) or debug.
+  stdout 1 notice, info (the default, with a line for each request) or debug.
   stderr 1 Unknown log level 'bogus'
 http, stderr to the journal, without flags: ran
   stderr 1 <3>GET /fail: Fatal error: tests/log_levels/app/levels.ur:13:4-15:2: failed on purpose

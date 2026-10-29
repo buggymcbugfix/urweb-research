@@ -80,6 +80,8 @@ typedef void (*uw_logger)(void*, const char *fmt, ...);
 typedef enum {
   UW_LOG_ERR = 3,     // something failed that needs a person to look at it
   UW_LOG_WARNING = 4, // something unusual that the program handled
+  UW_LOG_NOTICE = 5,  // a request that could not be served as it was sent:
+                      // a page that is none, an input that is none
   UW_LOG_INFO = 6,    // what happens routinely: the line for each request
   UW_LOG_DEBUG = 7    // what the runtime does, step by step
 } uw_log_level;

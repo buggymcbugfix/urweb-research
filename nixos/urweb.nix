@@ -87,9 +87,9 @@ in
             description = "Worker threads: how many requests are served at once.";
           };
           logLevel = mkOption {
-            type = types.enum [ "err" "warning" "info" "debug" ];
+            type = types.enum [ "err" "warning" "notice" "info" "debug" ];
             default = "warning";
-            description = "-l: the least severe level of the lines that reach the journal: err, warning, info (with a line for each request) or debug. The journal records each line at its level's priority.";
+            description = "-l: the least severe level of the lines that reach the journal: err, warning, notice (a request that could not be served as it was sent), info (with a line for each request) or debug. The journal records each line at its level's priority.";
           };
           environment = mkOption {
             type = types.attrsOf types.str;

@@ -305,7 +305,7 @@ void uw_client_connect(uw_context ctx, unsigned id, int pass, int sock,
   client *c = find_client(id);
 
   if (c == NULL) {
-    uw_log_at(ctx, UW_LOG_INFO, "Out-of-bounds client request (%u)\n", id);
+    uw_log_at(ctx, UW_LOG_NOTICE, "Out-of-bounds client request (%u)\n", id);
     chastise(send, close, sock);
     return;
   }
@@ -314,14 +314,14 @@ void uw_client_connect(uw_context ctx, unsigned id, int pass, int sock,
 
   if (c->mode != USED) {
     pthread_mutex_unlock(&c->lock);
-    uw_log_at(ctx, UW_LOG_INFO, "Client request for unused slot (%u)\n", id);
+    uw_log_at(ctx, UW_LOG_NOTICE, "Client request for unused slot (%u)\n", id);
     chastise(send, close, sock);
     return;
   }
 
   if (pass != c->pass) {
     pthread_mutex_unlock(&c->lock);
-    uw_log_at(ctx, UW_LOG_INFO, "Wrong client password (%u, %d)\n", id, pass);
+    uw_log_at(ctx, UW_LOG_NOTICE, "Wrong client password (%u, %d)\n", id, pass);
     chastise(send, close, sock);
     return;
   }
@@ -737,7 +737,8 @@ int uw_log_level_named(const char *name, uw_log_level *level) {
     const char *name;
     uw_log_level level;
   } levels[] = {
-    {"err", UW_LOG_ERR}, {"warning", UW_LOG_WARNING}, {"info", UW_LOG_INFO}, {"debug", UW_LOG_DEBUG}
+    {"err", UW_LOG_ERR}, {"warning", UW_LOG_WARNING}, {"notice", UW_LOG_NOTICE}, {"info", UW_LOG_INFO},
+    {"debug", UW_LOG_DEBUG}
   };
   size_t i;
 
@@ -2452,6 +2453,20 @@ void uw_write(uw_context ctx, const char* s) {
   uw_check(ctx, strlen(s) + 1);
   uw_write_unsafe(ctx, s);
   *ctx->page.front = 0;
+}
+
+// The answer to a request for a page that is none, which the generated
+// uw_handle sends when no page matches: logged at notice, since it is
+// what scanners and stale links send all day. The status is spelled as
+// the protocol has it (uw_supports_direct_status, the protocol's).
+extern int uw_supports_direct_status;
+
+void uw_not_found(uw_context ctx) {
+  uw_clear_headers(ctx);
+  uw_write_header(ctx, uw_supports_direct_status ? "HTTP/1.1 404 Not Found\r\n" : "Status: 404 Not Found\r\n");
+  uw_write_header(ctx, "Content-type: text/plain\r\n");
+  uw_write(ctx, "Not Found");
+  uw_log_at(ctx, UW_LOG_NOTICE, "not found\n");
 }
 
 void uw_recordingStart(uw_context ctx) {

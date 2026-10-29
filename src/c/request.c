@@ -402,12 +402,12 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     }
     int clen = atoi(clen_s);
     if (clen < 0) {
-      uw_log_at(ctx, UW_LOG_INFO, "Negative Content-length with POST\n");
+      uw_log_at(ctx, UW_LOG_NOTICE, "Negative Content-length with POST\n");
       return FAILED;
     }
 
     if (body_len < clen) {
-      uw_log_at(ctx, UW_LOG_INFO, "Request doesn't contain all POST data (according to Content-Length)\n");
+      uw_log_at(ctx, UW_LOG_NOTICE, "Request doesn't contain all POST data (according to Content-Length)\n");
       return FAILED;
     }
 
@@ -421,7 +421,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
     if (clen_s && !strncasecmp(clen_s, "multipart/form-data", 19)) {
       if (strncasecmp(clen_s + 19, "; boundary=", 11)) {
-        uw_log_at(ctx, UW_LOG_INFO, "Bad multipart boundary spec");
+        uw_log_at(ctx, UW_LOG_NOTICE, "Bad multipart boundary spec");
         return FAILED;
       }
 
@@ -434,7 +434,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       uw_postBody(ctx, pb);
     }
   } else if (strcmp(method, "GET")) {
-    uw_log_at(ctx, UW_LOG_INFO, "Not ready for non-GET/POST command: %s\n", method);
+    uw_log_at(ctx, UW_LOG_NOTICE, "Not ready for non-GET/POST command: %s\n", method);
     return FAILED;
   }
 
@@ -455,7 +455,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       return KEEP_OPEN;
     }
     else {
-      uw_log_at(ctx, UW_LOG_INFO, "Missing fields in .msgs request: %s, %s\n\n", id, pass);
+      uw_log_at(ctx, UW_LOG_NOTICE, "Missing fields in .msgs request: %s, %s\n\n", id, pass);
       return FAILED;
     }
   }
@@ -466,7 +466,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
     part = strstr(part, boundary);
     if (!part) {
-      uw_log_at(ctx, UW_LOG_INFO, "Missing first multipart boundary\n");
+      uw_log_at(ctx, UW_LOG_NOTICE, "Missing first multipart boundary\n");
       return FAILED;
     }
     part += boundary_len;
@@ -478,18 +478,18 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         break;
 
       if (*part != '\r') {
-        uw_log_at(ctx, UW_LOG_INFO, "No \\r after multipart boundary\n");
+        uw_log_at(ctx, UW_LOG_NOTICE, "No \\r after multipart boundary\n");
         return FAILED;
       }
       ++part;
       if (*part != '\n') {
-        uw_log_at(ctx, UW_LOG_INFO, "No \\n after multipart boundary\n");
+        uw_log_at(ctx, UW_LOG_NOTICE, "No \\n after multipart boundary\n");
         return FAILED;
       }
       ++part;
             
       if (!(after_sub_headers = strstr(part, "\r\n\r\n"))) {
-        uw_log_at(ctx, UW_LOG_INFO, "Missing end of headers after multipart boundary\n");
+        uw_log_at(ctx, UW_LOG_NOTICE, "Missing end of headers after multipart boundary\n");
         return FAILED;
       }
       after_sub_headers[2] = 0;
@@ -500,18 +500,18 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
         *after_header = 0;
         if (!(colon = strchr(header, ':'))) {
-          uw_log_at(ctx, UW_LOG_INFO, "Missing colon in multipart sub-header\n");
+          uw_log_at(ctx, UW_LOG_NOTICE, "Missing colon in multipart sub-header\n");
           return FAILED;
         }
         *colon++ = 0;
         if (*colon++ != ' ') {
-          uw_log_at(ctx, UW_LOG_INFO, "No space after colon in multipart sub-header\n");
+          uw_log_at(ctx, UW_LOG_NOTICE, "No space after colon in multipart sub-header\n");
           return FAILED;
         }
         
         if (!strcasecmp(header, "Content-Disposition")) {
           if (strncmp(colon, "form-data; ", 11)) {
-            uw_log_at(ctx, UW_LOG_INFO, "Multipart data is not \"form-data\"\n");
+            uw_log_at(ctx, UW_LOG_NOTICE, "Multipart data is not \"form-data\"\n");
             return FAILED;
           }
 
@@ -519,12 +519,12 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
             char *data;
             after_colon[0] = 0;
             if (after_colon[1] != '"') {
-              uw_log_at(ctx, UW_LOG_INFO, "Disposition setting is missing initial quote\n");
+              uw_log_at(ctx, UW_LOG_NOTICE, "Disposition setting is missing initial quote\n");
               return FAILED;
             }
             data = after_colon+2;
             if (!(after_colon = strchr(data, '"'))) {
-              uw_log_at(ctx, UW_LOG_INFO, "Disposition setting is missing final quote\n");
+              uw_log_at(ctx, UW_LOG_NOTICE, "Disposition setting is missing final quote\n");
               return FAILED;
             }
             after_colon[0] = 0;
@@ -544,7 +544,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
 
       part = memmem(after_sub_headers, body + body_len - after_sub_headers, boundary, boundary_len);
       if (!part) {
-        uw_log_at(ctx, UW_LOG_INFO, "Missing boundary after multipart payload\n");
+        uw_log_at(ctx, UW_LOG_NOTICE, "Missing boundary after multipart payload\n");
         return FAILED;
       }
       part[-2] = 0;
@@ -556,11 +556,11 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         uw_Basis_file f = {filename, type, {part_len, after_sub_headers}};
 
         if (uw_set_file_input(ctx, name, f)) {
-          uw_log_at(ctx, UW_LOG_INFO, "%s\n", uw_error_message(ctx));
+          uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
           return FAILED;
         }
       } else if (uw_set_input(ctx, name, after_sub_headers)) {
-        uw_log_at(ctx, UW_LOG_INFO, "%s\n", uw_error_message(ctx));
+        uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
         return FAILED;
       }
     }
@@ -593,12 +593,12 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         if ((value = strchr(name, '='))) {
           *value++ = 0;
           if (uw_set_input(ctx, name, value)) {
-            uw_log_at(ctx, UW_LOG_INFO, "%s\n", uw_error_message(ctx));
+            uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
             return FAILED;
           }
         }
         else if (uw_set_input(ctx, name, "")) {
-          uw_log_at(ctx, UW_LOG_INFO, "%s\n", uw_error_message(ctx));
+          uw_log_at(ctx, UW_LOG_NOTICE, "%s\n", uw_error_message(ctx));
           return FAILED;
         }
       }

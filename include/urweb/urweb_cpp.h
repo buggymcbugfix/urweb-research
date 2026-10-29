@@ -41,12 +41,15 @@ int uw_log_level_named(const char *, uw_log_level *);
 #define UW_LOG_USAGE "[-l <level>] [-q]"
 #define UW_LOG_HELP \
   "The '-l' option sets the least severe level of log line printed: err, warning,\n" \
-  "info (the default, with a line for each request) or debug.\n" \
+  "notice, info (the default, with a line for each request) or debug.\n" \
   "The '-q' option is short for -l warning. Of -l and -q, the later counts.\n"
 // Takes one of those options as getopt returned it, with its argument:
 // 0 once the level is set, -1 for a name that is no level, after a line
 // saying so; the server then prints its usage and ends.
 int uw_log_option(int, const char *);
+// The answer to a request for a page that is none, 404 with the text "Not
+// Found", logged at notice.
+void uw_not_found(struct uw_context *);
 void uw_prune_clients(struct uw_context *);
 failure_kind uw_initialize(struct uw_context *);
 

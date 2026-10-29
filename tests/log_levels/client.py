@@ -298,7 +298,7 @@ run.count = 0
 
 def main():
     fastcgi, http, cgi, static, out = sys.argv[1:6]
-    for flags in ([], ["-q"], ["-l", "err"], ["-l", "warning"], ["-l", "info"], ["-l", "debug"],
+    for flags in ([], ["-q"], ["-l", "err"], ["-l", "warning"], ["-l", "notice"], ["-l", "info"], ["-l", "debug"],
                   ["-l", "bogus"], ["-q", "-l", "debug"], ["-l", "debug", "-q"]):
         run("fastcgi", run_fastcgi, fastcgi, out, flags)
     for flags in ([], ["-l", "debug"]):
