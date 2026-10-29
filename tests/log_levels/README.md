@@ -35,6 +35,8 @@ program wrote on stdout and on stderr.
   of its own, with what the program answers: HEAD, OPTIONS, DELETE,
   TRACE, PATCH, CONNECT, GET in lower case, no method at all, and one
   with a newline in it.
+- FastCGI, sent a GET with a negative CONTENT_LENGTH, with what the
+  program answers.
 - FastCGI with a `JOURNAL_STREAM` that does not name its standard error:
   another inode, another device, text after the inode, no numbers. The
   program is not taken to be under the journal then.

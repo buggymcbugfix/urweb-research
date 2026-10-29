@@ -476,6 +476,9 @@ def main():
     run("fastcgi", run_fastcgi, fastcgi, out, [], label="requests refused for their shape", requests=refused(*REFUSED))
     run("fastcgi", run_fastcgi, fastcgi, out, [], label="methods other than GET and POST",
         requests=refused(*[(label, fastcgi_request(b"/main", method=method)) for label, method in METHODS]))
+    # A negative CONTENT_LENGTH on a GET, which takes no body.
+    run("fastcgi", run_fastcgi, fastcgi, out, [], label="a GET with a negative CONTENT_LENGTH",
+        requests=answered(fastcgi_request(b"/main", length=-1)))
     # A JOURNAL_STREAM that does not name standard error is not the journal.
     for label, stream in (
             ("JOURNAL_STREAM with another inode than standard error's", lambda o, e: stream_of(e, inode_step=1)),
