@@ -33,12 +33,13 @@
 # page runs, each request on a connection of its own to one program, and
 # say for each what it answered, the first line of its body where that is
 # plain text: a multipart form that is malformed in each of the ways the
-# program tells apart, a poll missing its client or its password, and a
-# CONTENT_LENGTH that is negative; to the HTTP server, the same in its own
-# way, with a HEAD and a Content-Length that is no number; and a page that
-# is none, a bad escape, a PUT and a negative CONTENT_LENGTH to a CGI and a
-# static program. FastCGI is started with a JOURNAL_STREAM that does not
-# name its standard error, with -l twice, and with -q or -l err for the
+# program tells apart, a poll missing its client or its password, a
+# CONTENT_LENGTH that is negative, and each method other than GET and
+# POST; to the HTTP server, the same in its own way, with a HEAD and a
+# Content-Length that is no number; and a page that is none, a bad
+# escape, a PUT and a negative CONTENT_LENGTH to a CGI and a static
+# program. FastCGI is started with a JOURNAL_STREAM that does not name
+# its standard error, with -l twice, and with -q or -l err for the
 # request whose web server has gone.
 
 import collections
@@ -166,12 +167,15 @@ def status(answer, http=False):
 
 
 def described(answer, http=False):
-    """The status of an answer (see status) and, when its body is plain
-    text, the first line of it: the reason a request was refused."""
+    """The status of an answer (see status), the methods it allows when it
+    says (its Allow header), and, when its body is plain text, the first
+    line of it: the reason a request was refused."""
     head, _, body = (answer if http else unframed(answer)).partition(b"\r\n\r\n")
+    lines = head.split(b"\r\n")
+    allowed = "".join(" (allowed: %s)" % l[7:].decode(errors="replace") for l in lines if l.startswith(b"Allow: "))
     first = body.split(b"\n", 1)[0].decode(errors="replace")
-    plain = b"Content-type: text/plain" in head.split(b"\r\n")
-    return status(answer, http) + (": " + first if plain and first else "")
+    plain = b"Content-type: text/plain" in lines
+    return status(answer, http) + allowed + (": " + first if plain and first else "")
 
 
 def stream_of(f, device_step=0, inode_step=0):
@@ -336,7 +340,7 @@ def report(name, flags, status, answers, files, exe, directory):
     print(line + (", answered " + answers[0] if len(answers) == 1 else ", answered:" if answers else ""))
     if len(answers) > 1:
         for answer in answers:
-            print("  > " + answer)
+            print(("  > " + answer).rstrip())
     for stream, path in files:
         with open(path, "rb") as f:
             lines = [normalized(l.decode(errors="replace"), exe, directory) for l in f.read().splitlines()]
@@ -399,6 +403,14 @@ REFUSED = (
     ("a negative CONTENT_LENGTH", fastcgi_request(b"/handler", method=b"POST", length=-1)),
 )
 
+# The methods a request may come with other than GET and POST: the others of
+# HTTP, GET in lower case, none, and one with a newline in it.
+METHODS = (
+    ("a HEAD", b"HEAD"), ("an OPTIONS", b"OPTIONS"), ("a DELETE", b"DELETE"), ("a TRACE", b"TRACE"),
+    ("a PATCH", b"PATCH"), ("a CONNECT", b"CONNECT"), ("GET in lower case", b"get"), ("no method", b""),
+    ("a method with a newline in it", b"G\nET"),
+)
+
 # The same for the HTTP server, to which a request is a message: the
 # multipart forms are one that has no boundary, a HEAD is added, and so are
 # a Content-Length that is no number and a request line that has no space.
@@ -447,6 +459,8 @@ def main():
     # What a request is refused for before any page runs, and what it is
     # answered with, to one program.
     run("fastcgi", run_fastcgi, fastcgi, out, [], label="requests refused for their shape", requests=refused(*REFUSED))
+    run("fastcgi", run_fastcgi, fastcgi, out, [], label="methods other than GET and POST",
+        requests=refused(*[(label, fastcgi_request(b"/main", method=method)) for label, method in METHODS]))
     # A JOURNAL_STREAM that does not name standard error is not the journal.
     for label, stream in (
             ("JOURNAL_STREAM with another inode than standard error's", lambda o, e: stream_of(e, inode_step=1)),

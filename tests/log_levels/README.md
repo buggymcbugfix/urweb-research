@@ -31,6 +31,10 @@ program wrote on stdout and on stderr.
   ways the program tells apart (and one that is not, for contrast), a poll
   without its client or its password, and a negative CONTENT_LENGTH, which
   the program does not answer at all.
+- FastCGI, sent each method other than GET and POST, each on a connection
+  of its own, with what the program answers: HEAD, OPTIONS, DELETE,
+  TRACE, PATCH, CONNECT, GET in lower case, no method at all, and one
+  with a newline in it.
 - FastCGI with a `JOURNAL_STREAM` that does not name its standard error:
   another inode, another device, text after the inode, no numbers. The
   program is not taken to be under the journal then.

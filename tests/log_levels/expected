@@ -186,6 +186,28 @@ fastcgi, requests refused for their shape, without flags: ran, answered:
   stdout 1 POST /handler: No \r after multipart boundary
   stdout 1 POST /handler: No space after colon in multipart sub-header
   stdout 1 Served URI /handler ...
+fastcgi, methods other than GET and POST, without flags: ran, answered:
+  > a HEAD: 400 Bad Request: Bad request: Not ready for non-GET/POST command: HEAD
+  > an OPTIONS: 400 Bad Request: Bad request: Not ready for non-GET/POST command: OPTIONS
+  > a DELETE: 400 Bad Request: Bad request: Not ready for non-GET/POST command: DELETE
+  > a TRACE: 400 Bad Request: Bad request: Not ready for non-GET/POST command: TRACE
+  > a PATCH: 400 Bad Request: Bad request: Not ready for non-GET/POST command: PATCH
+  > a CONNECT: 400 Bad Request: Bad request: Not ready for non-GET/POST command: CONNECT
+  > GET in lower case: 400 Bad Request: Bad request: Not ready for non-GET/POST command: get
+  > no method: 400 Bad Request: Bad request: Not ready for non-GET/POST command:
+  > a method with a newline in it: 400 Bad Request: Bad request: Not ready for non-GET/POST command: G
+  stdout 1  /main: Not ready for non-GET/POST command:
+  stdout 1 CONNECT /main: Not ready for non-GET/POST command: CONNECT
+  stdout 1 DELETE /main: Not ready for non-GET/POST command: DELETE
+  stdout 1 ET
+  stdout 1 ET /main: Not ready for non-GET/POST command: G
+  stdout 9 Failed URI /main ...
+  stdout 1 G
+  stdout 1 HEAD /main: Not ready for non-GET/POST command: HEAD
+  stdout 1 OPTIONS /main: Not ready for non-GET/POST command: OPTIONS
+  stdout 1 PATCH /main: Not ready for non-GET/POST command: PATCH
+  stdout 1 TRACE /main: Not ready for non-GET/POST command: TRACE
+  stdout 1 get /main: Not ready for non-GET/POST command: get
 fastcgi, JOURNAL_STREAM with another inode than standard error's, without flags: ran
   stdout 1 Failed URI /fail ...
   stdout 1 Served URI /main ...
