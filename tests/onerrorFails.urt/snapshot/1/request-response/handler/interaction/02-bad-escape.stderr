@@ -1,0 +1,2 @@
+GET /OnerrorFails/echo/%zz: Fatal error: Invalid escaped URL byte starting at: %zz
+GET /OnerrorFails/echo/%zz: Fatal error: tests/onerrorF.ur:1:12-1:54: the error page failed too

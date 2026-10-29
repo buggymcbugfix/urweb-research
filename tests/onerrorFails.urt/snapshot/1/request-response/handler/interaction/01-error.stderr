@@ -1,0 +1,2 @@
+GET /OnerrorFails/main/0: Fatal error: tests/onerrorFails.ur:3:11-4:3: Zero is bad!
+GET /OnerrorFails/main/0: Fatal error: tests/onerrorF.ur:1:12-1:54: the error page failed too

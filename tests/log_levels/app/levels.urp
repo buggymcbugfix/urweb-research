@@ -4,4 +4,5 @@ include levelsffi.h
 link levelsffi.c
 benignEffectful Levelsffi.wait
 
+lang
 levels

@@ -1,0 +1,9 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 117
+
+<!DOCTYPE html><html><head></head><body>
+<h1>Bad thing!</h1>
+Invalid escaped URL byte starting at: %zz
+</body></html>

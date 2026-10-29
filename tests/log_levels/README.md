@@ -19,6 +19,12 @@ program wrote on stdout and on stderr.
   requests at once for the long line, to four threads, so that the
   threads' lines are tried against each other; and a page that sleeps,
   whose web server leaves before it is done.
+- FastCGI, plain and with the journal, sent what cannot be served as
+  asked, with what the program answers: a page that is none, a
+  constructor that is none in a URL argument, a bad escape in a string
+  argument, a form handler without its field, a page that reads the POST
+  body by GET, a PUT, a POST short of its CONTENT_LENGTH, and a poll for
+  a client that is none.
 - HTTP without flags, with `-q`, with `-l debug` and with a name that is
   not a level, and with its standard error connected to the journal.
 - CGI and static, one page per run, with no option, as a web server

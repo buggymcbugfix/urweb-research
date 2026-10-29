@@ -100,6 +100,52 @@ fastcgi, stderr to the journal, the page slow, its web server leaving meanwhile,
   stderr 1 <6>fastcgi_flush() failed in fastcgi_end_request().
   stderr 1 <6>slow: done
   stderr 1 <6>slow: running
+fastcgi, a page that is none, without flags: ran, answered 404 Not Found
+  stdout 1 Served URI /nosuch ...
+fastcgi, a constructor that is none, without flags: ran, answered 500 Internal Server Error
+  stdout 1 Failed URI /catalog/Xx/1 ...
+  stderr 1 GET /catalog/Xx/1: Fatal error: Error unurlifying datatype language
+fastcgi, a bad escape in a string argument, without flags: ran, answered 500 Internal Server Error
+  stdout 1 Failed URI /greet/%zz ...
+  stderr 1 GET /greet/%zz: Fatal error: Invalid escaped URL byte starting at: %zz
+fastcgi, the form handler without its field, without flags: ran, answered 500 Internal Server Error
+  stdout 1 Failed URI /handler ...
+  stderr 1 GET /handler: Fatal error: Missing input Amount
+fastcgi, the postBody page by GET, without flags: ran, answered 500 Internal Server Error
+  stdout 1 Failed URI /hook ...
+  stderr 1 GET /hook: Fatal error: Asked for POST body when none exists
+fastcgi, a PUT, without flags: ran, answered 200 OK
+  stdout 1 Failed URI /main ...
+  stdout 1 PUT /main: Not ready for non-GET/POST command: PUT
+fastcgi, a POST short of its CONTENT_LENGTH, without flags: ran, answered 200 OK
+  stdout 1 Failed URI /handler ...
+  stdout 1 FastCGI stdin ended 12 bytes short of CONTENT_LENGTH
+  stdout 1 POST /handler: Request doesn't contain all POST data (according to Content-Length)
+fastcgi, a poll for a client that is none, without flags: ran, answered 200 OK
+  stdout 1 GET /.msgs: Out-of-bounds client request (5)
+fastcgi, stderr to the journal, a page that is none, without flags: ran, answered 404 Not Found
+  stderr 1 <6>Served URI /nosuch ...
+fastcgi, stderr to the journal, a constructor that is none, without flags: ran, answered 500 Internal Server Error
+  stderr 1 <3>GET /catalog/Xx/1: Fatal error: Error unurlifying datatype language
+  stderr 1 <6>Failed URI /catalog/Xx/1 ...
+fastcgi, stderr to the journal, a bad escape in a string argument, without flags: ran, answered 500 Internal Server Error
+  stderr 1 <3>GET /greet/%zz: Fatal error: Invalid escaped URL byte starting at: %zz
+  stderr 1 <6>Failed URI /greet/%zz ...
+fastcgi, stderr to the journal, the form handler without its field, without flags: ran, answered 500 Internal Server Error
+  stderr 1 <3>GET /handler: Fatal error: Missing input Amount
+  stderr 1 <6>Failed URI /handler ...
+fastcgi, stderr to the journal, the postBody page by GET, without flags: ran, answered 500 Internal Server Error
+  stderr 1 <3>GET /hook: Fatal error: Asked for POST body when none exists
+  stderr 1 <6>Failed URI /hook ...
+fastcgi, stderr to the journal, a PUT, without flags: ran, answered 200 OK
+  stderr 1 <6>Failed URI /main ...
+  stderr 1 <6>PUT /main: Not ready for non-GET/POST command: PUT
+fastcgi, stderr to the journal, a POST short of its CONTENT_LENGTH, without flags: ran, answered 200 OK
+  stderr 1 <6>Failed URI /handler ...
+  stderr 1 <6>FastCGI stdin ended 12 bytes short of CONTENT_LENGTH
+  stderr 1 <6>POST /handler: Request doesn't contain all POST data (according to Content-Length)
+fastcgi, stderr to the journal, a poll for a client that is none, without flags: ran, answered 200 OK
+  stderr 1 <6>GET /.msgs: Out-of-bounds client request (5)
 http without flags: ran
   stdout 1
   stdout 1 Failed URI /fail ...

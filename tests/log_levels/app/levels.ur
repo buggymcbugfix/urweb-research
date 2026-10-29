@@ -26,3 +26,17 @@ fun lines () =
     debug "first line\nsecond line";
     debug "ends without a newline";
     return <xml><body>lines</body></xml>
+
+(* Pages for what a request may be sent that cannot be served as asked: a
+   page taking a datatype and an int from its URL, a page taking a
+   string, a form and its handler, and a page that reads the POST body. *)
+
+fun catalog (l : Lang.language) (n : int) = return <xml><body>catalog {[n]}</body></xml>
+
+fun greet (s : string) = return <xml><body>greet {[s]}</body></xml>
+
+fun handler r = return <xml><body>amount {[r.Amount]}</body></xml>
+
+fun form () = return <xml><body><form><textbox{#Amount}/><submit action={handler}/></form></body></xml>
+
+fun hook (b : postBody) = return <xml><body>hook {[postType b]}</body></xml>

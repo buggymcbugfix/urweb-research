@@ -23,7 +23,11 @@
 # order, since the threads' lines at start-up come in no fixed order. The
 # time and heap figures of the line for each request are taken out, and so
 # are the paths of the program and of its socket, and spaces at the end; a
-# line of x's is shown with its count of them.
+# line of x's is shown with its count of them. Runs that send what cannot
+# be served as asked (a page that is none, a constructor that is none, a
+# bad escape, a form handler without its field, a postBody page by GET, a
+# PUT, a POST short of its CONTENT_LENGTH, a poll for a client that is
+# none) also say what the program answered.
 
 import collections
 import os
@@ -39,7 +43,7 @@ import time
 # A FastCGI record: version, type, request id, content length, padding
 # length, one byte left over.
 HEADER = struct.Struct(">BBHHBB")
-BEGIN_REQUEST, END_REQUEST, PARAMS, STDIN = 1, 3, 4, 5
+BEGIN_REQUEST, END_REQUEST, PARAMS, STDIN, STDOUT = 1, 3, 4, 5, 6
 RESPONDER, AUTHORIZER = 1, 2
 
 # Seconds to wait for an answer, or for the socket of the HTTP server, or
@@ -78,25 +82,60 @@ def cgi_variables(path):
             (b"QUERY_STRING", b""), (b"SERVER_PROTOCOL", b"HTTP/1.1"), (b"HTTP_HOST", b"localhost")]
 
 
-def fastcgi_request(path, role=RESPONDER):
-    params = b"".join(pair(n, v) for n, v in cgi_variables(path))
+def fastcgi_request(path, role=RESPONDER, method=b"GET", body=b"", length=None, headers=()):
+    """A request of path, by method, with body as its POST body (declared
+    as length bytes long when that is given) and headers as further CGI
+    variables, pairs such as (b"HTTP_URWEB_CLIENT", b"5")."""
+    variables = [(n, method if n == b"REQUEST_METHOD" else v) for n, v in cgi_variables(path)]
+    if body or length is not None:
+        variables += [(b"CONTENT_TYPE", b"application/x-www-form-urlencoded"),
+                      (b"CONTENT_LENGTH", str(len(body) if length is None else length).encode())]
+    params = b"".join(pair(n, v) for n, v in variables + list(headers))
     return (record(BEGIN_REQUEST, struct.pack(">HB5x", role, 0)) + record(PARAMS, params)
-            + record(PARAMS, b"") + record(STDIN, b""))
+            + record(PARAMS, b"") + (record(STDIN, body) if body else b"") + record(STDIN, b""))
 
 
 def exchange(address, data, leave_after=None):
-    """Send data on a new connection and read until the program closes it;
-    with leave_after, close the connection after that many seconds instead,
-    whatever has come."""
+    """Send data on a new connection and read until the program closes it,
+    returning what it answered; with leave_after, close the connection
+    after that many seconds instead, whatever has come."""
+    answer = b""
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
         s.settimeout(WAIT if leave_after is None else leave_after)
         s.connect(address)
         s.sendall(data)
         try:
-            while s.recv(65536):
-                pass
+            while True:
+                chunk = s.recv(65536)
+                if not chunk:
+                    break
+                answer += chunk
         except (socket.timeout, ConnectionResetError):
             pass
+    return answer
+
+
+def unframed(answer):
+    """What a FastCGI program wrote on its stdout stream, out of the records
+    it answered with."""
+    out = b""
+    while len(answer) >= HEADER.size:
+        _, kind, _, length, padding, _ = HEADER.unpack(answer[:HEADER.size])
+        if kind == STDOUT:
+            out += answer[HEADER.size:HEADER.size + length]
+        answer = answer[HEADER.size + length + padding:]
+    return out
+
+
+def status(answer):
+    """The status of a FastCGI program's answer: its Status header, "200 OK"
+    when it sends none; "nothing" for no answer at all."""
+    for line in unframed(answer).split(b"\r\n\r\n", 1)[0].split(b"\r\n"):
+        if line.startswith(b"HTTP/"):
+            return line.split(b" ", 1)[1].decode(errors="replace")
+        if line.startswith(b"Status: "):
+            return line[8:].decode(errors="replace")
+    return "200 OK" if answer else "nothing"
 
 
 def environment(journal_of=None, variables=()):
@@ -133,15 +172,23 @@ def logged(stdout, stderr, text):
 
 def pages(path, stdout, stderr):
     """The requests of most runs: main, fail, and a request in a role the
-    program refuses."""
+    program refuses. A requests function returns the statuses it wants in
+    the transcript, if any."""
     exchange(path, fastcgi_request(b"/main"))
     exchange(path, fastcgi_request(b"/fail"))
     exchange(path, fastcgi_request(b"/main", role=AUTHORIZER))
+    return []
 
 
 def one_page(page):
     """A request for page, and nothing else."""
-    return lambda path, stdout, stderr: exchange(path, fastcgi_request(page))
+    return lambda path, stdout, stderr: exchange(path, fastcgi_request(page)) and []
+
+
+def answered(*requests):
+    """The requests given, each a fastcgi_request, with their statuses in
+    the transcript."""
+    return lambda path, stdout, stderr: [status(exchange(path, r)) for r in requests]
 
 
 def at_once(path, stdout, stderr):
@@ -152,6 +199,7 @@ def at_once(path, stdout, stderr):
         t.start()
     for t in threads:
         t.join()
+    return []
 
 
 def leaves(path, stdout, stderr):
@@ -161,6 +209,7 @@ def leaves(path, stdout, stderr):
     deadline = time.monotonic() + WAIT
     while not logged(stdout, stderr, "URI /slow") and time.monotonic() < deadline:
         time.sleep(0.05)
+    return []
 
 
 def run_fastcgi(exe, directory, args, stdout, stderr, env, requests=pages, queued=(), threads=1):
@@ -180,11 +229,11 @@ def run_fastcgi(exe, directory, args, stdout, stderr, env, requests=pages, queue
     process = subprocess.Popen([exe] + args, stdin=listener.fileno(), stdout=stdout, stderr=stderr, env=env)
     listener.close()
     try:
-        return process.wait(QUIET)
+        return process.wait(QUIET), []
     except subprocess.TimeoutExpired:
         pass
-    requests(path, stdout, stderr)
-    return stop(process)
+    statuses = requests(path, stdout, stderr)
+    return stop(process), statuses
 
 
 def run_http(exe, directory, args, stdout, stderr, env):
@@ -194,23 +243,23 @@ def run_http(exe, directory, args, stdout, stderr, env):
     deadline = time.monotonic() + WAIT
     while not os.path.exists(path):
         if process.poll() is not None or time.monotonic() > deadline:
-            return stop(process)
+            return stop(process), []
         time.sleep(0.05)
     for page in (b"/main", b"/fail"):
         exchange(path, b"GET " + page + b" HTTP/1.0\r\nHost: localhost\r\n\r\n")
-    return stop(process)
+    return stop(process), []
 
 
 def run_cgi(exe, directory, args, stdout, stderr, env, page=b"/main"):
     """The CGI program once, for page, as a web server runs it: the request
     in its environment, its body on stdin, no arguments."""
     env = dict(env, **environment(variables=cgi_variables(page)))
-    return subprocess.run([exe], stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, env=env).returncode
+    return subprocess.run([exe], stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, env=env).returncode, []
 
 
 def run_static(exe, directory, args, stdout, stderr, env, page=b"/main"):
     """The static program once, for page, its one argument."""
-    return subprocess.run([exe, page], stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, env=env).returncode
+    return subprocess.run([exe, page], stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, env=env).returncode, []
 
 
 def normalized(line, exe, directory):
@@ -219,9 +268,10 @@ def normalized(line, exe, directory):
     return re.sub(r"^(<\d>)?L(x+)E$", lambda m: "%sL[%d x]E" % (m.group(1) or "", len(m.group(2))), line)
 
 
-def report(name, flags, status, files, exe, directory):
-    print("%s %s: %s" % (name, " ".join(flags) or "without flags",
-                         "ran" if status is None else "ended with status %d" % status))
+def report(name, flags, status, answers, files, exe, directory):
+    print("%s %s: %s%s" % (name, " ".join(flags) or "without flags",
+                           "ran" if status is None else "ended with status %d" % status,
+                           ", answered " + "; ".join(answers) if answers else ""))
     for stream, path in files:
         with open(path, "rb") as f:
             lines = [normalized(l.decode(errors="replace"), exe, directory) for l in f.read().splitlines()]
@@ -236,9 +286,9 @@ def run(name, start, exe, out, flags, journal=False, label="", **how):
     files = [(s, os.path.join(out, "%s-%d.%s" % (name, run.count, s))) for s in ("stdout", "stderr")]
     run.count += 1
     with open(files[0][1], "wb") as stdout, open(files[1][1], "wb") as stderr:
-        status = start(exe, directory, flags, stdout, stderr, environment(stderr if journal else None), **how)
+        ended, answers = start(exe, directory, flags, stdout, stderr, environment(stderr if journal else None), **how)
     what = [name] + (["stderr to the journal"] if journal else []) + ([label] if label else [])
-    report(", ".join(what) + ("," if len(what) > 1 else ""), flags, status, files, exe, directory)
+    report(", ".join(what) + ("," if len(what) > 1 else ""), flags, ended, answers, files, exe, directory)
     os.remove(os.path.join(directory, "socket")) if os.path.exists(os.path.join(directory, "socket")) else None
     os.rmdir(directory)
 
@@ -262,6 +312,19 @@ def main():
         run("fastcgi", run_fastcgi, fastcgi, out, [], journal, "%d requests for long at once, %d threads" % (AT_ONCE, THREADS),
             requests=at_once, threads=THREADS)
         run("fastcgi", run_fastcgi, fastcgi, out, [], journal, "the page slow, its web server leaving meanwhile", requests=leaves)
+    # What a request may be sent that cannot be served as asked, with what
+    # it is answered, plain and with the journal.
+    for journal in (False, True):
+        for label, request in (
+                ("a page that is none", fastcgi_request(b"/nosuch")),
+                ("a constructor that is none", fastcgi_request(b"/catalog/Xx/1")),
+                ("a bad escape in a string argument", fastcgi_request(b"/greet/%zz")),
+                ("the form handler without its field", fastcgi_request(b"/handler")),
+                ("the postBody page by GET", fastcgi_request(b"/hook")),
+                ("a PUT", fastcgi_request(b"/main", method=b"PUT")),
+                ("a POST short of its CONTENT_LENGTH", fastcgi_request(b"/handler", method=b"POST", body=b"Amount=1", length=20)),
+                ("a poll for a client that is none", fastcgi_request(b"/.msgs", headers=[(b"HTTP_URWEB_CLIENT", b"5"), (b"HTTP_URWEB_PASS", b"0")]))):
+            run("fastcgi", run_fastcgi, fastcgi, out, [], journal, label, requests=answered(request))
     for flags in ([], ["-q"], ["-l", "debug"], ["-l", "bogus"]):
         run("http", run_http, http, out, flags)
     run("http", run_http, http, out, [], journal=True)
