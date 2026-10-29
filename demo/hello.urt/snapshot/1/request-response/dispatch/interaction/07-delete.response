@@ -1,6 +1,7 @@
-HTTP/1.1 400 Bad Request
+HTTP/1.1 405 Method Not Allowed
+Allow: GET, POST
 Content-type: text/plain
 Connection: close
-Content-length: 56
+Content-length: 27
 
-Bad request: Not ready for non-GET/POST command: DELETE
+Method not allowed: DELETE

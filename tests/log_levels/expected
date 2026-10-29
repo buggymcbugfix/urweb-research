@@ -118,7 +118,7 @@ fastcgi, the form handler without its field, without flags: ran, answered 400 Ba
 fastcgi, the postBody page by GET, without flags: ran, answered 400 Bad Request
   stdout 1 Failed URI /hook ...
   stdout 1 GET /hook: Bad request: Asked for POST body when none exists
-fastcgi, a PUT, without flags: ran, answered 400 Bad Request
+fastcgi, a PUT, without flags: ran, answered 405 Method Not Allowed
   stdout 1 Failed URI /main ...
   stdout 1 PUT /main: Not ready for non-GET/POST command: PUT
 fastcgi, a POST short of its CONTENT_LENGTH, without flags: ran, answered 400 Bad Request
@@ -142,7 +142,7 @@ fastcgi, stderr to the journal, the form handler without its field, without flag
 fastcgi, stderr to the journal, the postBody page by GET, without flags: ran, answered 400 Bad Request
   stderr 1 <5>GET /hook: Bad request: Asked for POST body when none exists
   stderr 1 <6>Failed URI /hook ...
-fastcgi, stderr to the journal, a PUT, without flags: ran, answered 400 Bad Request
+fastcgi, stderr to the journal, a PUT, without flags: ran, answered 405 Method Not Allowed
   stderr 1 <5>PUT /main: Not ready for non-GET/POST command: PUT
   stderr 1 <6>Failed URI /main ...
 fastcgi, stderr to the journal, a POST short of its CONTENT_LENGTH, without flags: ran, answered 400 Bad Request
@@ -187,15 +187,15 @@ fastcgi, requests refused for their shape, without flags: ran, answered:
   stdout 1 POST /handler: No space after colon in multipart sub-header
   stdout 1 Served URI /handler ...
 fastcgi, methods other than GET and POST, without flags: ran, answered:
-  > a HEAD: 400 Bad Request: Bad request: Not ready for non-GET/POST command: HEAD
-  > an OPTIONS: 400 Bad Request: Bad request: Not ready for non-GET/POST command: OPTIONS
-  > a DELETE: 400 Bad Request: Bad request: Not ready for non-GET/POST command: DELETE
-  > a TRACE: 400 Bad Request: Bad request: Not ready for non-GET/POST command: TRACE
-  > a PATCH: 400 Bad Request: Bad request: Not ready for non-GET/POST command: PATCH
-  > a CONNECT: 400 Bad Request: Bad request: Not ready for non-GET/POST command: CONNECT
-  > GET in lower case: 400 Bad Request: Bad request: Not ready for non-GET/POST command: get
-  > no method: 400 Bad Request: Bad request: Not ready for non-GET/POST command:
-  > a method with a newline in it: 400 Bad Request: Bad request: Not ready for non-GET/POST command: G
+  > a HEAD: 405 Method Not Allowed (allowed: GET, POST)
+  > an OPTIONS: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: OPTIONS
+  > a DELETE: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: DELETE
+  > a TRACE: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: TRACE
+  > a PATCH: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: PATCH
+  > a CONNECT: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: CONNECT
+  > GET in lower case: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: get
+  > no method: 405 Method Not Allowed (allowed: GET, POST): Method not allowed:
+  > a method with a newline in it: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: G
   stdout 1  /main: Not ready for non-GET/POST command:
   stdout 1 CONNECT /main: Not ready for non-GET/POST command: CONNECT
   stdout 1 DELETE /main: Not ready for non-GET/POST command: DELETE
@@ -307,8 +307,8 @@ http, stderr to the journal, without flags: ran
   stderr 1 <6>main: running
 http, requests refused for their shape, without flags: ran, answered:
   > a page that is none: 404 Not Found: Not Found
-  > a HEAD: 400 Bad Request: Bad request: Not ready for non-GET/POST command: HEAD
-  > a PUT: 400 Bad Request: Bad request: Not ready for non-GET/POST command: PUT
+  > a HEAD: 405 Method Not Allowed (allowed: GET, POST)
+  > a PUT: 405 Method Not Allowed (allowed: GET, POST): Method not allowed: PUT
   > a bad escape: 400 Bad Request
   > a multipart type without a boundary: 400 Bad Request: Bad request: Bad multipart boundary spec
   > a poll without a client or a password: 400 Bad Request: Bad request: Missing fields in .msgs request: (none), (none)
@@ -335,8 +335,8 @@ http, requests refused for their shape, without flags: ran, answered:
   stdout 1 Starting the Ur/Web native HTTP server, which is intended for use
   stdout 1 behind a production-quality HTTP server, for a real deployment.
 http, a HEAD and a GET on one connection, -k: ran, answered:
-  > the HEAD: 400 Bad Request, Content-length: 54
-  > after the head of its answer: Bad request: Not ready for non-GET/POST command: HEAD
+  > the HEAD: 405 Method Not Allowed, Content-length: 0
+  > after the head of its answer: HTTP/1.1 200 OK
   stdout 1
   stdout 1 Failed URI /main ...
   stdout 1 HEAD /main: Not ready for non-GET/POST command: HEAD
@@ -391,9 +391,10 @@ static, the page /greet/%zz, without flags: ended with status 1
   stderr 1 Error: Invalid escaped URL byte starting at: %zz
 cgi, a PUT, without flags: ended with status 1
   stdout 1
-  stdout 1 Bad request: Not ready for non-GET/POST command: PUT
+  stdout 1 Allow: GET, POST
   stdout 1 Content-type: text/plain
-  stdout 1 Status: 400 Bad Request
+  stdout 1 Method not allowed: PUT
+  stdout 1 Status: 405 Method Not Allowed
 cgi, a POST with a negative CONTENT_LENGTH, without flags: ended with status 1
   stdout 1
   stdout 1 Bad request: Negative Content-length with POST

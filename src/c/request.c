@@ -378,6 +378,23 @@ static request_result bad_request(uw_context ctx, const char *fmt, ...) {
   return FAILED;
 }
 
+// A method other than GET and POST, which no page takes: logged at notice,
+// as a bad request is, and answered 405 with the methods that are allowed.
+// The answer to a HEAD has no body: a client reads none after its head,
+// and on a connection kept open would take one for the next answer.
+static request_result method_not_allowed(uw_context ctx, const char *method) {
+  uw_log_at(ctx, UW_LOG_NOTICE, "Not ready for non-GET/POST command: %s\n", method);
+  uw_write_status(ctx, "405 Method Not Allowed");
+  uw_write_header(ctx, "Allow: GET, POST\r\n");
+  uw_write_header(ctx, "Content-type: text/plain\r\n");
+  if (strcmp(method, "HEAD")) {
+    uw_write(ctx, "Method not allowed: ");
+    uw_write(ctx, method);
+    uw_write(ctx, "\n");
+  }
+  return FAILED;
+}
+
 // uw_request, but for the line it logs at the end; *attempts counts how
 // many times the handler started.
 static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
@@ -449,7 +466,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       uw_postBody(ctx, pb);
     }
   } else if (strcmp(method, "GET"))
-    return bad_request(ctx, "Not ready for non-GET/POST command: %s", method);
+    return method_not_allowed(ctx, method);
 
   if (!strncmp(path, prefix, strlen(prefix))
       && !strcmp(path + strlen(prefix), ".msgs")) {
