@@ -377,6 +377,10 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
   const char *prefix = uw_get_url_prefix(ctx);
   char *s;
   int had_error = 0, is_fancy = 0;
+  // Set when this attempt failed and the next one is the onError handler:
+  // the handler's code is not run again, which the free callbacks of its
+  // transactionals are told.
+  int to_on_error = 0;
   char errmsg[ERROR_BUF_LEN];
 
   uw_reset(ctx);
@@ -609,6 +613,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
     ++*attempts;
     uw_reproducible_attempt();
     uw_setQueryString(ctx, rc->queryString);
+    to_on_error = 0;
 
     if (!had_error) {
       size_t path_len = strlen(path);
@@ -654,7 +659,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
           // On to the end of the loop, which rolls back what COMMIT may have
           // left open and leaves the expunger's lock, once, as for a failure
           // in the handler; then onError runs as a new attempt.
-          had_error = 1;
+          had_error = to_on_error = 1;
           strcpy(errmsg, uw_error_message(ctx));
         } else {
           try_rollback(ctx, 0);
@@ -679,7 +684,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         uw_log_error(ctx, "Fatal error (out of retries): %s\n", uw_error_message(ctx));
 
         if (!had_error && uw_get_app(ctx)->on_error) {
-          had_error = 1;
+          had_error = to_on_error = 1;
           strcpy(errmsg, uw_error_message(ctx));
         } else {
           try_rollback(ctx, 0);
@@ -701,7 +706,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       uw_log_error(ctx, "Fatal error: %s\n", uw_error_message(ctx));
 
       if (uw_get_app(ctx)->on_error && !had_error) {
-        had_error = 1;
+        had_error = to_on_error = 1;
         strcpy(errmsg, uw_error_message(ctx));
       } else {
         try_rollback(ctx, 0);
@@ -721,7 +726,7 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       uw_log_error(ctx, "Unknown uw_handle return code!\n");
 
       if (uw_get_app(ctx)->on_error && !had_error) {
-        had_error = 1;
+        had_error = to_on_error = 1;
         strcpy(errmsg, "Unknown uw_handle return code");
       } else {
         try_rollback(ctx, 0);
@@ -736,7 +741,9 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
       }
     }
 
-    if (try_rollback(ctx, 1)) {
+    // The attempt is over: the handler's code runs again, unless the next
+    // attempt is the onError handler.
+    if (try_rollback(ctx, !to_on_error)) {
       uw_transaction_departs();
       return FAILED;
     }
