@@ -1,0 +1,8 @@
+{"endpoints":
+ [{"method": "GET", "url": "Commit_fails/main", "content-type": null},
+                                                                      
+   {"method": "GET", "url": "Commit_fails/busy", "content-type": null},
+                                                                       
+   {"method": "GET", "url": "Commit_fails/finish", "content-type": null},
+                                                                         
+   {"method": "GET", "url": "Commit_fails/raising", "content-type": null}]}
