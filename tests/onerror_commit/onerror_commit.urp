@@ -1,0 +1,11 @@
+database dbname=onerror_commit.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+onError Onerror_commitE.err
+safeGetDefault
+
+$/list
+$/option
+onerror_commitE
+onerror_commit
