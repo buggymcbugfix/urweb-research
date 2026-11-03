@@ -1,0 +1,8 @@
+{"endpoints":
+ [{"method": "GET", "url": "Page_limit/main", "content-type": null},
+                                                                    
+   {"method": "GET", "url": "Page_limit/small", "content-type": null},
+                                                                      
+   {"method": "GET", "url": "Page_limit/half", "content-type": null},
+                                                                     
+   {"method": "GET", "url": "Page_limit/over", "content-type": null}]}
