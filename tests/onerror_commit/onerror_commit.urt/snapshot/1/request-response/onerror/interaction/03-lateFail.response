@@ -1,6 +1,7 @@
 HTTP/1.1 500 Internal Server Error
 Content-type: text/html
 Connection: close
-Content-length: 74
+Content-length: 83
 
-<!DOCTYPE html><html><body>onError: :0:0-0:0: lateFail: boom</body></html>
+<html><head><title>Fatal Error</title></head><body>Fatal error: late
+</body></html>
