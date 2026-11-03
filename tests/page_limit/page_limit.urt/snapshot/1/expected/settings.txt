@@ -1,0 +1,29 @@
+Prefix: /
+Database: (none)
+Exe: tests/page_limit/page_limit.exe
+SQL file: (none)
+Endpoints file: endpoints.json
+Debug: false
+Dev: false
+Profile: false
+Timeout: 60
+Linker: (none)
+JsModule: (none)
+Url allow #*
+Source tests/page_limit/page_limit
+Dbms: sqlite
+Sigfile: (none)
+Filecache: (none)
+SafeGetDefault: true
+OnError: (none)
+MinHeap: 0
+MimeTypes: (none)
+Settings:
+ Html5: true
+ MangleSql: true
+ LessSafeFfi: false
+ TimeFormat: %c
+ CoreInline: 5
+ MonoInline: 5
+ Limits: page=2048
+ MimeTypes: /etc/mime.types
