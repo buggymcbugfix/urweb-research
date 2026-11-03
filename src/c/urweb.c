@@ -4348,15 +4348,19 @@ static void release_client_of(uw_context ctx) {
 
 // The transactionals the transaction registered, those above the mark
 // (transactionals_base, zero but for a transaction of io code), latest
-// first: their free callbacks; their rollback callbacks and then their free
-// callbacks; their commit callbacks, those with a rollback callback or those
-// without, which is 0 once one of them reports an error.
+// first: their free callbacks, which also take them off the stack, since
+// nothing may be called on a transactional after its free callback; their
+// rollback callbacks and then their free callbacks; their commit callbacks,
+// those with a rollback callback or those without, which is 0 once one of
+// them reports an error.
 static void uw_free_transactionals(uw_context ctx, int will_retry) {
   int i;
 
   for (i = ctx->used_transactionals-1; i >= (int)ctx->transactionals_base; --i)
     if (ctx->transactionals[i].free)
       ctx->transactionals[i].free(ctx->transactionals[i].data, will_retry);
+
+  ctx->used_transactionals = ctx->transactionals_base;
 }
 
 static void uw_undo_transactionals(uw_context ctx, int will_retry) {
@@ -5715,22 +5719,17 @@ void uw_io_transaction_commit(uw_context ctx, uw_io_transaction *t) {
   t->committing = 0;
 
   // On every failure uw_commit has already undone and freed the transaction's
-  // transactionals, so they are taken off the stack before anything else
-  // could undo or free them again.
-  if (conflict) {
+  // transactionals, and taken them off the stack.
+  if (conflict)
     // A serialization failure at COMMIT: the database rolled the transaction
     // back.  Run the body again.
-    ctx->used_transactionals = ctx->transactionals_base;
     uw_error(ctx, UNLIMITED_RETRY, "Commit conflict; retrying");
-  }
-  if (uw_has_error(ctx)) {
+  if (uw_has_error(ctx))
     // COMMIT itself failed, perhaps with the transaction still open, or a
     // transactional's commit callback failed.  Not run again: a callback that
     // runs after COMMIT (one without a rollback callback) fails with the
     // database already committed.
-    ctx->used_transactionals = ctx->transactionals_base;
     uw_reraise(ctx, FATAL);
-  }
 
   uw_io_transaction_cut(ctx, t, 1);
 }
