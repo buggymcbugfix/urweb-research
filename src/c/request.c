@@ -650,18 +650,21 @@ static request_result uw_request_attempts(uw_request_context rc, uw_context ctx,
         uw_reset_keep_request(ctx);
         continue;
       }
-      if (uw_has_error(ctx) && !had_error) {
+      if (uw_has_error(ctx)) {
         uw_log_error(ctx, "Fatal error: %s\n", uw_error_message(ctx));
         uw_reset_keep_error_message(ctx);
         on_failure(ctx);
 
-        if (uw_get_app(ctx)->on_error) {
+        if (!had_error && uw_get_app(ctx)->on_error) {
           // On to the end of the loop, which rolls back what COMMIT may have
           // left open and leaves the expunger's lock, once, as for a failure
           // in the handler; then onError runs as a new attempt.
           had_error = to_on_error = 1;
           strcpy(errmsg, uw_error_message(ctx));
         } else {
+          // No onError handler, or this was its attempt and its own commit
+          // failed: its page, which the reset dropped, stood for a
+          // transaction that did not commit. The runtime's page instead.
           try_rollback(ctx, 0);
           uw_transaction_departs();
 
