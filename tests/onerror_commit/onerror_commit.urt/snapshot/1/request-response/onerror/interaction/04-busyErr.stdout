@@ -1,2 +1,3 @@
 transactional busyErr: commit
+transactional busyErr: rollback
 transactional busyErr: free
