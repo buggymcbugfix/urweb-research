@@ -1,0 +1,6 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 124
+
+<!DOCTYPE html><html><head></head><body>onError: tests/onerror_commit/onerror_commit.ur:17:4-19:2: fatal: boom</body></html>
