@@ -1,0 +1,110 @@
+# The build and all checks on each platform the runtime is meant to behave
+# the same on. A failure in one job neither stops the others nor cuts its
+# own checks short (make -k). Each job pushes its logs and the tests' out
+# directories to ci-results/<run id>/<target> (.github/collect-results.sh).
+name: platforms
+on: [push, workflow_dispatch]
+
+permissions:
+  contents: write
+
+jobs:
+  nix:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-x86_64-gcc
+            os: ubuntu-24.04
+          # The C compiler FreeBSD builds with, on Linux: a difference the
+          # two share comes from the compiler, not from the system.
+          - target: linux-x86_64-clang
+            os: ubuntu-24.04
+            clang: true
+          - target: linux-aarch64-gcc
+            os: ubuntu-24.04-arm
+          - target: macos-arm64
+            os: macos-15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixpkgs-unstable
+      - name: The shell, with clang as CC
+        if: matrix.clang
+        run: |
+          cat > "$RUNNER_TEMP/shell.nix" <<EOF
+          let
+            pkgs = import $PWD/nixpkgs.nix;
+            base = import $PWD/shell.nix { inherit pkgs; };
+          in
+          base.overrideAttrs (o: {
+            nativeBuildInputs = (o.nativeBuildInputs or [ ]) ++ [ pkgs.clang ];
+            # The flags of the build assume gcc. -Wno-error: -Wno-use-after-free
+            # is unknown to clang (the warnings stay in the build log).
+            # -Qunused-arguments: CCARGS has -L, which the compiles of the
+            # generated C get too, and clang refuses as unused under -Werror.
+            shellHook = o.shellHook + ''
+              export CC=\${pkgs.clang}/bin/clang
+              export CFLAGS="-g -O2 -Wno-error"
+              export CCARGS="\$CCARGS -Qunused-arguments"
+            '';
+          })
+          EOF
+          echo "SHELL_NIX=$RUNNER_TEMP/shell.nix" >> "$GITHUB_ENV"
+      - name: Build and check
+        run: |
+          mkdir -p ci-out
+          shell=${SHELL_NIX:-shell.nix}
+          nix --version > ci-out/env.txt
+          nix-shell "$shell" --pure --run '
+            uname -a; echo "CC=$CC CFLAGS=$CFLAGS"; $CC --version; mlton; python3 --version
+          ' >> ci-out/env.txt 2>&1 || true
+          set +e
+          nix-shell "$shell" --pure --run \
+            'urweb_configure && make -C src/c -j4 && make -C src/c install && make mlton' \
+            > ci-out/build.log 2>&1
+          echo $? > ci-out/build.status
+          if [ "$(cat ci-out/build.status)" = 0 ]; then
+            nix-shell "$shell" --pure --run \
+              'timeout 5400 make -k check-local check-urt check-snapshot' \
+              > ci-out/check.log 2>&1
+            echo $? > ci-out/check.status
+          fi
+          exit 0
+      - name: Push the results
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/collect-results.sh ${{ matrix.target }}
+      - name: Pass or fail
+        run: test "$(cat ci-out/build.status)" = 0 && test "$(cat ci-out/check.status)" = 0
+
+  # FreeBSD has no Nix: the build uses its packages and its system clang.
+  freebsd:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      TARGET: freebsd-14-amd64-clang
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.3"
+          usesh: true
+          mem: 8192
+          cpu: 4
+          # The script never fails, so that the VM copies its results back.
+          run: |
+            mkdir -p ci-out
+            sh .github/freebsd-check.sh > ci-out/vm.log 2>&1
+            true
+      - name: Push the results
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/collect-results.sh "$TARGET"
+      - name: Pass or fail
+        run: test "$(cat ci-out/build.status)" = 0 && test "$(cat ci-out/check.status)" = 0
