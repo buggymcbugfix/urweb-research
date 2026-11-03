@@ -1,2 +1,2 @@
 transactional fatal: rollback
-transactional fatal: free, will retry
+transactional fatal: free
