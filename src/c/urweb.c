@@ -4464,7 +4464,12 @@ int uw_commit(uw_context ctx) {
         return 1;
       }
 
-      uw_free_transactionals(ctx, 0);
+      // COMMIT failed for a reason of its own (a constraint checked at
+      // COMMIT, a database busy with the transaction left open): the
+      // database has not committed, so the transactionals whose commit
+      // callbacks ran above hear rollback, as after a conflict.  The caller
+      // rolls back what the database may have left open.
+      uw_undo_transactionals(ctx, 0);
 
       uw_set_error_message(ctx, "Error running SQL COMMIT");
       return 0;
