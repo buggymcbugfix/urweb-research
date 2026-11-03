@@ -1,0 +1,6 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 129
+
+<!DOCTYPE html><html><head></head><body>onError: tests/onerror_commit/onerror_commit.ur:23:4-25:2: oneQuery: 0 rows</body></html>

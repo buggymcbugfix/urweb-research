@@ -1,0 +1,12 @@
+{"endpoints":
+ [{"method": "GET", "url": "Onerror_commit/main", "content-type": null},
+                                                                        
+   {"method": "GET", "url": "Onerror_commit/fatal", "content-type": null},
+                                                                          
+   {"method": "GET", "url": "Onerror_commit/oneQuery", "content-type": null},
+                                                                             
+   {"method": "GET", "url": "Onerror_commit/lateFail", "content-type": null},
+                                                                             
+   {"method": "GET", "url": "Onerror_commit/busyErr", "content-type": null},
+                                                                            
+   {"method": "GET", "url": "Onerror_commit/finish", "content-type": null}]}
