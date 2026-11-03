@@ -1,0 +1,9 @@
+database dbname=commit_fails.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+safeGetDefault
+
+$/list
+$/option
+commit_fails
