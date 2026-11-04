@@ -1,0 +1,3 @@
+transactional failsBefore: commit
+transactional failsBefore: rollback
+transactional failsBefore: free
