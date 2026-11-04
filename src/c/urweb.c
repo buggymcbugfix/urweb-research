@@ -530,6 +530,9 @@ struct uw_context {
   // A request is running an io function (uw_io_request_begin): its client
   // is kept across the function's transactions, for the request to release.
   int io_request;
+  // A transaction of io code is running (uw_io_transaction_begin): no
+  // redirect and no returned file from in there.
+  int io_transaction;
 
   jmp_buf jmp_buf;
 
@@ -720,6 +723,7 @@ uw_context uw_init(int id, uw_loggers *lg) {
   ctx->transactionals_base = 0;
   ctx->cleanup_base = 0;
   ctx->io_request = 0;
+  ctx->io_transaction = 0;
 
   ctx->regions = NULL;
 
@@ -878,6 +882,7 @@ void uw_reset_keep_error_message(uw_context ctx) {
   ctx->cleanup_base = 0;
   ctx->transactionals_base = 0;
   ctx->io_request = 0;
+  ctx->io_transaction = 0;
   uw_drop_transaction_state(ctx);
   ctx->io_error_message[0] = 0;
   ctx->script_header = "";
@@ -5121,12 +5126,25 @@ static char *old_headers(uw_context ctx) {
   }
 }
 
+// Redirects and returned files end the handler, and with it the request's
+// transaction, which is committed as for a page. Inside a transaction run
+// from io code there is no such thing: the transaction would have to be
+// committed and the io code around it ended, neither of which the code
+// around it expects. So it is refused there, as a failure of the
+// transaction, before the buffers are touched: once rewritten for the
+// redirect, nothing could cut them back to the transaction's start.
+static void uw_ensure_may_return_indirectly(uw_context ctx, const char *what) {
+  if (!ctx->allowed_to_return_indirectly)
+    uw_error(ctx, FATAL, "Tried to %s from an RPC", what);
+  if (ctx->io_transaction)
+    uw_error(ctx, FATAL, "Tried to %s from a transaction in io code", what);
+}
+
 __attribute__((noreturn)) void uw_return_blob(uw_context ctx, uw_Basis_blob b, uw_Basis_string mimeType) {
   int len;
   char *oldh;
 
-  if (!ctx->allowed_to_return_indirectly)
-    uw_error(ctx, FATAL, "Tried to return a blob from an RPC");
+  uw_ensure_may_return_indirectly(ctx, "return a blob");
 
   ctx->returning_indirectly = 1;
   oldh = old_headers(ctx);
@@ -5181,8 +5199,7 @@ __attribute__((noreturn)) void uw_return_blob_from_page(uw_context ctx, uw_Basis
   int len;
   char *oldh;
 
-  if (!ctx->allowed_to_return_indirectly)
-    uw_error(ctx, FATAL, "Tried to return a blob from an RPC");
+  uw_ensure_may_return_indirectly(ctx, "return a blob");
 
   ctx->returning_indirectly = 1;
   oldh = old_headers(ctx);
@@ -5207,8 +5224,7 @@ __attribute__((noreturn)) void uw_redirect(uw_context ctx, uw_Basis_string url) 
   char *s;
   char *oldh;
 
-  if (!ctx->allowed_to_return_indirectly)
-    uw_error(ctx, FATAL, "Tried to redirect from an RPC");
+  uw_ensure_may_return_indirectly(ctx, "redirect");
 
   ctx->returning_indirectly = 1;
   oldh = old_headers(ctx);
@@ -5759,6 +5775,7 @@ void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
   ctx->cleanup_base = ctx->cleanup_front - ctx->cleanup;
   ctx->used_deltas = 0;
   ctx->error_message[0] = 0;
+  ctx->io_transaction = 1;
   if (!ctx->io_request)
     uw_transaction_arrives();
 }
@@ -5797,10 +5814,9 @@ int uw_io_transaction_retry(uw_context ctx, uw_io_transaction *t, int fk) {
     if (!again)
       ctx->loggers->log_error(ld, "Fatal error in io transaction (out of retries): %s\n", ctx->error_message);
     break;
-  case RETURN_INDIRECTLY:
-    uw_set_error_message(ctx, "Tried to redirect or to return a file from a transaction in io code");
-    break;
   default:
+    // FATAL; or RETURN_INDIRECTLY, which uw_ensure_may_return_indirectly refuses
+    // before it gets here.
     break;
   }
 
@@ -5821,6 +5837,7 @@ void uw_io_transaction_end(uw_context ctx, uw_io_transaction *t, int reraise) {
   memcpy(&ctx->jmp_buf, &t->outer, sizeof(jmp_buf));
   ctx->transactionals_base = t->transactionals_base;
   ctx->cleanup_base = t->cleanup_base;
+  ctx->io_transaction = 0;
   if (!ctx->io_request)
     uw_transaction_departs();
   if (t->failed) {
