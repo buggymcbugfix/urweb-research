@@ -1,9 +1,9 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 246
+Content-length: 353
 
 <!DOCTYPE html><html><head></head><body>
 <form method="post" action="/CookieClear/setit"><input type="submit" value="Set it!" /></form>
-<form method="post" action="/CookieClear/doit"><input type="submit" value="Get busy!" /></form>
+<form method="post" action="/CookieClear/doit"><input type="hidden" name="Sig" value="DB59E95E0D7E6F68C1DD705803A1396D7DC4F674236BF9F4DACDAE420D13F608" /><input type="submit" value="Get busy!" /></form>
 </body></html>

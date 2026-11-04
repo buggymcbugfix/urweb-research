@@ -1,8 +1,7 @@
-HTTP/1.1 200 OK
-Content-type: text/plain
-Set-Cookie: Rpc/c=first; path=/
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
 Connection: close
-Content-length: 77
+Content-length: 103
 
-sig="80D43C9A46315D55332E63A4D32A4188CD9A71A4546E658CC029C5AFE81AF6EA";
-first
+<html><head><title>Fatal Error</title></head><body>Fatal error: Missing cookie signature
+</body></html>

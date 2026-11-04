@@ -1,0 +1,1 @@
+tests/cookie_writes/link/link.ur:10:0: (to 12:3) A handler (URI prefix "Link/setIt") accessible via GET could cause side effects; try accessing it only via forms, removing it from the signature of the main program module, or whitelisting it with the 'safeGet' .urp directive

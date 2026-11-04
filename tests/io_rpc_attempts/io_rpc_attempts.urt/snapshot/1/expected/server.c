@@ -1762,7 +1762,7 @@
    }
   
   
-  if (!strcmp(request, "/app.195AB39FD9826FF7C8A09AA4871AEC31328E11B4.js")) {
+  if (!strcmp(request, "/app.09A9D0903E59C6F9DF0F871FD676C83CA9109481.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -1779,11 +1779,11 @@
    uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
     uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.195AB39FD9826FF7C8A09AA4871AEC31328E11B4.js\"></script>\n");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.09A9D0903E59C6F9DF0F871FD676C83CA9109481.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 0);
   uw_set_needs_push(ctx, 0);
-  uw_set_needs_sig(ctx, 0);
+  uw_set_needs_sig(ctx, 1);
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
@@ -1857,8 +1857,14 @@
      if (pb.data[0])
      request = uw_Basis_strcat(ctx, request, pb.data);
      }
-    uw_write_header(ctx, "Content-type: text/plain\r\n");
-     uw_set_could_write_db(ctx, 0);
+    {
+     uw_Basis_string sig = uw_Basis_requestHeader(ctx, "UrWeb-Sig");
+     if (sig == NULL) uw_error(ctx, FATAL, "Missing cookie signature");
+     if (!uw_streq(sig, uw_cookie_sig(ctx)))
+     uw_error(ctx, FATAL, "Wrong cookie signature");
+      }
+     uw_write_header(ctx, "Content-type: text/plain\r\n");
+      uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 0);
    uw_set_needs_push(ctx, 0);
    uw_set_needs_sig(ctx, 0);

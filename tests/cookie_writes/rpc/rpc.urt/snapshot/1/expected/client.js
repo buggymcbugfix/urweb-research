@@ -1,7 +1,7 @@
 urlRules = cons({allow:true,prefix:true,pattern:"#"},cons({allow:true,prefix:false,pattern:"/Rpc/main"},null));
 
 // tests/cookie_writes/rpc/rpc.ur:20:10-21:3
-urfuncs[1] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:rc,a:cons({c:"c",v:"/"},cons({c:"c",v:"Rpc/bump/_"},cons({c:"c",v:function(s){var t=s.split("/");var i=0;return uu(t[i++])}},cons({c:"K"},cons({c:"c",v:false},null)))))},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"v",n:0},null))}}}}}'};
+urfuncs[1] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"=",e1:{c:"f",f:uw_mouseEvent,a:null},e2:{c:"=",e1:{c:"f",f:rc,a:cons({c:"c",v:"/"},cons({c:"c",v:"Rpc/bump/_"},cons({c:"c",v:function(s){var t=s.split("/");var i=0;return uu(t[i++])}},cons({c:"K"},cons({c:"c",v:true},null)))))},e2:{c:"f",f:sv,a:cons({c:"v",n:3},cons({c:"v",n:0},null))}}}}}'};
 // tests/cookie_writes/rpc/rpc.ur:21:19-21:61
 urfuncs[2] = {c:"t",f:'{c:"l",b:{c:"l",b:{c:"f",f:sb,a:cons({c:"f",f:ss,a:cons({c:"v",n:1},null)},cons({c:"l",b:{c:"f",f:sr,a:cons({c:"f",f:eh,a:cons({c:"v",n:0},null)},null)}},null))}}}'};
 

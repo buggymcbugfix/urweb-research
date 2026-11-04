@@ -402,14 +402,21 @@
                                                                                })),
                                                                              uw_end_region(ctx),
                                                                               ((uw_write(ctx, 
-                                                                               "\n</table>\n<h2>Set cookie value</h2>\n<form method=\"post\" action=\"/CookieSec/set\"><input type=\"text\" name=\"User\" /> <input type=\"submit\" /></form>\n<h2>Record your visit</h2>\n<form method=\"post\" action=\"/CookieSec/imHere\"><input type=\"hidden\" name=\"Sig\" value=\""), 0),
+                                                                               "\n</table>\n<h2>Set cookie value</h2>\n<form method=\"post\" action=\"/CookieSec/set\"><input type=\"hidden\" name=\"Sig\" value=\""), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               (uw_write(ctx, 
+                                                                               uw_Basis_sigString(ctx,
+                                                                               0)), 0),
+                                                                               uw_end_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "\" /><input type=\"text\" name=\"User\" /> <input type=\"submit\" /></form>\n<h2>Record your visit</h2>\n<form method=\"post\" action=\"/CookieSec/imHere\"><input type=\"hidden\" name=\"Sig\" value=\""), 0),
                                                                                (uw_begin_region(ctx),
                                                                                (uw_write(ctx, 
                                                                                uw_Basis_sigString(ctx,
                                                                                0)), 0),
                                                                                uw_end_region(ctx),
                                                                                (uw_write(ctx, 
-                                                                               "\" /><input type=\"submit\" /></form>\n</body>"), 0)))))))))));
+                                                                               "\" /><input type=\"submit\" /></form>\n</body>"), 0)))))))))))));
    }
   
   static uw_unit
@@ -581,7 +588,14 @@
    }
  
  static int uw_input_num(const char *name) {
- return 0;}
+ switch (name[0]) {
+  case 'S':
+   return 0;
+   case 'U':
+    return 1;
+    default:
+  return -1;
+  }}
  
  static uw_periodic my_periodics[] = {{NULL}};
  
@@ -656,11 +670,17 @@
   if (!strncmp(request, "/CookieSec/set", 14) && (request[14] == 0 || request[14] == '/')) {
    request += 14;
    if (*request == '/') ++request;
-   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
-    uw_write(ctx, uw_begin_html5);
-    uw_mayReturnIndirectly(ctx);
-    uw_set_script_header(ctx, "");
-    uw_set_could_write_db(ctx, 0);
+   {
+    uw_Basis_string sig = uw_get_input(ctx, 0);
+    if (sig == NULL) uw_error(ctx, FATAL, "Missing cookie signature");
+    if (!uw_streq(sig, uw_cookie_sig(ctx)))
+    uw_error(ctx, FATAL, "Wrong cookie signature");
+     }
+    uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+     uw_write(ctx, uw_begin_html5);
+     uw_mayReturnIndirectly(ctx);
+     uw_set_script_header(ctx, "");
+     uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 1);
    uw_set_needs_push(ctx, 0);
    uw_set_needs_sig(ctx, 0);
@@ -668,7 +688,7 @@
    {
     uw_Basis_string uw_input_User;
      
-     request = uw_get_input(ctx, 0);
+     request = uw_get_input(ctx, 1);
       if (request == NULL)
       uw_error(ctx, FATAL, "Missing input User");
       uw_input_User = uw_Basis_unurlifyString_fromClient(ctx, &request);
@@ -724,7 +744,7 @@
   uw_end_initializing(ctx);
   __uwn_initializer_1(ctx, 0);
    }
- uw_app uw_application = {1,
+ uw_app uw_application = {2,
                             60,
                                "/",
                                    uw_client_init,

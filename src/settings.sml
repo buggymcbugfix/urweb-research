@@ -136,6 +136,11 @@ fun mayClientToServer x = S.member (!clientToServer, x)
 val effectfulBase = basis ["dml",
                            "nextval",
                            "setval",
+                           (* The cookie writers under their Core names,
+                            * for the effect analysis, and under their Mono
+                            * names, for the optimizer. *)
+                           "setCookie",
+                           "clearCookie",
                            "set_cookie",
                            "clear_cookie",
                            "new_channel",
