@@ -28,3 +28,18 @@ fun raising () : transaction page =
     Probe.raiseInCommit "raised";
     dml (INSERT INTO t (N) VALUES (2));
     return <xml><body>raising: never sent</body></xml>
+
+(* The same, in a transaction that sent a message: the lock that keeps a
+   transaction's messages together is held while the callback runs, and
+   has to be released for the next transaction that sends. *)
+fun raisingSend () : transaction page =
+    ch <- channel;
+    send ch "sent by raisingSend";
+    Probe.raiseInCommit "raisedSend";
+    dml (INSERT INTO t (N) VALUES (3));
+    return <xml><body>raisingSend: never sent</body></xml>
+
+fun sending () : transaction page =
+    ch <- channel;
+    send ch "sent by sending";
+    return <xml><body>sent</body></xml>

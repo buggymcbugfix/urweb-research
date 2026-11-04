@@ -1565,6 +1565,8 @@ database dbname=commit_fails.db
     val busy : unit -> transaction page
     val finish : unit -> transaction page
     val raising : unit -> transaction page
+    val raisingSend : unit -> transaction page
+    val sending : unit -> transaction page
    end =
   struct
    table t : [#N = int] keys Basis.no_primary_key constraints
@@ -1638,5 +1640,35 @@ database dbname=commit_fails.db
                return
                 (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
                   (body {}) (Basis.cdata "raising: never sent"))))
+    
+    val rec
+     raisingSend : (_ :: Type) -> transaction page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind channel
+          (fn ch =>
+            Basis.bind (send ch "sent by raisingSend")
+             (fn _ : {} =>
+               Basis.bind (Probe.raiseInCommit "raisedSend")
+                (fn _ : {} =>
+                  Basis.bind (dml (Basis.insert t {N = Basis.sql_inject 3}))
+                   (fn _ : {} =>
+                     return
+                      (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None
+                        {} (body {}) (Basis.cdata "raisingSend: never sent"))))))
+    
+    val rec
+     sending : (_ :: Type) -> transaction page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind channel
+          (fn ch =>
+            Basis.bind (send ch "sent by sending")
+             (fn _ : {} =>
+               return
+                (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
+                  (body {}) (Basis.cdata "sent"))))
    end
  export Commit_fails

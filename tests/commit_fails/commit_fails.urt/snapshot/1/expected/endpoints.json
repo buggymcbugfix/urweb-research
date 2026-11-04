@@ -5,4 +5,8 @@
                                                                        
    {"method": "GET", "url": "Commit_fails/finish", "content-type": null},
                                                                          
-   {"method": "GET", "url": "Commit_fails/raising", "content-type": null}]}
+   {"method": "GET", "url": "Commit_fails/raising", "content-type": null},
+                                                                          
+   {"method": "GET", "url": "Commit_fails/raisingSend", "content-type": null},
+                                                                              
+   {"method": "GET", "url": "Commit_fails/sending", "content-type": null}]}
