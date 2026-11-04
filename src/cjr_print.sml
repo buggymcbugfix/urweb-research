@@ -584,6 +584,14 @@ fun couldWriteDb writes =
      string ");",
      newline]
 
+(* Whether the code about to run makes at most one query, which the runtime
+ * then runs without a transaction. Items as above. *)
+fun atMostOneQuery dbmode =
+    [string "uw_set_at_most_one_query(ctx, ",
+     string (case dbmode of OneQuery => "1" | _ => "0"),
+     string ");",
+     newline]
+
 fun unurlify fromClient env (t, loc) =
     let
         fun deStar request =
@@ -3258,11 +3266,8 @@ fun p_file env (ds, ps) =
                                     string "\");",
                                     newline])]
                      @ couldWriteDb (IS.member (!dbWriters, n))
-                     @ [string "uw_set_at_most_one_query(ctx, ",
-                     string (case dbmode of OneQuery => "1" | _ => "0"),
-                     string ");",
-                     newline,
-                     string "uw_set_needs_push(ctx, ",
+                     @ atMostOneQuery dbmode
+                     @ [string "uw_set_needs_push(ctx, ",
                      string (case side of
                                  ServerAndPullAndPush => "1"
                                | _ => "0"),
@@ -3517,7 +3522,7 @@ fun p_file env (ds, ps) =
         val protos = protos @ protos'
         val defs = defs @ defs'
 
-        val onError = ListUtil.search (fn (DOnError n, _) => SOME n | _ => NONE) ds
+        val onError = ListUtil.search (fn (DOnError x, _) => SOME x | _ => NONE) ds
 
         val lastMod = Date.fromTimeUniv (FileIO.mostRecentModTime ())
         val rfcFmt = "%a, %d %b %Y %H:%M:%S GMT"
@@ -3877,27 +3882,30 @@ fun p_file env (ds, ps) =
 
              case onError of
                  NONE => box []
-               | SOME n => box [string "static void uw_onError(uw_context ctx, char *msg) {",
-                                newline,
-                                (* The handler's transaction begins at its
-                                 * first database operation (uw_begin_onError)
-                                 * with a value of its own, not that of the
-                                 * handler that failed. *)
-                                box (couldWriteDb (IS.member (!dbWriters, n))),
-                                if !hasJs then
-                                    box [string "uw_set_script_header(ctx, \"",
-                                         string (allScripts ()),
-                                         string "\");",
-                                         newline]
-                                else
-                                    box [],
-                                box [string "uw_write(ctx, ",
-                                     p_enamed env n,
-                                     string "(ctx, msg, 0));",
-                                     newline],
-                                string "}",
-                                newline,
-                                newline],
+               | SOME (n, dbmode) => box ([string "static void uw_onError(uw_context ctx, char *msg) {",
+                                 newline,
+                                 (* The handler's transaction begins at its
+                                  * first database operation (uw_begin_onError)
+                                  * with values of its own, not those of the
+                                  * handler that failed: whether it may write,
+                                  * and whether it runs at most one query,
+                                  * which lets it run without a transaction. *)
+                                 box (couldWriteDb (IS.member (!dbWriters, n)))]
+                                @ atMostOneQuery dbmode
+                                @ [if !hasJs then
+                                       box [string "uw_set_script_header(ctx, \"",
+                                            string (allScripts ()),
+                                            string "\");",
+                                            newline]
+                                   else
+                                       box [],
+                                   box [string "uw_write(ctx, ",
+                                        p_enamed env n,
+                                        string "(ctx, msg, 0));",
+                                        newline],
+                                   string "}",
+                                   newline,
+                                   newline]),
 
              string "uw_app uw_application = {",
              p_list_sep (box [string ",", newline]) string

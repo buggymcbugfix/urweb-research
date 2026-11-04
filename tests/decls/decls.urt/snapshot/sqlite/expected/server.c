@@ -1193,9 +1193,10 @@
     }
  static void uw_onError(uw_context ctx, char *msg) {
   uw_set_could_write_db(ctx, 0);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.D42F5438FAF8094D06FB470EACDE8688FD355ABF.js\"></script>\n");
-    uw_write(ctx, __uwn_err_3(ctx, msg, 0));
-     }
+   uw_set_at_most_one_query(ctx, 0);
+  uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.D42F5438FAF8094D06FB470EACDE8688FD355ABF.js\"></script>\n");
+   uw_write(ctx, __uwn_err_3(ctx, msg, 0));
+    }
   
   uw_app uw_application = {1,
                              60,
