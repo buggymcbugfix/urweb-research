@@ -57,6 +57,7 @@ failure_kind uw_begin_onError(struct uw_context *, char *msg);
 void uw_login(struct uw_context *);
 int uw_commit(struct uw_context *);
 // ^-- returns nonzero if the transaction should be restarted
+void uw_finish_page(struct uw_context *);
 int uw_rollback(struct uw_context *, int will_retry);
 
 __attribute__((noreturn)) void uw_error(struct uw_context *, failure_kind, const char *fmt, ...);

@@ -5,4 +5,4 @@ Content-Length: 57
 Cache-Control: max-age=31536000, public
 Connection: close
 
-<!DOCTYPE html><html><head></head><body>served as it is</
+<!DOCTYPE html><html><body>served as it is</body></html>

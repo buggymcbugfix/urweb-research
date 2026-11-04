@@ -3356,6 +3356,8 @@ fun p_file env (ds, ps) =
                                                  answer
                                              else
                                                  [string "uw_write(ctx, \"</html>\");",
+                                                  newline,
+                                                  string "uw_finish_page(ctx);",
                                                   newline]),
                                         string "return;",
                                         newline]

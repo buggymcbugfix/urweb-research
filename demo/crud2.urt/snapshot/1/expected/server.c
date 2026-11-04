@@ -1122,6 +1122,7 @@
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
     __uwn_wrap_main_9(ctx, arg0, 0);
    uw_write(ctx, "</html>");
+    uw_finish_page(ctx);
     return;
    }
    }
@@ -1142,6 +1143,7 @@
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
      __uwn_wrap_upd_4(ctx, arg0, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
@@ -1162,6 +1164,7 @@
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
      __uwn_wrap_confirm_3(ctx, arg0, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
@@ -1196,6 +1199,7 @@
           };
      __uwn_wrap_create_8(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
@@ -1231,6 +1235,7 @@
            };
       __uwn_wrap_$save_6(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
@@ -1253,6 +1258,7 @@
       uw_unit uw_inputs;
       __uwn_wrap_$delete_7(ctx, arg0, uw_inputs, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }

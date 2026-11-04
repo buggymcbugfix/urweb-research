@@ -498,6 +498,7 @@
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
     __uwn_wrap_next_4(ctx, arg0, 0);
    uw_write(ctx, "</html>");
+    uw_finish_page(ctx);
     return;
    }
    }
@@ -518,6 +519,7 @@
     uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
      __uwn_wrap_set_3(ctx, arg0, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
