@@ -1,0 +1,2 @@
+transactional raisesFatal: commit
+transactional raisesFatal: free
