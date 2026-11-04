@@ -34,6 +34,7 @@ SafeGet Io_page/outside
 SafeGet Io_page/cookieThenRedirect
 SafeGet Io_page/redirectHandled
 SafeGet Io_page/pageRetried
+SafeGet Io_page/sender
 OnError: Io_pageE.err
 MinHeap: 0
 MimeTypes: (none)
