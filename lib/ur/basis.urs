@@ -144,6 +144,12 @@ val mkMonad : m ::: (Type -> Type)
 con transaction :: Type -> Type
 val transaction_monad : monad transaction
 
+(* A computation outside any transaction, for a handler whose effects
+   cannot be undone; its monad and primitives are under "Code outside any
+   transaction" below. Declared here for the types of [a], [submit] and
+   [io_url]. *)
+con io :: Type -> Type
+
 con source :: Type -> Type
 val source : t ::: Type -> t -> transaction (source t)
 val set : t ::: Type -> source t -> t -> transaction unit
@@ -841,6 +847,11 @@ val currentUrlHasPost : transaction bool
 val currentUrlHasQueryString : transaction bool
 val url : transaction page -> url
 val effectfulUrl : (option queryString -> transaction page) -> url
+(* [url] and [effectfulUrl] for a page handler whose body is an [io]
+   computation (see "Code outside any transaction" below); so are the
+   attributes [io_link] of [a] and [io_action] of [submit] and [image]. *)
+val io_url : io page -> url
+val io_effectfulUrl : (option queryString -> io page) -> url
 val redirect : t ::: Type -> url -> transaction t
 
 type id
@@ -1016,7 +1027,7 @@ val time  : bodyTag boxAttrs
 val wbr : bodyTag boxAttrs
 val bdi : bodyTag boxAttrs
 
-val a : bodyTag ([Link = transaction page, Href = url, Target = string, Rel = string, Download = string] ++ boxAttrs)
+val a : bodyTag ([Link = transaction page, Io_link = io page, Href = url, Target = string, Rel = string, Download = string] ++ boxAttrs)
 
 val img : bodyTag ([Alt = string, Src = url, Width = int, Height = int,
                     Onabort = transaction unit, Onerror = transaction unit,
@@ -1127,13 +1138,13 @@ val option : unit -> tag [Data = data_attr, Value = string, Selected = bool, Dis
 val submit : ctx ::: {Unit} -> use ::: {Type}
              -> [[Form] ~ ctx] =>
                    unit
-                   -> tag ([Value = string, Action = $use -> transaction page] ++ boxAttrs)
+                   -> tag ([Value = string, Action = $use -> transaction page, Io_action = $use -> io page] ++ boxAttrs)
                           ([Form] ++ ctx) ([Form] ++ ctx) use []
 
 val image : ctx ::: {Unit} -> use ::: {Type}
              -> [[Form] ~ ctx] =>
                    unit
-                   -> tag ([Src = url, Width = int, Height = int, Alt = string, Action = $use -> transaction page] ++ boxAttrs)
+                   -> tag ([Src = url, Width = int, Height = int, Alt = string, Action = $use -> transaction page, Io_action = $use -> io page] ++ boxAttrs)
                           ([Form] ++ ctx) ([Form] ++ ctx) use []
 
 val label : bodyTag ([For = id, Accesskey = string] ++ tableAttrs)
@@ -1277,8 +1288,9 @@ val checkServedFile : string -> option file
 
    A value carried from one transaction to a later one may be stale by then:
    a [channel] read from a table in one transaction may belong to a client
-   that left in between, and a [send] on it then goes to nobody. *)
-con io :: Type -> Type
+   that left in between, and a [send] on it then goes to nobody.
+
+   [con io :: Type -> Type] is declared above, with [transaction]. *)
 val io_monad : monad io
 
 (* Run a transaction, with the usual retries; a fatal error in it ends the
@@ -1307,6 +1319,27 @@ val io_rand : io int
    gets its value, or, with [io_tryRpc], [None] when it failed. *)
 val io_rpc : t ::: Type -> io t -> transaction t
 val io_tryRpc : t ::: Type -> io t -> transaction (option t)
+
+(* A page handler may be an [io] computation too: a function of the main
+   module whose result is [io page], or one named by [io_url],
+   [io_effectfulUrl], or the attributes [io_link] of [a] and [io_action] of
+   [submit] and [image], under the rules of its transaction twin (a GET
+   handler may not have side effects unless declared [safeGet]; a form's
+   action may). The request runs the body as above, with the page written
+   once it returns; the transactions it runs commit on their own, and
+   nothing of one that fails reaches the page. A failure of the body
+   fails the request, which is answered as a failed request is, by the
+   [onError] handler if there is one; the transactions that had committed
+   stay committed in the database, with their messages delivered, but a
+   cookie or header they set does not go out with the failure's response.
+
+   [io_redirect] and [io_returnBlob] are [redirect] and [returnBlob] for
+   the computation itself, outside its transactions, where they end it
+   and the request as the transaction ones end a handler. Inside one of
+   its transactions, [redirect] and [returnBlob] are refused: the
+   transaction and the computation around it would have to be cut short. *)
+val io_redirect : t ::: Type -> url -> io t
+val io_returnBlob : t ::: Type -> blob -> mimeType -> io t
 
 
 (** Tasks *)

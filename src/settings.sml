@@ -169,6 +169,12 @@ fun addEffectful x = effectful := S.add (!effectful, x)
 val benignBase = basis ["get_cookie",
                         "validateDb",
                         "getenv",
+                        (* the io twins of benign transaction primitives *)
+                        "io_debug",
+                        "io_getenv",
+                        "io_now",
+                        "io_rand",
+                        "io_errorMessage",
                         "new_client_source",
                         "get_client_source",
                         "set_client_source",

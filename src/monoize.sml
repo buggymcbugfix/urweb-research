@@ -1199,6 +1199,12 @@ fun monoExp (env, st, fm) (all as (e, loc)) =
           | L.EFfiApp ("Basis", "io_getenv", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "getenv", es), loc)
           | L.EFfiApp ("Basis", "io_now", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "now", es), loc)
           | L.EFfiApp ("Basis", "io_rand", es) => monoExp (env, st, fm) (L.EFfiApp ("Basis", "rand", es), loc)
+          | L.ECApp ((L.EFfi ("Basis", "io_redirect"), l), t) =>
+            monoExp (env, st, fm) (L.ECApp ((L.EFfi ("Basis", "redirect"), l), t), loc)
+          | L.ECApp ((L.EFfi ("Basis", "io_returnBlob"), l), t) =>
+            monoExp (env, st, fm) (L.ECApp ((L.EFfi ("Basis", "returnBlob"), l), t), loc)
+          | L.EApp ((L.ECApp ((L.EFfi ("Basis", "io_returnBlob"), l), t), l'), e) =>
+            monoExp (env, st, fm) (L.EApp ((L.ECApp ((L.EFfi ("Basis", "returnBlob"), l), t), l'), e), loc)
           | L.EFfiApp ("Basis", "validateDb", []) =>
             (if #name (Settings.currentDbms ()) = "mysql" then
                  E.errorAt loc "Basis.validateDb is not supported for MySQL"
@@ -4570,9 +4576,12 @@ fun monoize env file =
         (* Calculate which exported functions need cookie signature protection *)
         val rcook = foldl (fn ((d, _), rcook) =>
                               case d of
-                                  L.DExport (L.Action L.ReadCookieWrite, n, _) => IS.add (rcook, n)
-                                | L.DExport (L.Rpc L.ReadCookieWrite, n, _) => IS.add (rcook, n)
-                                | L.DExport (L.IoRpc L.ReadCookieWrite, n, _) => IS.add (rcook, n)
+                                  L.DExport (ek, n, _) =>
+                                  if (Export.isAction ek orelse Export.isRpc ek)
+                                     andalso Export.effect ek = L.ReadCookieWrite then
+                                      IS.add (rcook, n)
+                                  else
+                                      rcook
                                 | _ => rcook)
                           IS.empty file
         val () = readCookie := rcook

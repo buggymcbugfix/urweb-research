@@ -2803,13 +2803,12 @@ fun p_file env (ds, ps) =
               | _ => NONE
 
         val fields = foldl (fn ((ek, _, _, ts, _, _, _, _), fields) =>
-                               case ek of
-                                   Action eff =>
+                               if Export.isAction ek then
                                    (case List.nth (ts, length ts - 2) of
                                         (TRecord i, loc) =>
                                         let
                                             val xts = E.lookupStruct env i
-                                            val extra = case eff of
+                                            val extra = case Export.effect ek of
                                                             ReadCookieWrite => [sigName xts]
                                                           | _ => []
                                         in
@@ -2818,7 +2817,8 @@ fun p_file env (ds, ps) =
                                               | SOME fields' => List.revAppend (fields', fields)
                                         end
                                       | _ => raise Fail "CjrPrint: Last argument of action isn't record")
-                                 | _ => fields)
+                               else
+                                   fields)
                            [] ps
 
         val fields = foldl (fn (xts, fields) =>
@@ -3121,8 +3121,7 @@ fun p_file env (ds, ps) =
         fun p_page (ek, s, n, ts, ran, side, dbmode, tellSig) =
             let
                 val (ts, defInputs, inputsVar, fields) =
-                    case ek of
-                        Core.Action _ =>
+                    if Export.isAction ek then
                         (case List.nth (ts, length ts - 2) of
                              (TRecord i, _) =>
                              let
@@ -3160,20 +3159,21 @@ fun p_file env (ds, ps) =
                              end
 
                            | _ => raise Fail "CjrPrint: Last argument to an action isn't a record")
-                      | _ => (List.take (ts, length ts - 1), string "", string "", NONE)
+                    else
+                        (List.take (ts, length ts - 1), string "", string "", NONE)
 
+                (* The cookie signature is checked for a form's action and for
+                 * an RPC that read a cookie and writes: what a form or a
+                 * script of the application's own page sends, as a link or
+                 * a URL from elsewhere could not. *)
                 fun couldWrite ek =
-                    case ek of
-                        Link _ => false
-                      | Action ef => ef = ReadCookieWrite
-                      | Rpc ef => ef = ReadCookieWrite
-                      | IoRpc ef => ef = ReadCookieWrite
-                      | Extern _ => false
+                    (Export.isAction ek orelse Export.isRpc ek) andalso Export.effect ek = ReadCookieWrite
 
-                (* An RPC of either kind answers a value, not a page; an io
-                 * RPC runs its function outside any transaction. *)
+                (* An RPC of either kind answers a value, not a page; a
+                 * handler whose function is an io computation, RPC or page,
+                 * runs it outside any transaction. *)
                 val isRpc = Export.isRpc ek
-                val isIoRpc = case ek of IoRpc _ => true | _ => false
+                val isIo = Export.isIo ek
 
                 val s =
                     case Settings.getUrlPrefix () of
@@ -3321,16 +3321,28 @@ fun p_file env (ds, ps) =
                                                string "uw_write(ctx, \"\\n\");",
                                                newline,
                                                urlify env ran]
+
+                                 (* After the function: an RPC's answer, or
+                                  * the page's end and its finishing *)
+                                 val finish = if isRpc then
+                                                  answer
+                                              else
+                                                  [string "uw_write(ctx, \"</html>\");",
+                                                   newline,
+                                                   string "uw_finish_page(ctx);",
+                                                   newline]
                              in
-                                 if isIoRpc then
+                                 if isIo then
                                      (* The function is an io computation, run
                                       * under a jump target of its own, the way
                                       * uw_runIo runs a task: no transaction is
                                       * open around it, and a failure reaching
                                       * it is re-raised by uw_io_request_end as
                                       * FATAL, never as a retry, since the body
-                                      * cannot be run again.  The value is used
-                                      * only on the path that did not longjmp. *)
+                                      * cannot be run again; a redirect from
+                                      * the computation itself is passed on to
+                                      * the request.  The value is used only
+                                      * on the path that did not longjmp. *)
                                      [string "uw_io_request __uwr;",
                                       newline,
                                       string "uw_io_request_begin(ctx, &__uwr);",
@@ -3341,11 +3353,11 @@ fun p_file env (ds, ps) =
                                            newline,
                                            string "if (__uwfk == 0) {",
                                            newline,
-                                           box (result
+                                           box ((if isRpc then result else [])
                                                 @ call
                                                 @ [string "uw_io_request_end(ctx, &__uwr, 0);",
                                                    newline]
-                                                @ answer
+                                                @ finish
                                                 @ [string "return;",
                                                    newline]),
                                            string "} else",
@@ -3357,13 +3369,7 @@ fun p_file env (ds, ps) =
                                  else
                                      box (if isRpc then result else [])
                                      :: call
-                                     @ [box (if isRpc then
-                                                 answer
-                                             else
-                                                 [string "uw_write(ctx, \"</html>\");",
-                                                  newline,
-                                                  string "uw_finish_page(ctx);",
-                                                  newline]),
+                                     @ [box finish,
                                         string "return;",
                                         newline]
                              end)
@@ -3926,8 +3932,7 @@ fun p_file env (ds, ps) =
                          (* io_handlers: whether a request may run io code,
                           * for which the contexts that serve requests are
                           * marked (uw_io_prepare) *)
-                         if List.exists (fn (IoRpc _, _, _, _, _, _, _, _) => true
-                                          | _ => false) ps then
+                         if List.exists (fn (ek, _, _, _, _, _, _, _) => Export.isIo ek) ps then
                              "1"
                          else
                              "0"],

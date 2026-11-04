@@ -4372,13 +4372,15 @@ and elabDecl (dAll as (d, loc), (env, denv, gs)) =
                                     (case sgi of
                                          L'.SgiVal (x, n, t) =>
                                          let
+                                             (* A page handler's type, in either monad
+                                              * (Settings.isThunkMonad), normalised *)
                                              fun doPage (makeRes, ran) =
                                                  case hnormCon env ran of
                                                      (L'.CApp (tf, arg), _) =>
                                                      (case (hnormCon env tf, hnormCon env arg) of
-                                                          ((L'.CModProj (basis, [], "transaction"), _),
+                                                          ((L'.CModProj (basis, [], monad), _),
                                                            (L'.CApp (tf, arg3), _)) =>
-                                                          (case (basis = !basis_r,
+                                                          (case (basis = !basis_r andalso Settings.isThunkMonad monad,
                                                                  hnormCon env tf, hnormCon env arg3) of
                                                                (true,
                                                                 (L'.CApp (tf, arg2), _),
@@ -4396,7 +4398,7 @@ and elabDecl (dAll as (d, loc), (env, denv, gs)) =
                                                                              val t = (L'.CApp (t, arg3), loc)
                                                                              val t = (L'.CApp (
                                                                                       (L'.CModProj
-                                                                                           (basis, [], "transaction"), loc),
+                                                                                           (basis, [], monad), loc),
                                                                                       t), loc)
 
                                                                              fun normArgs t =

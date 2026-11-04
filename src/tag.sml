@@ -77,6 +77,18 @@ fun both (loc, f) = (ErrorMsg.errorAt loc ("Function " ^ f ^ " needed for multip
                      TextIO.output (TextIO.stdErr,
                                     "Make sure that the signature of the containing module hides any form/RPC handlers.\n"))
 
+(* The functions that make a URL of a handler, and the kind of export each
+ * makes of it: a link reached by GET, or an extern given the query string,
+ * of a transaction or of an io computation. All become url once the
+ * handler is exported. *)
+fun urlKind f =
+    case f of
+        "url" => SOME (Link ReadCookieWrite)
+      | "effectfulUrl" => SOME (Extern ReadCookieWrite)
+      | "io_url" => SOME (IoLink ReadCookieWrite)
+      | "io_effectfulUrl" => SOME (IoExtern ReadCookieWrite)
+      | _ => NONE
+
 fun exp uf env (e, s) =
     let
         fun tagIt (e, ek : export_kind, newAttr, (count, tags, byTag, newTags)) =
@@ -178,13 +190,29 @@ fun exp uf env (e, s) =
                                                            (((CName newAttr, loc), e', t), s)
                                                        end
                                                in
+                                                   (* The io attributes name a handler
+                                                    * whose function is an io computation;
+                                                    * from here on they are the Link and
+                                                    * Action attributes, with the export's
+                                                    * kind telling the monad. *)
                                                    case x of
                                                        (CName "Link", _) => tagIt' (Link ReadCookieWrite, "Link")
                                                      | (CName "Action", _) => tagIt' (Action ReadWrite, "Action")
+                                                     | (CName "Io_link", _) => tagIt' (IoLink ReadCookieWrite, "Link")
+                                                     | (CName "Io_action", _) => tagIt' (IoAction ReadWrite, "Action")
                                                      | _ => ((x, e, t), s)
                                                end)
                                            s xets
+
+                     fun twice attr =
+                         length (List.filter (fn ((CName x, _), _, _) => x = attr | _ => false) xets) > 1
                  in
+                     if twice "Link" then
+                         ErrorMsg.errorAt loc "A tag has both a link and an io_link attribute"
+                     else if twice "Action" then
+                         ErrorMsg.errorAt loc "A tag has both an action and an io_action attribute"
+                     else
+                         ();
                      (EApp (
                       (EApp (
                        (EApp (
@@ -210,35 +238,33 @@ fun exp uf env (e, s) =
                  end
                | _ => (e, s))
 
-          | EFfiApp ("Basis", "url", [((ERel 0, _), _)]) => (e, s)
+          | EFfiApp ("Basis", f, [(e', t)]) =>
+            (case (urlKind f, e') of
+                 (NONE, _) => (e, s)
+               | (SOME _, (ERel 0, _)) => (e, s)
+               | (SOME ek, _) =>
+                 let
+                     val (e', s) = tagIt (e', ek, "Url", s)
+                 in
+                     (EFfiApp ("Basis", "url", [(e', t)]), s)
+                 end)
 
-          | EFfiApp ("Basis", "url", [(e, t)]) =>
-            let
-                val (e, s) = tagIt (e, Link ReadCookieWrite, "Url", s)
-            in
-                (EFfiApp ("Basis", "url", [(e, t)]), s)
-            end
-
-          | EFfiApp ("Basis", "effectfulUrl", [((ERel 0, _), _)]) => (e, s)
-
-          | EFfiApp ("Basis", "effectfulUrl", [(e, t)]) =>
-            let
-                val (e, s) = tagIt (e, Extern ReadCookieWrite, "Url", s)
-            in
-                (EFfiApp ("Basis", "url", [(e, t)]), s)
-            end
-
+          (* An alias of one of them: a function whose body applies it to
+           * its argument *)
           | EApp ((ENamed n, _), e') =>
             let
                 val (_, _, eo, _) = E.lookupENamed env n
             in
                 case eo of
-                    SOME (EAbs (_, _, _, (EFfiApp ("Basis", "url", [((ERel 0, _), t)]), _)), _) =>
-                    let
-                        val (e, s) = tagIt (e', Link ReadCookieWrite, "Url", s)
-                    in
-                        (EFfiApp ("Basis", "url", [(e, t)]), s)
-                    end
+                    SOME (EAbs (_, _, _, (EFfiApp ("Basis", f, [((ERel 0, _), t)]), _)), _) =>
+                    (case urlKind f of
+                         SOME ek =>
+                         let
+                             val (e, s) = tagIt (e', ek, "Url", s)
+                         in
+                             (EFfiApp ("Basis", "url", [(e, t)]), s)
+                         end
+                       | NONE => (e, s))
                   | _ => (e, s)
             end
 
