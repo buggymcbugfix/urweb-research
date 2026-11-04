@@ -708,7 +708,7 @@ fun cifyDecl ((d, loc), sm) =
            | _ => (ErrorMsg.errorAt loc "Initializer has not been fully determined";
                    (NONE, NONE, sm)))
       | L.DPolicy _ => (NONE, NONE, sm)
-      | L.DOnError n => (SOME (L'.DOnError n, loc), NONE, sm)
+      | L.DOnError n => (SOME (L'.DOnError (n, L'.AnyDb), loc), NONE, sm)
 
 fun cjrize (ds, sideInfo) =
     let
@@ -740,6 +740,12 @@ fun cjrize (ds, sideInfo) =
                                       ([], [], [], Sm.empty) ds
 
         val sideInfo = foldl (fn ((n, mode, dbmode), mp) => IM.insert (mp, n, (mode, dbmode))) IM.empty sideInfo
+
+        (* The onError handler's own database mode, for the generated
+         * uw_onError to set, as the dispatcher sets an export's. *)
+        val ds = map (fn (L'.DOnError (n, _), loc) =>
+                         (L'.DOnError (n, #2 (getOpt (IM.find (sideInfo, n), (L'.ServerOnly, L'.AnyDb)))), loc)
+                       | d => d) ds
 
         val ps = map (fn (ek, s, n, ts, t, _, b) =>
                          let

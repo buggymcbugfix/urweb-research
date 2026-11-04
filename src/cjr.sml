@@ -31,6 +31,9 @@ type 'a located = 'a ErrorMsg.located
 
 datatype datatype_kind = datatype DatatypeKind.datatype_kind
 
+datatype sidedness = datatype Mono.sidedness
+datatype dbmode = datatype Mono.dbmode
+
 datatype typ' =
          TFun of typ * typ
        | TRecord of int
@@ -132,12 +135,9 @@ datatype decl' =
        | DStyle of string
 
        | DTask of task * string (* first arg name *) * string * exp
-       | DOnError of int
+       | DOnError of int * dbmode (* the handler, and whether it runs at most one query *)
 
 withtype decl = decl' located
-
-datatype sidedness = datatype Mono.sidedness
-datatype dbmode = datatype Mono.dbmode
 
 datatype effect = datatype Export.effect
 datatype export_kind = datatype Export.export_kind
