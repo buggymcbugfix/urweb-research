@@ -26,6 +26,7 @@ Sigfile: (none)
 Filecache: (none)
 SafeGetDefault: false
 SafeGet Io_page/stepped
+SafeGet Io_page/cookies
 SafeGet Io_page/retried
 SafeGet Io_page/fails
 SafeGet Io_page/redirectInside

@@ -8,6 +8,7 @@ allow url /Io_page/main
 allow responseHeader X-Io
 allow mime text/plain
 safeGet Io_page/stepped
+safeGet Io_page/cookies
 safeGet Io_page/retried
 safeGet Io_page/fails
 safeGet Io_page/redirectInside

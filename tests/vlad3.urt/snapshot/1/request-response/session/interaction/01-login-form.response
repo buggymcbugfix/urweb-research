@@ -1,8 +1,8 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 170
+Content-length: 277
 
 <!DOCTYPE html><html><head></head><body>
-<form method="post" action="/Vlad3/signin">E-mail:<input type="text" name="EMail" /><input type="submit" /></form>
+<form method="post" action="/Vlad3/signin"><input type="hidden" name="Sig" value="DB59E95E0D7E6F68C1DD705803A1396D7DC4F674236BF9F4DACDAE420D13F608" />E-mail:<input type="text" name="EMail" /><input type="submit" /></form>
 </body></html>

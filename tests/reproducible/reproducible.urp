@@ -1,5 +1,6 @@
 database dbname=reproducible.db
 rewrite all Reproducible/*
 allow responseHeader X-Note
+safeGetDefault
 
 reproducible
