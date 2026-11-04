@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+Content-type: text/plain
+Set-Cookie: Rpc/c=first; path=/
+Connection: close
+Content-length: 77
+
+sig="80D43C9A46315D55332E63A4D32A4188CD9A71A4546E658CC029C5AFE81AF6EA";
+first
