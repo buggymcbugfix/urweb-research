@@ -1,0 +1,13 @@
+database dbname=io_page_protocols.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow mime text/plain
+safeGet Io_page_protocols/stepped
+safeGet Io_page_protocols/outside
+safeGet Io_page_protocols/cookies
+safeGet Io_page_protocols/fails
+
+$/list
+$/option
+io_page_protocols
