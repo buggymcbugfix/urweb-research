@@ -1,0 +1,4 @@
+{"endpoints":
+ [{"method": "GET", "url": "Action/main", "content-type": null},
+                                                                
+   {"method": "POST", "url": "Action/bump", "content-type": null}]}
