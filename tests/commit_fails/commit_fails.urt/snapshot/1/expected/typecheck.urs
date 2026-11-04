@@ -10,4 +10,10 @@ structure Commit_fails : sig
                            
                            val raising :
                             unit -> transaction (xml ([Html = ()]) ([]) ([]))
+                           
+                           val raisingSend :
+                            unit -> transaction (xml ([Html = ()]) ([]) ([]))
+                           
+                           val sending :
+                            unit -> transaction (xml ([Html = ()]) ([]) ([]))
                           end
