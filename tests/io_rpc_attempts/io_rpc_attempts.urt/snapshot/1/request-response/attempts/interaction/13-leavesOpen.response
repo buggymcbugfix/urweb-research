@@ -1,7 +1,7 @@
-HTTP/1.1 200 OK
-Content-type: text/plain
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
 Connection: close
-Content-length: 2
+Content-length: 119
 
-
-6
+<html><head><title>Fatal Error</title></head><body>Fatal error: io code left a database transaction open
+</body></html>
