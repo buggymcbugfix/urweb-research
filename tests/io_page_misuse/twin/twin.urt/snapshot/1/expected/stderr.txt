@@ -1,0 +1,333 @@
+tests/io_page_misuse/twin/twin.ur:10:10: (to 10:29) Error in final record unification
+Can't unify record constructors
+Have: 
+[Link = transaction (xml ([Html = ()]) ([]) ([])), Href = url, 
+  Target = string, Rel = string, Download = string, Data = data_attr, 
+  Id = id, Title = string, Role = string, Align = string, 
+  Lang = string, TabIndex = int, Onblur = transaction {}, 
+  Onfocus = transaction {}, 
+  Onclick =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Oncontextmenu =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Ondblclick =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmousedown =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseenter =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseleave =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmousemove =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseout =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseover =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseup =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerover =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerenter =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerdown =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointermove =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerup =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointercancel =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerout =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerleave =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerrawupdate =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Ongotpointercapture =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onlostpointercapture =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onkeydown =
+   {KeyCode : int, CtrlKey : bool, ShiftKey : bool, AltKey : bool, 
+     MetaKey : bool} -> transaction {}, 
+  Onkeypress =
+   {KeyCode : int, CtrlKey : bool, ShiftKey : bool, AltKey : bool, 
+     MetaKey : bool} -> transaction {}, 
+  Onkeyup =
+   {KeyCode : int, CtrlKey : bool, ShiftKey : bool, AltKey : bool, 
+     MetaKey : bool} -> transaction {}, Onresize = transaction {}, 
+  Onscroll = transaction {}]
+Need: 
+<UNIF:U161::{Type}> ++
+ [Io_link = transaction (xml ([Html = ()]) ([]) ([]))]
+tests/io_page_misuse/twin/twin.ur:10:10: (to 10:29) Stuck unifying these records after canceling matching pieces:
+Have: 
+[Link = transaction (xml ([Html = ()]) ([]) ([])), Href = url, 
+  Target = string, Rel = string, Download = string, Data = data_attr, 
+  Id = id, Title = string, Role = string, Align = string, 
+  Lang = string, TabIndex = int, Onblur = transaction {}, 
+  Onfocus = transaction {}, Onclick = mouseEvent -> transaction unit, 
+  Oncontextmenu = mouseEvent -> transaction unit, 
+  Ondblclick = mouseEvent -> transaction unit, 
+  Onmousedown = mouseEvent -> transaction unit, 
+  Onmouseenter = mouseEvent -> transaction unit, 
+  Onmouseleave = mouseEvent -> transaction unit, 
+  Onmousemove = mouseEvent -> transaction unit, 
+  Onmouseout = mouseEvent -> transaction unit, 
+  Onmouseover = mouseEvent -> transaction unit, 
+  Onmouseup = mouseEvent -> transaction unit, 
+  Onpointerover = mouseEvent -> transaction unit, 
+  Onpointerenter = mouseEvent -> transaction unit, 
+  Onpointerdown = mouseEvent -> transaction unit, 
+  Onpointermove = mouseEvent -> transaction unit, 
+  Onpointerup = mouseEvent -> transaction unit, 
+  Onpointercancel = mouseEvent -> transaction unit, 
+  Onpointerout = mouseEvent -> transaction unit, 
+  Onpointerleave = mouseEvent -> transaction unit, 
+  Onpointerrawupdate = mouseEvent -> transaction unit, 
+  Ongotpointercapture = mouseEvent -> transaction unit, 
+  Onlostpointercapture = mouseEvent -> transaction unit, 
+  Onkeydown = keyEvent -> transaction unit, 
+  Onkeypress = keyEvent -> transaction unit, 
+  Onkeyup = keyEvent -> transaction unit, Onresize = transaction {}, 
+  Onscroll = transaction {}]
+Need: 
+([Io_link = transaction (xml ([Html = ()]) ([]) ([]))]) ++
+ <UNIF:U161::{Type}>
+tests/io_page_misuse/twin/twin.ur:9:10: (to 9:26) Error in final record unification
+Can't unify record constructors
+   Have: 
+[Link = transaction (xml ([Html = ()]) ([]) ([])), Href = url, 
+  Target = string, Rel = string, Download = string, Data = data_attr, 
+  Id = id, Title = string, Role = string, Align = string, 
+  Lang = string, TabIndex = int, Onblur = transaction {}, 
+  Onfocus = transaction {}, 
+  Onclick =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Oncontextmenu =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Ondblclick =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmousedown =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseenter =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseleave =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmousemove =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseout =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseover =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onmouseup =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerover =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerenter =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerdown =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointermove =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerup =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointercancel =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerout =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerleave =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onpointerrawupdate =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Ongotpointercapture =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onlostpointercapture =
+   {ScreenX : int, ScreenY : int, ClientX : int, ClientY : int, 
+     OffsetX : int, OffsetY : int, CtrlKey : bool, ShiftKey : bool, 
+     AltKey : bool, MetaKey : bool, 
+     Buttons : {Left : bool, Right : bool, Middle : bool}} ->
+    transaction {}, 
+  Onkeydown =
+   {KeyCode : int, CtrlKey : bool, ShiftKey : bool, AltKey : bool, 
+     MetaKey : bool} -> transaction {}, 
+  Onkeypress =
+   {KeyCode : int, CtrlKey : bool, ShiftKey : bool, AltKey : bool, 
+     MetaKey : bool} -> transaction {}, 
+  Onkeyup =
+   {KeyCode : int, CtrlKey : bool, ShiftKey : bool, AltKey : bool, 
+     MetaKey : bool} -> transaction {}, Onresize = transaction {}, 
+  Onscroll = transaction {}]
+   Need: 
+<UNIF:U102::{Type}> ++ [Link = io (xml ([Html = ()]) ([]) ([]))]
+  Field:  #Link
+Value 1:  transaction (xml ([Html = ()]) ([]) ([]))
+Value 2:  io (xml ([Html = ()]) ([]) ([]))
+Incompatible constructors
+Have:  transaction
+Need:  io
