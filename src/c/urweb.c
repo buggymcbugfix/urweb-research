@@ -2032,7 +2032,15 @@ void uw_clear_headers(uw_context ctx) {
   uw_buffer_reset(&ctx->outHeaders);
 }
 
+static void uw_ensure_may_return_indirectly(uw_context ctx, const char *what);
+
+// The first step of returnBlob of a textBlob, which the compiler turns into
+// a rewrite of the page in place: clear it, write the text, return the page
+// as the blob (uw_return_blob_from_page). Where returning a blob is refused,
+// it has to be refused here, before the page is touched: the failed
+// transaction's cut takes back only what was written after its start.
 void uw_Basis_clear_page(uw_context ctx) {
+  uw_ensure_may_return_indirectly(ctx, "return a blob");
   uw_buffer_reset(&ctx->page);
 }
 

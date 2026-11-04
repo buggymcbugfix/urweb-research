@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 117
+Content-length: 130
 
-a text longer than the prologue of tNone;
+<!DOCTYPE html><html><head></head><body>handled: None;
 message: Tried to return a blob from a transaction in io code</body></html>
