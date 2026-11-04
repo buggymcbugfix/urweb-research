@@ -1,1 +1,1 @@
-POST /CookieClear/doit -b 'CookieClear/c=13'
+POST /CookieClear/doit -b 'CookieClear/c=13' -d Sig=BBD94EED3ED6D4F4A40575F94E1E03ECDE16C4DCB920F0FE67A47C549528C619

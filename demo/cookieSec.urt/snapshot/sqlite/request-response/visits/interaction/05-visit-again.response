@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 536
+Content-length: 643
 
 <!DOCTYPE html><html><head></head><body>
 Cookie: vil<br />
@@ -10,7 +10,7 @@ Cookie: vil<br />
 <tr><td>vil</td> <td>Sat Jan  1 00:00:04 2000</td></tr>
 </table>
 <h2>Set cookie value</h2>
-<form method="post" action="/CookieSec/set"><input type="text" name="User" /> <input type="submit" /></form>
+<form method="post" action="/CookieSec/set"><input type="hidden" name="Sig" value="CC44CC6F2BE36C818DE76C3C26AA0CD597BCB159F78FD3447540189FE9466376" /><input type="text" name="User" /> <input type="submit" /></form>
 <h2>Record your visit</h2>
 <form method="post" action="/CookieSec/imHere"><input type="hidden" name="Sig" value="CC44CC6F2BE36C818DE76C3C26AA0CD597BCB159F78FD3447540189FE9466376" /><input type="submit" /></form>
 </body></html>
