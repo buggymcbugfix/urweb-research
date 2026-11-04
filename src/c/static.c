@@ -40,6 +40,8 @@ int main(int argc, char *argv[]) {
 
   ctx = uw_init(0, &loggers);
   uw_set_app(ctx, &uw_application);
+  if (uw_application.io_handlers)
+    uw_io_prepare(ctx);
   uw_set_headers(ctx, get_header, NULL);
   uw_initialize(ctx);
 

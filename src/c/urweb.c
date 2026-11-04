@@ -5667,7 +5667,8 @@ void uw_io_prepare(uw_context ctx) {
 // A failure that reaches an io computation itself, outside any transaction.
 // FATAL stays what it is.  A retry asks for the code to be run again, which
 // nothing can do for io code, so it is fatal too, and the message says why.
-// A redirect or a returned file has no request to go to here.
+// A redirect or a returned file has no request to go to here: this is for a
+// task; a request (uw_io_request_end) passes it on.
 static failure_kind uw_io_failure(uw_context ctx, int fk) {
   char msg[ERROR_BUF_LEN];
 
@@ -5854,7 +5855,8 @@ uw_Basis_string uw_Basis_io_errorMessage(uw_context ctx) {
   return uw_strdup(ctx, ctx->io_error_message);
 }
 
-// The io function of an RPC, inline in the handler the compiler generates:
+// The io function of an RPC or of a page, inline in the handler the compiler
+// generates:
 //
 //   uw_io_request r;
 //   uw_io_request_begin(ctx, &r);
@@ -5897,8 +5899,14 @@ void uw_io_request_end(uw_context ctx, uw_io_request *r, int fk) {
   // Committing it with the request would make a conflict at that commit
   // run the io code again, as the request loop runs a handler again, which
   // io code must never be; the failure here is rolled back as any other.
-  if (fk == 0 && ctx->transaction_started)
+  if ((fk == 0 || fk == RETURN_INDIRECTLY) && ctx->transaction_started)
     uw_error(ctx, FATAL, "io code left a database transaction open");
+  // A redirect or a returned file from the io code itself, outside its
+  // transactions (inside one it was refused), goes to the request loop as
+  // from a transaction handler: the request is committed and the redirect
+  // sent. Only a page handler may do it (uw_mayReturnIndirectly).
+  if (fk == RETURN_INDIRECTLY)
+    longjmp(ctx->jmp_buf, RETURN_INDIRECTLY);
   if (fk)
     longjmp(ctx->jmp_buf, uw_io_failure(ctx, fk));
 }
