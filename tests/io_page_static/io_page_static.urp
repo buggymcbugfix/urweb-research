@@ -1,0 +1,13 @@
+database dbname=io_page_static.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+allow mime text/plain
+safeGet Io_page_static/stepped
+safeGet Io_page_static/outside
+safeGet Io_page_static/cookies
+safeGet Io_page_static/fails
+
+$/list
+$/option
+io_page_static

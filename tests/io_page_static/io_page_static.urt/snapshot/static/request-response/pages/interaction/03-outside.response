@@ -1,0 +1,7 @@
+Content-type: text/html; charset=utf-8
+
+<!DOCTYPE html><html><head></head><body>registered</body></html>transactional inside: commit
+transactional inside: free
+transactional outside: commit
+transactional outside: free
+

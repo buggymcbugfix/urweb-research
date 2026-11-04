@@ -1,0 +1,14 @@
+{"endpoints":
+ [{"method": "GET", "url": "Io_page_static/main", "content-type": null},
+                                                                        
+   {"method": "GET", "url": "Io_page_static/list", "content-type": null},
+                                                                         
+   {"method": "GET", "url": "Io_page_static/stepped", "content-type": null},
+                                                                            
+   {"method": "GET", "url": "Io_page_static/outside", "content-type": null},
+                                                                            
+   {"method": "GET", "url": "Io_page_static/cookies", "content-type": null},
+                                                                            
+   {"method": "GET", "url": "Io_page_static/blob", "content-type": null},
+                                                                         
+   {"method": "GET", "url": "Io_page_static/fails", "content-type": null}]}
