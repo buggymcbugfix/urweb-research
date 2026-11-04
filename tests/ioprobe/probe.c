@@ -85,6 +85,11 @@ uw_unit uw_Probe_armConflict(uw_context ctx, uw_Basis_string key) {
   }
   return uw_unit_v;
 }
+uw_unit uw_Probe_armConflictIo(uw_context ctx, uw_Basis_string key) { return uw_Probe_armConflict(ctx, key); }
+
+uw_unit uw_Probe_beginIo(uw_context ctx) { uw_ensure_transaction(ctx); return uw_unit_v; }
+
+uw_unit uw_Probe_pageWriteT(uw_context ctx, uw_Basis_string s) { uw_write(ctx, s); return uw_unit_v; }
 
 /* A transactional that prints what the runtime does with it and frees its
    data, so that freeing it twice would show under a sanitizer. */

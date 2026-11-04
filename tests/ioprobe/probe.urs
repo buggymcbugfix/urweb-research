@@ -26,6 +26,15 @@ val retryIo : string -> io unit
    database has rolled the transaction back, and the driver returns -1.
    Once per key. *)
 val armConflict : string -> transaction unit
+val armConflictIo : string -> io unit
+
+(* The request's own transaction, begun from io code outside any
+   runTransaction, as an FFI function that queries the database there
+   would begin it. *)
+val beginIo : io unit
+
+(* Written to the page from a transaction (uw_write). *)
+val pageWriteT : string -> transaction unit
 
 (* A transactional whose commit, rollback and free callbacks each print a
    line; [registerNoRollback] has no rollback callback, so its commit callback

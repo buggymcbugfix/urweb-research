@@ -1222,10 +1222,91 @@
            }));
    }
   
-  static struct __uws_2* __uwn_$revPRIME_unpoly_16(uw_context,
+  static uw_Basis_int
+   __uwn_pageWritten_16(uw_context ctx, uw_Basis_int __uwr_n_0, 
+                         uw_unit __uwr___1)
+   {
+   return(({
+           uw_unit* __uwr___2 =
+           ({
+            uw_io_transaction __uwt;
+            uw_unit
+            *__uwr = NULL;
+            uw_set_could_write_db(ctx, 0);
+            uw_io_transaction_begin(ctx, &__uwt);
+            while (1) {
+            int __uwfk = setjmp(*uw_jmp_buf(ctx));
+             if (__uwfk == 0) {
+             uw_unit __uwv =
+              ({
+               uw_unit __uwr___2 =
+               (uw_begin_region(ctx), uw_Probe_pageWriteT(ctx,
+                                       "<written in a rolled-back attempt>"));
+               uw_end_region(ctx);
+                ({
+                 uw_unit
+                 tmp;
+                 uw_error(ctx, FATAL, "tests/io_rpc_attempts/io_rpc_attempts.ur:93:30-93:58: %s", 
+                 "refused");
+                 tmp;
+                 });
+               });
+              __uwr = uw_malloc(ctx, sizeof(uw_unit));
+              *__uwr = __uwv;
+              uw_io_transaction_commit(ctx, &__uwt);
+              break;
+              } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+             __uwr = NULL;
+              break;
+              }
+             }
+            uw_io_transaction_end(ctx, &__uwt, 0);
+            __uwr;
+            });
+           __uwr_n_0;
+           }));
+   }
+  
+  static uw_Basis_int
+   __uwn_leavesOpen_17(uw_context ctx, uw_Basis_int __uwr_n_0, 
+                        uw_unit __uwr___1)
+   {
+   return(({
+           uw_unit __uwr___2 =
+           (uw_begin_region(ctx), uw_Probe_beginIo(ctx));
+           uw_end_region(ctx);
+            ({
+             uw_unit __uwr___3 =
+             (uw_begin_region(ctx), uw_Probe_armConflictIo(ctx, "leavesOpen"));
+             uw_end_region(ctx);
+              ({
+               uw_Basis_int __uwr_k_4 =
+               (uw_begin_region(ctx), uw_Probe_step(ctx));
+               uw_end_region(ctx);
+                ({
+                 uw_unit __uwr___5 =
+                 (uw_begin_region(ctx), uw_Basis_debug(ctx,
+                                         ({
+                                          uw_Basis_string arg0 =
+                                           "leavesOpen runs, step ";
+                                           
+                                           uw_Basis_string arg1 =
+                                            uw_Basis_intToString(ctx,
+                                             __uwr_k_4);
+                                            uw_Basis_strcat(ctx, arg0, arg1);
+                                          })));
+                 uw_end_region(ctx);
+                  __uwr_k_4;
+                 });
+               });
+             });
+           }));
+   }
+  
+  static struct __uws_2* __uwn_$revPRIME_unpoly_18(uw_context,
    struct __uws_2*, struct __uws_2*);
    static struct __uws_2*
-    __uwn_$revPRIME_unpoly_16(uw_context ctx, struct __uws_2* __uwr_acc_0, 
+    __uwn_$revPRIME_unpoly_18(uw_context ctx, struct __uws_2* __uwr_acc_0, 
                                struct __uws_2* __uwr_ls_1)
     {restart:
       
@@ -1267,10 +1348,10 @@
     }
    
   
-  static uw_unit __uwn_$mapXPRIME_unpoly_unpoly_17(uw_context,
+  static uw_unit __uwn_$mapXPRIME_unpoly_unpoly_19(uw_context,
    struct __uws_2*);
    static uw_unit
-    __uwn_$mapXPRIME_unpoly_unpoly_17(uw_context ctx, 
+    __uwn_$mapXPRIME_unpoly_unpoly_19(uw_context ctx, 
                                        struct __uws_2* __uwr_ls_0)
     {restart:
       
@@ -1307,7 +1388,7 @@
    
   
   static uw_unit
-   __uwn_wrap_rows_18(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_rows_20(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -1315,7 +1396,7 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">stored:"), 0),
-                                                      (uw_begin_region(ctx), __uwn_$mapXPRIME_unpoly_unpoly_17(ctx,
+                                                      (uw_begin_region(ctx), __uwn_$mapXPRIME_unpoly_unpoly_19(ctx,
                                                                               ({
                                                                                struct
                                                                                __uws_2*
@@ -1411,7 +1492,7 @@
                                                                                acc;
                                                                                })
                                                                                ;
-                                                                               __uwn_$revPRIME_unpoly_16(ctx,
+                                                                               __uwn_$revPRIME_unpoly_18(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -1422,7 +1503,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_19(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_21(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_source __uwr_s_2 =
@@ -1563,7 +1644,7 @@
                                                                                "}},x:{c:\"c\",v:null}}"), 0))),
                                                                                uw_end_region(ctx),
                                                                                ((uw_write(ctx, 
-                                                                               ")'>redirecting</button>\n<script type=\"text/javascript\">dyn(\"span\", execD("), 0),
+                                                                               ")'>redirecting</button>\n<button onclick='uw_event=event;exec("), 0),
                                                                                (uw_begin_region(ctx),
                                                                                ((uw_write(ctx, 
                                                                                "{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:12},x:{c:\"c\",v:"), 0),
@@ -1576,10 +1657,36 @@
                                                                                "}},x:{c:\"c\",v:null}}"), 0))),
                                                                                uw_end_region(ctx),
                                                                                ((uw_write(ctx, 
-                                                                               "))</script>\n<script type=\"text/javascript\">dyn(\"span\", execD("), 0),
+                                                                               ")'>pageWritten</button>\n<button onclick='uw_event=event;exec("), 0),
                                                                                (uw_begin_region(ctx),
                                                                                ((uw_write(ctx, 
                                                                                "{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:13},x:{c:\"c\",v:"), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Basis_htmlifySource_w(ctx,
+                                                                               __uwr_s_2
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               (uw_write(ctx, 
+                                                                               "}},x:{c:\"c\",v:null}}"), 0))),
+                                                                               uw_end_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               ")'>leavesOpen</button>\n<script type=\"text/javascript\">dyn(\"span\", execD("), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:14},x:{c:\"c\",v:"), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Basis_htmlifySource_w(ctx,
+                                                                               __uwr_s_2
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               (uw_write(ctx, 
+                                                                               "}},x:{c:\"c\",v:null}}"), 0))),
+                                                                               uw_end_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "))</script>\n<script type=\"text/javascript\">dyn(\"span\", execD("), 0),
+                                                                               (uw_begin_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "{c:\"a\",f:{c:\"a\",f:{c:\"n\",n:15},x:{c:\"c\",v:"), 0),
                                                                                (uw_begin_region(ctx),
                                                                                uw_Basis_htmlifySource_w(ctx,
                                                                                __uwr_x_3
@@ -1589,7 +1696,7 @@
                                                                                "}},x:{c:\"c\",v:null}}"), 0))),
                                                                                uw_end_region(ctx),
                                                                                (uw_write(ctx, 
-                                                                               "))</script>\n</body>"), 0))))))))))))))))))))))))));
+                                                                               "))</script>\n</body>"), 0))))))))))))))))))))))))))))));
             });
            }));
    }
@@ -1655,7 +1762,7 @@
    }
   
   
-  if (!strcmp(request, "/app.059A4758CE05FEE21F65B009C4361F10552E11B4.js")) {
+  if (!strcmp(request, "/app.5A262C62384D564594D022A2C4BFF94F29B813E9.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -1672,7 +1779,7 @@
    uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
     uw_write(ctx, uw_begin_html5);
    uw_mayReturnIndirectly(ctx);
-   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.059A4758CE05FEE21F65B009C4361F10552E11B4.js\"></script>\n");
+   uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.5A262C62384D564594D022A2C4BFF94F29B813E9.js\"></script>\n");
    uw_set_could_write_db(ctx, 0);
   uw_set_at_most_one_query(ctx, 0);
   uw_set_needs_push(ctx, 0);
@@ -1680,7 +1787,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_19(ctx, arg0, 0);
+    __uwn_wrap_main_21(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     uw_finish_page(ctx);
     return;
@@ -1701,7 +1808,7 @@
    uw_login(ctx);
    {
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-     __uwn_wrap_rows_18(ctx, arg0, 0);
+     __uwn_wrap_rows_20(ctx, arg0, 0);
     uw_write(ctx, "</html>");
      uw_finish_page(ctx);
      return;
@@ -2027,6 +2134,74 @@
      if (__uwfk == 0) {
      uw_Basis_int it0 =
       __uwn_redirecting_15(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, uw_get_real_script(ctx));
+      uw_write(ctx, "\n");
+      uw_Basis_urlifyInt_w(ctx, it0);
+       return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_rpc_attempts/pageWritten", 28) && (request[28] == 0 || request[28] == '/')) {
+   request += 28;
+   if (*request == '/') ++request;
+   if (uw_hasPostBody(ctx)) {
+    uw_Basis_postBody pb = uw_getPostBody(ctx);
+     if (pb.data[0])
+     request = uw_Basis_strcat(ctx, request, pb.data);
+     }
+    uw_write_header(ctx, "Content-type: text/plain\r\n");
+     uw_set_could_write_db(ctx, 0);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     uw_Basis_int it0 =
+      __uwn_pageWritten_16(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, uw_get_real_script(ctx));
+      uw_write(ctx, "\n");
+      uw_Basis_urlifyInt_w(ctx, it0);
+       return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_rpc_attempts/leavesOpen", 27) && (request[27] == 0 || request[27] == '/')) {
+   request += 27;
+   if (*request == '/') ++request;
+   if (uw_hasPostBody(ctx)) {
+    uw_Basis_postBody pb = uw_getPostBody(ctx);
+     if (pb.data[0])
+     request = uw_Basis_strcat(ctx, request, pb.data);
+     }
+    uw_write_header(ctx, "Content-type: text/plain\r\n");
+     uw_set_could_write_db(ctx, 0);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_Basis_int arg0 = uw_Basis_unurlifyInt(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     uw_Basis_int it0 =
+      __uwn_leavesOpen_17(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, uw_get_real_script(ctx));
       uw_write(ctx, "\n");
