@@ -5710,9 +5710,10 @@ jmp_buf *uw_jmp_buf(uw_context ctx) {
 // above the marks; uw_commit, uw_rollback and uw_error stop there, and what
 // the computation registered outside any transaction (an FFI transactional,
 // say) is left for the end of the computation.  An attempt that does not
-// commit also takes back the response headers it set, the script it wrote
-// and what it allocated: the heap front and the region stack go back to where
-// they were, since nothing of a rolled-back attempt is used afterwards.
+// commit also takes back the response headers it set, the script and the
+// page it wrote, and what it allocated: the heap front and the region stack
+// go back to where they were, since nothing of a rolled-back attempt is used
+// afterwards.
 
 // The client of an io function run by a request is the request's, not the
 // transaction's, and stays named for the next transaction (see
@@ -5727,6 +5728,9 @@ static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int comm
     *ctx->outHeaders.front = 0;
     ctx->script.front = ctx->script.start + t->script_used;
     *ctx->script.front = 0;
+    ctx->page.front = ctx->page.start + t->page_used;
+    *ctx->page.front = 0;
+    ctx->returning_indirectly = t->returning_indirectly;
     uw_heap_moving_back(ctx, t->heap_front);
     ctx->heap.front = t->heap_front;
     ctx->regions = t->regions;
@@ -5744,6 +5748,8 @@ void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
   t->failed = 0;
   t->headers_used = uw_buffer_used(&ctx->outHeaders);
   t->script_used = uw_buffer_used(&ctx->script);
+  t->page_used = uw_buffer_used(&ctx->page);
+  t->returning_indirectly = ctx->returning_indirectly;
   t->heap_front = ctx->heap.front;
   t->regions = ctx->regions;
   t->transactionals_base = ctx->transactionals_base;

@@ -92,7 +92,8 @@ typedef struct {
   int failed;       // the transaction gave up: rolled back, error message kept
   // The context as it was when the transaction began, for an attempt that
   // does not commit to go back to
-  size_t headers_used, script_used;
+  size_t headers_used, script_used, page_used;
+  int returning_indirectly;
   char *heap_front;
   void *regions;
   size_t transactionals_base, cleanup_base;
