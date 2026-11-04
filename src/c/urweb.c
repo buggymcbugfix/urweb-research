@@ -5875,6 +5875,13 @@ void uw_io_request_begin(uw_context ctx, uw_io_request *r) {
 void uw_io_request_end(uw_context ctx, uw_io_request *r, int fk) {
   memcpy(&ctx->jmp_buf, &r->outer, sizeof(jmp_buf));
   ctx->io_request = 0;
+  // The request's own transaction is nobody's to begin from io code (an FFI
+  // function that queried the database outside any runTransaction has).
+  // Committing it with the request would make a conflict at that commit
+  // run the io code again, as the request loop runs a handler again, which
+  // io code must never be; the failure here is rolled back as any other.
+  if (fk == 0 && ctx->transaction_started)
+    uw_error(ctx, FATAL, "io code left a database transaction open");
   if (fk)
     longjmp(ctx->jmp_buf, uw_io_failure(ctx, fk));
 }

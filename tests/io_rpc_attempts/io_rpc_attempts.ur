@@ -95,8 +95,9 @@ fun pageWritten (n : int) : io int =
 
 (* An FFI function that begins the request's own transaction from io code,
    outside any runTransaction, and a conflict at the request's commit: the
-   io code must not run again. The conflict is armed for the next COMMIT,
-   so a request that commits has to follow. *)
+   io code must not run again. The conflict stays armed for the next
+   COMMIT in the process when the request's own is refused; the page that
+   follows runs one query, with no COMMIT. *)
 fun leavesOpen (n : int) : io int =
     Probe.beginIo;
     Probe.armConflictIo "leavesOpen";
