@@ -1,0 +1,4 @@
+{"endpoints":
+ [{"method": "GET", "url": "Link/main", "content-type": null},
+                                                              
+   {"method": "GET", "url": "Link/setIt", "content-type": null}]}

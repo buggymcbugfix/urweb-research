@@ -1,0 +1,10 @@
+{"endpoints":
+ [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
+   "text/javascript"},
+                      
+   {"method": "GET", "url": "/app.FBD755E508F71EC68004211A7280E68E46673957.js", "content-type": 
+    "text/javascript"},
+                       
+   {"method": "GET", "url": "Rpc/main", "content-type": null},
+                                                              
+   {"method": "POST", "url": "Rpc/bump", "content-type": null}]}
