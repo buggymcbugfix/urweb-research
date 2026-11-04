@@ -1,0 +1,15 @@
+database dbname=io_page_commit.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+safeGet Io_page_commit/busy
+safeGet Io_page_commit/failsBefore
+safeGet Io_page_commit/raises
+safeGet Io_page_commit/conflict
+safeGet Io_page_commit/raisesFatal
+safeGet Io_page_commit/busyFatal
+safeGet Io_page_commit/unlock
+
+$/list
+$/option
+io_page_commit

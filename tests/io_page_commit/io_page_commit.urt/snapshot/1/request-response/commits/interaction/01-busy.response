@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 123
+
+<!DOCTYPE html><html><head></head><body>busy: None;
+message: Error running SQL COMMIT; open afterwards: False</body></html>

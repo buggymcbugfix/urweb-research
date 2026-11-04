@@ -1,0 +1,18 @@
+{"endpoints":
+ [{"method": "GET", "url": "Io_page_commit/main", "content-type": null},
+                                                                        
+   {"method": "GET", "url": "Io_page_commit/list", "content-type": null},
+                                                                         
+   {"method": "GET", "url": "Io_page_commit/busy", "content-type": null},
+                                                                         
+   {"method": "GET", "url": "Io_page_commit/failsBefore", "content-type": null},
+                                                                               
+   {"method": "GET", "url": "Io_page_commit/raises", "content-type": null},
+                                                                           
+   {"method": "GET", "url": "Io_page_commit/conflict", "content-type": null},
+                                                                             
+   {"method": "GET", "url": "Io_page_commit/raisesFatal", "content-type": null},
+                                                                               
+   {"method": "GET", "url": "Io_page_commit/busyFatal", "content-type": null},
+                                                                              
+   {"method": "GET", "url": "Io_page_commit/unlock", "content-type": null}]}
