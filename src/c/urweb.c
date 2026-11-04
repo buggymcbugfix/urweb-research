@@ -4428,7 +4428,6 @@ static pthread_mutex_t message_send_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int uw_commit(uw_context ctx) {
   int i;
-  char *sig;
 
   ctx->committed = 0;
 
@@ -4467,7 +4466,7 @@ int uw_commit(uw_context ctx) {
       // COMMIT failed for a reason of its own (a constraint checked at
       // COMMIT, a database busy with the transaction left open): the
       // database has not committed, so the transactionals whose commit
-      // callbacks ran above hear rollback, as after a conflict.  The caller
+      // callbacks ran above hear rollback, as after a conflict. The caller
       // rolls back what the database may have left open.
       uw_undo_transactionals(ctx, 0);
 
@@ -4503,6 +4502,25 @@ int uw_commit(uw_context ctx) {
 
   release_client_of(ctx);
   uw_free_transactionals(ctx, 0);
+
+  ctx->file_cache_missed = 0;
+
+  return 0;
+}
+
+// The page as the handler left it, made whole for sending: the script (the
+// sources the handler made, what it wrote with uw_write_script) spliced into
+// the head after the script header, with a head added if the page has none,
+// and the cookie signatures in its forms rewritten if a cookie changed after
+// a form was signed. A redirect or a returned file goes as it is, and so
+// does anything that does not start with the prologue (an RPC's answer).
+//
+// The handler calls it after its last write, inside uw_begin's setjmp and
+// before the commit, so that a page over the limit fails the attempt as any
+// failure in the handler does. Once uw_begin has returned, nothing may
+// longjmp any more, and nothing may fail after COMMIT.
+void uw_finish_page(uw_context ctx) {
+  char *sig;
 
   uw_check(ctx, 1);
   *ctx->page.front = 0;
@@ -4598,9 +4616,6 @@ int uw_commit(uw_context ctx) {
     }
   }
 
-  ctx->file_cache_missed = 0;
-
-  return 0;
 }
 
 
@@ -5893,6 +5908,7 @@ failure_kind uw_begin_onError(uw_context ctx, char *msg) {
       uw_write(ctx, ctx->app->is_html5 ? uw_begin_html5 : uw_begin_xhtml);
       ctx->app->on_error(ctx, msg);
       uw_write(ctx, "</html>");
+      uw_finish_page(ctx);
     }
 
     return r;

@@ -161,6 +161,7 @@
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
     __uwn_wrap_main_4(ctx, arg0, 0);
    uw_write(ctx, "</html>");
+    uw_finish_page(ctx);
     return;
    }
    }
@@ -181,6 +182,7 @@
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
      __uwn_wrap_diversion_3(ctx, arg0, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
@@ -201,6 +203,7 @@
     uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
      __uwn_wrap_main_2(ctx, arg0, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
@@ -235,6 +238,7 @@
           };
      __uwn_wrap_handler_1(ctx, uw_inputs, 0);
     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
      return;
     }
     }
