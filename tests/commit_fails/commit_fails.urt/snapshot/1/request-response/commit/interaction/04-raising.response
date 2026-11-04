@@ -1,0 +1,7 @@
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
+Connection: close
+Content-length: 118
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: raised in the commit callback of raised
+</body></html>
