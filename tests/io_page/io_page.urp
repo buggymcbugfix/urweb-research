@@ -1,0 +1,19 @@
+database dbname=io_page.db
+ffi ../ioprobe/probe
+include ../ioprobe/probe.h
+link ../ioprobe/probe.c
+onError Io_pageE.err
+allow url /Io_page/list
+allow url /Io_page/main
+allow responseHeader X-Io
+allow mime text/plain
+safeGet Io_page/stepped
+safeGet Io_page/retried
+safeGet Io_page/fails
+safeGet Io_page/redirectInside
+safeGet Io_page/outside
+
+$/list
+$/option
+io_pageE
+io_page
