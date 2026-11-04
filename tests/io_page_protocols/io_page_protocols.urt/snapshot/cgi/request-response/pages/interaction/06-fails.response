@@ -1,0 +1,5 @@
+Status: 500 Internal Server Error
+Content-type: text/html
+
+<html><head><title>Fatal Error</title></head><body>Fatal error: tests/io_page_protocols/io_page_protocols.ur:42:19-42:70: failed in the second transaction
+</body></html>
