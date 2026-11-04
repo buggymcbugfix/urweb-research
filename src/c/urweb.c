@@ -4532,6 +4532,8 @@ void uw_finish_page(uw_context ctx) {
     char *s;
 
     // Splice script data into appropriate part of page, also adding <head> if needed.
+    // The splice moves the rest of the page, NUL included, up by what it
+    // inserts: that much room beyond the front, and one more for the NUL.
     s = ctx->page.start + (ctx->app->is_html5 ? sizeof uw_begin_html5 - 1 : sizeof uw_begin_xhtml - 1);
     s = strchr(s, '<');
     if (s == NULL) {
@@ -4550,7 +4552,7 @@ void uw_finish_page(uw_context ctx) {
         size_t startOff = s + 6 - ctx->page.start;
         char *start;
 
-        ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenP);
+        ctx_uw_buffer_check(ctx, "page", &ctx->page, lenP + 1);
         start = ctx->page.start + startOff;
         memmove(start + lenP, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenP;
@@ -4563,7 +4565,7 @@ void uw_finish_page(uw_context ctx) {
         size_t startOff = s + 6 - ctx->page.start;
         char *start;
 
-        ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenH);
+        ctx_uw_buffer_check(ctx, "page", &ctx->page, lenH + 1);
         start = ctx->page.start + startOff;
         memmove(start + lenH, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenH;
@@ -4578,7 +4580,7 @@ void uw_finish_page(uw_context ctx) {
         size_t startOff = s - ctx->page.start;
         char *start;
 
-        ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenP);
+        ctx_uw_buffer_check(ctx, "page", &ctx->page, lenP + 1);
         start = ctx->page.start + startOff;
         memmove(start + lenP, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenP;
@@ -4593,7 +4595,7 @@ void uw_finish_page(uw_context ctx) {
         size_t startOff = s - ctx->page.start;
         char *start;
 
-        ctx_uw_buffer_check(ctx, "page", &ctx->page, uw_buffer_used(&ctx->page) + lenP);
+        ctx_uw_buffer_check(ctx, "page", &ctx->page, lenP + 1);
         start = ctx->page.start + startOff;
         memmove(start + lenP, start, uw_buffer_used(&ctx->page) - (start - ctx->page.start) + 1);
         ctx->page.front += lenP;
