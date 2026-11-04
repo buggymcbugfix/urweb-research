@@ -85,6 +85,25 @@ fun redirecting (n : int) : io int =
     runTransaction (dml (INSERT INTO t (N) VALUES ({[n]}));
                     redirect (bless "/Io_rpc_attempts/rows"))
 
+(* Something written to the page (by an FFI function here; a page handler
+   would do it) in a transaction that is rolled back: nothing of it may
+   reach the answer. *)
+fun pageWritten (n : int) : io int =
+    _ <- attemptTransaction (Probe.pageWriteT "<written in a rolled-back attempt>";
+                             (error <xml>refused</xml> : transaction unit));
+    return n
+
+(* An FFI function that begins the request's own transaction from io code,
+   outside any runTransaction, and a conflict at the request's commit: the
+   io code must not run again. The conflict is armed for the next COMMIT,
+   so a request that commits has to follow. *)
+fun leavesOpen (n : int) : io int =
+    Probe.beginIo;
+    Probe.armConflictIo "leavesOpen";
+    k <- Probe.step;
+    io_debug ("leavesOpen runs, step " ^ show k);
+    return k
+
 fun rows () =
     ns <- queryL1 (SELECT t.N FROM t ORDER BY t.N);
     return <xml><body>stored:{List.mapX (fn r => <xml> {[r.N]}</xml>) ns}</body></xml>
@@ -103,6 +122,8 @@ fun main () : transaction page =
       <button value="pure" onclick={fn _ => v <- io_rpc (pure 8); set s v}/>
       <button value="fatalOutside" onclick={fn _ => v <- io_rpc (fatalOutside 9); set s v}/>
       <button value="redirecting" onclick={fn _ => v <- io_rpc (redirecting 10); set s v}/>
+      <button value="pageWritten" onclick={fn _ => v <- io_rpc (pageWritten 11); set s v}/>
+      <button value="leavesOpen" onclick={fn _ => v <- io_rpc (leavesOpen 12); set s v}/>
       <dyn signal={v <- signal s; return <xml>{[v]}</xml>}/>
       <dyn signal={signal x}/>
     </body></xml>

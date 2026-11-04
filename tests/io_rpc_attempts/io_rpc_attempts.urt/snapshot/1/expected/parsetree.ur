@@ -13,6 +13,9 @@ database dbname=io_rpc_attempts.db
     val fatalIo : string -> io unit
     val retryIo : string -> io unit
     val armConflict : string -> transaction unit
+    val armConflictIo : string -> io unit
+    val beginIo : io unit
+    val pageWriteT : string -> transaction unit
     val register : string -> transaction unit
     val registerNoRollback : string -> transaction unit
     val registerIo : string -> io unit
@@ -1693,6 +1696,28 @@ database dbname=io_rpc_attempts.db
           (fn _ : {} => redirect (bless "/Io_rpc_attempts/rows")))
     
     val rec
+     pageWritten : int -> io int =
+      fn n : int =>
+       Basis.bind
+        (attemptTransaction
+          (Basis.bind (Probe.pageWriteT "<written in a rolled-back attempt>")
+            (fn _ : {} => (error (Basis.cdata "refused") : transaction unit))))
+        (fn _ => return n)
+    
+    val rec
+     leavesOpen : int -> io int =
+      fn n : int =>
+       Basis.bind Probe.beginIo
+        (fn _ : {} =>
+          Basis.bind (Probe.armConflictIo "leavesOpen")
+           (fn _ : {} =>
+             Basis.bind Probe.step
+              (fn k =>
+                Basis.bind
+                 (io_debug (Basis.strcat "leavesOpen runs, step " (show k)))
+                 (fn _ : {} => return k))))
+    
+    val rec
      rows : (_ :: Type) -> (_ :: Type) =
       fn $x : (_ :: Type) =>
        case $x of
@@ -1976,6 +2001,104 @@ database dbname=io_rpc_attempts.db
                                                                                noStyle
                                                                                Basis.
                                                                                None
+                                                                               {Value
+                                                                               =
+                                                                               "pageWritten"
+                                                                               ,
+                                                                               
+                                                                               Onclick
+                                                                               =
+                                                                               fn
+                                                                               _
+                                                                               =>
+                                                                               Basis.
+                                                                               bind
+                                                                               (io_rpc
+                                                                               (pageWritten
+                                                                               11))
+                                                                               (fn
+                                                                               v
+                                                                               =>
+                                                                               set
+                                                                               s
+                                                                               v)
+                                                                               }
+                                                                               (button
+                                                                               {})
+                                                                               (Basis.
+                                                                               cdata
+                                                                               ""))
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "\n")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "      ")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               tag
+                                                                               Basis.
+                                                                               null
+                                                                               Basis.
+                                                                               None
+                                                                               Basis.
+                                                                               noStyle
+                                                                               Basis.
+                                                                               None
+                                                                               {Value
+                                                                               =
+                                                                               "leavesOpen"
+                                                                               ,
+                                                                               
+                                                                               Onclick
+                                                                               =
+                                                                               fn
+                                                                               _
+                                                                               =>
+                                                                               Basis.
+                                                                               bind
+                                                                               (io_rpc
+                                                                               (leavesOpen
+                                                                               12))
+                                                                               (fn
+                                                                               v
+                                                                               =>
+                                                                               set
+                                                                               s
+                                                                               v)
+                                                                               }
+                                                                               (button
+                                                                               {})
+                                                                               (Basis.
+                                                                               cdata
+                                                                               ""))
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "\n")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "      ")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               tag
+                                                                               Basis.
+                                                                               null
+                                                                               Basis.
+                                                                               None
+                                                                               Basis.
+                                                                               noStyle
+                                                                               Basis.
+                                                                               None
                                                                                {Signal
                                                                                =
                                                                                Basis.
@@ -2041,6 +2164,6 @@ database dbname=io_rpc_attempts.db
                                                                                "\n")
                                                                                (Basis.
                                                                                cdata
-                                                                               "    ")))))))))))))))))))))))))))))))))))))))))
+                                                                               "    ")))))))))))))))))))))))))))))))))))))))))))))))
    end
  export Io_rpc_attempts
