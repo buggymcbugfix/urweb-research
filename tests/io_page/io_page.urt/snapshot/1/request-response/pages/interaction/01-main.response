@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 553
+Content-length: 769
 
 <!DOCTYPE html><html><head></head><body>
 <a href="/Io_page/list">list</a>
@@ -11,6 +11,10 @@ Content-length: 553
 <a href="/Io_page/fails">fails</a>
 <a href="/Io_page/redirectInside">redirectInside</a>
 <a href="/Io_page/blob">blob</a>
+<a href="/Io_page/cookieThenRedirect">cookieThenRedirect</a>
+<a href="/Io_page/redirectHandled">redirectHandled</a>
+<a href="/Io_page/textBlobInside">textBlobInside</a>
+<a href="/Io_page/pageRetried">pageRetried</a>
 <a href="/Io_page/outside">outside</a>
 <a href="/Io_page/pushy">pushy</a>
 <a href="/Io_page/query">query</a>
