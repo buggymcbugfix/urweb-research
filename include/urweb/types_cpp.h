@@ -100,8 +100,8 @@ typedef struct {
   int num_recording;       // the page recordings the SQL cache has open
 } uw_io_transaction;
 
-// The state of an io function run by an RPC handler (Basis.io_rpc); see
-// uw_io_request_begin and uw_io_request_end.
+// The state of an io function run by a request, for an RPC (Basis.io_rpc)
+// or a page; see uw_io_request_begin and uw_io_request_end.
 typedef struct {
   jmp_buf outer;    // the request's jump target, restored afterwards
 } uw_io_request;
@@ -155,7 +155,7 @@ typedef struct {
 
   uw_served_file *served_files; // ended by an entry whose uri is NULL
 
-  int io_handlers; // a request may run io code (an io RPC): the contexts
+  int io_handlers; // a request may run io code (an io RPC or page): the contexts
                    // that serve requests are marked for it (uw_io_prepare)
 } uw_app;
 
