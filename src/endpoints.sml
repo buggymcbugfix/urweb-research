@@ -75,11 +75,7 @@ fun scriptUrls script =
 
 fun collect (decls, _) =
     let
-        fun exportKindToMethod (Link _) = GET
-          | exportKindToMethod (Action _) = POST
-          | exportKindToMethod (Rpc _) = POST
-          | exportKindToMethod (IoRpc _) = POST
-          | exportKindToMethod (Extern _) = POST
+        fun exportKindToMethod ek = if Export.isLink ek then GET else POST
 
         fun decl ((d, _), st) =
             case d of

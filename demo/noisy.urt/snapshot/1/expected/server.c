@@ -275,7 +275,7 @@
                 uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                 }
                PQclear(res);
-                uw_error(ctx, FATAL, "$/basis.urs:722:0-722:33: DML failed:\n%s\n%s", 
+                uw_error(ctx, FATAL, "$/basis.urs:728:0-728:33: DML failed:\n%s\n%s", 
                 "INSERT INTO uw_Noisy_t (uw_A, uw_Id) VALUES ($1::text, $2::int8)", PQerrorMessage(conn));
                }
                  
@@ -323,7 +323,7 @@
                 uw_error(ctx, UNLIMITED_RETRY, "Deadlock detected");
                 }
                PQclear(res);
-                uw_error(ctx, FATAL, "$/basis.urs:722:0-722:33: DML failed:\n%s\n%s", 
+                uw_error(ctx, FATAL, "$/basis.urs:728:0-728:33: DML failed:\n%s\n%s", 
                 "DELETE FROM uw_Noisy_t AS T_T WHERE (T_T.uw_Id = $1::int8)", PQerrorMessage(conn));
                }
                  

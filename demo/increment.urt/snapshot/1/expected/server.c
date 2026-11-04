@@ -189,14 +189,14 @@
              
              if (PQresultStatus(res) != PGRES_TUPLES_OK) {
              PQclear(res);
-              uw_error(ctx, FATAL, "$/basis.urs:746:0-746:45: Query failed:\n%s\n%s", 
+              uw_error(ctx, FATAL, "$/basis.urs:752:0-752:45: Query failed:\n%s\n%s", 
               "SELECT NEXTVAL('uw_Increment_seq')", PQerrorMessage(conn));
               }
              
              n = PQntuples(res);
              if (n != 1) {
              PQclear(res);
-              uw_error(ctx, FATAL, "$/basis.urs:746:0-746:45: Wrong number of result rows:\n%s\n%s", 
+              uw_error(ctx, FATAL, "$/basis.urs:752:0-752:45: Wrong number of result rows:\n%s\n%s", 
               "SELECT NEXTVAL('uw_Increment_seq')", PQerrorMessage(conn));
               }
              

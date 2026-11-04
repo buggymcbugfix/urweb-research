@@ -456,7 +456,7 @@
                                                       ({
                                                        uw_Basis_int*
                                                        tmp;
-                                                       uw_error(ctx, FATAL, "$/basis.urs:547:20-547:36: pattern match failure");
+                                                       uw_error(ctx, FATAL, "$/basis.urs:553:20-553:36: pattern match failure");
                                                        tmp;
                                                        });
                                                     });

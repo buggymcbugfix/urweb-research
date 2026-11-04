@@ -1,7 +1,8 @@
 tests/io_page_misuse/twin/twin.ur:10:10: (to 10:29) Error in final record unification
 Can't unify record constructors
-Have: 
-[Link = transaction (xml ([Html = ()]) ([]) ([])), Href = url, 
+   Have: 
+[Link = transaction (xml ([Html = ()]) ([]) ([])), 
+  Io_link = io (xml ([Html = ()]) ([]) ([])), Href = url, 
   Target = string, Rel = string, Download = string, Data = data_attr, 
   Id = id, Title = string, Role = string, Align = string, 
   Lang = string, TabIndex = int, Onblur = transaction {}, 
@@ -142,47 +143,20 @@ Have:
    {KeyCode : int, CtrlKey : bool, ShiftKey : bool, AltKey : bool, 
      MetaKey : bool} -> transaction {}, Onresize = transaction {}, 
   Onscroll = transaction {}]
-Need: 
+   Need: 
 <UNIF:U161::{Type}> ++
  [Io_link = transaction (xml ([Html = ()]) ([]) ([]))]
-tests/io_page_misuse/twin/twin.ur:10:10: (to 10:29) Stuck unifying these records after canceling matching pieces:
-Have: 
-[Link = transaction (xml ([Html = ()]) ([]) ([])), Href = url, 
-  Target = string, Rel = string, Download = string, Data = data_attr, 
-  Id = id, Title = string, Role = string, Align = string, 
-  Lang = string, TabIndex = int, Onblur = transaction {}, 
-  Onfocus = transaction {}, Onclick = mouseEvent -> transaction unit, 
-  Oncontextmenu = mouseEvent -> transaction unit, 
-  Ondblclick = mouseEvent -> transaction unit, 
-  Onmousedown = mouseEvent -> transaction unit, 
-  Onmouseenter = mouseEvent -> transaction unit, 
-  Onmouseleave = mouseEvent -> transaction unit, 
-  Onmousemove = mouseEvent -> transaction unit, 
-  Onmouseout = mouseEvent -> transaction unit, 
-  Onmouseover = mouseEvent -> transaction unit, 
-  Onmouseup = mouseEvent -> transaction unit, 
-  Onpointerover = mouseEvent -> transaction unit, 
-  Onpointerenter = mouseEvent -> transaction unit, 
-  Onpointerdown = mouseEvent -> transaction unit, 
-  Onpointermove = mouseEvent -> transaction unit, 
-  Onpointerup = mouseEvent -> transaction unit, 
-  Onpointercancel = mouseEvent -> transaction unit, 
-  Onpointerout = mouseEvent -> transaction unit, 
-  Onpointerleave = mouseEvent -> transaction unit, 
-  Onpointerrawupdate = mouseEvent -> transaction unit, 
-  Ongotpointercapture = mouseEvent -> transaction unit, 
-  Onlostpointercapture = mouseEvent -> transaction unit, 
-  Onkeydown = keyEvent -> transaction unit, 
-  Onkeypress = keyEvent -> transaction unit, 
-  Onkeyup = keyEvent -> transaction unit, Onresize = transaction {}, 
-  Onscroll = transaction {}]
-Need: 
-([Io_link = transaction (xml ([Html = ()]) ([]) ([]))]) ++
- <UNIF:U161::{Type}>
+  Field:  #Io_link
+Value 1:  io (xml ([Html = ()]) ([]) ([]))
+Value 2:  transaction (xml ([Html = ()]) ([]) ([]))
+Incompatible constructors
+Have:  io
+Need:  transaction
 tests/io_page_misuse/twin/twin.ur:9:10: (to 9:26) Error in final record unification
 Can't unify record constructors
    Have: 
-[Link = transaction (xml ([Html = ()]) ([]) ([])), Href = url, 
+[Link = transaction (xml ([Html = ()]) ([]) ([])), 
+  Io_link = io (xml ([Html = ()]) ([]) ([])), Href = url, 
   Target = string, Rel = string, Download = string, Data = data_attr, 
   Id = id, Title = string, Role = string, Align = string, 
   Lang = string, TabIndex = int, Onblur = transaction {}, 

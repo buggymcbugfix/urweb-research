@@ -14,7 +14,7 @@ structure Urs_io :
        {} =>
         return
          (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {} (body {})
-           (Basis.cdata "never served"))
+           (Basis.cdata "served, as an io page"))
    
    val rec
     main : (_ :: Type) -> transaction page =

@@ -1038,9 +1038,14 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                              case sgi of
                                  L.SgiVal (s, _, t) =>
                                  let
+                                     (* A page handler: a function into a page in
+                                      * a transaction, or in an io computation
+                                      * (Settings.isThunkMonad); which monad is
+                                      * returned with the page type and the
+                                      * argument types. *)
                                      fun getPage (t, args) =
                                          case #1 t of
-                                             L.CApp ((L.CModProj (basis, [], "transaction"), _),
+                                             L.CApp ((L.CModProj (basis, [], monad), _),
                                                      t' as
                                                         (L.CApp
                                                              ((L.CApp
@@ -1048,8 +1053,9 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                                                                              (L.CRecord (_, [((L.CName "Html", _),
                                                                                               _)]), _)), _), _),
                                                                _), _), _)) =>
-                                             if basis = basis_n andalso basis' = basis_n then
-                                                 SOME (t', rev args)
+                                             if basis = basis_n andalso basis' = basis_n
+                                                andalso Settings.isThunkMonad monad then
+                                                 SOME (monad, t', rev args)
                                              else
                                                  NONE
                                            | L.TFun (dom, ran) => getPage (ran, dom :: args)
@@ -1057,24 +1063,27 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                                  in
                                      case getPage (t, []) of
                                          NONE => (wds, eds)
-                                       | SOME (ran', args) =>
+                                       | SOME (monad, ran', args) =>
                                          let
+                                             val io = monad = "io"
                                              val ran = (L.TRecord (L.CRecord ((L.KType, loc), []), loc), loc)
-                                             val ranT = (L.CApp ((L.CModProj (basis_n, [], "transaction"), loc),
+                                             val ranT = (L.CApp ((L.CModProj (basis_n, [], monad), loc),
                                                                  ran), loc)
                                              val e = (L.EModProj (m, ms, s), loc)
 
+                                             (* wrap = fn args => bind (f args) write,
+                                              * in the handler's monad *)
                                              val ef = (L.EModProj (basis_n, [], "bind"), loc)
-                                             val ef = (L.ECApp (ef, (L.CModProj (basis_n, [], "transaction"), loc)), loc)
+                                             val ef = (L.ECApp (ef, (L.CModProj (basis_n, [], monad), loc)), loc)
                                              val ef = (L.ECApp (ef, ran'), loc)
                                              val ef = (L.ECApp (ef, ran), loc)
-                                             val ef = (L.EApp (ef, (L.EModProj (basis_n, [], "transaction_monad"), loc)),
+                                             val ef = (L.EApp (ef, (L.EModProj (basis_n, [], monad ^ "_monad"), loc)),
                                                        loc)
                                              val ea = ListUtil.foldri (fn (i, _, ea) =>
                                                                           (L.EApp (ea, (L.ERel i, loc)), loc)) e args
                                              val ef = (L.EApp (ef, ea), loc)
 
-                                             val eat = (L.CApp ((L.CModProj (basis_n, [], "transaction"), loc),
+                                             val eat = (L.CApp ((L.CModProj (basis_n, [], monad), loc),
                                                                 ran), loc)
                                              val ea = (L.EAbs ("p", ran', eat,
                                                                (L.EWrite (L.ERel 0, loc), loc)), loc)
@@ -1089,9 +1098,9 @@ fun corifyDecl mods (all as (d, loc : EM.span), st) =
                                                                               case corifyCon st t of
                                                                                   (L'.CFfi ("Basis", "postBody"), _) => true
                                                                                 | _ => false) args then
-                                                               L'.Extern L'.ReadCookieWrite
+                                                               (if io then L'.IoExtern else L'.Extern) L'.ReadCookieWrite
                                                            else
-                                                               L'.Link L'.ReadCookieWrite
+                                                               (if io then L'.IoLink else L'.Link) L'.ReadCookieWrite
                                          in
                                              ((L.DVal ("wrap_" ^ s, 0, tf, e), loc) :: wds,
                                               (fn st =>

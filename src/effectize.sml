@@ -172,21 +172,20 @@ fun effectize file =
                               else
                                   ReadOnly
                     val push = IM.inDomain (pushers, n)
-                    val ek = case ek of
-                                 Link _ =>
-                                 (case IM.find (writers, n) of
-                                      NONE => ()
-                                    | SOME (loc, s) =>
-                                      if Settings.isSafeGet s then
-                                          ()
-                                      else
-                                          ErrorMsg.errorAt loc ("A handler (URI prefix \"" ^ s
-                                                                ^ "\") accessible via GET could cause side effects; try accessing it only via forms, removing it from the signature of the main program module, or whitelisting it with the 'safeGet' .urp directive");
-                                  Link eff)
-                               | Action _ => Action eff
-                               | Rpc _ => Rpc eff
-                               | IoRpc _ => IoRpc eff
-                               | Extern _ => Extern eff
+                    (* A link of either monad is reached by GET: only without
+                     * side effects, or declared safe *)
+                    val () = if Export.isLink ek then
+                                 case IM.find (writers, n) of
+                                     NONE => ()
+                                   | SOME (loc, s) =>
+                                     if Settings.isSafeGet s then
+                                         ()
+                                     else
+                                         ErrorMsg.errorAt loc ("A handler (URI prefix \"" ^ s
+                                                               ^ "\") accessible via GET could cause side effects; try accessing it only via forms, removing it from the signature of the main program module, or whitelisting it with the 'safeGet' .urp directive")
+                             else
+                                 ()
+                    val ek = Export.withEffect (ek, eff)
                 in
                     ((DExport (ek, n, push), #2 d), evs)
                 end

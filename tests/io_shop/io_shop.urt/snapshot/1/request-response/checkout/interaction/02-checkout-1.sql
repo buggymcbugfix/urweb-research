@@ -10,5 +10,5 @@ INSERT INTO uw_Io_shop_orders (uw_CartId, uw_Id, uw_Status, uw_Total) VALUES (1,
 INSERT INTO uw_Io_shop_payments (uw_Attempt, uw_OrderId, uw_Outcome) VALUES (1, 1, 'approved');
 -- tests/io_shop/io_shop.ur:33:8-34:50 (1 row)
 UPDATE uw_Io_shop_orders SET uw_Status = 'paid' WHERE (uw_Id = 1);
--- $/basis.urs:722:0-722:33 (2 rows)
+-- $/basis.urs:728:0-728:33 (2 rows)
 DELETE FROM uw_Io_shop_cart WHERE (uw_Id = 1);
