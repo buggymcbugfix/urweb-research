@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Set-Cookie: Action/c=seen.2C+signed; path=/
+Connection: close
+Content-length: 70
+
+<!DOCTYPE html><html><head></head><body>now seen, signed</body></html>

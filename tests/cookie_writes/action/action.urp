@@ -1,0 +1,4 @@
+allow url /Action/main
+safeGet Action/main
+
+action

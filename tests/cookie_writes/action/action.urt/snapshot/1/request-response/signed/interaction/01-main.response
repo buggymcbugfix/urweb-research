@@ -1,0 +1,8 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 283
+
+<!DOCTYPE html><html><head></head><body>
+<form method="post" action="/Action/bump"><input type="hidden" name="Sig" value="EBB87C1447773D0A21C346422419962F3A5298C47756A3FD17B71B3FA27B5A0C" /><input type="text" name="Suffix" /><input type="submit" value="bump" /></form>
+</body></html>
