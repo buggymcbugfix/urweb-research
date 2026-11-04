@@ -121,6 +121,20 @@ fun pushy () : io page =
       <dyn signal={n <- signal s; return <xml>{[n]}</xml>}/>
     </body></xml>
 
+(* Messages sent on a channel from three transactions of the computation,
+   the second of them rolled back: the client gets the first and the third,
+   when it asks for its messages. *)
+fun sender () : io page =
+    ch <- runTransaction channel;
+    runTransaction (send ch "sent by the first transaction");
+    _ <- attemptTransaction (send ch "sent by a rolled-back transaction";
+                             (error <xml>refused</xml> : transaction unit));
+    runTransaction (send ch "sent by the third transaction");
+    s <- runTransaction (source "");
+    return <xml><body onload={let fun loop () = m <- recv ch; set s m; loop () in loop () end}>
+      <dyn signal={v <- signal s; return <xml>{[v]}</xml>}/>
+    </body></xml>
+
 (* A handler with a POST body: an extern, as its transaction twin is. *)
 fun api (pb : postBody) : io page =
     runTransaction (dml (INSERT INTO t (N) VALUES ({[readError (postData pb)]})));
@@ -145,6 +159,7 @@ fun main () : transaction page =
       <a href={io_url (pageRetried ())}>pageRetried</a>
       <a href={io_url (outside ())}>outside</a>
       <a href={io_url (pushy ())}>pushy</a>
+      <a href={io_url (sender ())}>sender</a>
       <a href={io_effectfulUrl query}>query</a>
       <form>
         <textbox{#N}/>
