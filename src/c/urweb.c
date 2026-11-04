@@ -4346,6 +4346,31 @@ static void release_client_of(uw_context ctx) {
     release_client(ctx->client);
 }
 
+// A transactional's callback, called under a setjmp of its own. A callback
+// is to report a failure by setting the error message and returning; one
+// that calls uw_error instead, which the manual forbids, lands here with
+// the message set, and is treated as if it had returned: the commit it
+// was part of fails on the message, as it would have. Without the setjmp
+// its longjmp left uw_commit with the message lock held, or went to a
+// setjmp that had returned (in a request, uw_begin's).
+static void uw_call_transactional(uw_context ctx, void (*callback)(void *), void *data) {
+  jmp_buf outer;
+
+  memcpy(&outer, &ctx->jmp_buf, sizeof(jmp_buf));
+  if (setjmp(ctx->jmp_buf) == 0)
+    callback(data);
+  memcpy(&ctx->jmp_buf, &outer, sizeof(jmp_buf));
+}
+
+static void uw_call_free(uw_context ctx, void (*callback)(void *, int), void *data, int will_retry) {
+  jmp_buf outer;
+
+  memcpy(&outer, &ctx->jmp_buf, sizeof(jmp_buf));
+  if (setjmp(ctx->jmp_buf) == 0)
+    callback(data, will_retry);
+  memcpy(&ctx->jmp_buf, &outer, sizeof(jmp_buf));
+}
+
 // The transactionals the transaction registered, those above the mark
 // (transactionals_base, zero but for a transaction of io code), latest
 // first: their free callbacks, which also take them off the stack, since
@@ -4358,7 +4383,7 @@ static void uw_free_transactionals(uw_context ctx, int will_retry) {
 
   for (i = ctx->used_transactionals-1; i >= (int)ctx->transactionals_base; --i)
     if (ctx->transactionals[i].free)
-      ctx->transactionals[i].free(ctx->transactionals[i].data, will_retry);
+      uw_call_free(ctx, ctx->transactionals[i].free, ctx->transactionals[i].data, will_retry);
 
   ctx->used_transactionals = ctx->transactionals_base;
 }
@@ -4368,7 +4393,7 @@ static void uw_undo_transactionals(uw_context ctx, int will_retry) {
 
   for (i = ctx->used_transactionals-1; i >= (int)ctx->transactionals_base; --i)
     if (ctx->transactionals[i].rollback != NULL)
-      ctx->transactionals[i].rollback(ctx->transactionals[i].data);
+      uw_call_transactional(ctx, ctx->transactionals[i].rollback, ctx->transactionals[i].data);
 
   uw_free_transactionals(ctx, will_retry);
 }
@@ -4378,7 +4403,7 @@ static int uw_commit_transactionals(uw_context ctx, int with_rollback) {
 
   for (i = ctx->used_transactionals-1; i >= (int)ctx->transactionals_base; --i)
     if ((ctx->transactionals[i].rollback != NULL) == with_rollback && ctx->transactionals[i].commit) {
-      ctx->transactionals[i].commit(ctx->transactionals[i].data);
+      uw_call_transactional(ctx, ctx->transactionals[i].commit, ctx->transactionals[i].data);
       if (uw_has_error(ctx))
         return 0;
     }
@@ -5717,7 +5742,6 @@ void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
   memcpy(&t->outer, &ctx->jmp_buf, sizeof(jmp_buf));
   t->attempts_left = UW_RETRY_ATTEMPTS;
   t->failed = 0;
-  t->committing = 0;
   t->headers_used = uw_buffer_used(&ctx->outHeaders);
   t->script_used = uw_buffer_used(&ctx->script);
   t->heap_front = ctx->heap.front;
@@ -5734,11 +5758,7 @@ void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
 }
 
 void uw_io_transaction_commit(uw_context ctx, uw_io_transaction *t) {
-  int conflict;
-
-  t->committing = 1;
-  conflict = uw_commit(ctx);
-  t->committing = 0;
+  int conflict = uw_commit(ctx);
 
   // On every failure uw_commit has already undone and freed the transaction's
   // transactionals, and taken them off the stack.
@@ -5760,31 +5780,23 @@ int uw_io_transaction_retry(uw_context ctx, uw_io_transaction *t, int fk) {
   int again = 0;
   void *ld = ctx->loggers->logger_data;
 
-  if (t->committing) {
-    // The longjmp came out of uw_commit: a transactional's commit callback
-    // called uw_error, which it must not (it is to set the message and
-    // return).  The database may have committed by then, so whatever the
-    // kind, the body is not run again.
-    t->committing = 0;
-    ctx->loggers->log_error(ld, "Error raised by a commit callback in io transaction: %s\n", ctx->error_message);
-  } else
-    switch (fk) {
-    case UNLIMITED_RETRY:
-      ctx->loggers->log_debug(ld, "Error triggers unlimited retry in io transaction: %s\n", ctx->error_message);
-      again = uw_retry_again(fk, &t->attempts_left);
-      break;
-    case BOUNDED_RETRY:
-      ctx->loggers->log_debug(ld, "Error triggers bounded retry in io transaction: %s\n", ctx->error_message);
-      again = uw_retry_again(fk, &t->attempts_left);
-      if (!again)
-        ctx->loggers->log_error(ld, "Fatal error in io transaction (out of retries): %s\n", ctx->error_message);
-      break;
-    case RETURN_INDIRECTLY:
-      uw_set_error_message(ctx, "Tried to redirect or to return a file from a transaction in io code");
-      break;
-    default:
-      break;
-    }
+  switch (fk) {
+  case UNLIMITED_RETRY:
+    ctx->loggers->log_debug(ld, "Error triggers unlimited retry in io transaction: %s\n", ctx->error_message);
+    again = uw_retry_again(fk, &t->attempts_left);
+    break;
+  case BOUNDED_RETRY:
+    ctx->loggers->log_debug(ld, "Error triggers bounded retry in io transaction: %s\n", ctx->error_message);
+    again = uw_retry_again(fk, &t->attempts_left);
+    if (!again)
+      ctx->loggers->log_error(ld, "Fatal error in io transaction (out of retries): %s\n", ctx->error_message);
+    break;
+  case RETURN_INDIRECTLY:
+    uw_set_error_message(ctx, "Tried to redirect or to return a file from a transaction in io code");
+    break;
+  default:
+    break;
+  }
 
   if (uw_rollback(ctx, again))
     ctx->loggers->log_error(ld, "Error running SQL ROLLBACK in io transaction\n");

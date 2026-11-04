@@ -2652,7 +2652,7 @@ int uw_register_transactional(uw_context, void *data, uw_callback commit,
 
   It is not safe for any of these handlers to access a context-local heap through a pointer returned previously by \texttt{uw\_malloc()}, nor should any new calls to that function be made.  Think of the context-local heap as meant for use by the Ur/Web code itself, while transactional handlers execute after the Ur/Web code has finished.
 
-  A handler may signal an error by calling \texttt{uw\_set\_error\_message()}, but it is not safe to call \texttt{uw\_error()} from a handler.  Signaling an error in a commit handler will cause the runtime system to switch to aborting the transaction, immediately after the current commit handler returns.
+  A handler may signal an error by calling \texttt{uw\_set\_error\_message()}, but it is not safe to call \texttt{uw\_error()} from a handler.  Signaling an error in a commit handler will cause the runtime system to switch to aborting the transaction, immediately after the current commit handler returns. A handler that calls \texttt{uw\_error()} all the same is caught by the runtime system and treated as if it had set the message and returned.
 
   \item \begin{verbatim}
 void *uw_get_global(uw_context, char *name);

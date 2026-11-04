@@ -90,7 +90,6 @@ typedef struct {
   jmp_buf outer;    // the jump target to restore afterwards
   int attempts_left; // for uw_retry_again
   int failed;       // the transaction gave up: rolled back, error message kept
-  int committing;   // inside uw_commit: a longjmp from there is a callback's
   // The context as it was when the transaction began, for an attempt that
   // does not commit to go back to
   size_t headers_used, script_used;
