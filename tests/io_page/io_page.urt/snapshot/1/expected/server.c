@@ -21,7 +21,8 @@
        sqlite3_stmt *p2;
         sqlite3_stmt *p3;
          sqlite3_stmt *p4;
-          } uw_conn;
+          sqlite3_stmt *p5;
+           } uw_conn;
     
     static sqlite3_vfs uw_pinned_vfs;
     
@@ -184,19 +185,25 @@
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (200)", -1, &conn->p2, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (300)", -1, &conn->p2, NULL) != SQLITE_OK) {
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_t (uw_N) VALUES (300)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (200)", -1, &conn->p3, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_t (uw_N) VALUES (200)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (100)", -1, &conn->p3, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (100)", -1, &conn->p4, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_t (uw_N) VALUES (100)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)", -1, &conn->p4, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)", -1, &conn->p5, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)", sqlite3_errmsg(conn->conn));
          return 1;
          }
@@ -288,7 +295,8 @@
       if (conn->p2) sqlite3_finalize(conn->p2);
        if (conn->p3) sqlite3_finalize(conn->p3);
         if (conn->p4) sqlite3_finalize(conn->p4);
-         sqlite3_close(conn->conn);
+         if (conn->p5) sqlite3_finalize(conn->p5);
+          sqlite3_close(conn->conn);
     }
     
     static int uw_db_begin(uw_context ctx, int could_write) {
@@ -356,19 +364,30 @@
   static char jslib[] = "*runtime elided*";
    static char jsapp[] = "*script elided*";
   
-  static uw_unit __uwn_initializer_1(uw_context ctx, uw_unit __uwr___0)
+  static uw_unit
+   __uwn_setHeader_1(uw_context ctx, uw_Basis_string __uwr_arg0_0, 
+                      uw_Basis_string __uwr_arg1_1, uw_unit __uwr___2)
+   {
+   return(({
+           uw_Basis_string arg0 = __uwr_arg0_0;
+            uw_Basis_string arg1 = __uwr_arg1_1;
+             uw_Basis_setHeader(ctx, arg0, arg1);
+           }));
+   }
+  
+  static uw_unit __uwn_initializer_2(uw_context ctx, uw_unit __uwr___0)
    {
    return(0);
    }
   
-  static uw_unit __uwn_expunger_2(uw_context ctx, uw_Basis_client __uwr_cli_0)
+  static uw_unit __uwn_expunger_3(uw_context ctx, uw_Basis_client __uwr_cli_0)
    {
    return(0);
    }
   
   
   static uw_Basis_string
-   __uwn_err_3(uw_context ctx, uw_Basis_string __uwr_x_0, uw_unit __uwr___1)
+   __uwn_err_4(uw_context ctx, uw_Basis_string __uwr_x_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_string arg0 = "<body";
@@ -386,10 +405,10 @@
    
   /* cookie Io_page/c */
   
-  static struct __uws_2* __uwn_$revPRIME_unpoly_4(uw_context,
+  static struct __uws_2* __uwn_$revPRIME_unpoly_5(uw_context,
    struct __uws_2*, struct __uws_2*);
    static struct __uws_2*
-    __uwn_$revPRIME_unpoly_4(uw_context ctx, struct __uws_2* __uwr_acc_0, 
+    __uwn_$revPRIME_unpoly_5(uw_context ctx, struct __uws_2* __uwr_acc_0, 
                               struct __uws_2* __uwr_ls_1)
     {restart:
       
@@ -431,9 +450,9 @@
     }
    
   
-  static uw_unit __uwn_$mapXPRIME_unpoly_unpoly_5(uw_context, struct __uws_2*);
+  static uw_unit __uwn_$mapXPRIME_unpoly_unpoly_6(uw_context, struct __uws_2*);
    static uw_unit
-    __uwn_$mapXPRIME_unpoly_unpoly_5(uw_context ctx, struct __uws_2* __uwr_ls_0)
+    __uwn_$mapXPRIME_unpoly_unpoly_6(uw_context ctx, struct __uws_2* __uwr_ls_0)
     {restart:
       
     return(({
@@ -469,7 +488,7 @@
    
   
   static uw_unit
-   __uwn_wrap_list_6(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_list_7(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -477,7 +496,7 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">stored:"), 0),
-                                                      (uw_begin_region(ctx), __uwn_$mapXPRIME_unpoly_unpoly_5(ctx,
+                                                      (uw_begin_region(ctx), __uwn_$mapXPRIME_unpoly_unpoly_6(ctx,
                                                                               ({
                                                                                uw_io_transaction __uwt;
                                                                                struct
@@ -584,7 +603,7 @@
                                                                                acc;
                                                                                })
                                                                                ;
-                                                                               __uwn_$revPRIME_unpoly_4(ctx,
+                                                                               __uwn_$revPRIME_unpoly_5(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -604,7 +623,7 @@
    }
   
   static uw_Basis_int
-   __uwn_count_7(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
+   __uwn_count_8(uw_context ctx, uw_unit __uwr_$x_0, uw_unit __uwr___1)
    {
    return(({
            uw_io_transaction __uwt;
@@ -691,7 +710,7 @@
                 ({
                  uw_Basis_int
                  tmp;
-                 uw_error(ctx, FATAL, "tests/io_page/io_page.ur:76:4-76:56: pattern match failure");
+                 uw_error(ctx, FATAL, "tests/io_page/io_page.ur:115:4-115:56: pattern match failure");
                  tmp;
                  });
               });
@@ -707,7 +726,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_query_8(uw_context ctx, uw_Basis_queryString __uwr_x0_0, 
+   __uwn_wrap_query_9(uw_context ctx, uw_Basis_queryString __uwr_x0_0, 
                        uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
@@ -758,7 +777,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_pushy_9(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_pushy_10(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_source __uwr_s_2 =
@@ -823,7 +842,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_outside_10(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_outside_11(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -864,7 +883,437 @@
    }
   
   static uw_unit
-   __uwn_wrap_blob_11(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_pageRetried_12(uw_context ctx, uw_unit __uwr_x0_0, 
+                              uw_unit __uwr___1)
+   {
+   return((uw_write(ctx, ({
+                          uw_io_transaction __uwt;
+                          uw_Basis_string
+                          __uwr;
+                          uw_set_could_write_db(ctx, 0);
+                          uw_io_transaction_begin(ctx, &__uwt);
+                          while (1) {
+                          int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                           if (__uwfk == 0) {
+                           __uwr =
+                            ({
+                             uw_Basis_int __uwr_k_2 =
+                             (uw_begin_region(ctx), uw_Probe_stepT(ctx));
+                             uw_end_region(ctx);
+                              ({
+                               uw_unit __uwr___3 =
+                               (uw_begin_region(ctx), uw_Probe_pageWriteT(ctx,
+                                                       ({
+                                                        uw_Basis_string arg0 =
+                                                         "<written by attempt ";
+                                                         
+                                                         uw_Basis_string arg1 =
+                                                          uw_Basis_intToString(ctx,
+                                                           __uwr_k_2);
+                                                          
+                                                         uw_Basis_string arg2 =
+                                                          ">";
+                                                          uw_Basis_mstrcat(ctx, 
+                                                        arg0, arg1, arg2, NULL);
+                                                        })));
+                               uw_end_region(ctx);
+                                ({
+                                 uw_unit __uwr___4 =
+                                 (uw_begin_region(ctx), uw_Probe_failOnce(ctx,
+                                                         "pageRetried"));
+                                 uw_end_region(ctx);
+                                  ({
+                                   uw_Basis_string arg0 = "<body";
+                                    
+                                    uw_Basis_string arg1 =
+                                     uw_Basis_maybe_onload(ctx,
+                                      uw_Basis_get_settings(ctx, 0));
+                                     
+                                    uw_Basis_string arg2 =
+                                     uw_Basis_maybe_onunload(ctx, "");
+                                     
+                                    uw_Basis_string arg3 =
+                                     ">returned by attempt ";
+                                     
+                                    uw_Basis_string arg4 =
+                                     uw_Basis_htmlifyInt(ctx, __uwr_k_2);
+                                     uw_Basis_string arg5 = "</body>";
+                                      uw_Basis_mstrcat(ctx, arg0, arg1, arg2, 
+                                                             arg3, arg4, arg5,
+                                                                              NULL);
+                                   });
+                                 });
+                               });
+                             });
+                            uw_io_transaction_commit(ctx, &__uwt);
+                            break;
+                            } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                           break;
+                            }
+                           }
+                          uw_io_transaction_end(ctx, &__uwt, 1);
+                          __uwr;
+                          })), 0));
+   }
+  
+  static uw_unit
+   __uwn_wrap_textBlobInside_13(uw_context ctx, uw_unit __uwr_x0_0, 
+                                 uw_unit __uwr___1)
+   {
+   return(((uw_write(ctx, "<body"), 0),
+           (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
+                                                  uw_Basis_get_settings(ctx, 0))), 0),
+            uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
+                                                                       "")), 0),
+                                 uw_end_region(ctx), ((uw_write(ctx, ">handled: "), 0),
+                                                      (uw_begin_region(ctx), uw_Basis_htmlifyString_w(ctx,
+                                                                              ({
+                                                                               uw_unit*
+                                                                               disc
+                                                                               =
+                                                                               ({
+                                                                               uw_io_transaction __uwt;
+                                                                               uw_unit
+                                                                               *__uwr = NULL;
+                                                                               uw_set_could_write_db(ctx, 0);
+                                                                               uw_io_transaction_begin(ctx, &__uwt);
+                                                                               while (1) {
+                                                                               int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                               if (__uwfk == 0) {
+                                                                               uw_unit
+                                                                               __uwv =
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Basis_clear_page(ctx
+                                                                               ),
+                                                                               uw_end_region(ctx),
+                                                                               ((uw_write(ctx, 
+                                                                               "a text longer than the prologue of the page it would replace"), 0),
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               mimeType
+                                                                               =
+                                                                               "text/plain";
+                                                                               uw_unit
+                                                                               tmp;
+                                                                               uw_return_blob_from_page(ctx, mimeType);
+                                                                               tmp;
+                                                                               })));
+                                                                               __uwr = uw_malloc(ctx, sizeof(uw_unit));
+                                                                               *__uwr = __uwv;
+                                                                               uw_io_transaction_commit(ctx, &__uwt);
+                                                                               break;
+                                                                               } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                               __uwr = NULL;
+                                                                               break;
+                                                                               }
+                                                                               }
+                                                                               uw_io_transaction_end(ctx, &__uwt, 0);
+                                                                               __uwr;
+                                                                               });
+                                                                               
+                                                                               disc
+                                                                               ==
+                                                                               NULL
+                                                                               ?
+                                                                               "None"
+                                                                               
+                                                                               :
+                                                                               disc
+                                                                               !=
+                                                                               NULL
+                                                                               &&
+                                                                               1
+                                                                               ?
+                                                                               "Some"
+                                                                               
+                                                                               :
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "$/top.ur:115:10-115:18: pattern match failure");
+                                                                               tmp;
+                                                                               });
+                                                                               })
+                                                                              ),
+                                                       uw_end_region(ctx), ((uw_write(ctx, 
+                                                                             ";\nmessage: "), 0),
+                                                                            (uw_begin_region(ctx),
+                                                                              uw_Basis_htmlifyString_w(ctx,
+                                                                               uw_Basis_io_errorMessage(ctx
+                                                                               )
+                                                                               ),
+                                                                             uw_end_region(ctx),
+                                                                              (uw_write(ctx, 
+                                                                               "</body>"), 0)))))))));
+   }
+  
+  static uw_unit
+   __uwn_wrap_redirectHandled_14(uw_context ctx, uw_unit __uwr_x0_0, 
+                                  uw_unit __uwr___1)
+   {
+   return(((uw_write(ctx, "<body"), 0),
+           (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
+                                                  uw_Basis_get_settings(ctx, 0))), 0),
+            uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
+                                                                       "")), 0),
+                                 uw_end_region(ctx), ((uw_write(ctx, ">handled: "), 0),
+                                                      (uw_begin_region(ctx), uw_Basis_htmlifyString_w(ctx,
+                                                                              ({
+                                                                               uw_unit*
+                                                                               disc
+                                                                               =
+                                                                               ({
+                                                                               uw_io_transaction __uwt;
+                                                                               uw_unit
+                                                                               *__uwr = NULL;
+                                                                               uw_set_could_write_db(ctx, 0);
+                                                                               uw_io_transaction_begin(ctx, &__uwt);
+                                                                               while (1) {
+                                                                               int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                               if (__uwfk == 0) {
+                                                                               uw_unit
+                                                                               __uwv =
+                                                                               ({
+                                                                               uw_unit
+                                                                               __uwr___2
+                                                                               =
+                                                                               (uw_begin_region(ctx),
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               arg0
+                                                                               =
+                                                                               "/";
+                                                                               
+                                                                               uw_Basis_string
+                                                                               arg1
+                                                                               =
+                                                                               "Io_page/c";
+                                                                               
+                                                                               uw_Basis_string
+                                                                               arg2
+                                                                               =
+                                                                               "set+before+the+refused+redirect";
+                                                                               
+                                                                               uw_Basis_time*
+                                                                               arg3
+                                                                               =
+                                                                               NULL;
+                                                                               
+                                                                               uw_Basis_bool
+                                                                               arg4
+                                                                               =
+                                                                               uw_Basis_False;
+                                                                               
+                                                                               uw_Basis_bool
+                                                                               arg5
+                                                                               =
+                                                                               uw_Basis_False;
+                                                                               uw_Basis_set_cookie(ctx, 
+                                                                               arg0
+                                                                               ,
+                                                                               
+                                                                               arg1
+                                                                               ,
+                                                                               
+                                                                               arg2
+                                                                               ,
+                                                                               
+                                                                               arg3
+                                                                               ,
+                                                                               
+                                                                               arg4
+                                                                               ,
+                                                                               
+                                                                               arg5
+                                                                               );
+                                                                               }));
+                                                                               uw_end_region(ctx);
+                                                                               ({
+                                                                               uw_unit
+                                                                               __uwr___3
+                                                                               =
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Probe_pageWriteT(ctx,
+                                                                               "<written before the refused redirect>"
+                                                                               ));
+                                                                               uw_end_region(ctx);
+                                                                               ({
+                                                                               uw_unit
+                                                                               tmp;
+                                                                               uw_redirect(ctx, 
+                                                                               "/Io_page/list");
+                                                                               tmp;
+                                                                               });
+                                                                               });
+                                                                               });
+                                                                               __uwr = uw_malloc(ctx, sizeof(uw_unit));
+                                                                               *__uwr = __uwv;
+                                                                               uw_io_transaction_commit(ctx, &__uwt);
+                                                                               break;
+                                                                               } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                               __uwr = NULL;
+                                                                               break;
+                                                                               }
+                                                                               }
+                                                                               uw_io_transaction_end(ctx, &__uwt, 0);
+                                                                               __uwr;
+                                                                               });
+                                                                               
+                                                                               disc
+                                                                               ==
+                                                                               NULL
+                                                                               ?
+                                                                               "None"
+                                                                               
+                                                                               :
+                                                                               disc
+                                                                               !=
+                                                                               NULL
+                                                                               &&
+                                                                               1
+                                                                               ?
+                                                                               "Some"
+                                                                               
+                                                                               :
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "$/top.ur:115:10-115:18: pattern match failure");
+                                                                               tmp;
+                                                                               });
+                                                                               })
+                                                                              ),
+                                                       uw_end_region(ctx), ((uw_write(ctx, 
+                                                                             ";\nmessage: "), 0),
+                                                                            (uw_begin_region(ctx),
+                                                                              uw_Basis_htmlifyString_w(ctx,
+                                                                               uw_Basis_io_errorMessage(ctx
+                                                                               )
+                                                                               ),
+                                                                             uw_end_region(ctx),
+                                                                              (uw_write(ctx, 
+                                                                               "</body>"), 0)))))))));
+   }
+  
+  static uw_unit
+   __uwn_wrap_cookieThenRedirect_15(uw_context ctx, uw_unit __uwr_x0_0, 
+                                     uw_unit __uwr___1)
+   {
+   return(({
+           uw_unit __uwr___2 =
+           (uw_begin_region(ctx), ({
+                                   uw_io_transaction __uwt;
+                                   uw_unit
+                                   __uwr;
+                                   uw_set_could_write_db(ctx, 1);
+                                   uw_io_transaction_begin(ctx, &__uwt);
+                                   while (1) {
+                                   int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                    if (__uwfk == 0) {
+                                    __uwr =
+                                     ({
+                                      uw_unit __uwr___2 =
+                                      (uw_begin_region(ctx), ({
+                                                              uw_Basis_string
+                                                               arg0 = "/";
+                                                               
+                                                               uw_Basis_string
+                                                                arg1 =
+                                                                "Io_page/c";
+                                                                
+                                                               uw_Basis_string
+                                                                arg2 =
+                                                                "set+before+the+redirect";
+                                                                
+                                                               uw_Basis_time*
+                                                                arg3 = NULL;
+                                                                
+                                                               uw_Basis_bool
+                                                                arg4 =
+                                                                uw_Basis_False;
+                                                                
+                                                               uw_Basis_bool
+                                                                arg5 =
+                                                                uw_Basis_False;
+                                                                uw_Basis_set_cookie(ctx, 
+                                                              arg0, arg1, arg2, 
+                                                               arg3, arg4, arg5);
+                                                              }));
+                                      uw_end_region(ctx);
+                                       ({
+                                        uw_unit __uwr___3 =
+                                        (uw_begin_region(ctx), ({
+                                                                uw_Basis_string
+                                                                 arg0 = "X-Io";
+                                                                 
+                                                                 uw_Basis_string
+                                                                  arg1 =
+                                                                  "set before the redirect";
+                                                                 
+                                                                 uw_unit arg2 =
+                                                                  0;
+                                                                __uwn_setHeader_1(ctx,
+                                                                arg0, arg1, 
+                                                                 arg2);
+                                                                }));
+                                        uw_end_region(ctx);
+                                         (uw_begin_region(ctx), ({
+                                          
+                                           
+                                           uw_ensure_transaction(ctx);
+                                           
+                                           uw_conn *conn = uw_get_db(ctx);
+                                            sqlite3_stmt *stmt = conn->p2;
+                                            
+                                            if (stmt == NULL) {
+                                            if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (300)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_t (uw_N) VALUES (300)<br />%s", sqlite3_errmsg(conn->conn));
+                                             conn->p2 = stmt;
+                                             }
+                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+                                            
+                                            int r;
+                                             if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                                             uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                              }
+                                             
+                                             if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_page/io_page.ur:71:20-72:56: DML step failed: %s<br />%s", 
+                                                                    "INSERT INTO uw_Io_page_t (uw_N) VALUES (300)", sqlite3_errmsg(conn->conn));
+                                                                    else if (uw_dml_log_enabled()) {
+                                             char *expanded = sqlite3_expanded_sql(stmt);
+                                              uw_log_dml(ctx, "tests/io_page/io_page.ur:71:20-72:56", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                              sqlite3_free(expanded);
+                                              }
+                                             uw_pop_cleanup(ctx);
+                                            uw_pop_cleanup(ctx);
+                                            
+                                          
+                                          uw_end_region(ctx);
+                                          0;
+                                          }));
+                                        });
+                                      });
+                                     uw_io_transaction_commit(ctx, &__uwt);
+                                     break;
+                                     } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                    break;
+                                     }
+                                    }
+                                   uw_io_transaction_end(ctx, &__uwt, 1);
+                                   __uwr;
+                                   }));
+           uw_end_region(ctx);
+            (uw_write(ctx, ({
+                            uw_Basis_string
+                            tmp;
+                            uw_redirect(ctx, "/Io_page/list");
+                            tmp;
+                            })), 0);
+           }));
+   }
+  
+  static uw_unit
+   __uwn_wrap_blob_16(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_Basis_int __uwr_n_2 =
@@ -990,7 +1439,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_redirectInside_12(uw_context ctx, uw_unit __uwr_x0_0, 
+   __uwn_wrap_redirectInside_17(uw_context ctx, uw_unit __uwr_x0_0, 
                                  uw_unit __uwr___1)
    {
    return((uw_write(ctx, ({
@@ -1011,11 +1460,11 @@
                                uw_ensure_transaction(ctx);
                                
                                uw_conn *conn = uw_get_db(ctx);
-                                sqlite3_stmt *stmt = conn->p2;
+                                sqlite3_stmt *stmt = conn->p3;
                                 
                                 if (stmt == NULL) {
                                 if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (200)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_t (uw_N) VALUES (200)<br />%s", sqlite3_errmsg(conn->conn));
-                                 conn->p2 = stmt;
+                                 conn->p3 = stmt;
                                  }
                                 uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                 uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -1058,7 +1507,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_fails_13(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_fails_18(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -1078,11 +1527,11 @@
                                        uw_ensure_transaction(ctx);
                                        
                                        uw_conn *conn = uw_get_db(ctx);
-                                        sqlite3_stmt *stmt = conn->p3;
+                                        sqlite3_stmt *stmt = conn->p4;
                                         
                                         if (stmt == NULL) {
                                         if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (100)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_t (uw_N) VALUES (100)<br />%s", sqlite3_errmsg(conn->conn));
-                                         conn->p3 = stmt;
+                                         conn->p4 = stmt;
                                          }
                                         uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                         uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -1146,7 +1595,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_retried_14(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_retried_19(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return((uw_write(ctx, ({
                           uw_io_transaction __uwt;
@@ -1176,11 +1625,11 @@
                                                           uw_ensure_transaction(ctx);
                                                           
                                                           uw_conn *conn = uw_get_db(ctx);
-                                                           sqlite3_stmt *stmt = conn->p4;
+                                                           sqlite3_stmt *stmt = conn->p5;
                                                            
                                                            if (stmt == NULL) {
                                                            if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)<br />%s", sqlite3_errmsg(conn->conn));
-                                                            conn->p4 = stmt;
+                                                            conn->p5 = stmt;
                                                             }
                                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -1243,7 +1692,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_cookies_15(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_cookies_20(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -1291,7 +1740,9 @@
                                          
                                          uw_Basis_string arg1 =
                                           "set in the first transaction";
-                                          uw_Basis_setHeader(ctx, arg0, arg1);
+                                         uw_unit arg2 = 0;
+                                        __uwn_setHeader_1(ctx,
+                                        arg0, arg1, arg2);
                                         });
                                       });
                                      uw_io_transaction_commit(ctx, &__uwt);
@@ -1500,7 +1951,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_stepped_16(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_stepped_21(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -1517,7 +1968,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_add_17(uw_context ctx, struct __uws_5 __uwr_x0_0, 
+   __uwn_wrap_add_22(uw_context ctx, struct __uws_5 __uwr_x0_0, 
                       uw_unit __uwr___1)
    {
    return(({
@@ -1540,11 +1991,11 @@
                                        uw_ensure_transaction(ctx);
                                        
                                        uw_conn *conn = uw_get_db(ctx);
-                                        sqlite3_stmt *stmt = conn->p4;
+                                        sqlite3_stmt *stmt = conn->p5;
                                         
                                         if (stmt == NULL) {
                                         if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)<br />%s", sqlite3_errmsg(conn->conn));
-                                         conn->p4 = stmt;
+                                         conn->p5 = stmt;
                                          }
                                         uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                         uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -1589,7 +2040,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_api_18(uw_context ctx, uw_Basis_postBody __uwr_x0_0, 
+   __uwn_wrap_api_23(uw_context ctx, uw_Basis_postBody __uwr_x0_0, 
                       uw_unit __uwr___1)
    {
    return(({
@@ -1612,26 +2063,26 @@
                                        uw_ensure_transaction(ctx);
                                        
                                        uw_conn *conn = uw_get_db(ctx);
-                                        sqlite3_stmt *stmt = conn->p4;
+                                        sqlite3_stmt *stmt = conn->p5;
                                         
                                         if (stmt == NULL) {
                                         if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)<br />%s", sqlite3_errmsg(conn->conn));
-                                         conn->p4 = stmt;
+                                         conn->p5 = stmt;
                                          }
                                         uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                         uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
-                                        if (sqlite3_bind_int64(stmt, 1, arg1) != SQLITE_OK) uw_error(ctx, FATAL, "tests/io_page/io_page.ur:87:4-87:81: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
+                                        if (sqlite3_bind_int64(stmt, 1, arg1) != SQLITE_OK) uw_error(ctx, FATAL, "tests/io_page/io_page.ur:126:4-126:81: Error binding parameter #1: %s", sqlite3_errmsg(conn->conn));
                                          
                                         int r;
                                          if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
                                          uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
                                           }
                                          
-                                         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_page/io_page.ur:87:4-87:81: DML step failed: %s<br />%s", 
+                                         if (r != SQLITE_DONE) uw_error(ctx, FATAL, "tests/io_page/io_page.ur:126:4-126:81: DML step failed: %s<br />%s", 
                                                                 "INSERT INTO uw_Io_page_t (uw_N) VALUES (\?)", sqlite3_errmsg(conn->conn));
                                                                 else if (uw_dml_log_enabled()) {
                                          char *expanded = sqlite3_expanded_sql(stmt);
-                                          uw_log_dml(ctx, "tests/io_page/io_page.ur:87:4-87:81", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                          uw_log_dml(ctx, "tests/io_page/io_page.ur:126:4-126:81", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
                                           sqlite3_free(expanded);
                                           }
                                          uw_pop_cleanup(ctx);
@@ -1668,14 +2119,14 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_19(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_24(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
                                                   uw_Basis_get_settings(ctx, 0))), 0),
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
-                                 uw_end_region(ctx), (uw_write(ctx, ">\n<a href=\"/Io_page/list\">list</a>\n<a href=\"/Io_page/stepped\">stepped</a>\n<a href=\"/Io_page/cookies\">cookies</a>\n<a href=\"/Io_page/retried\">retried</a>\n<a href=\"/Io_page/fails\">fails</a>\n<a href=\"/Io_page/redirectInside\">redirectInside</a>\n<a href=\"/Io_page/blob\">blob</a>\n<a href=\"/Io_page/outside\">outside</a>\n<a href=\"/Io_page/pushy\">pushy</a>\n<a href=\"/Io_page/query\">query</a>\n<form method=\"post\" action=\"/Io_page/add\">\n<input type=\"text\" name=\"N\" />\n<input type=\"submit\" value=\"add\" />\n</form>\n</body>"), 0)))));
+                                 uw_end_region(ctx), (uw_write(ctx, ">\n<a href=\"/Io_page/list\">list</a>\n<a href=\"/Io_page/stepped\">stepped</a>\n<a href=\"/Io_page/cookies\">cookies</a>\n<a href=\"/Io_page/retried\">retried</a>\n<a href=\"/Io_page/fails\">fails</a>\n<a href=\"/Io_page/redirectInside\">redirectInside</a>\n<a href=\"/Io_page/blob\">blob</a>\n<a href=\"/Io_page/cookieThenRedirect\">cookieThenRedirect</a>\n<a href=\"/Io_page/redirectHandled\">redirectHandled</a>\n<a href=\"/Io_page/textBlobInside\">textBlobInside</a>\n<a href=\"/Io_page/pageRetried\">pageRetried</a>\n<a href=\"/Io_page/outside\">outside</a>\n<a href=\"/Io_page/pushy\">pushy</a>\n<a href=\"/Io_page/query\">query</a>\n<form method=\"post\" action=\"/Io_page/add\">\n<input type=\"text\" name=\"N\" />\n<input type=\"submit\" value=\"add\" />\n</form>\n</body>"), 0)))));
    }
   
  
@@ -1741,7 +2192,7 @@
    }
   
   
-  if (!strcmp(request, "/app.0AC33E1230A61ACEE6EFB866A84A186F851DB5B2.js")) {
+  if (!strcmp(request, "/app.C08D1ED8E5693B3B3385603BCAD5B9425565D3DC.js")) {
    uw_write_header(ctx, "Content-Type: text/javascript\r\n");
     uw_write_header(ctx, "Last-Modified: Thu, 01 Jan 1970 00:00:00 GMT\r\n");
     uw_write_header(ctx, "Cache-Control: max-age=31536000, public\r\n");
@@ -1765,7 +2216,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_19(ctx, arg0, 0);
+    __uwn_wrap_main_24(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     uw_finish_page(ctx);
     return;
@@ -1791,7 +2242,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_api_18(ctx, arg0, 0);
+     __uwn_wrap_api_23(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1829,7 +2280,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_add_17(ctx, uw_inputs, 0);
+     __uwn_wrap_add_22(ctx, uw_inputs, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1859,7 +2310,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_stepped_16(ctx, arg0, 0);
+     __uwn_wrap_stepped_21(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1889,7 +2340,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_cookies_15(ctx, arg0, 0);
+     __uwn_wrap_cookies_20(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1919,7 +2370,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_retried_14(ctx, arg0, 0);
+     __uwn_wrap_retried_19(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1949,7 +2400,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_fails_13(ctx, arg0, 0);
+     __uwn_wrap_fails_18(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1979,7 +2430,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_redirectInside_12(ctx, arg0, 0);
+     __uwn_wrap_redirectInside_17(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -2009,7 +2460,127 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_blob_11(ctx, arg0, 0);
+     __uwn_wrap_blob_16(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, "</html>");
+      uw_finish_page(ctx);
+      return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_page/cookieThenRedirect", 27) && (request[27] == 0 || request[27] == '/')) {
+   request += 27;
+   if (*request == '/') ++request;
+   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+    uw_write(ctx, uw_begin_html5);
+    uw_mayReturnIndirectly(ctx);
+    uw_set_script_header(ctx, "");
+    uw_set_could_write_db(ctx, 1);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     __uwn_wrap_cookieThenRedirect_15(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, "</html>");
+      uw_finish_page(ctx);
+      return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_page/redirectHandled", 24) && (request[24] == 0 || request[24] == '/')) {
+   request += 24;
+   if (*request == '/') ++request;
+   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+    uw_write(ctx, uw_begin_html5);
+    uw_mayReturnIndirectly(ctx);
+    uw_set_script_header(ctx, "");
+    uw_set_could_write_db(ctx, 0);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     __uwn_wrap_redirectHandled_14(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, "</html>");
+      uw_finish_page(ctx);
+      return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_page/textBlobInside", 23) && (request[23] == 0 || request[23] == '/')) {
+   request += 23;
+   if (*request == '/') ++request;
+   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+    uw_write(ctx, uw_begin_html5);
+    uw_mayReturnIndirectly(ctx);
+    uw_set_script_header(ctx, "");
+    uw_set_could_write_db(ctx, 0);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     __uwn_wrap_textBlobInside_13(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, "</html>");
+      uw_finish_page(ctx);
+      return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_page/pageRetried", 20) && (request[20] == 0 || request[20] == '/')) {
+   request += 20;
+   if (*request == '/') ++request;
+   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+    uw_write(ctx, uw_begin_html5);
+    uw_mayReturnIndirectly(ctx);
+    uw_set_script_header(ctx, "");
+    uw_set_could_write_db(ctx, 0);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     __uwn_wrap_pageRetried_12(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -2039,7 +2610,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_outside_10(ctx, arg0, 0);
+     __uwn_wrap_outside_11(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -2057,7 +2628,7 @@
     uw_write_header(ctx, "Content-script-type: text/javascript\r\n");
      uw_write(ctx, uw_begin_html5);
     uw_mayReturnIndirectly(ctx);
-    uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.0AC33E1230A61ACEE6EFB866A84A186F851DB5B2.js\"></script>\n");
+    uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.C08D1ED8E5693B3B3385603BCAD5B9425565D3DC.js\"></script>\n");
     uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 0);
    uw_set_needs_push(ctx, 0);
@@ -2070,7 +2641,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_pushy_9(ctx, arg0, 0);
+     __uwn_wrap_pushy_10(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -2100,7 +2671,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_query_8(ctx, arg0, 0);
+     __uwn_wrap_query_9(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -2133,7 +2704,7 @@
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
      uw_Basis_int it0 =
-      __uwn_count_7(ctx, arg0, 0);
+      __uwn_count_8(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, uw_get_real_script(ctx));
       uw_write(ctx, "\n");
@@ -2164,7 +2735,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_list_6(ctx, arg0, 0);
+     __uwn_wrap_list_7(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -2181,19 +2752,19 @@
  }
  
  static void uw_expunger(uw_context ctx, uw_Basis_client cli) {
-  __uwn_expunger_2(ctx, cli);
+  __uwn_expunger_3(ctx, cli);
    }
  static void uw_initializer(uw_context ctx) {
  uw_set_could_write_db(ctx, 0);
   uw_begin_initializing(ctx);
   uw_end_initializing(ctx);
-  __uwn_initializer_1(ctx, 0);
+  __uwn_initializer_2(ctx, 0);
    }
  static void uw_onError(uw_context ctx, char *msg) {
   uw_set_could_write_db(ctx, 0);
    uw_set_at_most_one_query(ctx, 0);
-  uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.0AC33E1230A61ACEE6EFB866A84A186F851DB5B2.js\"></script>\n");
-   uw_write(ctx, __uwn_err_3(ctx, msg, 0));
+  uw_set_script_header(ctx, "<script type=\"text/javascript\" src=\"/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js\"></script>\n<script type=\"text/javascript\" src=\"/app.C08D1ED8E5693B3B3385603BCAD5B9425565D3DC.js\"></script>\n");
+   uw_write(ctx, __uwn_err_4(ctx, msg, 0));
     }
   
   uw_app uw_application = {1,

@@ -1,0 +1,6 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 97
+
+<!DOCTYPE html><html><head></head><written by attempt 5><body>returned by attempt 5</body></html>

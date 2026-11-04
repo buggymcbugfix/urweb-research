@@ -1734,6 +1734,99 @@ database dbname=io_page.db
              (blessMime "text/plain"))
     
     val rec
+     cookieThenRedirect : (_ :: Type) -> io page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind
+          (runTransaction
+            (Basis.bind
+              (setCookie c
+                {Value = "set before the redirect", Expires = None, 
+                  Secure = False, HttpOnly = False})
+              (fn _ : {} =>
+                Basis.bind
+                 (setHeader (blessResponseHeader "X-Io")
+                   "set before the redirect")
+                 (fn _ : {} => dml (Basis.insert t {N = Basis.sql_inject 300})))))
+          (fn _ : {} => io_redirect (io_url (list {})))
+    
+    val rec
+     redirectHandled : (_ :: Type) -> io page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind
+          (attemptTransaction
+            (Basis.bind
+              (setCookie c
+                {Value = "set before the refused redirect", Expires = None, 
+                  Secure = False, HttpOnly = False})
+              (fn _ : {} =>
+                Basis.bind
+                 (Probe.pageWriteT "<written before the refused redirect>")
+                 (fn _ : {} => (redirect (io_url (list {})) : transaction unit)))))
+          (fn r =>
+            Basis.bind io_errorMessage
+             (fn m =>
+               return
+                (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
+                  (body {})
+                  (Basis.join (Basis.cdata "handled: ")
+                    (Basis.join
+                      (Top.txt (case r of None => "None" | Some {} => "Some"))
+                      (Basis.join (Basis.cdata ";")
+                        (Basis.join (Basis.cdata "\n")
+                          (Basis.join (Basis.cdata "      message: ")
+                            (Top.txt m)))))))))
+    
+    val rec
+     textBlobInside : (_ :: Type) -> io page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind
+          (attemptTransaction
+            (returnBlob
+              (textBlob
+                "a text longer than the prologue of the page it would replace")
+              (blessMime "text/plain") : transaction unit))
+          (fn r =>
+            Basis.bind io_errorMessage
+             (fn m =>
+               return
+                (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
+                  (body {})
+                  (Basis.join (Basis.cdata "handled: ")
+                    (Basis.join
+                      (Top.txt (case r of None => "None" | Some {} => "Some"))
+                      (Basis.join (Basis.cdata ";")
+                        (Basis.join (Basis.cdata "\n")
+                          (Basis.join (Basis.cdata "      message: ")
+                            (Top.txt m)))))))))
+    
+    val rec
+     pageRetried : (_ :: Type) -> io page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         runTransaction
+          (Basis.bind Probe.stepT
+            (fn k =>
+              Basis.bind
+               (Probe.pageWriteT
+                 (Basis.strcat "<written by attempt "
+                   (Basis.strcat (show k) ">")))
+               (fn _ : {} =>
+                 Basis.bind (Probe.failOnce "pageRetried")
+                  (fn _ : {} =>
+                    return
+                     (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None
+                       {} (body {})
+                       (Basis.join (Basis.cdata "returned by attempt ")
+                         (Top.txt k)))))))
+    
+    val rec
      outside : (_ :: Type) -> io page =
       fn $x : (_ :: Type) =>
        case $x of
@@ -1890,10 +1983,10 @@ database dbname=io_page.db
                                                               Basis.None
                                                               {Href =
                                                                 io_url
-                                                                 (outside {})}
-                                                              (a {})
+                                                                 (cookieThenRedirect
+                                                                   {})} (a {})
                                                               (Basis.cdata
-                                                                "outside"))
+                                                                "cookieThenRedirect"))
                                                             (Basis.join
                                                               (Basis.cdata "\n")
                                                               (Basis.join
@@ -1908,12 +2001,12 @@ database dbname=io_page.db
                                                                     Basis.None
                                                                     {Href =
                                                                       io_url
-                                                                       (pushy
+                                                                       (redirectHandled
                                                                          {})}
                                                                     (a {})
                                                                     (Basis.
                                                                       cdata
-                                                                      "pushy"))
+                                                                      "redirectHandled"))
                                                                   (Basis.join
                                                                     (Basis.
                                                                       cdata
@@ -1936,13 +2029,14 @@ database dbname=io_page.db
                                                                            None
                                                                           {Href
                                                                             =
-                                                                            io_effectfulUrl
-                                                                             query
+                                                                            io_url
+                                                                             (textBlobInside
+                                                                               {})
                                                                            }
                                                                           (a {})
                                                                           (Basis.
                                                                             cdata
-                                                                            "query"))
+                                                                            "textBlobInside"))
                                                                         (Basis.
                                                                           join
                                                                           (Basis.
@@ -1956,6 +2050,137 @@ database dbname=io_page.db
                                                                             (Basis.
                                                                               join
                                                                               (Basis.
+                                                                               tag
+                                                                               Basis.
+                                                                               null
+                                                                               Basis.
+                                                                               None
+                                                                               Basis.
+                                                                               noStyle
+                                                                               Basis.
+                                                                               None
+                                                                               {Href
+                                                                               =
+                                                                               io_url
+                                                                               (pageRetried
+                                                                               {})
+                                                                               }
+                                                                               (a
+                                                                               {})
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "pageRetried"))
+                                                                              (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "\n")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "      ")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               tag
+                                                                               Basis.
+                                                                               null
+                                                                               Basis.
+                                                                               None
+                                                                               Basis.
+                                                                               noStyle
+                                                                               Basis.
+                                                                               None
+                                                                               {Href
+                                                                               =
+                                                                               io_url
+                                                                               (outside
+                                                                               {})
+                                                                               }
+                                                                               (a
+                                                                               {})
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "outside"))
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "\n")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "      ")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               tag
+                                                                               Basis.
+                                                                               null
+                                                                               Basis.
+                                                                               None
+                                                                               Basis.
+                                                                               noStyle
+                                                                               Basis.
+                                                                               None
+                                                                               {Href
+                                                                               =
+                                                                               io_url
+                                                                               (pushy
+                                                                               {})
+                                                                               }
+                                                                               (a
+                                                                               {})
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "pushy"))
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "\n")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "      ")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               tag
+                                                                               Basis.
+                                                                               null
+                                                                               Basis.
+                                                                               None
+                                                                               Basis.
+                                                                               noStyle
+                                                                               Basis.
+                                                                               None
+                                                                               {Href
+                                                                               =
+                                                                               io_effectfulUrl
+                                                                               query
+                                                                               }
+                                                                               (a
+                                                                               {})
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "query"))
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "\n")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "      ")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
                                                                                form
                                                                                Basis.
                                                                                None
@@ -2038,14 +2263,14 @@ database dbname=io_page.db
                                                                                (Basis.
                                                                                cdata
                                                                                "      ")))))))))
-                                                                              (Basis.
+                                                                               (Basis.
                                                                                join
                                                                                (Basis.
                                                                                cdata
                                                                                "\n")
                                                                                (Basis.
                                                                                cdata
-                                                                               "    "))))))))))))))))))))))))))))))))))))
+                                                                               "    "))))))))))))))))))))))))))))))))))))))))))))))))
    end
  export Io_page
  ONERROR

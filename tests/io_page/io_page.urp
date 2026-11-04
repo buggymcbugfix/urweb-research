@@ -13,6 +13,9 @@ safeGet Io_page/retried
 safeGet Io_page/fails
 safeGet Io_page/redirectInside
 safeGet Io_page/outside
+safeGet Io_page/cookieThenRedirect
+safeGet Io_page/redirectHandled
+safeGet Io_page/pageRetried
 
 $/list
 $/option

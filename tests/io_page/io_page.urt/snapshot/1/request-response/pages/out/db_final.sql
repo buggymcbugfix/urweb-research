@@ -7,4 +7,5 @@ INSERT INTO uw_Io_page_t VALUES(7);
 INSERT INTO uw_Io_page_t VALUES(3);
 INSERT INTO uw_Io_page_t VALUES(100);
 INSERT INTO uw_Io_page_t VALUES(42);
+INSERT INTO uw_Io_page_t VALUES(300);
 COMMIT;
