@@ -1,1 +1,4 @@
-{"endpoints": [{"method": "GET", "url": "Urs_io/main", "content-type": null}]}
+{"endpoints":
+ [{"method": "GET", "url": "Urs_io/page", "content-type": null},
+                                                                
+   {"method": "GET", "url": "Urs_io/main", "content-type": null}]}

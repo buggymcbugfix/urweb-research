@@ -35,16 +35,57 @@ datatype effect =
        | ReadCookieWrite
        | ReadWrite
 
+(* What a handler is reached as, and the monad its function runs in: a
+ * transaction, or, for the kinds named Io, an io computation. *)
 datatype export_kind =
          Link of effect
        | Action of effect
        | Rpc of effect
-       | IoRpc of effect (* an RPC whose function is an io computation *)
        | Extern of effect
+       | IoLink of effect
+       | IoAction of effect
+       | IoRpc of effect
+       | IoExtern of effect
 
 fun isRpc (Rpc _) = true
   | isRpc (IoRpc _) = true
   | isRpc _ = false
+
+fun isLink (Link _) = true
+  | isLink (IoLink _) = true
+  | isLink _ = false
+
+fun isAction (Action _) = true
+  | isAction (IoAction _) = true
+  | isAction _ = false
+
+fun isIo (IoLink _) = true
+  | isIo (IoAction _) = true
+  | isIo (IoRpc _) = true
+  | isIo (IoExtern _) = true
+  | isIo _ = false
+
+fun effect ek =
+    case ek of
+        Link ef => ef
+      | Action ef => ef
+      | Rpc ef => ef
+      | Extern ef => ef
+      | IoLink ef => ef
+      | IoAction ef => ef
+      | IoRpc ef => ef
+      | IoExtern ef => ef
+
+fun withEffect (ek, ef) =
+    case ek of
+        Link _ => Link ef
+      | Action _ => Action ef
+      | Rpc _ => Rpc ef
+      | Extern _ => Extern ef
+      | IoLink _ => IoLink ef
+      | IoAction _ => IoAction ef
+      | IoRpc _ => IoRpc ef
+      | IoExtern _ => IoExtern ef
 
 fun p_effect ef =
     case ef of
@@ -57,7 +98,10 @@ fun p_export_kind ck =
         Link ef => box [string "link(", p_effect ef, string ")"]
       | Action ef => box [string "action(", p_effect ef, string ")"]
       | Rpc ef => box [string "rpc(", p_effect ef, string ")"]
-      | IoRpc ef => box [string "io_rpc(", p_effect ef, string ")"]
       | Extern ef => box [string "extern(", p_effect ef, string ")"]
+      | IoLink ef => box [string "io_link(", p_effect ef, string ")"]
+      | IoAction ef => box [string "io_action(", p_effect ef, string ")"]
+      | IoRpc ef => box [string "io_rpc(", p_effect ef, string ")"]
+      | IoExtern ef => box [string "io_extern(", p_effect ef, string ")"]
 
 end

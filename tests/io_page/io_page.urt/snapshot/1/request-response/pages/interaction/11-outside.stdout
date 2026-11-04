@@ -1,0 +1,4 @@
+transactional inside: commit
+transactional inside: free
+transactional outside: commit
+transactional outside: free

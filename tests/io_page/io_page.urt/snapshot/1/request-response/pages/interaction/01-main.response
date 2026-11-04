@@ -1,0 +1,21 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 553
+
+<!DOCTYPE html><html><head></head><body>
+<a href="/Io_page/list">list</a>
+<a href="/Io_page/stepped">stepped</a>
+<a href="/Io_page/cookies">cookies</a>
+<a href="/Io_page/retried">retried</a>
+<a href="/Io_page/fails">fails</a>
+<a href="/Io_page/redirectInside">redirectInside</a>
+<a href="/Io_page/blob">blob</a>
+<a href="/Io_page/outside">outside</a>
+<a href="/Io_page/pushy">pushy</a>
+<a href="/Io_page/query">query</a>
+<form method="post" action="/Io_page/add">
+<input type="text" name="N" />
+<input type="submit" value="add" />
+</form>
+</body></html>

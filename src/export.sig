@@ -32,18 +32,31 @@ datatype effect =
        | ReadCookieWrite
        | ReadWrite
 
+(* What a handler is reached as, and the monad its function runs in: a
+ * transaction, or, for the kinds named Io, an io computation. *)
 datatype export_kind =
          Link of effect
        | Action of effect
        | Rpc of effect
-       | IoRpc of effect (* an RPC whose function is an io computation *)
        | Extern of effect
+       | IoLink of effect
+       | IoAction of effect
+       | IoRpc of effect
+       | IoExtern of effect
 
 val p_effect : effect Print.printer
 
 (* An RPC of either kind: it answers a value rather than a page, and is
- * called by the client's script. *)
+ * called by the client's script. A link of either kind is reached by
+ * GET, an action of either kind by a form's POST. *)
 val isRpc : export_kind -> bool
+val isLink : export_kind -> bool
+val isAction : export_kind -> bool
+(* Whether the function is an io computation, run by the request outside
+ * any transaction of its own. *)
+val isIo : export_kind -> bool
+val effect : export_kind -> effect
+val withEffect : export_kind * effect -> export_kind
 val p_export_kind : export_kind Print.printer
 
 end

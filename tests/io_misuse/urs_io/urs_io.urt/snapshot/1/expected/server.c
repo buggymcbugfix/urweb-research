@@ -35,6 +35,17 @@
                                                                        "")), 0),
                                  uw_end_region(ctx), (uw_write(ctx, ">up</body>"), 0)))));
    }
+  
+  static uw_unit
+   __uwn_wrap_page_2(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   {
+   return(((uw_write(ctx, "<body"), 0),
+           (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
+                                                  uw_Basis_get_settings(ctx, 0))), 0),
+            uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
+                                                                       "")), 0),
+                                 uw_end_region(ctx), (uw_write(ctx, ">served, as an io page</body>"), 0)))));
+   }
  
  static int uw_input_num(const char *name) {
  return -1;}
@@ -89,7 +100,7 @@
  
  if (uw_serve_file(ctx, request, "Thu, 01 Jan 1970 00:00:00 GMT")) return;
  
- if (!strncmp(request, "/Urs_io/main", 12) && (request[12] == 0 || request[12] == '/')) {
+ if (!strncmp(request, "/Urs_io/page", 12) && (request[12] == 0 || request[12] == '/')) {
   request += 12;
   if (*request == '/') ++request;
   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
@@ -103,12 +114,42 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_1(ctx, arg0, 0);
-   uw_write(ctx, "</html>");
-    uw_finish_page(ctx);
-    return;
+    uw_io_request __uwr;
+   uw_io_request_begin(ctx, &__uwr);
+   {
+   int __uwfk = setjmp(*uw_jmp_buf(ctx));
+    if (__uwfk == 0) {
+    __uwn_wrap_page_2(ctx, arg0, 0);
+     uw_io_request_end(ctx, &__uwr, 0);
+     uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
+     return;
+     } else
+    uw_io_request_end(ctx, &__uwr, __uwfk);
+     }
    }
    }
+  
+  if (!strncmp(request, "/Urs_io/main", 12) && (request[12] == 0 || request[12] == '/')) {
+   request += 12;
+   if (*request == '/') ++request;
+   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+    uw_write(ctx, uw_begin_html5);
+    uw_mayReturnIndirectly(ctx);
+    uw_set_script_header(ctx, "");
+    uw_set_could_write_db(ctx, 0);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     __uwn_wrap_main_1(ctx, arg0, 0);
+    uw_write(ctx, "</html>");
+     uw_finish_page(ctx);
+     return;
+    }
+    }
  uw_clear_headers(ctx);
  uw_write_header(ctx, uw_supports_direct_status ? "HTTP/1.1 404 Not Found\r\n" : "Status: 404 Not Found\r\n");
  uw_write_header(ctx, "Content-type: text/plain\r\n");
@@ -155,5 +196,5 @@
                                 1,
                                   NULL,
                                        uw_served_files,
-                                                       0};
+                                                       1};
  
