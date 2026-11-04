@@ -2,7 +2,7 @@
  [{"method": "GET", "url": "/runtime.678742345B8E282393A78F7E3E4433E00FABF9F2.js", "content-type": 
    "text/javascript"},
                       
-   {"method": "GET", "url": "/app.C08D1ED8E5693B3B3385603BCAD5B9425565D3DC.js", "content-type": 
+   {"method": "GET", "url": "/app.3E6D9DBA4A7BE782ABE65DFDE2DA22C0CD2A6D16.js", "content-type": 
     "text/javascript"},
                        
    {"method": "GET", "url": "Io_page/main", "content-type": null},
@@ -35,6 +35,8 @@
                                                                      
    {"method": "GET", "url": "Io_page/pushy", "content-type": null},
                                                                    
+   {"method": "GET", "url": "Io_page/sender", "content-type": null},
+                                                                    
    {"method": "POST", "url": "Io_page/query", "content-type": null},
                                                                     
    {"method": "POST", "url": "Io_page/count", "content-type": null},

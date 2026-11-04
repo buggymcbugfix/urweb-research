@@ -1,7 +1,7 @@
 HTTP/1.1 200 OK
 Content-type: text/html; charset=utf-8
 Connection: close
-Content-length: 769
+Content-length: 806
 
 <!DOCTYPE html><html><head></head><body>
 <a href="/Io_page/list">list</a>
@@ -17,6 +17,7 @@ Content-length: 769
 <a href="/Io_page/pageRetried">pageRetried</a>
 <a href="/Io_page/outside">outside</a>
 <a href="/Io_page/pushy">pushy</a>
+<a href="/Io_page/sender">sender</a>
 <a href="/Io_page/query">query</a>
 <form method="post" action="/Io_page/add">
 <input type="text" name="N" />

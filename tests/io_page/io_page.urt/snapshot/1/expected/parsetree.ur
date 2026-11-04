@@ -1890,6 +1890,56 @@ database dbname=io_page.db
                            (Basis.join (Basis.cdata "\n") (Basis.cdata "    "))))))))))
     
     val rec
+     sender : (_ :: Type) -> io page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind (runTransaction channel)
+          (fn ch =>
+            Basis.bind
+             (runTransaction (send ch "sent by the first transaction"))
+             (fn _ : {} =>
+               Basis.bind
+                (attemptTransaction
+                  (Basis.bind (send ch "sent by a rolled-back transaction")
+                    (fn _ : {} =>
+                      (error (Basis.cdata "refused") : transaction unit))))
+                (fn _ =>
+                  Basis.bind
+                   (runTransaction (send ch "sent by the third transaction"))
+                   (fn _ : {} =>
+                     Basis.bind (runTransaction (source ""))
+                      (fn s =>
+                        return
+                         (Basis.tag Basis.null Basis.None Basis.noStyle
+                           Basis.None
+                           {Onload =
+                             let
+                              val rec
+                               loop : (_ :: Type) -> (_ :: Type) =
+                                fn $x : (_ :: Type) =>
+                                 case $x of
+                                  {} =>
+                                   Basis.bind (recv ch)
+                                    (fn m =>
+                                      Basis.bind (set s m)
+                                       (fn _ : {} => loop {}))
+                              in
+                              loop {}
+                              end} (body {})
+                           (Basis.join (Basis.cdata "\n")
+                             (Basis.join (Basis.cdata "      ")
+                               (Basis.join
+                                 (Basis.tag Basis.null Basis.None Basis.noStyle
+                                   Basis.None
+                                   {Signal =
+                                     Basis.bind (signal s)
+                                      (fn v => return (Top.txt v))} (dyn {})
+                                   (Basis.cdata [(_ :: _)] [[]] ""))
+                                 (Basis.join (Basis.cdata "\n")
+                                   (Basis.cdata "    ")))))))))))
+    
+    val rec
      api : postBody -> io page =
       fn pb : postBody =>
        Basis.bind
@@ -2160,6 +2210,39 @@ database dbname=io_page.db
                                                                                None
                                                                                {Href
                                                                                =
+                                                                               io_url
+                                                                               (sender
+                                                                               {})
+                                                                               }
+                                                                               (a
+                                                                               {})
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "sender"))
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "\n")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               cdata
+                                                                               "      ")
+                                                                               (Basis.
+                                                                               join
+                                                                               (Basis.
+                                                                               tag
+                                                                               Basis.
+                                                                               null
+                                                                               Basis.
+                                                                               None
+                                                                               Basis.
+                                                                               noStyle
+                                                                               Basis.
+                                                                               None
+                                                                               {Href
+                                                                               =
                                                                                io_effectfulUrl
                                                                                query
                                                                                }
@@ -2270,7 +2353,7 @@ database dbname=io_page.db
                                                                                "\n")
                                                                                (Basis.
                                                                                cdata
-                                                                               "    "))))))))))))))))))))))))))))))))))))))))))))))))
+                                                                               "    ")))))))))))))))))))))))))))))))))))))))))))))))))))
    end
  export Io_page
  ONERROR

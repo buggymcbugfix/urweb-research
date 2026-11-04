@@ -16,6 +16,7 @@ safeGet Io_page/outside
 safeGet Io_page/cookieThenRedirect
 safeGet Io_page/redirectHandled
 safeGet Io_page/pageRetried
+safeGet Io_page/sender
 
 $/list
 $/option
