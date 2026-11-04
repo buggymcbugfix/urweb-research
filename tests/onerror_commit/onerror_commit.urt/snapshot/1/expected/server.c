@@ -1316,8 +1316,9 @@
    }
  static void uw_onError(uw_context ctx, char *msg) {
   uw_set_could_write_db(ctx, 1);
-   uw_write(ctx, __uwn_err_4(ctx, msg, 0));
-    }
+   uw_set_at_most_one_query(ctx, 0);
+  uw_write(ctx, __uwn_err_4(ctx, msg, 0));
+   }
   
   uw_app uw_application = {1,
                              60,
