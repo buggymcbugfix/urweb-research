@@ -63,6 +63,45 @@ fun blob () : io page =
     n <- runTransaction (oneRowE1 (SELECT COUNT( * ) FROM t));
     io_returnBlob (textBlob ("rows: " ^ show n)) (blessMime "text/plain")
 
+(* A cookie and a header set in a transaction that commits, then a
+   redirect by the computation: the response has both. *)
+fun cookieThenRedirect () : io page =
+    runTransaction (setCookie c {Value = "set before the redirect",
+                                 Expires = None, Secure = False, HttpOnly = False};
+                    setHeader (blessResponseHeader "X-Io") "set before the redirect";
+                    dml (INSERT INTO t (N) VALUES (300)));
+    io_redirect (io_url (list ()))
+
+(* A redirect inside a transaction that is handled: refused, and the cookie
+   it set and what it wrote to the page before are taken back with it. *)
+fun redirectHandled () : io page =
+    r <- attemptTransaction (setCookie c {Value = "set before the refused redirect",
+                                          Expires = None, Secure = False, HttpOnly = False};
+                             Probe.pageWriteT "<written before the refused redirect>";
+                             (redirect (io_url (list ())) : transaction unit));
+    m <- io_errorMessage;
+    return <xml><body>handled: {[case r of None => "None" | Some () => "Some"]};
+      message: {[m]}</body></xml>
+
+(* A text returned as a file inside a transaction that is handled: the
+   compiler turns a returnBlob of a textBlob into a rewrite of the page in
+   place, and the refusal has to come before it, so that the page the
+   computation goes on to is whole. *)
+fun textBlobInside () : io page =
+    r <- attemptTransaction (returnBlob (textBlob "a text longer than the prologue of the page it would replace")
+                                        (blessMime "text/plain") : transaction unit);
+    m <- io_errorMessage;
+    return <xml><body>handled: {[case r of None => "None" | Some () => "Some"]};
+      message: {[m]}</body></xml>
+
+(* A transaction that writes to the page and is run a second time: the
+   page has the writes of the attempt that commits, once. *)
+fun pageRetried () : io page =
+    runTransaction (k <- Probe.stepT;
+                    Probe.pageWriteT ("<written by attempt " ^ show k ^ ">");
+                    Probe.failOnce "pageRetried";
+                    return <xml><body>returned by attempt {[k]}</body></xml>)
+
 (* A transactional registered by the computation outside any transaction,
    and one inside: both heard at the end, the outside one by the request's
    own commit. *)
@@ -100,6 +139,10 @@ fun main () : transaction page =
       <a href={io_url (fails ())}>fails</a>
       <a href={io_url (redirectInside ())}>redirectInside</a>
       <a href={io_url (blob ())}>blob</a>
+      <a href={io_url (cookieThenRedirect ())}>cookieThenRedirect</a>
+      <a href={io_url (redirectHandled ())}>redirectHandled</a>
+      <a href={io_url (textBlobInside ())}>textBlobInside</a>
+      <a href={io_url (pageRetried ())}>pageRetried</a>
       <a href={io_url (outside ())}>outside</a>
       <a href={io_url (pushy ())}>pushy</a>
       <a href={io_effectfulUrl query}>query</a>
