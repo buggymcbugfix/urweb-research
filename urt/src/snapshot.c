@@ -17,6 +17,7 @@
 #define _DARWIN_C_SOURCE
 #include <ctype.h>
 #include <errno.h>
+#include <float.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>
@@ -2071,6 +2072,333 @@ static int run_ready(const char *run_dir, enum protocol proto) {
     return report_problems == before;
 }
 
+/* ------------------------------------------------- the database's dump */
+
+/* A real as a dump shows it, chosen by urt rather than by sqlite3, whose
+ * .dump prints reals differently from one version to the next (4.4 is
+ * 4.4 in 3.53 and 4.400000000000000356 in 3.51; 1.0 is 1 in 3.54).  The
+ * form is close to the one 3.53 prints: a whole number below 10^17 as
+ * that number and .0; else 15 significant digits if they read back as
+ * the same double, and 17, which always do, if not; always a decimal
+ * point, so that the value reads back as a real (1.0e+200); and an
+ * infinity as 9.0e+999, which reads back as one.  The digits are the C
+ * library's, correctly rounded, where 3.53's own conversion is now and
+ * then off in the 16th or 17th digit, or takes 17 where 15 do. */
+static void format_real(char *dst, size_t size, double x) {
+    char *e;
+    if (x > DBL_MAX || x < -DBL_MAX) {
+        snprintf(dst, size, "%s9.0e+999", x < 0 ? "-" : "");
+        return;
+    }
+    if (x < 1e17 && x > -1e17 && x == (double) (long long) x) {
+        snprintf(dst, size, "%lld.0", (long long) x);
+        return;
+    }
+    snprintf(dst, size, "%.15g", x);
+    if (strtod(dst, NULL) != x) {
+        snprintf(dst, size, "%.17g", x);
+    }
+    if (!strchr(dst, '.') && strlen(dst) + 3 <= size) {
+        e = strchr(dst, 'e');
+        if (!e) {
+            e = dst + strlen(dst);
+        }
+        memmove(e + 2, e, strlen(e) + 1);
+        e[0] = '.';
+        e[1] = '0';
+    }
+}
+
+/* The double that SQLite's ieee754(X) describes as "ieee754(M,E)": M *
+ * 2^E exactly, which strtod reads from a hexadecimal float without
+ * rounding.  0 when done. */
+static int read_ieee754(const char *s, double *x) {
+    long long m;
+    unsigned long long u;
+    int ex;
+    char hex[64];
+    if (sscanf(s, "ieee754(%lld,%d)", &m, &ex) != 2) {
+        return -1;
+    }
+    u = m < 0 ? 0 - (unsigned long long) m : (unsigned long long) m;
+    snprintf(hex, sizeof hex, "%s0x%llxp%d", m < 0 ? "-" : "", u, ex);
+    *x = strtod(hex, NULL);
+    return 0;
+}
+
+/* The n bytes at s as SQLite's hex() gives them, into dst (2n + 1). */
+static void to_hex(char *dst, const char *s, size_t n) {
+    size_t i;
+    for (i = 0; i < n; i++) {
+        snprintf(dst + 2 * i, 3, "%02X", (unsigned char) s[i]);
+    }
+    dst[2 * n] = 0;
+}
+
+/* The text that SQLite's hex() gave as the n digits at h, as an SQL
+ * identifier in double quotes, to f.  0 when done. */
+static int put_hex_ident(FILE *f, const char *h, size_t n) {
+    size_t i;
+    int a, b;
+    if (n % 2) {
+        return -1;
+    }
+    fputc('"', f);
+    for (i = 0; i < n; i += 2) {
+        a = h[i] >= 'A' ? h[i] - 'A' + 10 : h[i] - '0';
+        b = h[i + 1] >= 'A' ? h[i + 1] - 'A' + 10 : h[i + 1] - '0';
+        if (a < 0 || a > 15 || b < 0 || b > 15) {
+            return -1;
+        }
+        if (a * 16 + b == '"') {
+            fputc('"', f);
+        }
+        fputc(a * 16 + b, f);
+    }
+    fputc('"', f);
+    return 0;
+}
+
+/* Just past the SQL string or quoted identifier that starts, on its
+ * quote, at p, a doubled quote being one inside it; NULL if it does not
+ * end. */
+static const char *past_quoted(const char *p) {
+    char q = *p++;
+    for (; *p; p++) {
+        if (*p == q) {
+            if (p[1] != q) {
+                return p + 1;
+            }
+            p++;
+        }
+    }
+    return NULL;
+}
+
+/* Of the lines "HEX|..." in rows that are not used yet, the first whose
+ * HEX is hex, marked used; NULL if there is none. */
+static const char *take_row(struct strlist *rows, char *used, const char *hex) {
+    size_t n = strlen(hex);
+    int i;
+    for (i = 0; i < rows->n; i++) {
+        if (!used[i] && !strncmp(rows->v[i], hex, n) && rows->v[i][n] == '|') {
+            used[i] = 1;
+            return rows->v[i] + n;
+        }
+    }
+    return NULL;
+}
+
+/* The dump of the database db, written to out: what sqlite3's .dump
+ * prints, with every real in a table's rows printed by format_real
+ * instead.  The reals are read apart, by a SELECT for each table that
+ * gives a line for each row, with ieee754(X) of each column that holds a
+ * real there and nothing for the others; .dump reads the table with the
+ * same SELECT of all its columns and no ORDER BY, so the rows come in
+ * the same order, and the fields of each INSERT INTO t VALUES(...) are
+ * those columns in that order.  An INSERT of another shape (into
+ * sqlite_schema, for a virtual table) is left as it is.  Scratch files go
+ * in dir, what sqlite3 says to err.  0 when done, else -1, with the
+ * reason in *why, or NULL there when sqlite3 failed and err says why. */
+static int dump_database(const char *db, const char *dir, const char *out, const char *err, const char **why) {
+    static char *dump[] = { "sqlite3", "-safe", "-batch", NULL, ".dump", NULL };
+    static char *columns[] = { "sqlite3", "-safe", "-batch", "-bail", NULL,
+        "SELECT hex(m.name) || '|' || hex(p.name) FROM sqlite_master AS m, pragma_table_info(m.name) AS p"
+        " WHERE m.type = 'table' AND m.sql NOT LIKE 'CREATE VIRTUAL%' ORDER BY m.name, p.cid;", NULL };
+    static char *reals[] = { "sqlite3", "-safe", "-batch", "-bail", NULL, NULL };
+    char dump_file[PATHLEN], columns_file[PATHLEN], script_file[PATHLEN], reals_file[PATHLEN];
+    char *text = NULL, *cols = NULL, *found = NULL, *used = NULL, *hex = NULL, *s, *bar, *eol;
+    char real[40];
+    const char *p, *q, *c, *start, *field, *row, *table = NULL;
+    size_t table_len = 0;
+    struct strlist rows = { 0, 0, 0 };
+    FILE *f = NULL;
+    double x;
+    int r = -1, i, depth;
+
+    join(dump_file, dir, "dump.sql");
+    join(columns_file, dir, "columns.txt");
+    join(script_file, dir, "reals.sql");
+    join(reals_file, dir, "reals.txt");
+    dump[3] = columns[4] = reals[4] = (char *) db;
+
+    *why = NULL;
+    if (run(dump, dump_file, err) != 0 || run(columns, columns_file, err) != 0) {
+        goto done;
+    }
+    *why = "cannot read what sqlite3 printed";
+    if (!(text = read_text(dump_file)) || !(cols = read_text(columns_file))) {
+        goto done;
+    }
+
+    /* The SELECT of each table, its columns in the order columns.txt has
+     * them, each line there being the table's name and a column's, in
+     * hex. */
+    if (!(f = fopen(script_file, "w"))) {
+        *why = fmt("cannot write %s: %s", script_file, strerror(errno));
+        goto done;
+    }
+    for (s = cols; *s; s = eol + 1) {
+        eol = strchr(s, '\n');
+        bar = strchr(s, '|');
+        if (!eol || !bar || bar > eol) {
+            goto done;
+        }
+        if (!table || (size_t) (bar - s) != table_len || strncmp(table, s, table_len)) {
+            if (table && (fputs(" FROM ", f) < 0 || put_hex_ident(f, table, table_len) < 0 || fputs(";\n", f) < 0)) {
+                goto done;
+            }
+            table = s;
+            table_len = (size_t) (bar - s);
+            fprintf(f, "SELECT '%.*s'", (int) table_len, table);
+        }
+        if (fputs(", CASE typeof(", f) < 0 || put_hex_ident(f, bar + 1, (size_t) (eol - bar - 1)) < 0
+            || fputs(") WHEN 'real' THEN ieee754(", f) < 0 || put_hex_ident(f, bar + 1, (size_t) (eol - bar - 1)) < 0
+            || fputs(") END", f) < 0) {
+            goto done;
+        }
+    }
+    if (table && (fputs(" FROM ", f) < 0 || put_hex_ident(f, table, table_len) < 0 || fputs(";\n", f) < 0)) {
+        goto done;
+    }
+    if (fclose(f) != 0) {
+        f = NULL;
+        *why = fmt("cannot write %s: %s", script_file, strerror(errno));
+        goto done;
+    }
+    f = NULL;
+    *why = NULL;
+    if (run_in(reals, script_file, reals_file, err) != 0) {
+        goto done;
+    }
+    *why = "cannot read what sqlite3 printed";
+    if (!(found = read_text(reals_file))) {
+        goto done;
+    }
+    for (s = found; *s; s = eol + 1) {
+        if (!(eol = strchr(s, '\n'))) {
+            goto done;
+        }
+        *eol = 0;
+        sl_push(&rows, s);
+    }
+    used = xmalloc((size_t) rows.n + 1);
+    memset(used, 0, (size_t) rows.n + 1);
+
+    /* The dump, with the reals of the rows replaced. */
+    if (!(f = fopen(out, "w"))) {
+        *why = fmt("cannot write %s: %s", out, strerror(errno));
+        goto done;
+    }
+    *why = "cannot read what sqlite3's .dump printed";
+    for (p = text; *p; ) {
+        if (!has_prefix(p, "INSERT INTO ")) {
+            q = strchr(p, '\n');
+            q = q ? q + 1 : p + strlen(p);
+            fwrite(p, 1, (size_t) (q - p), f);
+            p = q;
+            continue;
+        }
+        /* INSERT INTO name VALUES(field,...);  The name is bare or in
+         * double quotes; a field is a literal, or a call such as
+         * unistr('...') or replace(...). */
+        start = p + strlen("INSERT INTO ");
+        if (*start == '"') {
+            if (!(q = past_quoted(start))) {
+                goto done;
+            }
+            free(hex);
+            hex = xmalloc(2 * (size_t) (q - start) + 1);
+            /* The name unquoted, in hex. */
+            for (i = 0, c = start + 1; c < q - 1; c++) {
+                to_hex(hex + 2 * i++, c, 1);
+                if (*c == '"') {
+                    c++;
+                }
+            }
+            hex[2 * i] = 0;
+        } else {
+            for (q = start; *q && *q != ' ' && *q != '(' && *q != '\n'; q++) {
+            }
+            free(hex);
+            hex = xmalloc(2 * (size_t) (q - start) + 1);
+            to_hex(hex, start, (size_t) (q - start));
+        }
+        if (!has_prefix(q, " VALUES(") || !(row = take_row(&rows, used, hex))) {
+            /* Not a row of a table read above. */
+            q = strchr(p, '\n');
+            q = q ? q + 1 : p + strlen(p);
+            fwrite(p, 1, (size_t) (q - p), f);
+            p = q;
+            continue;
+        }
+        q += strlen(" VALUES(");
+        fwrite(p, 1, (size_t) (q - p), f);
+        for (;;) {
+            /* row is at the '|' before this field's entry. */
+            if (*row != '|') {
+                goto done;
+            }
+            row++;
+            field = q;
+            for (depth = 0; *q && (depth || (*q != ',' && *q != ')')); q++) {
+                if (*q == '\'' || *q == '"') {
+                    if (!(q = past_quoted(q))) {
+                        goto done;
+                    }
+                    q--;
+                } else if (*q == '(') {
+                    depth++;
+                } else if (*q == ')') {
+                    depth--;
+                }
+            }
+            if (!*q) {
+                goto done;
+            }
+            if (*row && *row != '|') {
+                if (read_ieee754(row, &x) < 0) {
+                    goto done;
+                }
+                format_real(real, sizeof real, x);
+                fputs(real, f);
+                row = strchr(row, '|');
+                row = row ? row : "";
+            } else {
+                fwrite(field, 1, (size_t) (q - field), f);
+            }
+            fputc(*q, f);
+            if (*q++ == ')') {
+                break;
+            }
+        }
+        if (*row) {
+            /* The table has more columns than the INSERT has fields. */
+            goto done;
+        }
+        p = q;
+    }
+    if (fclose(f) != 0) {
+        f = NULL;
+        *why = fmt("cannot write %s: %s", out, strerror(errno));
+        goto done;
+    }
+    f = NULL;
+    r = 0;
+
+done:
+    if (f) {
+        fclose(f);
+    }
+    free(text);
+    free(cols);
+    free(found);
+    free(used);
+    free(hex);
+    sl_free(&rows);
+    return r;
+}
+
 /* One run of the application exe: start it, send the requests, stop it,
  * and compare or record what came of it.  A cgi or static program (proto)
  * is started for each request instead. */
@@ -2383,11 +2711,11 @@ static void run_run(const char *run_dir, const char *exe, enum protocol proto) {
     sl_push(&outputs, "out/shutdown.stdout");
     sl_push(&outputs, "out/shutdown.stderr");
     if (has_db) {
-        static char *dump[] = { "sqlite3", "-safe", "-batch", NULL, ".dump", NULL };
-        dump[3] = db;
-        if (run(dump, fmt("%s/out/db_final.sql", rw), fmt("%s/sqlite.err", rw)) != 0) {
+        const char *why;
+        if (dump_database(db, rw, fmt("%s/out/db_final.sql", rw), fmt("%s/sqlite.err", rw), &why) < 0) {
             /* The run failed, then, and nothing of it is recorded. */
-            die_later(fmt("cannot dump the database of %s", test(run_dir)), head_of(fmt("%s/sqlite.err", rw), "(sqlite3 said nothing)"), NULL);
+            die_later(fmt("cannot dump the database of %s", test(run_dir)),
+                      why ? why : head_of(fmt("%s/sqlite.err", rw), "(sqlite3 said nothing)"), NULL);
             sl_free(&files);
             sl_free(&outputs);
             return;

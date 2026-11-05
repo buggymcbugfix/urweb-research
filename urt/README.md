@@ -24,7 +24,9 @@ printed meanwhile (`NAME.stdout`, `NAME.stderr`), each only if there was
 anything; under `out/`, what the application did before the first
 request (`startup.sql`, `startup.stdout`, `startup.stderr`: a `task
 initialize` shows here) and printed after the last (`shutdown.stdout`,
-`shutdown.stderr`), and the database it left behind (`db_final.sql`).
+`shutdown.stderr`), and the database it left behind (`db_final.sql`,
+as `sqlite3`'s `.dump` prints it, but with the reals printed by urt,
+since how `sqlite3` prints them changes from one version to the next).
 The application's clock and random numbers are
 pinned through its environment (`URWEB_REPRODUCIBLE_EPOCH`,
 `URWEB_REPRODUCIBLE_PRNG_SEED`; see `src/c/reproducible.c` in the
