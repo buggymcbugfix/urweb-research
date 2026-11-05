@@ -33,6 +33,7 @@
 # it kept, and its answer says which request on that connection it is.
 # APP_MODE=exit1 makes it exit 1 before anything, with a line on stderr.
 
+import errno
 import os
 import select
 import socket
@@ -148,10 +149,13 @@ while True:
             write_record(conn, STDOUT, request_id, b"")
             conn.sendall(struct.pack(">BBHHBB", 1, END_REQUEST, request_id, 8, 0, 0)
                          + struct.pack(">IB", 0, 3 if path == "/proto3" else 0) + bytes(3))
-        except (BrokenPipeError, ConnectionResetError):
+        except OSError as e:
             # The other side may stop reading at an earlier record (/id2): its
-            # outcome to record, not ours to die of.
-            pass
+            # outcome to record, not ours to die of.  A write to a Unix socket
+            # whose peer has closed fails with EPIPE, or on macOS and FreeBSD
+            # also with ENOTCONN, once the kernel has disconnected the pair.
+            if e.errno not in (errno.EPIPE, errno.ECONNRESET, errno.ENOTCONN):
+                raise
         if not keep or path == "/bye":
             conn.close()
             break
