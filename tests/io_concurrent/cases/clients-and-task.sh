@@ -17,7 +17,7 @@ for c in A B C D; do took slow$c; done
 for c in A B C D; do for i in 1 2 3; do took quick$c$i; done; done
 for c in A B C D; do for i in 1 2 3; do tidy < "$out/$transcript_name.quick$c$i.out" | tail -1 | sed "s/^/quick$c$i: /"; done; done
 for c in A B C D; do
-  echo "polls of $c answered with ticks: $(awk '$1 > 0' "$out/$transcript_name.polls.$c" | wc -l) of $(wc -l < "$out/$transcript_name.polls.$c")"
+  echo "polls of $c answered with ticks: $(awk '$1 > 0 { n++ } END { print n + 0 }' "$out/$transcript_name.polls.$c") of $(awk 'END { print NR }' "$out/$transcript_name.polls.$c")"
 done
 rows
 log_kinds

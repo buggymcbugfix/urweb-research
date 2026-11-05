@@ -20,7 +20,7 @@ done
 wait
 took slowA
 show slowA
-polls=$(wc -l < "$out/$transcript_name.polls")
+polls=$(awk 'END { print NR }' "$out/$transcript_name.polls")
 if [ "$polls" -ge 3 ]; then echo "polls answered while the RPC ran: several"; else echo "polls answered while the RPC ran: $polls"; fi
 show_log
 wait_for "a client left"
