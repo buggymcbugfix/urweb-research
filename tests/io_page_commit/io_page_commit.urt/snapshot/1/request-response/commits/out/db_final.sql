@@ -9,5 +9,4 @@ INSERT INTO uw_Io_page_commit_t VALUES(5);
 INSERT INTO uw_Io_page_commit_t VALUES(6);
 INSERT INTO uw_Io_page_commit_t VALUES(2);
 INSERT INTO uw_Io_page_commit_t VALUES(7);
-INSERT INTO uw_Io_page_commit_t VALUES(11);
 COMMIT;

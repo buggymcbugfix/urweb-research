@@ -1,0 +1,1 @@
+GET /Io_page_commit/adoptedHandled: Fatal error: runTransaction while io code holds a database transaction (an FFI function queried the database outside any transaction)
