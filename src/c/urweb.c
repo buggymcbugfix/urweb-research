@@ -5768,6 +5768,16 @@ static void uw_io_transaction_cut(uw_context ctx, uw_io_transaction *t, int comm
 }
 
 void uw_io_transaction_begin(uw_context ctx, uw_io_transaction *t) {
+  // The request's own transaction is nobody's to hold from io code: an FFI
+  // function that queried the database outside any runTransaction has
+  // begun it (uw_io_request_end fails the request that still holds it at
+  // the end). A transaction begun now would take it over, and roll the
+  // FFI's work back with its own failure, or commit it with its first
+  // attempt and rerun the body without it on a conflict, while the io code
+  // believes that work done. So it is refused here, before anything of this
+  // transaction is set up, as a failure of the io code.
+  if (ctx->transaction_started)
+    uw_error(ctx, FATAL, "runTransaction while io code holds a database transaction (an FFI function queried the database outside any transaction)");
   memcpy(&t->outer, &ctx->jmp_buf, sizeof(jmp_buf));
   t->attempts_left = UW_RETRY_ATTEMPTS;
   t->failed = 0;

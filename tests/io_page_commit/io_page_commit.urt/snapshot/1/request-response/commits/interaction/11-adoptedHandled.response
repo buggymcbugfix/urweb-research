@@ -1,7 +1,7 @@
-HTTP/1.1 200 OK
-Content-type: text/html; charset=utf-8
+HTTP/1.1 500 Internal Server Error
+Content-type: text/html
 Connection: close
-Content-length: 98
+Content-length: 199
 
-<!DOCTYPE html><html><head></head><body>adoptedHandled: None;
-open afterwards: False</body></html>
+<html><head><title>Fatal Error</title></head><body>Fatal error: runTransaction while io code holds a database transaction (an FFI function queried the database outside any transaction)
+</body></html>
