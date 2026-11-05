@@ -33,6 +33,12 @@ val armConflictIo : string -> io unit
    would begin it. *)
 val beginIo : io unit
 
+(* A row written from io code outside any runTransaction, by an FFI
+   function that begins the request's transaction as [beginIo] does and
+   runs the INSERT itself. The arguments are the SQL name of a table
+   with an integer column uw_N, and the value. *)
+val dmlIo : string -> int -> io unit
+
 (* Written to the page from a transaction (uw_write). *)
 val pageWriteT : string -> transaction unit
 

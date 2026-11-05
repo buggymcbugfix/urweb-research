@@ -15,6 +15,7 @@ database dbname=closures.db
     val armConflict : string -> transaction unit
     val armConflictIo : string -> io unit
     val beginIo : io unit
+    val dmlIo : string -> int -> io unit
     val pageWriteT : string -> transaction unit
     val register : string -> transaction unit
     val registerNoRollback : string -> transaction unit
