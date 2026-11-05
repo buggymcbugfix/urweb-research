@@ -139,9 +139,19 @@ def task():
 if os.environ.get("APP_LATER"):
     threading.Timer(0.3, task).start()
 
+# Python runs a signal's handler between two steps of the script, not in
+# the C handler: a SIGTERM that comes after the last such step before a
+# blocking accept() leaves accept() blocked, and the handler waiting for a
+# connection that never comes, until urt gives up and kills the process,
+# pid file and all.  With a timeout, accept() returns every half second,
+# and the handler runs then.
+s.settimeout(0.5)
 served = 0
 while True:
-    c, _ = s.accept()
+    try:
+        c, _ = s.accept()
+    except TimeoutError:
+        continue
     served += 1
     data = b""
     while b"\r\n\r\n" not in data:
