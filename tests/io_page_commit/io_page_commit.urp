@@ -11,6 +11,8 @@ safeGet Io_page_commit/busyFatal
 safeGet Io_page_commit/unlock
 safeGet Io_page_commit/adopted
 safeGet Io_page_commit/adoptedHandled
+safeGet Io_page_commit/rollbackRaises
+safeGet Io_page_commit/freeRaises
 
 $/list
 $/option

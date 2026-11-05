@@ -19,4 +19,9 @@
                                                                            
    {"method": "GET", "url": "Io_page_commit/adopted", "content-type": null},
                                                                             
-   {"method": "GET", "url": "Io_page_commit/adoptedHandled", "content-type": null}]}
+   {"method": "GET", "url": "Io_page_commit/adoptedHandled", "content-type": null}
+   ,
+    
+   {"method": "GET", "url": "Io_page_commit/rollbackRaises", "content-type": null}
+   ,
+    {"method": "GET", "url": "Io_page_commit/freeRaises", "content-type": null}]}

@@ -43,3 +43,16 @@ fun sending () : transaction page =
     ch <- channel;
     send ch "sent by sending";
     return <xml><body>sent</body></xml>
+
+(* A rollback callback that calls uw_error, when the handler fails: which
+   message the response carries. *)
+fun rollbackRaises () : transaction page =
+    Probe.raiseInRollback "raisedRollback";
+    dml (INSERT INTO t (N) VALUES (4));
+    error <xml>the handler's own failure</xml>
+
+(* A free callback that calls uw_error, after the request's COMMIT. *)
+fun freeRaises () : transaction page =
+    Probe.raiseInFree "raisedFree";
+    dml (INSERT INTO t (N) VALUES (5));
+    return <xml><body>freeRaises: never sent</body></xml>

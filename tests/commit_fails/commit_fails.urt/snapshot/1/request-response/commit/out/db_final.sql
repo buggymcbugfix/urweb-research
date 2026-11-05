@@ -5,4 +5,5 @@ CREATE TABLE uw_Commit_fails_t (
 );
 INSERT INTO uw_Commit_fails_t VALUES(2);
 INSERT INTO uw_Commit_fails_t VALUES(3);
+INSERT INTO uw_Commit_fails_t VALUES(5);
 COMMIT;

@@ -21,6 +21,8 @@ uw_unit uw_Probe_registerIo(uw_context, uw_Basis_string);
 uw_unit uw_Probe_failInCommitBeforeDb(uw_context, uw_Basis_string);
 uw_unit uw_Probe_failInCommit(uw_context, uw_Basis_string);
 uw_unit uw_Probe_raiseInCommit(uw_context, uw_Basis_string);
+uw_unit uw_Probe_raiseInRollback(uw_context, uw_Basis_string);
+uw_unit uw_Probe_raiseInFree(uw_context, uw_Basis_string);
 uw_unit uw_Probe_pushCleanupT(uw_context, uw_Basis_string);
 uw_unit uw_Probe_popCleanupT(uw_context);
 uw_unit uw_Probe_pushCleanupIo(uw_context, uw_Basis_string);

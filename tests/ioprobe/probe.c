@@ -111,7 +111,7 @@ typedef struct {
   uw_context ctx;
   char *tag;
   char *fail;      /* set: the commit callback sets this error message */
-  int raise;       /* set: the commit callback calls uw_error */
+  int raise;       /* which callback calls uw_error: 1 commit, 2 rollback, 3 free */
 } logged;
 
 static void tsay(logged *l, const char *what) {
@@ -124,16 +124,30 @@ static void tx_commit(void *d) {
   tsay(l, "commit");
   if (l->fail)
     uw_set_error_message(l->ctx, "%s", l->fail);
-  if (l->raise)
+  if (l->raise == 1)
     uw_error(l->ctx, BOUNDED_RETRY, "raised in the commit callback of %s", l->tag);
 }
-static void tx_rollback(void *d) { tsay(d, "rollback"); }
+static void tx_rollback(void *d) {
+  logged *l = d;
+  tsay(l, "rollback");
+  if (l->raise == 2)
+    uw_error(l->ctx, FATAL, "raised in the rollback callback of %s", l->tag);
+}
 static void tx_free(void *d, int will_retry) {
   logged *l = d;
+  int raise = l->raise == 3;
+  uw_context ctx = l->ctx;
+  char *tag = l->tag;
   tsay(l, will_retry ? "free, will retry" : "free");
-  free(l->tag);
   free(l->fail);
   free(l);
+  if (raise) {
+    char msg[256];
+    snprintf(msg, sizeof msg, "raised in the free callback of %s", tag);
+    free(tag);
+    uw_error(ctx, FATAL, "%s", msg);
+  }
+  free(tag);
 }
 
 static uw_unit reg(uw_context ctx, uw_Basis_string tag, int with_rollback, const char *fail, int raise) {
@@ -153,6 +167,8 @@ uw_unit uw_Probe_registerIo(uw_context ctx, uw_Basis_string tag) { return reg(ct
 uw_unit uw_Probe_failInCommitBeforeDb(uw_context ctx, uw_Basis_string tag) { return reg(ctx, tag, 1, tag, 0); }
 uw_unit uw_Probe_failInCommit(uw_context ctx, uw_Basis_string tag) { return reg(ctx, tag, 0, tag, 0); }
 uw_unit uw_Probe_raiseInCommit(uw_context ctx, uw_Basis_string tag) { return reg(ctx, tag, 0, NULL, 1); }
+uw_unit uw_Probe_raiseInRollback(uw_context ctx, uw_Basis_string tag) { return reg(ctx, tag, 1, NULL, 2); }
+uw_unit uw_Probe_raiseInFree(uw_context ctx, uw_Basis_string tag) { return reg(ctx, tag, 1, NULL, 3); }
 
 typedef struct { uw_context ctx; char *tag; } cleanup_tag;
 
