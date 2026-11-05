@@ -120,6 +120,19 @@ AC_CHECK_HEADERS([unicode/utypes.h],
 
 AC_CHECK_FUNCS_ONCE([memmem])
 
+dnl The runtime is built with -Werror and -Wno-use-after-free, which only
+dnl gcc 12 and later know; clang refuses a warning option it does not know.
+dnl gcc takes any -Wno- option silently, so the check asks for the warning
+dnl itself.
+AC_MSG_CHECKING([whether $CC knows -Wuse-after-free])
+save_CFLAGS=$CFLAGS
+CFLAGS="$CFLAGS -Werror -Wuse-after-free"
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [])],
+                  [AC_MSG_RESULT([yes]); WNO_USE_AFTER_FREE=-Wno-use-after-free],
+                  [AC_MSG_RESULT([no]); WNO_USE_AFTER_FREE=])
+CFLAGS=$save_CFLAGS
+AC_SUBST(WNO_USE_AFTER_FREE)
+
 AC_SUBST(CC)
 AC_SUBST(BIN)
 AC_SUBST(LIB)
