@@ -3559,10 +3559,14 @@ fun p_file env (ds, ps) =
                       newline]
              else
                  box [],
-             p_list_sep (box []) (fn s => box [string "#include \"",
-                                               string s,
-                                               string "\"",
-                                               newline]) (Settings.getHeaders ()),
+             (* No cut between the lines: a header's name holds the path of
+              * its directory, and a cut would break before a line wider
+              * than the printer's margin, so that the C would depend on how
+              * long that path is. Each line ends in its own newline. *)
+             box (map (fn s => box [string "#include \"",
+                                    string s,
+                                    string "\"",
+                                    newline]) (Settings.getHeaders ())),
              string "#include \"",
              string (OS.Path.joinDirFile {dir = !Settings.configInclude,
                                           file = "urweb.h"}),
