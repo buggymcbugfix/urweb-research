@@ -68,10 +68,12 @@ jobs:
             > ci-out/build.log 2>&1
           echo $? > ci-out/build.status
           if [ "$(cat ci-out/build.status)" = 0 ]; then
-            nix-shell "$shell" --pure --run \
+            # The output goes to the step's log too, where GitHub picks up
+            # the runners' annotations of failures (GITHUB_ACTIONS).
+            nix-shell "$shell" --pure --keep GITHUB_ACTIONS --run \
               'timeout 5400 make -k check-local check-urt check-snapshot' \
-              > ci-out/check.log 2>&1
-            echo $? > ci-out/check.status
+              2>&1 | tee ci-out/check.log
+            echo "${PIPESTATUS[0]}" > ci-out/check.status
           fi
           exit 0
       - name: Push the results
@@ -80,7 +82,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/collect-results.sh ${{ matrix.target }}
       - name: Pass or fail
-        run: test "$(cat ci-out/build.status)" = 0 && test "$(cat ci-out/check.status)" = 0
+        run: bash .github/verdict.sh
 
   # FreeBSD has no Nix: the build uses its packages and its system clang.
   freebsd:
@@ -94,12 +96,14 @@ jobs:
         with:
           release: "14.3"
           usesh: true
+          # The runners annotate failures for GitHub when this is set.
+          envs: GITHUB_ACTIONS
           mem: 8192
           cpu: 4
           # The script never fails, so that the VM copies its results back.
           run: |
             mkdir -p ci-out
-            sh .github/freebsd-check.sh > ci-out/vm.log 2>&1
+            sh .github/freebsd-check.sh 2>&1 | tee ci-out/vm.log
             true
       - name: Push the results
         if: always()
@@ -107,4 +111,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash .github/collect-results.sh "$TARGET"
       - name: Pass or fail
-        run: test "$(cat ci-out/build.status)" = 0 && test "$(cat ci-out/check.status)" = 0
+        run: bash .github/verdict.sh

@@ -62,7 +62,9 @@ gmake -C urt CC="cc -D__BSD_VISIBLE=1" > ci-out/urt.log 2>&1
 echo $? > ci-out/urt.status
 
 if [ "$(cat ci-out/build.status)" = 0 ]; then
-  timeout 5400 gmake -k check-local check-urt check-snapshot > ci-out/check.log 2>&1
-  echo $? > ci-out/check.status
+  # On standard output too, which reaches the step's log with the runners'
+  # annotations of failures; sh has no PIPESTATUS, hence the braces.
+  { timeout 5400 gmake -k check-local check-urt check-snapshot; echo $? > ci-out/check.status; } 2>&1 \
+    | tee ci-out/check.log
 fi
 exit 0
