@@ -3635,7 +3635,6 @@ uw_Basis_time uw_Basis_unsqlTimeUtc(uw_context ctx, const char *s) {
   const char *p = s;
   int year, month, day, hour = 0, minute = 0, second = 0, zone = 0;
   unsigned microseconds = 0;
-  struct tm stm = {};
 
   if (!sql_time_digits(&p, 4, &year) || *p != '-')
     goto bad;
@@ -3692,15 +3691,22 @@ uw_Basis_time uw_Basis_unsqlTimeUtc(uw_context ctx, const char *s) {
       || hour > 23 || minute > 59 || second > 59)
     goto bad;
 
-  stm.tm_year = year - 1900;
-  stm.tm_mon = month - 1;
-  stm.tm_mday = day;
-  stm.tm_hour = hour;
-  stm.tm_min = minute;
-  stm.tm_sec = second;
   {
+    // Days since 1970-01-01 in the proleptic Gregorian calendar, by the
+    // days-from-civil algorithm (years counted from March, so that the leap
+    // day comes last; eras of 400 years).  Plain arithmetic rather than
+    // timegm: Apple's timegm refuses a year before 1900, and SQLite takes
+    // the years 0 to 9999.  A day past the end of its month (up to the 31st)
+    // runs on into the next month, as with timegm and SQLite.
+    long long y = year - (month <= 2);  // -1 for January and February of 0
+    long long era = (y >= 0 ? y : y - 399) / 400;
+    long long yoe = y - era * 400;
+    long long doy = (153 * (month > 2 ? month - 3 : month + 9) + 2) / 5 + day - 1;
+    long long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    long long days = era * 146097 + doe - 719468;
     // The zone is how far the time given is ahead of UTC.
-    uw_Basis_time r = { timegm(&stm) - zone, microseconds };
+    uw_Basis_time r = { days * 86400 + hour * 3600 + minute * 60 + second - zone,
+                        microseconds };
     return r;
   }
 
