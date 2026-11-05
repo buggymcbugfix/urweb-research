@@ -1,4 +1,4 @@
 urt snapshot runs/serves-later
 urt snapshot -w runs/serves-later
 cd runs/serves-later.urt/snapshot/1/request-response/task/interaction && for f in *; do echo "== $f"; tr -d '\r' < "$f"; echo; done
-cd runs/serves-later.urt/snapshot/1/request-response/first && for f in interaction/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done; echo "out/ holds $(ls out 2>/dev/null | wc -l) files"
+cd runs/serves-later.urt/snapshot/1/request-response/first && for f in interaction/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done; echo "out/ holds $(ls out 2>/dev/null | awk 'END { print NR }') files"

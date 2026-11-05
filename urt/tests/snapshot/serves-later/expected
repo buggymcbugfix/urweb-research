@@ -54,7 +54,7 @@ User-Agent: urt
 
 
 exit 0
-$ cd runs/serves-later.urt/snapshot/1/request-response/first && for f in interaction/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done; echo "out/ holds $(ls out 2>/dev/null | wc -l) files"
+$ cd runs/serves-later.urt/snapshot/1/request-response/first && for f in interaction/*; do echo "== $f"; tr -d '\r' < "$f"; echo; done; echo "out/ holds $(ls out 2>/dev/null | awk 'END { print NR }') files"
 == interaction/01-task.sql
 INSERT INTO t VALUES (2);
 
