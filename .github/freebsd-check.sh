@@ -54,11 +54,6 @@ export CCARGS="-I$here/out/include -I/usr/local/include -L/usr/local/lib -Wno-er
 } > ci-out/build.log 2>&1
 echo $? > ci-out/build.status
 
-# urt asks for -std=c99, under which FreeBSD's headers hide MSG_DONTWAIT;
-# built here with the BSD namespace, so that make urt has nothing left to do.
-gmake -C urt CC="cc -D__BSD_VISIBLE=1" > ci-out/urt.log 2>&1
-echo $? > ci-out/urt.status
-
 if [ "$(cat ci-out/build.status)" = 0 ]; then
   # On standard output too, which reaches the step's log with the runners'
   # annotations of failures; sh has no PIPESTATUS, hence the braces.
