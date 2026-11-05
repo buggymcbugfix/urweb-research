@@ -89,6 +89,20 @@ uw_unit uw_Probe_armConflictIo(uw_context ctx, uw_Basis_string key) { return uw_
 
 uw_unit uw_Probe_beginIo(uw_context ctx) { uw_ensure_transaction(ctx); return uw_unit_v; }
 
+/* An FFI function that writes the database from io code outside any
+   transaction, as one would: uw_ensure_transaction, then the statement. */
+uw_unit uw_Probe_dmlIo(uw_context ctx, uw_Basis_string table, uw_Basis_int n) {
+  sqlite3 *db;
+  char sql[256], *err = NULL;
+  uw_ensure_transaction(ctx);
+  db = *(sqlite3 **)uw_get_db(ctx);
+  snprintf(sql, sizeof sql, "INSERT INTO %s (uw_N) VALUES (%lld)", table, (long long)n);
+  if (sqlite3_exec(db, sql, NULL, NULL, &err) != SQLITE_OK)
+    uw_error(ctx, FATAL, "dmlIo: %s", err ? err : "?");
+  say(ctx, "dmlIo ran:", sql);
+  return uw_unit_v;
+}
+
 uw_unit uw_Probe_pageWriteT(uw_context ctx, uw_Basis_string s) { uw_write(ctx, s); return uw_unit_v; }
 
 /* A transactional that prints what the runtime does with it and frees its

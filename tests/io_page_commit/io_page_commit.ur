@@ -66,6 +66,26 @@ fun busyFatal () : io page =
                     Probe.pendingWrite "uw_Io_page_commit_t");
     return <xml><body>never sent</body></xml>
 
+(* A row written by an FFI function from the computation itself, outside
+   any runTransaction, which begins the request's own transaction to do it;
+   then a transaction of the computation whose COMMIT meets a conflict. *)
+fun adopted () : io page =
+    Probe.dmlIo "uw_Io_page_commit_t" 10;
+    k <- runTransaction (k <- Probe.stepT;
+                         Probe.armConflict "adopted";
+                         dml (INSERT INTO t (N) VALUES (11));
+                         return k);
+    return <xml><body>adopted: committed by attempt {[k]}</body></xml>
+
+(* The same, then a handled transaction that fails. *)
+fun adoptedHandled () : io page =
+    Probe.dmlIo "uw_Io_page_commit_t" 20;
+    r <- attemptTransaction (dml (INSERT INTO t (N) VALUES (21));
+                             (error <xml>refused</xml> : transaction unit));
+    isOpen <- Probe.inTransaction;
+    return <xml><body>adoptedHandled: {[case r of None => "None" | Some () => "Some"]};
+      open afterwards: {[isOpen]}</body></xml>
+
 (* The write left in progress by busyFatal, ended; the transaction it left
    open has been rolled back by the failed request. *)
 fun unlock () : io page =
@@ -83,4 +103,6 @@ fun main () : transaction page =
       <a href={io_url (raisesFatal ())}>raisesFatal</a>
       <a href={io_url (busyFatal ())}>busyFatal</a>
       <a href={io_url (unlock ())}>unlock</a>
+      <a href={io_url (adopted ())}>adopted</a>
+      <a href={io_url (adoptedHandled ())}>adoptedHandled</a>
     </body></xml>

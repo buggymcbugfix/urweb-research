@@ -26,7 +26,9 @@
             sqlite3_stmt *p7;
              sqlite3_stmt *p8;
               sqlite3_stmt *p9;
-               } uw_conn;
+               sqlite3_stmt *p10;
+                sqlite3_stmt *p11;
+                 } uw_conn;
     
     static sqlite3_vfs uw_pinned_vfs;
     
@@ -177,61 +179,73 @@
       static int uw_db_prepare(uw_context ctx) {
       uw_conn *conn = uw_get_db(ctx);
       
-      if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (8)", -1, &conn->p0, NULL) != SQLITE_OK) {
-       uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (8)", sqlite3_errmsg(conn->conn));
+      if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (21)", -1, &conn->p0, NULL) != SQLITE_OK) {
+       uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (21)", sqlite3_errmsg(conn->conn));
         return 1;
         }
        
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (7)", -1, &conn->p1, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (11)", -1, &conn->p1, NULL) != SQLITE_OK) {
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (11)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (8)", -1, &conn->p2, NULL) != SQLITE_OK) {
+        uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (8)", sqlite3_errmsg(conn->conn));
+         return 1;
+         }
+        
+       
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (7)", -1, &conn->p3, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (7)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (\?)", -1, &conn->p2, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (\?)", -1, &conn->p4, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (\?)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (5)", -1, &conn->p3, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (5)", -1, &conn->p5, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (5)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (6)", -1, &conn->p4, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (6)", -1, &conn->p6, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (6)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (3)", -1, &conn->p5, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (3)", -1, &conn->p7, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (3)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (4)", -1, &conn->p6, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (4)", -1, &conn->p8, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (4)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (1)", -1, &conn->p7, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (1)", -1, &conn->p9, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (1)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (2)", -1, &conn->p8, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (2)", -1, &conn->p10, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (2)", sqlite3_errmsg(conn->conn));
          return 1;
          }
         
        
-       if (sqlite3_prepare_v2(conn->conn, "SELECT T_T.uw_N FROM uw_Io_page_commit_t AS T_T ORDER BY T_T.uw_N", -1, &conn->p9, NULL) != SQLITE_OK) {
+       if (sqlite3_prepare_v2(conn->conn, "SELECT T_T.uw_N FROM uw_Io_page_commit_t AS T_T ORDER BY T_T.uw_N", -1, &conn->p11, NULL) != SQLITE_OK) {
         uw_set_error_message(ctx, "Error preparing statement: %s: %s", "SELECT T_T.uw_N FROM uw_Io_page_commit_t AS T_T ORDER BY T_T.uw_N", sqlite3_errmsg(conn->conn));
          return 1;
          }
@@ -328,7 +342,9 @@
            if (conn->p7) sqlite3_finalize(conn->p7);
             if (conn->p8) sqlite3_finalize(conn->p8);
              if (conn->p9) sqlite3_finalize(conn->p9);
-              sqlite3_close(conn->conn);
+              if (conn->p10) sqlite3_finalize(conn->p10);
+               if (conn->p11) sqlite3_finalize(conn->p11);
+                sqlite3_close(conn->conn);
     }
     
     static int uw_db_begin(uw_context ctx, int could_write) {
@@ -401,7 +417,246 @@
    
   
   static uw_unit
-   __uwn_wrap_unlock_3(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_adoptedHandled_3(uw_context ctx, uw_unit __uwr_x0_0, 
+                                uw_unit __uwr___1)
+   {
+   return(({
+           uw_unit __uwr___2 =
+           (uw_begin_region(ctx), ({
+                                   uw_Basis_string arg0 =
+                                    "uw_Io_page_commit_t";
+                                    uw_Basis_int arg1 = 20LL;
+                                     uw_Probe_dmlIo(ctx, arg0, arg1);
+                                   }));
+           uw_end_region(ctx);
+            ((uw_write(ctx, "<body"), 0),
+             (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
+                                                    uw_Basis_get_settings(ctx,
+                                                     0))), 0),
+              uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
+                                                                         "")), 0),
+                                   uw_end_region(ctx), ((uw_write(ctx, ">adoptedHandled: "), 0),
+                                                        (uw_begin_region(ctx), uw_Basis_htmlifyString_w(ctx,
+                                                                               ({
+                                                                               uw_unit*
+                                                                               disc
+                                                                               =
+                                                                               ({
+                                                                               uw_io_transaction __uwt;
+                                                                               uw_unit
+                                                                               *__uwr = NULL;
+                                                                               uw_set_could_write_db(ctx, 1);
+                                                                               uw_io_transaction_begin(ctx, &__uwt);
+                                                                               while (1) {
+                                                                               int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                               if (__uwfk == 0) {
+                                                                               uw_unit
+                                                                               __uwv =
+                                                                               ({
+                                                                               uw_unit
+                                                                               __uwr___3
+                                                                               =
+                                                                               (uw_begin_region(ctx), ({
+                                                                               
+                                                                               
+                                                                               uw_ensure_transaction(ctx);
+                                                                               
+                                                                               uw_conn *conn = uw_get_db(ctx);
+                                                                               sqlite3_stmt *stmt = conn->p0;
+                                                                               
+                                                                               if (stmt == NULL) {
+                                                                               if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (21)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (21)<br />%s", sqlite3_errmsg(conn->conn));
+                                                                               conn->p0 = stmt;
+                                                                               }
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+                                                                               
+                                                                               int r;
+                                                                               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                               }
+                                                                               
+                                                                               if (r != SQLITE_DONE) 
+                                                                               uw_error(ctx, FATAL, "tests/io_page_commit/io_page_commit.ur:83:29-84:74: DML step failed: %s<br />%s", 
+                                                                               "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (21)", sqlite3_errmsg(conn->conn));
+                                                                               else if (uw_dml_log_enabled()) {
+                                                                               char *expanded = sqlite3_expanded_sql(stmt);
+                                                                               uw_log_dml(ctx, "tests/io_page_commit/io_page_commit.ur:83:29-84:74", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                                                               sqlite3_free(expanded);
+                                                                               }
+                                                                               uw_pop_cleanup(ctx);
+                                                                               uw_pop_cleanup(ctx);
+                                                                               
+                                                                               
+                                                                               uw_end_region(ctx);
+                                                                               0;
+                                                                               }))
+                                                                               ;
+                                                                               ({
+                                                                               uw_unit
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "tests/io_page_commit/io_page_commit.ur:84:30-84:58: %s", 
+                                                                               "refused");
+                                                                               tmp;
+                                                                               });
+                                                                               });
+                                                                               __uwr = uw_malloc(ctx, sizeof(uw_unit));
+                                                                               *__uwr = __uwv;
+                                                                               uw_io_transaction_commit(ctx, &__uwt);
+                                                                               break;
+                                                                               } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                               __uwr = NULL;
+                                                                               break;
+                                                                               }
+                                                                               }
+                                                                               uw_io_transaction_end(ctx, &__uwt, 0);
+                                                                               __uwr;
+                                                                               });
+                                                                               
+                                                                               disc
+                                                                               ==
+                                                                               NULL
+                                                                               ?
+                                                                               "None"
+                                                                               
+                                                                               :
+                                                                               disc
+                                                                               !=
+                                                                               NULL
+                                                                               &&
+                                                                               1
+                                                                               ?
+                                                                               "Some"
+                                                                               
+                                                                               :
+                                                                               ({
+                                                                               uw_Basis_string
+                                                                               tmp;
+                                                                               uw_error(ctx, FATAL, "$/top.ur:115:10-115:18: pattern match failure");
+                                                                               tmp;
+                                                                               });
+                                                                               })
+                                                                               ),
+                                                         uw_end_region(ctx), ((uw_write(ctx, 
+                                                                               ";\nopen afterwards: "), 0),
+                                                                              (uw_begin_region(ctx),
+                                                                               uw_Basis_htmlifyBool_w(ctx,
+                                                                               uw_Probe_inTransaction(ctx
+                                                                               )),
+                                                                               uw_end_region(ctx),
+                                                                               (uw_write(ctx, 
+                                                                               "</body>"), 0))))))));
+           }));
+   }
+  
+  static uw_unit
+   __uwn_wrap_adopted_4(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   {
+   return(({
+           uw_unit __uwr___2 =
+           (uw_begin_region(ctx), ({
+                                   uw_Basis_string arg0 =
+                                    "uw_Io_page_commit_t";
+                                    uw_Basis_int arg1 = 10LL;
+                                     uw_Probe_dmlIo(ctx, arg0, arg1);
+                                   }));
+           uw_end_region(ctx);
+            ((uw_write(ctx, "<body"), 0),
+             (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
+                                                    uw_Basis_get_settings(ctx,
+                                                     0))), 0),
+              uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
+                                                                         "")), 0),
+                                   uw_end_region(ctx), ((uw_write(ctx, ">adopted: committed by attempt "), 0),
+                                                        (uw_begin_region(ctx), uw_Basis_htmlifyInt_w(ctx,
+                                                                               ({
+                                                                               uw_io_transaction __uwt;
+                                                                               uw_Basis_int
+                                                                               __uwr;
+                                                                               uw_set_could_write_db(ctx, 1);
+                                                                               uw_io_transaction_begin(ctx, &__uwt);
+                                                                               while (1) {
+                                                                               int __uwfk = setjmp(*uw_jmp_buf(ctx));
+                                                                               if (__uwfk == 0) {
+                                                                               __uwr =
+                                                                               ({
+                                                                               uw_Basis_int
+                                                                               __uwr_k_3
+                                                                               =
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Probe_stepT(ctx
+                                                                               ));
+                                                                               uw_end_region(ctx);
+                                                                               ({
+                                                                               uw_unit
+                                                                               __uwr___4
+                                                                               =
+                                                                               (uw_begin_region(ctx),
+                                                                               uw_Probe_armConflict(ctx,
+                                                                               "adopted"
+                                                                               ));
+                                                                               uw_end_region(ctx);
+                                                                               ({
+                                                                               uw_unit
+                                                                               __uwr___5
+                                                                               =
+                                                                               (uw_begin_region(ctx), ({
+                                                                               
+                                                                               
+                                                                               uw_ensure_transaction(ctx);
+                                                                               
+                                                                               uw_conn *conn = uw_get_db(ctx);
+                                                                               sqlite3_stmt *stmt = conn->p1;
+                                                                               
+                                                                               if (stmt == NULL) {
+                                                                               if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (11)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (11)<br />%s", sqlite3_errmsg(conn->conn));
+                                                                               conn->p1 = stmt;
+                                                                               }
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
+                                                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
+                                                                               
+                                                                               int r;
+                                                                               if ((r = sqlite3_step(stmt)) == SQLITE_BUSY) {
+                                                                               uw_error(ctx, UNLIMITED_RETRY, "Database is busy");
+                                                                               }
+                                                                               
+                                                                               if (r != SQLITE_DONE) 
+                                                                               uw_error(ctx, FATAL, "tests/io_page_commit/io_page_commit.ur:76:25-77:33: DML step failed: %s<br />%s", 
+                                                                               "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (11)", sqlite3_errmsg(conn->conn));
+                                                                               else if (uw_dml_log_enabled()) {
+                                                                               char *expanded = sqlite3_expanded_sql(stmt);
+                                                                               uw_log_dml(ctx, "tests/io_page_commit/io_page_commit.ur:76:25-77:33", expanded ? expanded : sqlite3_sql(stmt), sqlite3_changes(conn->conn));
+                                                                               sqlite3_free(expanded);
+                                                                               }
+                                                                               uw_pop_cleanup(ctx);
+                                                                               uw_pop_cleanup(ctx);
+                                                                               
+                                                                               
+                                                                               uw_end_region(ctx);
+                                                                               0;
+                                                                               }))
+                                                                               ;
+                                                                               __uwr_k_3;
+                                                                               });
+                                                                               });
+                                                                               });
+                                                                               uw_io_transaction_commit(ctx, &__uwt);
+                                                                               break;
+                                                                               } else if (!uw_io_transaction_retry(ctx, &__uwt, __uwfk)) {
+                                                                               break;
+                                                                               }
+                                                                               }
+                                                                               uw_io_transaction_end(ctx, &__uwt, 1);
+                                                                               __uwr;
+                                                                               })
+                                                                               ),
+                                                         uw_end_region(ctx), (uw_write(ctx, 
+                                                                              "</body>"), 0))))));
+           }));
+   }
+  
+  static uw_unit
+   __uwn_wrap_unlock_5(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -423,7 +678,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_busyFatal_4(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_busyFatal_6(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit __uwr___2 =
@@ -450,11 +705,11 @@
                                           uw_ensure_transaction(ctx);
                                           
                                           uw_conn *conn = uw_get_db(ctx);
-                                           sqlite3_stmt *stmt = conn->p0;
+                                           sqlite3_stmt *stmt = conn->p2;
                                            
                                            if (stmt == NULL) {
                                            if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (8)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (8)<br />%s", sqlite3_errmsg(conn->conn));
-                                            conn->p0 = stmt;
+                                            conn->p2 = stmt;
                                             }
                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                            uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -503,7 +758,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_raisesFatal_5(uw_context ctx, uw_unit __uwr_x0_0, 
+   __uwn_wrap_raisesFatal_7(uw_context ctx, uw_unit __uwr_x0_0, 
                              uw_unit __uwr___1)
    {
    return(({
@@ -529,11 +784,11 @@
                                          uw_ensure_transaction(ctx);
                                          
                                          uw_conn *conn = uw_get_db(ctx);
-                                          sqlite3_stmt *stmt = conn->p1;
+                                          sqlite3_stmt *stmt = conn->p3;
                                           
                                           if (stmt == NULL) {
                                           if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (7)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (7)<br />%s", sqlite3_errmsg(conn->conn));
-                                           conn->p1 = stmt;
+                                           conn->p3 = stmt;
                                            }
                                           uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                           uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -579,7 +834,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_conflict_6(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_conflict_8(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -629,11 +884,11 @@
                                                                                uw_ensure_transaction(ctx);
                                                                                
                                                                                uw_conn *conn = uw_get_db(ctx);
-                                                                               sqlite3_stmt *stmt = conn->p2;
+                                                                               sqlite3_stmt *stmt = conn->p4;
                                                                                
                                                                                if (stmt == NULL) {
                                                                                if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (\?)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (\?)<br />%s", sqlite3_errmsg(conn->conn));
-                                                                               conn->p2 = stmt;
+                                                                               conn->p4 = stmt;
                                                                                }
                                                                                uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                                                                uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -681,7 +936,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_raises_7(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_raises_9(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit* __uwr_r_2 =
@@ -705,11 +960,11 @@
                   uw_ensure_transaction(ctx);
                   
                   uw_conn *conn = uw_get_db(ctx);
-                   sqlite3_stmt *stmt = conn->p3;
+                   sqlite3_stmt *stmt = conn->p5;
                    
                    if (stmt == NULL) {
                    if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (5)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (5)<br />%s", sqlite3_errmsg(conn->conn));
-                    conn->p3 = stmt;
+                    conn->p5 = stmt;
                     }
                    uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                    uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -767,11 +1022,11 @@
                                          uw_ensure_transaction(ctx);
                                          
                                          uw_conn *conn = uw_get_db(ctx);
-                                          sqlite3_stmt *stmt = conn->p4;
+                                          sqlite3_stmt *stmt = conn->p6;
                                           
                                           if (stmt == NULL) {
                                           if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (6)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (6)<br />%s", sqlite3_errmsg(conn->conn));
-                                           conn->p4 = stmt;
+                                           conn->p6 = stmt;
                                            }
                                           uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                           uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -846,8 +1101,8 @@
    }
   
   static uw_unit
-   __uwn_wrap_failsBefore_8(uw_context ctx, uw_unit __uwr_x0_0, 
-                             uw_unit __uwr___1)
+   __uwn_wrap_failsBefore_10(uw_context ctx, uw_unit __uwr_x0_0, 
+                              uw_unit __uwr___1)
    {
    return(({
            uw_unit* __uwr_r_2 =
@@ -872,11 +1127,11 @@
                   uw_ensure_transaction(ctx);
                   
                   uw_conn *conn = uw_get_db(ctx);
-                   sqlite3_stmt *stmt = conn->p5;
+                   sqlite3_stmt *stmt = conn->p7;
                    
                    if (stmt == NULL) {
                    if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (3)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (3)<br />%s", sqlite3_errmsg(conn->conn));
-                    conn->p5 = stmt;
+                    conn->p7 = stmt;
                     }
                    uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                    uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -934,11 +1189,11 @@
                                          uw_ensure_transaction(ctx);
                                          
                                          uw_conn *conn = uw_get_db(ctx);
-                                          sqlite3_stmt *stmt = conn->p6;
+                                          sqlite3_stmt *stmt = conn->p8;
                                           
                                           if (stmt == NULL) {
                                           if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (4)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (4)<br />%s", sqlite3_errmsg(conn->conn));
-                                           conn->p6 = stmt;
+                                           conn->p8 = stmt;
                                            }
                                           uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                           uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -1013,7 +1268,7 @@
    }
   
   static uw_unit
-   __uwn_wrap_busy_9(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_busy_11(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(({
            uw_unit* __uwr_r_2 =
@@ -1039,11 +1294,11 @@
                    uw_ensure_transaction(ctx);
                    
                    uw_conn *conn = uw_get_db(ctx);
-                    sqlite3_stmt *stmt = conn->p7;
+                    sqlite3_stmt *stmt = conn->p9;
                     
                     if (stmt == NULL) {
                     if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (1)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (1)<br />%s", sqlite3_errmsg(conn->conn));
-                     conn->p7 = stmt;
+                     conn->p9 = stmt;
                      }
                     uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                     uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -1111,11 +1366,11 @@
                                              uw_ensure_transaction(ctx);
                                              
                                              uw_conn *conn = uw_get_db(ctx);
-                                              sqlite3_stmt *stmt = conn->p8;
+                                              sqlite3_stmt *stmt = conn->p10;
                                               
                                               if (stmt == NULL) {
                                               if (sqlite3_prepare_v2(conn->conn, "INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (2)", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: INSERT INTO uw_Io_page_commit_t (uw_N) VALUES (2)<br />%s", sqlite3_errmsg(conn->conn));
-                                               conn->p8 = stmt;
+                                               conn->p10 = stmt;
                                                }
                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
                                               uw_push_cleanup(ctx, (void (*)(void *))sqlite3_reset, stmt);
@@ -1201,10 +1456,10 @@
            }));
    }
   
-  static struct __uws_2* __uwn_$revPRIME_unpoly_10(uw_context,
+  static struct __uws_2* __uwn_$revPRIME_unpoly_12(uw_context,
    struct __uws_2*, struct __uws_2*);
    static struct __uws_2*
-    __uwn_$revPRIME_unpoly_10(uw_context ctx, struct __uws_2* __uwr_acc_0, 
+    __uwn_$revPRIME_unpoly_12(uw_context ctx, struct __uws_2* __uwr_acc_0, 
                                struct __uws_2* __uwr_ls_1)
     {restart:
       
@@ -1246,10 +1501,10 @@
     }
    
   
-  static uw_unit __uwn_$mapXPRIME_unpoly_unpoly_11(uw_context,
+  static uw_unit __uwn_$mapXPRIME_unpoly_unpoly_13(uw_context,
    struct __uws_2*);
    static uw_unit
-    __uwn_$mapXPRIME_unpoly_unpoly_11(uw_context ctx, 
+    __uwn_$mapXPRIME_unpoly_unpoly_13(uw_context ctx, 
                                        struct __uws_2* __uwr_ls_0)
     {restart:
       
@@ -1286,7 +1541,7 @@
    
   
   static uw_unit
-   __uwn_wrap_list_12(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_list_14(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
@@ -1294,7 +1549,7 @@
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
                                  uw_end_region(ctx), ((uw_write(ctx, ">stored:"), 0),
-                                                      (uw_begin_region(ctx), __uwn_$mapXPRIME_unpoly_unpoly_11(ctx,
+                                                      (uw_begin_region(ctx), __uwn_$mapXPRIME_unpoly_unpoly_13(ctx,
                                                                               ({
                                                                                uw_io_transaction __uwt;
                                                                                struct
@@ -1328,11 +1583,11 @@
                                                                                
                                                                                
                                                                                uw_conn *conn = uw_get_db(ctx);
-                                                                               sqlite3_stmt *stmt = conn->p9;
+                                                                               sqlite3_stmt *stmt = conn->p11;
                                                                                
                                                                                if (stmt == NULL) {
                                                                                if (sqlite3_prepare_v2(conn->conn, "SELECT T_T.uw_N FROM uw_Io_page_commit_t AS T_T ORDER BY T_T.uw_N", -1, &stmt, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Error preparing statement: SELECT T_T.uw_N FROM uw_Io_page_commit_t AS T_T ORDER BY T_T.uw_N<br />%s", sqlite3_errmsg(conn->conn));
-                                                                               conn->p9 = stmt;
+                                                                               conn->p11 = stmt;
                                                                                }
                                                                                
                                                                                uw_push_cleanup(ctx, (void (*)(void *))sqlite3_clear_bindings, stmt);
@@ -1401,7 +1656,7 @@
                                                                                acc;
                                                                                })
                                                                                ;
-                                                                               __uwn_$revPRIME_unpoly_10(ctx,
+                                                                               __uwn_$revPRIME_unpoly_12(ctx,
                                                                                arg0
                                                                                ,
                                                                                
@@ -1421,14 +1676,14 @@
    }
   
   static uw_unit
-   __uwn_wrap_main_13(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
+   __uwn_wrap_main_15(uw_context ctx, uw_unit __uwr_x0_0, uw_unit __uwr___1)
    {
    return(((uw_write(ctx, "<body"), 0),
            (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onload(ctx,
                                                   uw_Basis_get_settings(ctx, 0))), 0),
             uw_end_region(ctx), (uw_begin_region(ctx), (uw_write(ctx, uw_Basis_maybe_onunload(ctx,
                                                                        "")), 0),
-                                 uw_end_region(ctx), (uw_write(ctx, ">\n<a href=\"/Io_page_commit/list\">list</a>\n<a href=\"/Io_page_commit/busy\">busy</a>\n<a href=\"/Io_page_commit/failsBefore\">failsBefore</a>\n<a href=\"/Io_page_commit/raises\">raises</a>\n<a href=\"/Io_page_commit/conflict\">conflict</a>\n<a href=\"/Io_page_commit/raisesFatal\">raisesFatal</a>\n<a href=\"/Io_page_commit/busyFatal\">busyFatal</a>\n<a href=\"/Io_page_commit/unlock\">unlock</a>\n</body>"), 0)))));
+                                 uw_end_region(ctx), (uw_write(ctx, ">\n<a href=\"/Io_page_commit/list\">list</a>\n<a href=\"/Io_page_commit/busy\">busy</a>\n<a href=\"/Io_page_commit/failsBefore\">failsBefore</a>\n<a href=\"/Io_page_commit/raises\">raises</a>\n<a href=\"/Io_page_commit/conflict\">conflict</a>\n<a href=\"/Io_page_commit/raisesFatal\">raisesFatal</a>\n<a href=\"/Io_page_commit/busyFatal\">busyFatal</a>\n<a href=\"/Io_page_commit/unlock\">unlock</a>\n<a href=\"/Io_page_commit/adopted\">adopted</a>\n<a href=\"/Io_page_commit/adoptedHandled\">adoptedHandled</a>\n</body>"), 0)))));
    }
  
  static int uw_input_num(const char *name) {
@@ -1497,7 +1752,7 @@
   uw_login(ctx);
   {
    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
-    __uwn_wrap_main_13(ctx, arg0, 0);
+    __uwn_wrap_main_15(ctx, arg0, 0);
    uw_write(ctx, "</html>");
     uw_finish_page(ctx);
     return;
@@ -1523,7 +1778,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_list_12(ctx, arg0, 0);
+     __uwn_wrap_list_14(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1553,7 +1808,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_busy_9(ctx, arg0, 0);
+     __uwn_wrap_busy_11(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1583,7 +1838,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_failsBefore_8(ctx, arg0, 0);
+     __uwn_wrap_failsBefore_10(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1613,7 +1868,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_raises_7(ctx, arg0, 0);
+     __uwn_wrap_raises_9(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1643,7 +1898,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_conflict_6(ctx, arg0, 0);
+     __uwn_wrap_conflict_8(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1673,7 +1928,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_raisesFatal_5(ctx, arg0, 0);
+     __uwn_wrap_raisesFatal_7(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1703,7 +1958,7 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_busyFatal_4(ctx, arg0, 0);
+     __uwn_wrap_busyFatal_6(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);
@@ -1733,7 +1988,67 @@
     {
     int __uwfk = setjmp(*uw_jmp_buf(ctx));
      if (__uwfk == 0) {
-     __uwn_wrap_unlock_3(ctx, arg0, 0);
+     __uwn_wrap_unlock_5(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, "</html>");
+      uw_finish_page(ctx);
+      return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_page_commit/adopted", 23) && (request[23] == 0 || request[23] == '/')) {
+   request += 23;
+   if (*request == '/') ++request;
+   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+    uw_write(ctx, uw_begin_html5);
+    uw_mayReturnIndirectly(ctx);
+    uw_set_script_header(ctx, "");
+    uw_set_could_write_db(ctx, 1);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     __uwn_wrap_adopted_4(ctx, arg0, 0);
+      uw_io_request_end(ctx, &__uwr, 0);
+      uw_write(ctx, "</html>");
+      uw_finish_page(ctx);
+      return;
+      } else
+     uw_io_request_end(ctx, &__uwr, __uwfk);
+      }
+    }
+    }
+  
+  if (!strncmp(request, "/Io_page_commit/adoptedHandled", 30) && (request[30] == 0 || request[30] == '/')) {
+   request += 30;
+   if (*request == '/') ++request;
+   uw_write_header(ctx, "Content-type: text/html; charset=utf-8\r\n");
+    uw_write(ctx, uw_begin_html5);
+    uw_mayReturnIndirectly(ctx);
+    uw_set_script_header(ctx, "");
+    uw_set_could_write_db(ctx, 1);
+   uw_set_at_most_one_query(ctx, 0);
+   uw_set_needs_push(ctx, 0);
+   uw_set_needs_sig(ctx, 0);
+   uw_login(ctx);
+   {
+    uw_unit arg0 = uw_Basis_unurlifyUnit(ctx, &request);
+     uw_io_request __uwr;
+    uw_io_request_begin(ctx, &__uwr);
+    {
+    int __uwfk = setjmp(*uw_jmp_buf(ctx));
+     if (__uwfk == 0) {
+     __uwn_wrap_adoptedHandled_3(ctx, arg0, 0);
       uw_io_request_end(ctx, &__uwr, 0);
       uw_write(ctx, "</html>");
       uw_finish_page(ctx);

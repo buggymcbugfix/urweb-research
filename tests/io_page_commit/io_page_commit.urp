@@ -9,6 +9,8 @@ safeGet Io_page_commit/conflict
 safeGet Io_page_commit/raisesFatal
 safeGet Io_page_commit/busyFatal
 safeGet Io_page_commit/unlock
+safeGet Io_page_commit/adopted
+safeGet Io_page_commit/adoptedHandled
 
 $/list
 $/option

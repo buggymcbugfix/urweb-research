@@ -13,6 +13,7 @@ uw_unit uw_Probe_retryIo(uw_context, uw_Basis_string);
 uw_unit uw_Probe_armConflict(uw_context, uw_Basis_string);
 uw_unit uw_Probe_armConflictIo(uw_context, uw_Basis_string);
 uw_unit uw_Probe_beginIo(uw_context);
+uw_unit uw_Probe_dmlIo(uw_context, uw_Basis_string, uw_Basis_int);
 uw_unit uw_Probe_pageWriteT(uw_context, uw_Basis_string);
 uw_unit uw_Probe_register(uw_context, uw_Basis_string);
 uw_unit uw_Probe_registerNoRollback(uw_context, uw_Basis_string);
