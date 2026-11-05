@@ -1905,8 +1905,32 @@ fun compileC {cname, oname, ename, libs, profile, debug, dev, linker, link = lin
                                                   " " ^ s)
                                      (List.filter preprocessor link'))
 
+        (* The words of CCARGS but its linker flags, for the compiles: clang
+         * with -Werror refuses -L and -l there as unused, and CCARGS
+         * usually has -L for the libraries of the database drivers. The
+         * link gets CCARGS whole. A -L or -l on its own takes the next
+         * word as its argument. CCARGS is split into words at white space,
+         * as Config splits the OpenSSL flags: the shell reads the rest as
+         * before, but a linker flag with a quoted space in it would be cut
+         * apart. *)
+        val compileArgs =
+            let
+                fun linkerFlag s = List.exists (fn p => String.isPrefix p s) ["-L", "-l"]
+                fun keep ws =
+                    case ws of
+                        [] => []
+                      | w :: ws => if w = "-L" orelse w = "-l" then
+                                       keep (List.drop (ws, Int.min (1, length ws)))
+                                   else if linkerFlag w then
+                                       keep ws
+                                   else
+                                       w :: keep ws
+            in
+                String.concatWith " " (keep (String.tokens Char.isSpace Config.ccArgs))
+            end
+
         fun compileOne (cname, oname) =
-            (Settings.getCCompiler ()) ^ " " ^ Config.ccArgs ^ " " ^ Config.pthreadCflags ^ " -Wimplicit -Werror -Wno-unused-value"
+            (Settings.getCCompiler ()) ^ " " ^ compileArgs ^ " " ^ Config.pthreadCflags ^ " -Wimplicit -Werror -Wno-unused-value"
             ^ opt ^ " -I " ^ !Settings.configInclude
             ^ " " ^ !Settings.configIcuIncludes
             ^ " " ^ #compile proto
