@@ -51,7 +51,8 @@ val ident = String.translate (fn #"'" => "PRIME"
 val identifierQuote = "\""
 
 (* How long a connection waits for a lock that another connection holds, in
- * milliseconds: SQLite's busy_timeout, set on every connection. *)
+ * milliseconds, by the clock: the busy timeout of every connection, which
+ * uw_db_busy keeps. *)
 val busyTimeout = "10000"
 
 (* What a statement, a BEGIN IMMEDIATE or a draw from a sequence does when
@@ -417,6 +418,55 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              newline,
              newline,
 
+             (* The busy handler of every connection: it waits as
+              * SQLite's busy_timeout does, in naps from 1 ms growing to
+              * 100 ms, but until busyTimeout milliseconds have passed on
+              * the clock rather than until the naps it asked for add up to
+              * them.  A nap can last much longer than asked -- on the
+              * macOS runners of GitHub a nap of 1 ms takes about 5, one of
+              * 100 ms about 135 -- and busy_timeout's 10 s then become 14.
+              * SQLite calls the handler with count 0 when a statement
+              * starts to wait, and with count 1, 2, ... while it goes on
+              * waiting; a connection is used by one thread at a time, so
+              * the deadline is the thread's. *)
+             string "static _Thread_local long long uw_db_busy_until;",
+             newline,
+             newline,
+             string "static int uw_db_busy(void *data, int count) {",
+             newline,
+             box [string "static const int naps[] = { 1, 2, 5, 10, 15, 20, 25, 25, 25, 50, 50, 100 };",
+                  newline,
+                  string "struct timespec ts;",
+                  newline,
+                  string "long long now, nap;",
+                  newline,
+                  newline,
+                  string "(void)data;",
+                  newline,
+                  string "clock_gettime(CLOCK_MONOTONIC, &ts);",
+                  newline,
+                  string "now = ts.tv_sec * 1000LL + ts.tv_nsec / 1000000;",
+                  newline,
+                  string ("if (count == 0) uw_db_busy_until = now + " ^ busyTimeout ^ ";"),
+                  newline,
+                  string "if (now >= uw_db_busy_until) return 0;",
+                  newline,
+                  string "nap = naps[count < 12 ? count : 11];",
+                  newline,
+                  string "if (nap > uw_db_busy_until - now) nap = uw_db_busy_until - now;",
+                  newline,
+                  string "ts.tv_sec = nap / 1000;",
+                  newline,
+                  string "ts.tv_nsec = (nap % 1000) * 1000000;",
+                  newline,
+                  string "nanosleep(&ts, NULL);",
+                  newline,
+                  string "return 1;",
+                  newline],
+             string "}",
+             newline,
+             newline,
+
              string "static void uw_db_close(uw_context ctx);",
              newline,
              newline,
@@ -439,13 +489,11 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              string "\"Can't open SQLite database: %s\", sqlite_db_path);",
              newline,
              newline,
-             (* busy_timeout first: PRAGMA synchronous loads the schema,
-              * and so needs a read lock, which another process may hold
-              * for a while. *)
-             string ("if (sqlite3_exec(sqlite, \"PRAGMA busy_timeout = " ^ busyTimeout ^ "\", NULL, NULL, NULL) != SQLITE_OK)"),
+             (* The busy handler first: PRAGMA synchronous loads the
+              * schema, and so needs a read lock, which another process
+              * may hold for a while. *)
+             string "sqlite3_busy_handler(sqlite, uw_db_busy, NULL);",
              newline,
-             box [string "uw_error(ctx, FATAL, \"Can't set `PRAGMA busy_timeout` for SQLite database: %s\", sqlite3_errmsg(sqlite));",
-                  newline],
              newline,
              string "if (sqlite3_exec(sqlite, \"PRAGMA foreign_keys = ON\", NULL, NULL, NULL) != SQLITE_OK)",
              newline,
@@ -608,7 +656,7 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
               * decides READ ONLY.
               *
               * A transaction that may not wait for a lock (uw_db_may_wait)
-              * asks for the write lock once: busy_timeout is off for its
+              * asks for the write lock once: the busy handler is off for its
               * BEGIN, which fails at once while another connection holds
               * the lock.  That is the expunger's, while the client pruner
               * keeps every request of the process out.
@@ -629,11 +677,11 @@ fun init {dbstring, prepared = ss, tables, views, sequences} =
              string "int r;",
              newline,
              newline,
-             string "if (!may_wait) sqlite3_busy_timeout(conn->conn, 0);",
+             string "if (!may_wait) sqlite3_busy_handler(conn->conn, NULL, NULL);",
              newline,
              string "r = sqlite3_exec(conn->conn, could_write ? \"BEGIN IMMEDIATE\" : \"BEGIN\", NULL, NULL, NULL);",
              newline,
-             string ("if (!may_wait) sqlite3_busy_timeout(conn->conn, " ^ busyTimeout ^ ");"),
+             string "if (!may_wait) sqlite3_busy_handler(conn->conn, uw_db_busy, NULL);",
              newline,
              newline,
              string "if (r == SQLITE_OK)",

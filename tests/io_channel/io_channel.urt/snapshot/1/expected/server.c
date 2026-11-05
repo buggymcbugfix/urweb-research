@@ -245,6 +245,26 @@
       return 0;
       }
     
+    static _Thread_local long long uw_db_busy_until;
+    
+    static int uw_db_busy(void *data, int count) {
+    static const int naps[] = { 1, 2, 5, 10, 15, 20, 25, 25, 25, 50, 50, 100 };
+     struct timespec ts;
+     long long now, nap;
+     
+     (void)data;
+     clock_gettime(CLOCK_MONOTONIC, &ts);
+     now = ts.tv_sec * 1000LL + ts.tv_nsec / 1000000;
+     if (count == 0) uw_db_busy_until = now + 10000;
+     if (now >= uw_db_busy_until) return 0;
+     nap = naps[count < 12 ? count : 11];
+     if (nap > uw_db_busy_until - now) nap = uw_db_busy_until - now;
+     ts.tv_sec = nap / 1000;
+     ts.tv_nsec = (nap % 1000) * 1000000;
+     nanosleep(&ts, NULL);
+     return 1;
+     }
+    
     static void uw_db_close(uw_context ctx);
     
     static void uw_db_init(uw_context ctx) {
@@ -256,9 +276,8 @@
     const char *sqlite_db_path = env_db_str == NULL ? "io_channel.db" : env_db_str;
     if (sqlite3_open_v2(sqlite_db_path, &sqlite, SQLITE_OPEN_READWRITE, NULL) != SQLITE_OK) uw_error(ctx, FATAL, "Can't open SQLite database: %s", sqlite_db_path);
     
-    if (sqlite3_exec(sqlite, "PRAGMA busy_timeout = 10000", NULL, NULL, NULL) != SQLITE_OK)
-    uw_error(ctx, FATAL, "Can't set `PRAGMA busy_timeout` for SQLite database: %s", sqlite3_errmsg(sqlite));
-     
+    sqlite3_busy_handler(sqlite, uw_db_busy, NULL);
+    
     if (sqlite3_exec(sqlite, "PRAGMA foreign_keys = ON", NULL, NULL, NULL) != SQLITE_OK)
     uw_error(ctx, FATAL, "Can't enable foreign_keys for SQLite database: %s", sqlite3_errmsg(sqlite));
      
@@ -338,9 +357,9 @@
     int may_wait = uw_db_may_wait(ctx);
     int r;
     
-    if (!may_wait) sqlite3_busy_timeout(conn->conn, 0);
+    if (!may_wait) sqlite3_busy_handler(conn->conn, NULL, NULL);
     r = sqlite3_exec(conn->conn, could_write ? "BEGIN IMMEDIATE" : "BEGIN", NULL, NULL, NULL);
-    if (!may_wait) sqlite3_busy_timeout(conn->conn, 10000);
+    if (!may_wait) sqlite3_busy_handler(conn->conn, uw_db_busy, NULL);
     
     if (r == SQLITE_OK)
     return 0;
