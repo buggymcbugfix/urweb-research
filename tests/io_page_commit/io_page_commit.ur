@@ -86,6 +86,25 @@ fun adoptedHandled () : io page =
     return <xml><body>adoptedHandled: {[case r of None => "None" | Some () => "Some"]};
       open afterwards: {[isOpen]}</body></xml>
 
+(* A rollback callback that calls uw_error in a handled transaction that
+   fails: which message the computation sees. *)
+fun rollbackRaises () : io page =
+    r <- attemptTransaction (Probe.raiseInRollback "rollbackRaises";
+                             dml (INSERT INTO t (N) VALUES (30));
+                             (error <xml>the transaction's own failure</xml> : transaction unit));
+    m <- io_errorMessage;
+    return <xml><body>rollbackRaises: {[case r of None => "None" | Some () => "Some"]};
+      message: {[m]}</body></xml>
+
+(* A free callback that calls uw_error, after the COMMIT of a handled
+   transaction: what the computation sees of a transaction that committed. *)
+fun freeRaises () : io page =
+    r <- attemptTransaction (Probe.raiseInFree "freeRaises";
+                             dml (INSERT INTO t (N) VALUES (31)));
+    m <- io_errorMessage;
+    return <xml><body>freeRaises: {[case r of None => "None" | Some () => "Some"]};
+      message: {[m]}</body></xml>
+
 (* The write left in progress by busyFatal, ended; the transaction it left
    open has been rolled back by the failed request. *)
 fun unlock () : io page =
@@ -105,4 +124,6 @@ fun main () : transaction page =
       <a href={io_url (unlock ())}>unlock</a>
       <a href={io_url (adopted ())}>adopted</a>
       <a href={io_url (adoptedHandled ())}>adoptedHandled</a>
+      <a href={io_url (rollbackRaises ())}>rollbackRaises</a>
+      <a href={io_url (freeRaises ())}>freeRaises</a>
     </body></xml>

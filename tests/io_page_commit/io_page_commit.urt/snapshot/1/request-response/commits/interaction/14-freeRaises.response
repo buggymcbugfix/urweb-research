@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Content-type: text/html; charset=utf-8
+Connection: close
+Content-length: 122
+
+<!DOCTYPE html><html><head></head><body>freeRaises: None;
+message: raised in the free callback of freeRaises</body></html>

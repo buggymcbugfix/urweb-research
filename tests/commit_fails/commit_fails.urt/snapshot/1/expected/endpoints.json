@@ -9,4 +9,8 @@
                                                                           
    {"method": "GET", "url": "Commit_fails/raisingSend", "content-type": null},
                                                                               
-   {"method": "GET", "url": "Commit_fails/sending", "content-type": null}]}
+   {"method": "GET", "url": "Commit_fails/sending", "content-type": null},
+                                                                          
+   {"method": "GET", "url": "Commit_fails/rollbackRaises", "content-type": null}
+   ,
+    {"method": "GET", "url": "Commit_fails/freeRaises", "content-type": null}]}

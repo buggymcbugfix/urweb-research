@@ -23,6 +23,8 @@ database dbname=commit_fails.db
     val failInCommitBeforeDb : string -> transaction unit
     val failInCommit : string -> transaction unit
     val raiseInCommit : string -> transaction unit
+    val raiseInRollback : string -> transaction unit
+    val raiseInFree : string -> transaction unit
     val pushCleanupT : string -> transaction unit
     val popCleanupT : transaction unit
     val pushCleanupIo : string -> io unit
@@ -1568,6 +1570,8 @@ database dbname=commit_fails.db
     val raising : unit -> transaction page
     val raisingSend : unit -> transaction page
     val sending : unit -> transaction page
+    val rollbackRaises : unit -> transaction page
+    val freeRaises : unit -> transaction page
    end =
   struct
    table t : [#N = int] keys Basis.no_primary_key constraints
@@ -1671,5 +1675,28 @@ database dbname=commit_fails.db
                return
                 (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
                   (body {}) (Basis.cdata "sent"))))
+    
+    val rec
+     rollbackRaises : (_ :: Type) -> transaction page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind (Probe.raiseInRollback "raisedRollback")
+          (fn _ : {} =>
+            Basis.bind (dml (Basis.insert t {N = Basis.sql_inject 4}))
+             (fn _ : {} => error (Basis.cdata "the handler's own failure")))
+    
+    val rec
+     freeRaises : (_ :: Type) -> transaction page =
+      fn $x : (_ :: Type) =>
+       case $x of
+        {} =>
+         Basis.bind (Probe.raiseInFree "raisedFree")
+          (fn _ : {} =>
+            Basis.bind (dml (Basis.insert t {N = Basis.sql_inject 5}))
+             (fn _ : {} =>
+               return
+                (Basis.tag Basis.null Basis.None Basis.noStyle Basis.None {}
+                  (body {}) (Basis.cdata "freeRaises: never sent"))))
    end
  export Commit_fails

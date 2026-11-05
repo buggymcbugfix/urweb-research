@@ -23,6 +23,8 @@ database dbname=io_rpc_attempts.db
     val failInCommitBeforeDb : string -> transaction unit
     val failInCommit : string -> transaction unit
     val raiseInCommit : string -> transaction unit
+    val raiseInRollback : string -> transaction unit
+    val raiseInFree : string -> transaction unit
     val pushCleanupT : string -> transaction unit
     val popCleanupT : transaction unit
     val pushCleanupIo : string -> io unit

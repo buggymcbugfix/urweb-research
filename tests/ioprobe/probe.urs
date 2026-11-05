@@ -59,6 +59,12 @@ val failInCommit : string -> transaction unit
    uw_error with BOUNDED_RETRY, which a callback must not do. *)
 val raiseInCommit : string -> transaction unit
 
+(* Transactionals (with a rollback callback) whose rollback callback, or
+   whose free callback, calls uw_error with FATAL, which a callback must
+   not do either. *)
+val raiseInRollback : string -> transaction unit
+val raiseInFree : string -> transaction unit
+
 (* Cleanup handlers (uw_push_cleanup, uw_pop_cleanup) that print when run. *)
 val pushCleanupT : string -> transaction unit
 val popCleanupT : transaction unit

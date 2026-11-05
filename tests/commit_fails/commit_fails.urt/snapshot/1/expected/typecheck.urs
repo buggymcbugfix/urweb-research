@@ -16,4 +16,10 @@ structure Commit_fails : sig
                            
                            val sending :
                             unit -> transaction (xml ([Html = ()]) ([]) ([]))
+                           
+                           val rollbackRaises :
+                            unit -> transaction (xml ([Html = ()]) ([]) ([]))
+                           
+                           val freeRaises :
+                            unit -> transaction (xml ([Html = ()]) ([]) ([]))
                           end
