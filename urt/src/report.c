@@ -136,6 +136,67 @@ void say(enum style s, const char *verdict, const char *test_dir, const char *no
     printf("%s %s%s\n", word(s, verdict), subject(test_dir), note);
 }
 
+/* Text for a workflow command: % and the line ends are escaped, and in a
+ * property (prop) also , and :, as GitHub reads them. */
+static void put_escaped(FILE *out, const char *s, size_t n, int prop) {
+    size_t i;
+    for (i = 0; i < n && s[i]; i++) {
+        switch (s[i]) {
+        case '%': fputs("%25", out); break;
+        case '\r': fputs("%0D", out); break;
+        case '\n': fputs("%0A", out); break;
+        case ',': fputs(prop ? "%2C" : ",", out); break;
+        case ':': fputs(prop ? "%3A" : ":", out); break;
+        default: fputc(s[i], out);
+        }
+    }
+}
+
+void annotate(const char *file, const char *title, const char *diff) {
+    const char *ga = getenv("GITHUB_ACTIONS");
+    char text[4001];
+    size_t n = 0;
+    long line = 1;
+    FILE *f;
+    if (!ga || strcmp(ga, "true")) {
+        return;
+    }
+    if (diff && (f = fopen(diff, "rb"))) {
+        n = fread(text, 1, sizeof text - 1, f);
+        fclose(f);
+    }
+    text[n] = 0;
+    if (n) {
+        /* The line of the expected file where the first change starts. */
+        const char *hunk = strstr(text, "\n@@ -");
+        if (hunk) {
+            line = strtol(hunk + 5, NULL, 10);
+        }
+        if (line < 1) {
+            line = 1;
+        }
+    }
+    fflush(stdout);
+    fputs("::error", stdout);
+    if (file) {
+        fputs(" file=", stdout);
+        put_escaped(stdout, file, strlen(file), 1);
+        printf(",line=%ld,", line);
+    } else {
+        fputc(' ', stdout);
+    }
+    fputs("title=", stdout);
+    put_escaped(stdout, title, strlen(title), 1);
+    fputs("::", stdout);
+    if (n) {
+        put_escaped(stdout, text, n, 0);
+    } else {
+        put_escaped(stdout, title, strlen(title), 0);
+    }
+    fputc('\n', stdout);
+    fflush(stdout);
+}
+
 void warn(const char *msg) {
     fprintf(stderr, "%s %s\n", word(ST_WARN, "WARN"), msg);
 }
@@ -151,6 +212,7 @@ static void explain(va_list ap) {
 void die(const char *msg, ...) {
     va_list ap;
     fprintf(stderr, "%s %s\n", word(ST_BAD, "ERROR"), msg);
+    annotate(NULL, msg, NULL);
     va_start(ap, msg);
     explain(ap);
     va_end(ap);
@@ -162,6 +224,7 @@ void die_later(const char *msg, ...) {
     report_failed = 1;
     report_problems++;
     fprintf(stderr, "%s %s\n", word(ST_BAD, "ERROR"), msg);
+    annotate(NULL, msg, NULL);
     va_start(ap, msg);
     explain(ap);
     va_end(ap);

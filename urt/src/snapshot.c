@@ -1294,6 +1294,7 @@ static void settle(const char *run_dir, const char *rel, const char *now, char *
         if (diff_into(want, clean, d) != 0) {
             list_add(bad, size, rel);
             sl_push(diffs, d);
+            annotate(want, fmt("FAIL %s", want), d);
         }
     } else if (!exists(clean)) {
         if (exists(want)) {
@@ -2618,6 +2619,7 @@ static void run_case(const char *case_dir, const char *project) {
         if (opt_check) {
             if (diff_into(want, now, fmt("%s.diff", f)) != 0) {
                 list_add(bad, sizeof bad, a);
+                annotate(want, fmt("FAIL %s", want), fmt("%s.diff", f));
             }
         } else {
             if (!same_contents(want, now)) {

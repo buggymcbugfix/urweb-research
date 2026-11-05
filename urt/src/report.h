@@ -55,6 +55,11 @@ const char *info(const char *s);
 /* A verdict line on stdout: the verdict, the test it is about, and
  * anything worth adding. */
 void say(enum style s, const char *verdict, const char *test_dir, const char *note);
+/* On GitHub Actions (GITHUB_ACTIONS=true), a failure as a workflow command,
+ * which GitHub shows as an annotation of the run: on FILE (none: the run
+ * as a whole) at the first line the unified DIFF changes, with the start of
+ * DIFF, or else TITLE, as its text.  Elsewhere it does nothing. */
+void annotate(const char *file, const char *title, const char *diff);
 
 /* A warning on stderr: WARN, then the message. */
 void warn(const char *msg);

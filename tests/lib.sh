@@ -24,8 +24,30 @@ failed=0
 update=0
 if [ "${1:-}" = -u ]; then update=1; shift; fi
 
+# annotate FILE TITLE [DIFF]: on GitHub Actions (GITHUB_ACTIONS=true), a
+# failure is also written as a workflow command, which GitHub shows as an
+# annotation of the run, on FILE at the first line DIFF changes, with the
+# start of DIFF as its text. Elsewhere it does nothing. GitHub reads the
+# command from the output of the step, whichever stream it is on.
+annotate() {
+  [ "${GITHUB_ACTIONS:-}" = true ] || return 0
+  local file=${1#"$root/"} title=$2 diff=${3:-} line=1 text
+  if [ -n "$diff" ] && [ -s "$diff" ]; then
+    line=$(sed -n 's/^@@ -\([0-9]*\).*/\1/p' "$diff" | head -n 1)
+    [ "${line:-0}" -gt 0 ] || line=1
+    # The command is one line: %, CR and LF in the text are escaped.
+    text=$(head -c 4000 "$diff" | awk '{ gsub(/%/, "%25"); gsub(/\r/, "%0D"); printf "%s%%0A", $0 }')
+  else
+    text=$title
+  fi
+  # In the properties, , and : are escaped too.
+  title=$(printf '%s' "$title" | sed 's/%/%25/g; s/,/%2C/g; s/:/%3A/g')
+  file=$(printf '%s' "$file" | sed 's/%/%25/g; s/,/%2C/g; s/:/%3A/g')
+  echo "::error file=$file,line=$line,title=$title::$text"
+}
+
 # die MESSAGE: the runner cannot run.
-die() { echo "$suite: $*" >&2; exit 2; }
+die() { echo "$suite: $*" >&2; annotate "$here/run.sh" "$suite: $*"; exit 2; }
 
 # no_cases ARG...: for a runner that takes no arguments but -u.
 no_cases() { [ $# -eq 0 ] || die "usage: run.sh [-u]"; }
@@ -76,10 +98,12 @@ compare() {
     mkdir -p "$(dirname "$expected")" && cp "$actual" "$expected" && echo "$label updated"
   elif [ ! -f "$expected" ]; then
     echo "$label: nothing expected yet (run with -u to record)" >&2; failed=1
+    annotate "$expected" "$label: nothing expected yet"
   elif diff -u "$expected" "$actual" > "$actual.diff"; then
     echo "$label ok"
   else
     cat "$actual.diff" >&2; echo "$label FAILED" >&2; failed=1
+    annotate "$expected" "$label FAILED" "$actual.diff"
   fi
 }
 

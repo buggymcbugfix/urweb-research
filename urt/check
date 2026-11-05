@@ -64,6 +64,13 @@ update=''
 [ -x "$here/urt" ] || { echo "$me: no urt at $here (make builds it)" >&2; exit 2; }
 
 groups=${*:-snapshot pty fmt fmt-demo fmt-oracle}
+
+# On GitHub Actions a failed case is also written as a workflow command,
+# which GitHub shows as an annotation (annotate below). The urt runs the
+# cases make must not do so too: what they print is compared with the
+# expected transcripts.
+on_github=${GITHUB_ACTIONS:-}
+unset GITHUB_ACTIONS
 for g in $groups; do
     case $g in
         snapshot | pty | fmt | fmt-demo | fmt-oracle) ;;
@@ -82,6 +89,20 @@ n=0 failed=0
 ok() {
     n=$((n + 1))
     echo "ok $1"
+}
+
+# annotate FILE TITLE [DIFF]: the annotation, as tests/lib.sh writes it.
+annotate() {
+    [ "$on_github" = true ] || return 0
+    file=urt/${1#"$here/"} title=$2 line=1 text=$2
+    if [ -n "${3:-}" ] && [ -s "$3" ]; then
+        line=$(sed -n 's/^@@ -\([0-9]*\).*/\1/p' "$3" | head -n 1)
+        [ "${line:-0}" -gt 0 ] || line=1
+        text=$(head -c 4000 "$3" | awk '{ gsub(/%/, "%25"); gsub(/\r/, "%0D"); printf "%s%%0A", $0 }')
+    fi
+    title=$(printf '%s' "$title" | sed 's/%/%25/g; s/,/%2C/g; s/:/%3A/g')
+    file=$(printf '%s' "$file" | sed 's/%/%25/g; s/,/%2C/g; s/:/%3A/g')
+    echo "::error file=$file,line=$line,title=$title::$text"
 }
 
 # fail NAME REASON: one failed case
@@ -136,10 +157,12 @@ verdict() {
         echo "updated $name"
     elif [ ! -f "$1/expected" ]; then
         fail "$name" "no expected transcript; $me -u writes one"
-    elif diff -u --label "$name/expected" --label "$name (now)" "$1/expected" "$2"; then
+    elif diff -u --label "$name/expected" --label "$name (now)" "$1/expected" "$2" > "$tmp/verdict.diff"; then
         ok "$name"
     else
+        cat "$tmp/verdict.diff"
         fail "$name"
+        annotate "$1/expected" "urt check: $name FAILED" "$tmp/verdict.diff"
     fi
 }
 
