@@ -434,7 +434,9 @@ static int fastcgi_connect(const char *sock_path) {
  * cannot settle it, since the program may close the connection a moment
  * later, and fastcgi_request copes with that too.  A closed one is
  * readable with nothing to read; bytes to read, which only a program that
- * writes after its FCGI_END_REQUEST leaves, count as open. */
+ * writes after its FCGI_END_REQUEST leaves, count as open.  The peek
+ * comes only after poll has found the connection readable, so it does not
+ * block: no MSG_DONTWAIT, which strict C99 on FreeBSD does not declare. */
 static int connection_open(int fd) {
     struct pollfd p;
     unsigned char c;
@@ -445,8 +447,8 @@ static int connection_open(int fd) {
     if (poll(&p, 1, 0) <= 0) {
         return 1;
     }
-    n = recv(fd, &c, 1, MSG_PEEK | MSG_DONTWAIT);
-    return n > 0 || (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR));
+    n = recv(fd, &c, 1, MSG_PEEK);
+    return n > 0 || (n < 0 && errno == EINTR);
 }
 
 int fastcgi_request(const char *sock_path, int *conn, int keep, const struct strlist *params, const char *body,
