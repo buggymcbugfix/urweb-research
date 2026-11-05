@@ -15,5 +15,6 @@ val pageBoundary : transaction string
 (* uw_malloc of size zero: non-NULL, and takes no room. *)
 val zero : transaction string
 
-(* The context's buffer statistics (uw_memstats), in the log. *)
+(* The context's buffer statistics (uw_memstats), in the log, with the
+   heap's available size rounded up to 64 KiB. *)
 val stats : transaction unit

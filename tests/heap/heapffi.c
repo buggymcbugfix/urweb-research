@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -81,7 +82,38 @@ uw_Basis_string uw_Heapffi_zero(uw_context ctx) {
   return uw_strdup(ctx, buf);
 }
 
+// uw_memstats, with the heap's available size rounded up to 64 KiB.  The
+// runtime keeps the heap in whole pages, so the exact size depends on the
+// machine's page size (4 KiB on most, 16 KiB on Apple Silicon); 64 KiB is a
+// multiple of every page size in use, and the sizes of the decay runs
+// still go down from one request to the next.  The context's buffers are
+// not public, so uw_memstats prints to a temporary file put in place of
+// stdout, and its lines are copied from there.  The runs that print
+// statistics send one request at a time, so no other thread prints
+// meanwhile.
 uw_unit uw_Heapffi_stats(uw_context ctx) {
+  FILE *f = tmpfile();
+  int saved;
+  char line[256];
+  unsigned long used, avail;
+
+  if (!f)
+    uw_error(ctx, FATAL, "tmpfile: %s", strerror(errno));
+  fflush(stdout);
+  saved = dup(1);
+  dup2(fileno(f), 1);
   uw_memstats(ctx);
+  fflush(stdout);
+  dup2(saved, 1);
+  close(saved);
+
+  rewind(f);
+  while (fgets(line, sizeof line, f))
+    if (sscanf(line, "Heap: %lu/%lu", &used, &avail) == 2)
+      printf("Heap: %lu/%lu\n", used, (avail + 65535) / 65536 * 65536);
+    else
+      fputs(line, stdout);
+  fclose(f);
+  fflush(stdout);
   return uw_unit_v;
 }
