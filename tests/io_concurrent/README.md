@@ -3,8 +3,10 @@ outside any transaction, driven by several clients at once over eight
 worker threads, with what each request answered, when it was answered
 relative to the others, the server's log and the database compared with
 what each case expects. Timing goes into the transcripts in coarse
-buckets, within 1.5 s or after 3 s or more, with the sleeps long enough for
-the buckets to be far apart, so that a run repeats on any machine; what is
+buckets, within 1.5 s or after 3 s or more (within 5 s or after 10 s or
+more where what the time is to tell apart is SQLite's busy timeout), with
+the sleeps long enough for the buckets to be far apart, so that a run
+repeats on any machine; what is
 a matter of timing (which writer went first, how often a transaction was
 run again) is sorted or counted away.
 

@@ -1,2 +1,2 @@
-the application gave up within 1.5 s
+the application gave up within 5 s
   | 1 x start-up: Fatal initialization error: The SQLite database is in journal mode delete, not WAL (set it with PRAGMA journal_mode = WAL)

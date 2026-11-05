@@ -5,8 +5,9 @@
 # each request answered, when it was answered relative to the others, the
 # server's log and the database compared with what each case expects.
 # Timing goes into the transcript in coarse buckets ("within 1.5 s", "after
-# 3 s or more"), so that a run repeats on any machine; the sleeps are long
-# enough for the buckets to be wide apart.
+# 3 s or more", wider where the case allows: see bucket), so that a run
+# repeats on any machine; the sleeps are long enough for the buckets to be
+# wide apart.
 #
 #   tests/io_concurrent/run.sh [-u] [CASE...]   all cases unless given; -u
 #                                               rewrites what the cases expect
@@ -82,20 +83,22 @@ start() {
   app_pid=$pid
 }
 
-# try_start [-cache] [-writer-first] [FLAGS...]: launch, for a case where
-# the application may not start: whether it started or gave up, and after
-# how long, in buckets.
+# try_start [-untimed] [-cache] [-writer-first] [FLAGS...]: launch, for a
+# case where the application may not start: whether it started or gave
+# up, and after how long, in buckets; with -untimed, not how long.
 try_start() {
-  local s e
+  local s e what timed=1
+  if [ "${1:-}" = -untimed ]; then timed=; shift; fi
   s=$(date +%s%N)
   launch "$@"
   e=$(date +%s%N)
   if [ "${status:-}" = OK ]; then
     app_pid=$pid
-    bucket "the application started" $(( (e - s) / 1000000 ))
+    what="the application started"
   else
-    bucket "the application gave up" $(( (e - s) / 1000000 ))
+    what="the application gave up"
   fi
+  if [ -n "$timed" ]; then bucket "$what" $(( (e - s) / 1000000 )); else echo "$what"; fi
 }
 
 # client NAME: a client, made by loading the page; its id and password
@@ -139,13 +142,21 @@ bg_rpc() { timed "$1" curl_rpc "$2" "$3" & }
 bg_page() { timed "$1" curl_page "$2" & }
 bg_msgs() { timed "$1" curl_msgs "$2" & }
 
-# bucket WHAT MS: WHAT, and when, in buckets.
+# bucket WHAT MS: WHAT, and when, in buckets: within bucket_fast ms, or
+# after bucket_slow ms or more, 1.5 s and 3 s unless the case sets them
+# for the call (bucket_fast=5000 bucket_slow=10000 slowest ...).  The
+# default buckets tell "at once" from a wait for a sleep of a case, the
+# shortest of which ends 3.5 s after the request; a case where the wait
+# to tell apart is SQLite's busy timeout of 10 s sets wider ones, for room
+# on a slow machine.
 bucket() {
-  if [ "$2" -lt 1500 ]; then echo "$1 within 1.5 s"
-  elif [ "$2" -ge 3000 ]; then echo "$1 after 3 s or more"
+  local fast=${bucket_fast:-1500} slow=${bucket_slow:-3000}
+  if [ "$2" -lt "$fast" ]; then echo "$1 within $(seconds "$fast") s"
+  elif [ "$2" -ge "$slow" ]; then echo "$1 after $(seconds "$slow") s or more"
   else echo "$1 after $2 ms (between the buckets)"
   fi
 }
+seconds() { awk -v ms="$1" 'BEGIN { print ms / 1000 }'; }
 
 # took LABEL: how long the request took, in buckets.
 took() { bucket "$1: answered" "$(cat "$out/$transcript_name.$1.ms")"; }

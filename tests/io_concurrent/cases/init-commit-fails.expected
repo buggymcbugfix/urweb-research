@@ -1,2 +1,2 @@
-the application gave up within 1.5 s
+the application gave up within 5 s
   | 1 x Commit error: cannot commit transaction - SQL statements in progress<br />start-up: Failed to initialize database!  Error running SQL COMMIT
