@@ -43,13 +43,11 @@ cd "$here"
 } > ci-out/env.txt 2>&1
 
 export CC=cc
-# As for clang on Linux: the flags of the build assume gcc.
-export CFLAGS="-g -O2 -Wno-error"
 export SQHEADER=/usr/local/include/sqlite3.h
 export PGHEADER=/usr/local/include/libpq-fe.h
 export ICU_INCLUDES=-I/usr/local/include
 export ICU_LIBS=-L/usr/local/lib
-export CCARGS="-I$here/out/include -I/usr/local/include -L/usr/local/lib -Wno-error=int-conversion -Qunused-arguments"
+export CCARGS="-I$here/out/include -I/usr/local/include -L/usr/local/lib -Wno-error=int-conversion"
 {
   ./autogen.sh && ./configure --prefix="$here/out" &&
   gmake -C src/c -j4 && gmake -C src/c install && gmake mlton

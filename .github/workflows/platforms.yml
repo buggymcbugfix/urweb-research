@@ -42,14 +42,8 @@ jobs:
           in
           base.overrideAttrs (o: {
             nativeBuildInputs = (o.nativeBuildInputs or [ ]) ++ [ pkgs.clang ];
-            # The flags of the build assume gcc. -Wno-error: -Wno-use-after-free
-            # is unknown to clang (the warnings stay in the build log).
-            # -Qunused-arguments: CCARGS has -L, which the compiles of the
-            # generated C get too, and clang refuses as unused under -Werror.
             shellHook = o.shellHook + ''
               export CC=\${pkgs.clang}/bin/clang
-              export CFLAGS="-g -O2 -Wno-error"
-              export CCARGS="\$CCARGS -Qunused-arguments"
             '';
           })
           EOF
