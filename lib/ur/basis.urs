@@ -1019,6 +1019,7 @@ val bdi : bodyTag boxAttrs
 val a : bodyTag ([Link = transaction page, Href = url, Target = string, Rel = string, Download = string] ++ boxAttrs)
 
 val img : bodyTag ([Alt = string, Src = url, Width = int, Height = int,
+                    Loading = string,
                     Onabort = transaction unit, Onerror = transaction unit,
                     Onload = transaction unit] ++ boxAttrs)
 
